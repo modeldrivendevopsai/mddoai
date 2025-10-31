@@ -209,10 +209,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: coverage-report
-          path: public/
+          path: docs/   # match the GitHub Pages folder
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public/
+          path: docs/
 
   deploy:
     name: Deploy GitHub Pages
@@ -220,13 +221,12 @@ jobs:
     needs: deploy_pages
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       pages: write
       id-token: write
     steps:
       - uses: actions/deploy-pages@v4
-
+      
   release_candidate:
     name: Release Candidate (Docker Push)
     runs-on: ubuntu-latest
