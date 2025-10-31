@@ -161,19 +161,40 @@ jobs:
     defaults:
       run:
         working-directory: main
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: gradle-build
           path: main/build/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+          path: main/build/jacoco/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: integration-test-results
+          path: main/build/jacoco/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-results
+          path: main/build/jacoco/
+
       - run: chmod +x ./gradlew
       - run: ./gradlew jacocoTestReport
+
       - run: ls -R build/reports/jacoco/
+
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: ${{ github.workspace }}/**/build/reports/jacoco/test/html/
+          path: main/build/reports/jacoco/test/html/
+
 
   deploy_pages:
     name: Upload Coverage to Pages
