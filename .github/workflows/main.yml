@@ -186,14 +186,14 @@ jobs:
           path: main/build/jacoco/
 
       - run: chmod +x ./gradlew
-      - run: ./gradlew jacocoTestReport
+      - run: ./gradlew unitJacocoTestReport integrationJacocoTestReport e2eJacocoTestReport
 
       - run: ls -R build/reports/jacoco/
 
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: main/build/reports/jacoco/test/html/
+          path: main/build/reports/jacoco/**/html/
 
 
   deploy_pages:
