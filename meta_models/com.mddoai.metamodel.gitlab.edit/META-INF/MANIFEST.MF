@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: com.mddoai.metamodel.gitlab.edit;singleton:=true
+Automatic-Module-Name: com.mddoai.metamodel.gitlab.edit
+Bundle-Version: 1.0.0.qualifier
+Bundle-ClassPath: .
+Bundle-Activator: com.mddoai.metamodel.gitlab.gitlabMM.provider.GitlabMMEditPlugin$Implementation
+Bundle-Vendor: %providerName
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.mddoai.metamodel.gitlab.gitlabMM.provider
+Require-Bundle: org.eclipse.core.runtime,
+ com.mddoai.metamodel.gitlab;visibility:=reexport,
+ org.eclipse.emf.edit;visibility:=reexport
+Bundle-ActivationPolicy: lazy

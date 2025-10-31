@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.mddoai.feature"
+      label="com.mddoai"
+      version="1.0.0.qualifier"
+      provider-name="MDDOAI">
+
+   <description url="http://www.example.com/description">
+      [Enter Feature Description here.]
+   </description>
+
+   <copyright url="http://www.example.com/copyright">
+      [Enter Copyright Description here.]
+   </copyright>
+
+   <license url="http://www.example.com/license">
+      [Enter License Description here.]
+   </license>
+
+   <plugin
+         id="com.mddoai.codegeneration.gitlab.acceleo"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.gitLab"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.gitlab"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.gitlab.edit"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.gitlab.editor"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.pim"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.pim.design"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.pim.edit"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.pim.editor"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.swarch"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.swarch.design"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.swarch.edit"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.swarch.editor"
+         version="0.0.0"/>
+
+</feature>

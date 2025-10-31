@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/com.mddoai.feature_1.0.0.202510171458.jar" id="com.mddoai.feature" version="1.0.0.202510171458">
+      <category name="MDDOAI"/>
+   </feature>
+   <category-def name="MDDOAI" label="MDDOAI"/>
+</site>

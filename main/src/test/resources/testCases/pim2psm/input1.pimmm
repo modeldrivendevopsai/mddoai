@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ASCII"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="build" tool="docker">
+    <script name="build.script">
+      <commands>
+        <commands command="build -t ${IMAGE_TAG} ."/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="unitTest" tool="python">
+    <script name="unitTest.script">
+      <commands>
+        <commands command="test/run_unit_tests.py"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="healthCheck" tool="curl">
+    <script name="healthCheck.script">
+      <commands>
+        <commands command="./scripts/health_check.sh"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="push" tool="docker">
+    <script name="push.script">
+      <commands>
+        <commands command="login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
+        <commands command="push ${IMAGE_TAG}"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

@@ -1,0 +1,281 @@
+-- @nsURI PIM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pim2gitlabmodel;
+create OUT : GitLabMM from IN : PIM;
+
+-- Main rule to transform a PIM Pipeline to a GitLab Pipeline
+rule Pipeline2GitlabPipeline {
+    from
+        source : PIM!Pipeline
+    to
+        target : GitLabMM!Pipeline (
+            stages <- source.stages->collect(stage | stage.name),
+            jobs <- source.stages->collect(stage | thisModule.createJobFromStage(stage)),
+            variables <- if thisModule.shouldHaveVariables(source) then
+                    thisModule.createVariables(source)
+                else
+                    OclUndefined
+                endif
+        )
+}
+
+-- Helper to determine if the pipeline should have variables
+helper def : shouldHaveVariables(pipeline : PIM!Pipeline) : Boolean =
+    pipeline.stages->exists(stage | 
+        stage.name = 'build' and stage.tool <> 'gradle'
+    );
+
+-- Create variables for the pipeline
+lazy rule createVariables {
+    from
+        source : PIM!Pipeline
+    to
+        vars : GitLabMM!Variables (
+            variables <- Sequence {
+                thisModule.createVariable('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/chatbot-app-image'),
+                thisModule.createVariable('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}')
+            }
+        )
+}
+
+-- Create a variable
+lazy rule createVariable {
+    from
+        name : String,
+        value : String
+    to
+        var : GitLabMM!Variable (
+            name <- name,
+            value <- value
+        )
+}
+
+-- Create a GitLab job from a PIM stage
+lazy rule createJobFromStage {
+    from
+        stage : PIM!Stage
+    to
+        job : GitLabMM!Job (
+            name <- stage.name,
+            stage <- stage.name,
+            script <- thisModule.createScript(stage),
+            beforeScript <- if stage.name = 'unitTest' and stage.tool <> 'gradle' then
+                    thisModule.createBeforeScript(stage)
+                else
+                    OclUndefined
+                endif,
+            artifacts <- if thisModule.hasArtifacts(stage) then
+                    thisModule.createArtifacts(stage)
+                else
+                    OclUndefined
+                endif,
+            image <- thisModule.getImageForStage(stage),
+            tags <- thisModule.createTags(stage),
+            only <- thisModule.createOnly(stage),
+            dependencies <- if stage.name = 'healthCheck' then
+                    thisModule.createDependencies(stage, 'build')
+                else if stage.name = 'push' then
+                    thisModule.createDependencies(stage, 'healthCheck')
+                else
+                    OclUndefined
+                endif endif,
+            when <- thisModule.getWhenForStage(stage)
+        )
+}
+
+-- Create GitLab script from PIM stage with all commands
+lazy rule createScript {
+    from
+        stage : PIM!Stage
+    to
+        script : GitLabMM!Script (
+            commands <- if stage.script.oclIsUndefined() or stage.script.commands.oclIsUndefined() then
+                    Sequence{}
+                else
+                    stage.script.commands.commands->collect(cmd | 
+                        thisModule.createCommand(stage.tool + ' ' + cmd.command)
+                    )
+                endif
+        )
+}
+
+-- Create before script for unit tests
+lazy rule createBeforeScript {
+    from
+        stage : PIM!Stage
+    to
+        beforeScript : GitLabMM!BeforeScript (
+            commands <- Sequence{thisModule.createCommand('python3 -m pip install --break-system-packages -r requirements.txt')}
+        )
+}
+
+-- Create tags for all jobs
+lazy rule createTags {
+    from
+        stage : PIM!Stage
+    to
+        tags : GitLabMM!Tags (
+            tags <- Sequence{thisModule.createTag('ai-shared')}
+        )
+}
+
+-- Create a tag
+lazy rule createTag {
+    from
+        tagName : String
+    to
+        tag : GitLabMM!Tag (
+            tag <- tagName
+        )
+}
+
+-- Create only for main branch
+lazy rule createOnly {
+    from
+        stage : PIM!Stage
+    to
+        only : GitLabMM!Only (
+            branches <- Sequence{thisModule.createOnlyBranch('main')}
+        )
+}
+
+-- Create only branch
+lazy rule createOnlyBranch {
+    from
+        branchName : String
+    to
+        branch : GitLabMM!OnlyBranches (
+            branch <- branchName
+        )
+}
+
+-- Create dependencies
+lazy rule createDependencies {
+    from
+        stage : PIM!Stage,
+        dependencyName : String
+    to
+        dependencies : GitLabMM!Dependencies (
+            dependencies <- Sequence{thisModule.createDependency(dependencyName)}
+        )
+}
+
+-- Create a dependency
+lazy rule createDependency {
+    from
+        name : String
+    to
+        dependency : GitLabMM!Dependency (
+            dependency <- name
+        )
+}
+
+-- Create a GitLab command from a PIM command string
+lazy rule createCommand {
+    from
+        command : String
+    to
+        cmd : GitLabMM!Comand (
+            comand <- command
+        )
+}
+
+-- Create artifacts for a stage
+lazy rule createArtifacts {
+    from
+        stage : PIM!Stage
+    to
+        artifacts : GitLabMM!Artifact (
+            when <- thisModule.getArtifactWhen(stage),
+            paths <- thisModule.getArtifactPaths(stage),
+            reports <- if thisModule.hasReports(stage) then
+                    thisModule.createReports(stage)
+                else
+                    OclUndefined
+                endif
+        )
+}
+
+-- Create paths for artifacts
+lazy rule createPath {
+    from
+        path : String
+    to
+        p : GitLabMM!Path (
+            path <- path
+        )
+}
+
+-- Create reports for test stages
+lazy rule createReports {
+    from
+        stage : PIM!Stage
+    to
+        report : GitLabMM!Report (
+            junit <- thisModule.getJUnitReportPath(stage)
+        )
+}
+
+-- Helper to determine if a stage should have artifacts
+helper def : hasArtifacts(stage : PIM!Stage) : Boolean =
+    if (stage.name = 'build' and stage.tool = 'gradle') or 
+       (stage.name = 'unitTest' and stage.tool = 'gradle') then
+        true
+    else
+        false
+    endif;
+
+-- Helper to determine if a stage should have reports
+helper def : hasReports(stage : PIM!Stage) : Boolean =
+    if stage.name = 'unitTest' and stage.tool = 'gradle' then
+        true
+    else
+        false
+    endif;
+
+-- Helper to get the artifact when condition
+helper def : getArtifactWhen(stage : PIM!Stage) : String =
+    if stage.name = 'unitTest' and stage.tool = 'gradle' then
+        'always'
+    else
+        OclUndefined
+    endif;
+
+-- Helper to get artifact paths based on stage
+helper def : getArtifactPaths(stage : PIM!Stage) : Sequence(GitLabMM!Path) =
+    if stage.name = 'build' and stage.tool = 'gradle' then
+        Sequence{thisModule.createPath('build/libs/*.jar')}
+    else if stage.name = 'unitTest' and stage.tool = 'gradle' then
+        Sequence{thisModule.createPath('build/test-results/**/*.xml')}
+    else
+        Sequence{}
+    endif
+    endif;
+
+-- Helper to get JUnit report path for test stages
+helper def : getJUnitReportPath(stage : PIM!Stage) : String =
+    if stage.name = 'unitTest' and stage.tool = 'gradle' then
+        'build/test-results/test/**/TEST-*.xml'
+    else
+        OclUndefined
+    endif;
+
+-- Helper to get Docker image for a stage based on tool
+helper def : getImageForStage(stage : PIM!Stage) : String =
+    if stage.name = 'unitTest' then
+        'python:3.12-slim'
+    else if stage.name = 'healthCheck' then
+        'curlimages/curl:latest'
+    else
+        OclUndefined
+    endif
+    endif;
+
+-- Helper to get when condition for a stage
+helper def : getWhenForStage(stage : PIM!Stage) : String =
+    if stage.name = 'unitTest' and stage.tool = 'gradle' then
+        'always'
+    else
+        OclUndefined
+    endif;

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ASCII"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>build</stages>
+  <stages>unitTest</stages>
+  <stages>healthCheck</stages>
+  <stages>push</stages>
+  <jobs name="build" stage="build">
+    <script>
+      <commands comand="docker build -t ${IMAGE_TAG} ."/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="unitTest" stage="unitTest" image="python:3.12-slim">
+    <script>
+      <commands comand="python3 test/run_unit_tests.py"/>
+    </script>
+    <beforeScript>
+      <commands comand="python3 -m pip install --break-system-packages -r requirements.txt"/>
+    </beforeScript>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="healthCheck" stage="healthCheck" image="curlimages/curl:latest">
+    <script>
+      <commands comand=" ./scripts/health_check.sh"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+    <dependencies>
+      <dependencies dependency="build"/>
+    </dependencies>
+  </jobs>
+  <jobs name="push" stage="push">
+    <script>
+      <commands comand="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
+      <commands comand="docker push ${IMAGE_TAG}"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+    <dependencies>
+      <dependencies dependency="healthCheck"/>
+    </dependencies>
+  </jobs>
+  <variables>
+    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/chatbot-app-image"/>
+    <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}"/>
+  </variables>
+</gitlabMM:Pipeline>

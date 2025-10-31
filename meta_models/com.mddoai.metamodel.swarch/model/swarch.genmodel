@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.swarch/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.swarch.edit/src-gen" editorDirectory="/com.mddoai.metamodel.swarch.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.swarch" modelName="Swarch" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>swarch.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="Swarch" basePackage="com.mddoai.metamodel" disposableProviderFactory="true"
+      ecorePackage="swarch.ecore#/">
+    <genClasses ecoreClass="swarch.ecore#//SoftwareArchitecture">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/build_system"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/language"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/unit_test"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/health_check"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute swarch.ecore#//SoftwareArchitecture/lint_check"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>

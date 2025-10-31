@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description:Group xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:description="http://www.eclipse.org/sirius/description/1.1.0" xmlns:description_1="http://www.eclipse.org/sirius/diagram/description/1.1.0" xmlns:style="http://www.eclipse.org/sirius/diagram/description/style/1.1.0" documentation="SW Arch meta model viewpoint" name="swarch" version="12.0.0.2017041100">
+  <ownedViewpoints documentation="SW Arch meta model viewpoint" endUserDocumentation="SW Arch meta model viewpoint" name="swarch">
+    <ownedRepresentations xsi:type="description_1:DiagramDescription" documentation="SW Arch meta model viewpoint" endUserDocumentation="SW Arch meta model viewpoint" name="swarch diagram" domainClass="swarch::SoftwareArchitecture" enablePopupBars="true">
+      <metamodel href="http://www.mddoai.com/mddoai/metamodel/swarch#/"/>
+      <defaultLayer name="Default">
+        <containerMappings name="PipelineContainer" semanticCandidatesExpression="var:self" domainClass="swarch::SoftwareArchitecture" childrenPresentation="List">
+          <subNodeMappings name="unitTestsNode" semanticCandidatesExpression="aql:if self.unit_test &lt;> null and self.unit_test &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'unit-test: ' + self.unit_test" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="lintCheckNode" semanticCandidatesExpression="aql:if self.lint_check &lt;> null and self.lint_check &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql: if self.lint_check &lt;> null and self.lint_check &lt;> '' then 'lint_check: ' + self.lint_check else '' endif " labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="typeNode" semanticCandidatesExpression="aql:if self.type &lt;> null and self.type &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'type: ' + self.type" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="buildSystemNode" semanticCandidatesExpression="aql:if self.build_system &lt;> null and self.build_system &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'build_system: ' + self.build_system" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="healthCheck" semanticCandidatesExpression="aql:if self.health_check &lt;> null and self.health_check &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'health_check: ' + self.health_check" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <subNodeMappings name="language" semanticCandidatesExpression="aql:if self.language &lt;> null and self.language &lt;> '' then Sequence{self} else '' endif " domainClass="swarch::SoftwareArchitecture">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'language: ' + self.language" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_gray']"/>
+          </style>
+        </containerMappings>
+      </defaultLayer>
+    </ownedRepresentations>
+  </ownedViewpoints>
+</description:Group>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="build" tool="gradle">
+    <script name="build.gradle">
+      <commands>clean build -x test</commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+
+<!--
+-->
+
+<plugin>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <!-- @generated swarch -->
+      <package
+            uri="http://www.mddoai.com/mddoai/metamodel/swarch"
+            class="com.mddoai.metamodel.swarch.SwarchPackage"
+            genModel="model/swarch.genmodel"/>
+   </extension>
+
+</plugin>

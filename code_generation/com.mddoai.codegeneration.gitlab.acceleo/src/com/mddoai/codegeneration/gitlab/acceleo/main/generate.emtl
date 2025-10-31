@@ -1,0 +1,2454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:mtl="http://www.eclipse.org/acceleo/mtl/3.0" xmlns:ocl.ecore="http://www.eclipse.org/ocl/1.1.0/Ecore">
+  <mtl:Module name="generate" nsURI="com::mddoai::codegeneration::gitlab::acceleo::main::generate" startHeaderPosition="30" endHeaderPosition="173">
+    <input>
+      <takesTypesFrom href="http://www.mddoai.com/mddoai/metamodel/gitlab#/"/>
+    </input>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateElement" visibility="Public" main="true">
+      <body xsi:type="mtl:FileBlock" openMode="OverWrite">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="#######################################################################&#xD;&#xA;# Copyright (c) 2025 MDDOAI All rights reserved.&#xD;&#xA;#&#xD;&#xA;# This file was automatically generated.&#xD;&#xA;# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.&#xD;&#xA;# For more information, visit: https://mddoai.com&#xD;&#xA;#######################################################################&#xD;&#xA;&#xD;&#xA;"/>
+        <body xsi:type="mtl:TemplateInvocation" definition="/0/generateStages">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+          <argument xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(String)">
+            <source xsi:type="ocl.ecore:VariableExp" name="aPipeline" referredVariable="/0/generateElement/aPipeline">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline/stages"/>
+          </argument>
+        </body>
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+        <body xsi:type="mtl:TemplateInvocation" definition="/0/generateVariables">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+          <argument xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="aPipeline" referredVariable="/0/generateElement/aPipeline">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline/variables"/>
+          </argument>
+        </body>
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+        <body xsi:type="mtl:IfBlock">
+          <body xsi:type="mtl:ForBlock">
+            <body xsi:type="mtl:TemplateInvocation" definition="/0/generateJob">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+              <argument xsi:type="ocl.ecore:VariableExp" name="j" referredVariable="/0/generateElement/%/%.5/%/j">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+              </argument>
+            </body>
+            <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+            <loopVariable name="j">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+            </loopVariable>
+            <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Job)">
+              <source xsi:type="ocl.ecore:VariableExp" name="aPipeline" referredVariable="/0/generateElement/aPipeline">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline/jobs"/>
+            </iterSet>
+          </body>
+          <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Job)">
+              <source xsi:type="ocl.ecore:VariableExp" name="aPipeline" referredVariable="/0/generateElement/aPipeline">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline/jobs"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </ifExpr>
+        </body>
+        <fileUrl xsi:type="ocl.ecore:StringLiteralExp" stringSymbol=".gitlab-ci.yml">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        </fileUrl>
+        <charset xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="UTF-8">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        </charset>
+      </body>
+      <parameter name="aPipeline">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateStages" visibility="Public">
+      <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="stages:&#xD;&#xA;"/>
+      <body xsi:type="mtl:ForBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+        <body xsi:type="ocl.ecore:VariableExp" name="stage" referredVariable="/0/generateStages/%.1/stage.1">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        </body>
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+        <loopVariable name="stage">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        </loopVariable>
+        <iterSet xsi:type="ocl.ecore:VariableExp" name="stages" eType="/3/OrderedSet(String)" referredVariable="/0/generateStages/stages"/>
+      </body>
+      <parameter name="stages" eType="/3/OrderedSet(String)"/>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateVariables" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="variables:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="variable" referredVariable="/0/generateVariables/%/%.1/variable">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable/name"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol=": "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="variable" referredVariable="/0/generateVariables/%/%.1/variable">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable/value"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="variable">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Variable)">
+            <source xsi:type="ocl.ecore:VariableExp" name="variables" referredVariable="/0/generateVariables/variables">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables/variables"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="variables" referredVariable="/0/generateVariables/variables">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Variable)">
+              <source xsi:type="ocl.ecore:VariableExp" name="variables" referredVariable="/0/generateVariables/variables">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables/variables"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="variables">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateJob" visibility="Public">
+      <body xsi:type="ocl.ecore:PropertyCallExp">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+        </source>
+        <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/name"/>
+      </body>
+      <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol=":&#xD;&#xA;  stage: "/>
+      <body xsi:type="ocl.ecore:PropertyCallExp">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+        </source>
+        <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/stage"/>
+      </body>
+      <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  image: "/>
+        <body xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/image"/>
+        </body>
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/image"/>
+          </source>
+          <argument xsi:type="ocl.ecore:NullLiteralExp">
+            <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String_Class/%3C%3E"/>
+        </ifExpr>
+      </body>
+      <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  "/>
+      <body xsi:type="mtl:TemplateInvocation" definition="/0/generateBeforeScript">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <argument xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/beforeScript"/>
+        </argument>
+      </body>
+      <body xsi:type="mtl:TemplateInvocation" definition="/0/generateScript">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <argument xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/script"/>
+        </argument>
+      </body>
+      <body xsi:type="mtl:TemplateInvocation" definition="/0/generateDependencies">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <argument xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/dependencies"/>
+        </argument>
+      </body>
+      <body xsi:type="mtl:TemplateInvocation" definition="/0/generateArtifacts">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <argument xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/artifacts"/>
+        </argument>
+      </body>
+      <body xsi:type="mtl:TemplateInvocation" definition="/0/generateOnly">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <argument xsi:type="ocl.ecore:PropertyCallExp">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="job" referredVariable="/0/generateJob/job">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+          </source>
+          <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job/only"/>
+        </argument>
+      </body>
+      <parameter name="job">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Comment">
+      <body startPosition="1516" endPosition="1541" value="[generateTags(job.tags)/]"/>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateScript" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="script:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="command" referredVariable="/0/generateScript/%/%.1/command">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand/comand"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="command">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Comand)">
+            <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateScript/script">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script/commands"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateScript/script">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Comand)">
+              <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateScript/script">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script/commands"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="script">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateBeforeScript" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="before_script:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="command" referredVariable="/0/generateBeforeScript/%/%.1/command">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand/comand"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="command">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Comand)">
+            <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateBeforeScript/script">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript/commands"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateBeforeScript/script">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Comand)">
+              <source xsi:type="ocl.ecore:VariableExp" name="script" referredVariable="/0/generateBeforeScript/script">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript/commands"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="script">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateTags" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="tags:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="tag" referredVariable="/0/generateTags/%/%.1/tag">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag/tag"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="tag">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Tag)">
+            <source xsi:type="ocl.ecore:VariableExp" name="tags" referredVariable="/0/generateTags/tags">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags/tags"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="tags" referredVariable="/0/generateTags/tags">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Tag)">
+              <source xsi:type="ocl.ecore:VariableExp" name="tags" referredVariable="/0/generateTags/tags">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags/tags"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="tags">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateOnly" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="only:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="onlyBranch" referredVariable="/0/generateOnly/%/%.1/onlyBranch">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches/branch"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="onlyBranch">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(OnlyBranches)">
+            <source xsi:type="ocl.ecore:VariableExp" name="only" referredVariable="/0/generateOnly/only">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only/branches"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="only" referredVariable="/0/generateOnly/only">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(OnlyBranches)">
+              <source xsi:type="ocl.ecore:VariableExp" name="only" referredVariable="/0/generateOnly/only">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only/branches"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="only">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateDependencies" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="dependencies:&#xD;&#xA;"/>
+        <body xsi:type="mtl:ForBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  - "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="dependency" referredVariable="/0/generateDependencies/%/%.1/dependency">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency/dependency"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <loopVariable name="dependency">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+          </loopVariable>
+          <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Dependency)">
+            <source xsi:type="ocl.ecore:VariableExp" name="dependencies" referredVariable="/0/generateDependencies/dependencies">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+            </source>
+            <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies/dependencies"/>
+          </iterSet>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="dependencies" referredVariable="/0/generateDependencies/dependencies">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+            </source>
+            <argument xsi:type="ocl.ecore:NullLiteralExp">
+              <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+          </source>
+          <argument xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Dependency)">
+              <source xsi:type="ocl.ecore:VariableExp" name="dependencies" referredVariable="/0/generateDependencies/dependencies">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies/dependencies"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+        </ifExpr>
+      </body>
+      <parameter name="dependencies">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateArtifacts" visibility="Public">
+      <body xsi:type="mtl:IfBlock">
+        <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="artifacts:&#xD;&#xA;"/>
+        <body xsi:type="mtl:IfBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  paths:&#xD;&#xA;"/>
+          <body xsi:type="mtl:ForBlock">
+            <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="    - "/>
+            <body xsi:type="ocl.ecore:PropertyCallExp">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+              <source xsi:type="ocl.ecore:VariableExp" name="p" referredVariable="/0/generateArtifacts/%/%.1/%.1/p">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+              </source>
+              <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path/path"/>
+            </body>
+            <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+            <loopVariable name="p">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+            </loopVariable>
+            <iterSet xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Path)">
+              <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/paths"/>
+            </iterSet>
+          </body>
+          <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:PropertyCallExp" eType="/3/OrderedSet(Path)">
+              <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/paths"/>
+            </source>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)_Class/notEmpty"/>
+          </ifExpr>
+        </body>
+        <body xsi:type="mtl:IfBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  when: "/>
+          <body xsi:type="ocl.ecore:PropertyCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+            </source>
+            <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/when"/>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:OperationCallExp">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+              <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+              </source>
+              <argument xsi:type="ocl.ecore:NullLiteralExp">
+                <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+              </argument>
+              <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+            </source>
+            <argument xsi:type="ocl.ecore:OperationCallExp">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+              <source xsi:type="ocl.ecore:PropertyCallExp">
+                <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+                <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                  <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+                </source>
+                <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/when"/>
+              </source>
+              <argument xsi:type="ocl.ecore:NullLiteralExp">
+                <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+              </argument>
+              <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String_Class/%3C%3E"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+          </ifExpr>
+        </body>
+        <body xsi:type="mtl:IfBlock">
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="  "/>
+          <body xsi:type="mtl:TemplateInvocation" definition="/0/generateReport">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+            <argument xsi:type="ocl.ecore:PropertyCallExp">
+              <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+              <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+              </source>
+              <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/reports"/>
+            </argument>
+          </body>
+          <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="&#xD;&#xA;"/>
+          <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+            <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+            <source xsi:type="ocl.ecore:OperationCallExp">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+              <source xsi:type="ocl.ecore:PropertyCallExp">
+                <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+                <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                  <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+                </source>
+                <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/reports"/>
+              </source>
+              <argument xsi:type="ocl.ecore:NullLiteralExp">
+                <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+              </argument>
+              <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+            </source>
+            <argument xsi:type="ocl.ecore:OperationCallExp">
+              <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+              <source xsi:type="ocl.ecore:PropertyCallExp">
+                <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+                <source xsi:type="ocl.ecore:PropertyCallExp">
+                  <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+                  <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+                    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+                  </source>
+                  <referredProperty xsi:type="ecore:EReference" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact/reports"/>
+                </source>
+                <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report/junit"/>
+              </source>
+              <argument xsi:type="ocl.ecore:NullLiteralExp">
+                <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+              </argument>
+              <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String_Class/%3C%3E"/>
+            </argument>
+            <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean_Class/and"/>
+          </ifExpr>
+        </body>
+        <ifExpr xsi:type="ocl.ecore:OperationCallExp">
+          <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Boolean"/>
+          <source xsi:type="ocl.ecore:VariableExp" name="a" referredVariable="/0/generateArtifacts/a">
+            <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+          </source>
+          <argument xsi:type="ocl.ecore:NullLiteralExp">
+            <eType xsi:type="ocl.ecore:VoidType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclVoid"/>
+          </argument>
+          <referredOperation xsi:type="ecore:EOperation" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny_Class/%3C%3E"/>
+        </ifExpr>
+      </body>
+      <parameter name="a">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+      </parameter>
+    </ownedModuleElement>
+    <ownedModuleElement xsi:type="mtl:Template" name="generateReport" visibility="Public">
+      <body xsi:type="ocl.ecore:StringLiteralExp" stringSymbol="reports:&#xD;&#xA;  junit: "/>
+      <body xsi:type="ocl.ecore:PropertyCallExp">
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <source xsi:type="ocl.ecore:VariableExp" name="report" referredVariable="/0/generateReport/report">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+        </source>
+        <referredProperty xsi:type="ecore:EAttribute" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report/junit"/>
+      </body>
+      <parameter name="report">
+        <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+      </parameter>
+    </ownedModuleElement>
+  </mtl:Module>
+  <ecore:EPackage name="additions">
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_String_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_Integer_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_Real_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Real"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ecore_EObject_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+      </eAnnotations>
+      <eOperations name="generateElement">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateElement"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="aPipeline">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateStages">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateStages"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="stages" eType="/3/OrderedSet(String)"/>
+      </eOperations>
+      <eOperations name="generateVariables">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateVariables"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="variables">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateJob">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateJob"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="job">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateScript">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateScript"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="script">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateBeforeScript">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateBeforeScript"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="script">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateTags">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateTags"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="tags">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateOnly">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateOnly"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="only">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateDependencies">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateDependencies"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="dependencies">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateArtifacts">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateArtifacts"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="a">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+        </eParameters>
+      </eOperations>
+      <eOperations name="generateReport">
+        <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+          <contents xsi:type="ocl.ecore:Constraint"/>
+        </eAnnotations>
+        <eAnnotations source="MTL" references="/0/generateReport"/>
+        <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+        <eParameters name="report">
+          <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+        </eParameters>
+      </eOperations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_OclAny_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OclAny"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_Collection(T)_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Collection(T)"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_Sequence(T)_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Sequence(T)"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="oclstdlib_OrderedSet(T)_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/OrderedSet(T)"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Pipeline_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="collections_OrderedSet(String)_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL" references="/3/OrderedSet(String)"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Variables_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Job_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Script_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_BeforeScript_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Tags_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Only_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Dependencies_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Artifact_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="gitlabMM_Report_Class">
+      <eAnnotations source="http://www.eclipse.org/ocl/1.1.0/OCL">
+        <references href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+      </eAnnotations>
+    </eClassifiers>
+  </ecore:EPackage>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ecore:EPackage name="collections">
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(String)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Job)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(Job)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Variable)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(Variable)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Comand)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(Comand)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Tag)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(Tag)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(OnlyBranches)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(OnlyBranches)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Dependency)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" name="Set(Dependency)" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:OrderedSetType" name="OrderedSet(Path)" instanceClassName="java.util.LinkedHashSet">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ocl.ecore:SetType" instanceClassName="java.util.Set">
+      <elementType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+    </eClassifiers>
+  </ecore:EPackage>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Pipeline"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self" eType="/3/OrderedSet(String)"/>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self" eType="/3/OrderedSet(String)"/>
+  <ocl.ecore:Variable name="self" eType="/3/OrderedSet(String)"/>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self" eType="/3/OrderedSet(String)"/>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variable"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Variables"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Job"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Script"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Comand"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//BeforeScript"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tag"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Tags"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//OnlyBranches"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Only"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependency"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Dependencies"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Path"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="i">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/Integer"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Artifact"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ocl.ecore:PrimitiveType" href="http://www.eclipse.org/ocl/1.1.0/oclstdlib.ecore#/0/String"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.mddoai.com/mddoai/metamodel/gitlab#//Report"/>
+  </ocl.ecore:Variable>
+  <ocl.ecore:Variable name="self">
+    <eType xsi:type="ecore:EClass" href="http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
+  </ocl.ecore:Variable>
+  <ecore:EAnnotation source="positions">
+    <eAnnotations source="positions.0" references="/0/generateElement">
+      <details key="start" value="102"/>
+      <details key="end" value="785"/>
+      <details key="line" value="5"/>
+    </eAnnotations>
+    <eAnnotations source="positions.1" references="/0/generateElement/%">
+      <details key="start" value="177"/>
+      <details key="end" value="772"/>
+      <details key="line" value="7"/>
+    </eAnnotations>
+    <eAnnotations source="positions.2" references="/0/generateElement/%/%">
+      <details key="start" value="220"/>
+      <details key="end" value="583"/>
+      <details key="line" value="8"/>
+    </eAnnotations>
+    <eAnnotations source="positions.3" references="/0/generateElement/%/%.1">
+      <details key="start" value="584"/>
+      <details key="end" value="616"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.4" references="/0/generateElement/%/%.1/%">
+      <details key="start" value="599"/>
+      <details key="end" value="615"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.5" references="/0/generateElement/%/%.1/%/aPipeline">
+      <details key="start" value="599"/>
+      <details key="end" value="608"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.6" references="/0/generateElement/%/%.2">
+      <details key="start" value="618"/>
+      <details key="end" value="620"/>
+      <details key="line" value="17"/>
+    </eAnnotations>
+    <eAnnotations source="positions.7" references="/0/generateElement/%/%.3">
+      <details key="start" value="621"/>
+      <details key="end" value="659"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.8" references="/0/generateElement/%/%.3/%">
+      <details key="start" value="639"/>
+      <details key="end" value="658"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.9" references="/0/generateElement/%/%.3/%/aPipeline">
+      <details key="start" value="639"/>
+      <details key="end" value="648"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.10" references="/0/generateElement/%/%.4">
+      <details key="start" value="661"/>
+      <details key="end" value="663"/>
+      <details key="line" value="18"/>
+    </eAnnotations>
+    <eAnnotations source="positions.11" references="/0/generateElement/%/%.5">
+      <details key="start" value="663"/>
+      <details key="end" value="763"/>
+      <details key="line" value="18"/>
+    </eAnnotations>
+    <eAnnotations source="positions.12" references="/0/generateElement/%/%.5/%">
+      <details key="start" value="698"/>
+      <details key="end" value="756"/>
+      <details key="line" value="19"/>
+    </eAnnotations>
+    <eAnnotations source="positions.13" references="/0/generateElement/%/%.5/%/%">
+      <details key="start" value="732"/>
+      <details key="end" value="746"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.14" references="/0/generateElement/%/%.5/%/%/j">
+      <details key="start" value="744"/>
+      <details key="end" value="745"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.15" references="/0/generateElement/%/%.5/%/%.1">
+      <details key="start" value="748"/>
+      <details key="end" value="750"/>
+      <details key="line" value="21"/>
+    </eAnnotations>
+    <eAnnotations source="positions.16" references="/0/generateElement/%/%.5/%/j">
+      <details key="start" value="704"/>
+      <details key="end" value="710"/>
+      <details key="line" value="19"/>
+    </eAnnotations>
+    <eAnnotations source="positions.17" references="/0/generateElement/%/%.5/%/%.2">
+      <details key="start" value="713"/>
+      <details key="end" value="727"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.18" references="/0/generateElement/%/%.5/%/%.2/aPipeline">
+      <details key="start" value="713"/>
+      <details key="end" value="722"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.19" references="/0/generateElement/%/%.5/%.1">
+      <details key="start" value="667"/>
+      <details key="end" value="695"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.20" references="/0/generateElement/%/%.5/%.1/%">
+      <details key="start" value="668"/>
+      <details key="end" value="682"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.21" references="/0/generateElement/%/%.5/%.1/%/aPipeline">
+      <details key="start" value="668"/>
+      <details key="end" value="677"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.22" references="/0/generateElement/%/%.6">
+      <details key="start" value="184"/>
+      <details key="end" value="200"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.23" references="/0/generateElement/%/%.7">
+      <details key="start" value="209"/>
+      <details key="end" value="216"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.24" references="/0/generateElement/aPipeline">
+      <details key="start" value="135"/>
+      <details key="end" value="155"/>
+      <details key="line" value="5"/>
+    </eAnnotations>
+    <eAnnotations source="positions.25" references="/0/generateStages">
+      <details key="start" value="787"/>
+      <details key="end" value="924"/>
+      <details key="line" value="25"/>
+    </eAnnotations>
+    <eAnnotations source="positions.26" references="/0/generateStages/%">
+      <details key="start" value="850"/>
+      <details key="end" value="859"/>
+      <details key="line" value="26"/>
+    </eAnnotations>
+    <eAnnotations source="positions.27" references="/0/generateStages/%.1">
+      <details key="start" value="859"/>
+      <details key="end" value="911"/>
+      <details key="line" value="27"/>
+    </eAnnotations>
+    <eAnnotations source="positions.28" references="/0/generateStages/%.1/%">
+      <details key="start" value="891"/>
+      <details key="end" value="895"/>
+      <details key="line" value="28"/>
+    </eAnnotations>
+    <eAnnotations source="positions.29" references="/0/generateStages/%.1/stage">
+      <details key="start" value="896"/>
+      <details key="end" value="901"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.30" references="/0/generateStages/%.1/%.1">
+      <details key="start" value="903"/>
+      <details key="end" value="905"/>
+      <details key="line" value="29"/>
+    </eAnnotations>
+    <eAnnotations source="positions.31" references="/0/generateStages/%.1/stage.1">
+      <details key="start" value="865"/>
+      <details key="end" value="878"/>
+      <details key="line" value="27"/>
+    </eAnnotations>
+    <eAnnotations source="positions.32" references="/0/generateStages/%.1/stages">
+      <details key="start" value="881"/>
+      <details key="end" value="887"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.33" references="/0/generateStages/stages">
+      <details key="start" value="819"/>
+      <details key="end" value="846"/>
+      <details key="line" value="25"/>
+    </eAnnotations>
+    <eAnnotations source="positions.34" references="/0/generateVariables">
+      <details key="start" value="928"/>
+      <details key="end" value="1177"/>
+      <details key="line" value="32"/>
+    </eAnnotations>
+    <eAnnotations source="positions.35" references="/0/generateVariables/%">
+      <details key="start" value="987"/>
+      <details key="end" value="1164"/>
+      <details key="line" value="33"/>
+    </eAnnotations>
+    <eAnnotations source="positions.36" references="/0/generateVariables/%/%">
+      <details key="start" value="1049"/>
+      <details key="end" value="1061"/>
+      <details key="line" value="34"/>
+    </eAnnotations>
+    <eAnnotations source="positions.37" references="/0/generateVariables/%/%.1">
+      <details key="start" value="1061"/>
+      <details key="end" value="1157"/>
+      <details key="line" value="35"/>
+    </eAnnotations>
+    <eAnnotations source="positions.38" references="/0/generateVariables/%/%.1/%">
+      <details key="start" value="1112"/>
+      <details key="end" value="1114"/>
+      <details key="line" value="36"/>
+    </eAnnotations>
+    <eAnnotations source="positions.39" references="/0/generateVariables/%/%.1/%.1">
+      <details key="start" value="1115"/>
+      <details key="end" value="1128"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.40" references="/0/generateVariables/%/%.1/%.1/variable">
+      <details key="start" value="1115"/>
+      <details key="end" value="1123"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.41" references="/0/generateVariables/%/%.1/%.2">
+      <details key="start" value="1130"/>
+      <details key="end" value="1132"/>
+      <details key="line" value="36"/>
+    </eAnnotations>
+    <eAnnotations source="positions.42" references="/0/generateVariables/%/%.1/%.3">
+      <details key="start" value="1133"/>
+      <details key="end" value="1147"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.43" references="/0/generateVariables/%/%.1/%.3/variable">
+      <details key="start" value="1133"/>
+      <details key="end" value="1141"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.44" references="/0/generateVariables/%/%.1/%.4">
+      <details key="start" value="1149"/>
+      <details key="end" value="1151"/>
+      <details key="line" value="37"/>
+    </eAnnotations>
+    <eAnnotations source="positions.45" references="/0/generateVariables/%/%.1/variable">
+      <details key="start" value="1067"/>
+      <details key="end" value="1086"/>
+      <details key="line" value="35"/>
+    </eAnnotations>
+    <eAnnotations source="positions.46" references="/0/generateVariables/%/%.1/%.5">
+      <details key="start" value="1089"/>
+      <details key="end" value="1108"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.47" references="/0/generateVariables/%/%.1/%.5/variables">
+      <details key="start" value="1089"/>
+      <details key="end" value="1098"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.48" references="/0/generateVariables/%/%.2">
+      <details key="start" value="991"/>
+      <details key="end" value="1046"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.49" references="/0/generateVariables/%/%.2/%">
+      <details key="start" value="992"/>
+      <details key="end" value="1009"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.50" references="/0/generateVariables/%/%.2/%/variables">
+      <details key="start" value="992"/>
+      <details key="end" value="1001"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.51" references="/0/generateVariables/%/%.2/%/%">
+      <details key="start" value="1005"/>
+      <details key="end" value="1009"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.52" references="/0/generateVariables/%/%.2/%.1">
+      <details key="start" value="1014"/>
+      <details key="end" value="1045"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.53" references="/0/generateVariables/%/%.2/%.1/%">
+      <details key="start" value="1014"/>
+      <details key="end" value="1033"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.54" references="/0/generateVariables/%/%.2/%.1/%/variables">
+      <details key="start" value="1014"/>
+      <details key="end" value="1023"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.55" references="/0/generateVariables/variables">
+      <details key="start" value="963"/>
+      <details key="end" value="983"/>
+      <details key="line" value="32"/>
+    </eAnnotations>
+    <eAnnotations source="positions.56" references="/0/generateJob">
+      <details key="start" value="1181"/>
+      <details key="end" value="1505"/>
+      <details key="line" value="41"/>
+    </eAnnotations>
+    <eAnnotations source="positions.57" references="/0/generateJob/%">
+      <details key="start" value="1223"/>
+      <details key="end" value="1231"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.58" references="/0/generateJob/%/job">
+      <details key="start" value="1223"/>
+      <details key="end" value="1226"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.59" references="/0/generateJob/%.1">
+      <details key="start" value="1233"/>
+      <details key="end" value="1245"/>
+      <details key="line" value="42"/>
+    </eAnnotations>
+    <eAnnotations source="positions.60" references="/0/generateJob/%.2">
+      <details key="start" value="1246"/>
+      <details key="end" value="1255"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.61" references="/0/generateJob/%.2/job">
+      <details key="start" value="1246"/>
+      <details key="end" value="1249"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.62" references="/0/generateJob/%.3">
+      <details key="start" value="1257"/>
+      <details key="end" value="1259"/>
+      <details key="line" value="44"/>
+    </eAnnotations>
+    <eAnnotations source="positions.63" references="/0/generateJob/%.4">
+      <details key="start" value="1261"/>
+      <details key="end" value="1317"/>
+      <details key="line" value="44"/>
+    </eAnnotations>
+    <eAnnotations source="positions.64" references="/0/generateJob/%.4/%">
+      <details key="start" value="1287"/>
+      <details key="end" value="1296"/>
+      <details key="line" value="45"/>
+    </eAnnotations>
+    <eAnnotations source="positions.65" references="/0/generateJob/%.4/%.1">
+      <details key="start" value="1297"/>
+      <details key="end" value="1306"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.66" references="/0/generateJob/%.4/%.1/job">
+      <details key="start" value="1297"/>
+      <details key="end" value="1300"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.67" references="/0/generateJob/%.4/%.2">
+      <details key="start" value="1308"/>
+      <details key="end" value="1310"/>
+      <details key="line" value="46"/>
+    </eAnnotations>
+    <eAnnotations source="positions.68" references="/0/generateJob/%.4/%.3">
+      <details key="start" value="1265"/>
+      <details key="end" value="1284"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.69" references="/0/generateJob/%.4/%.3/%">
+      <details key="start" value="1266"/>
+      <details key="end" value="1275"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.70" references="/0/generateJob/%.4/%.3/%/job">
+      <details key="start" value="1266"/>
+      <details key="end" value="1269"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.71" references="/0/generateJob/%.4/%.3/%.1">
+      <details key="start" value="1279"/>
+      <details key="end" value="1283"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.72" references="/0/generateJob/%.5">
+      <details key="start" value="1319"/>
+      <details key="end" value="1321"/>
+      <details key="line" value="47"/>
+    </eAnnotations>
+    <eAnnotations source="positions.73" references="/0/generateJob/%.6">
+      <details key="start" value="1322"/>
+      <details key="end" value="1360"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.74" references="/0/generateJob/%.6/%">
+      <details key="start" value="1343"/>
+      <details key="end" value="1359"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.75" references="/0/generateJob/%.6/%/job">
+      <details key="start" value="1343"/>
+      <details key="end" value="1346"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.76" references="/0/generateJob/%.7">
+      <details key="start" value="1363"/>
+      <details key="end" value="1389"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.77" references="/0/generateJob/%.7/%">
+      <details key="start" value="1378"/>
+      <details key="end" value="1388"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.78" references="/0/generateJob/%.7/%/job">
+      <details key="start" value="1378"/>
+      <details key="end" value="1381"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.79" references="/0/generateJob/%.8">
+      <details key="start" value="1392"/>
+      <details key="end" value="1430"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.80" references="/0/generateJob/%.8/%">
+      <details key="start" value="1413"/>
+      <details key="end" value="1429"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.81" references="/0/generateJob/%.8/%/job">
+      <details key="start" value="1413"/>
+      <details key="end" value="1416"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.82" references="/0/generateJob/%.9">
+      <details key="start" value="1433"/>
+      <details key="end" value="1465"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.83" references="/0/generateJob/%.9/%">
+      <details key="start" value="1451"/>
+      <details key="end" value="1464"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.84" references="/0/generateJob/%.9/%/job">
+      <details key="start" value="1451"/>
+      <details key="end" value="1454"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.85" references="/0/generateJob/%.10">
+      <details key="start" value="1468"/>
+      <details key="end" value="1490"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.86" references="/0/generateJob/%.10/%">
+      <details key="start" value="1481"/>
+      <details key="end" value="1489"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.87" references="/0/generateJob/%.10/%/job">
+      <details key="start" value="1481"/>
+      <details key="end" value="1484"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.88" references="/0/generateJob/job">
+      <details key="start" value="1210"/>
+      <details key="end" value="1218"/>
+      <details key="line" value="41"/>
+    </eAnnotations>
+    <eAnnotations source="positions.89" references="/0/%">
+      <details key="start" value="1507"/>
+      <details key="end" value="1551"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.90" references="/0/generateScript">
+      <details key="start" value="1553"/>
+      <details key="end" value="1759"/>
+      <details key="line" value="50"/>
+    </eAnnotations>
+    <eAnnotations source="positions.91" references="/0/generateScript/%">
+      <details key="start" value="1603"/>
+      <details key="end" value="1746"/>
+      <details key="line" value="51"/>
+    </eAnnotations>
+    <eAnnotations source="positions.92" references="/0/generateScript/%/%">
+      <details key="start" value="1658"/>
+      <details key="end" value="1667"/>
+      <details key="line" value="52"/>
+    </eAnnotations>
+    <eAnnotations source="positions.93" references="/0/generateScript/%/%.1">
+      <details key="start" value="1667"/>
+      <details key="end" value="1739"/>
+      <details key="line" value="53"/>
+    </eAnnotations>
+    <eAnnotations source="positions.94" references="/0/generateScript/%/%.1/%">
+      <details key="start" value="1710"/>
+      <details key="end" value="1714"/>
+      <details key="line" value="54"/>
+    </eAnnotations>
+    <eAnnotations source="positions.95" references="/0/generateScript/%/%.1/%.1">
+      <details key="start" value="1715"/>
+      <details key="end" value="1729"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.96" references="/0/generateScript/%/%.1/%.1/command">
+      <details key="start" value="1715"/>
+      <details key="end" value="1722"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.97" references="/0/generateScript/%/%.1/%.2">
+      <details key="start" value="1731"/>
+      <details key="end" value="1733"/>
+      <details key="line" value="55"/>
+    </eAnnotations>
+    <eAnnotations source="positions.98" references="/0/generateScript/%/%.1/command">
+      <details key="start" value="1673"/>
+      <details key="end" value="1688"/>
+      <details key="line" value="53"/>
+    </eAnnotations>
+    <eAnnotations source="positions.99" references="/0/generateScript/%/%.1/%.3">
+      <details key="start" value="1691"/>
+      <details key="end" value="1706"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.100" references="/0/generateScript/%/%.1/%.3/script">
+      <details key="start" value="1691"/>
+      <details key="end" value="1697"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.101" references="/0/generateScript/%/%.2">
+      <details key="start" value="1607"/>
+      <details key="end" value="1655"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.102" references="/0/generateScript/%/%.2/%">
+      <details key="start" value="1608"/>
+      <details key="end" value="1622"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.103" references="/0/generateScript/%/%.2/%/script">
+      <details key="start" value="1608"/>
+      <details key="end" value="1614"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.104" references="/0/generateScript/%/%.2/%/%">
+      <details key="start" value="1618"/>
+      <details key="end" value="1622"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.105" references="/0/generateScript/%/%.2/%.1">
+      <details key="start" value="1627"/>
+      <details key="end" value="1654"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.106" references="/0/generateScript/%/%.2/%.1/%">
+      <details key="start" value="1627"/>
+      <details key="end" value="1642"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.107" references="/0/generateScript/%/%.2/%.1/%/script">
+      <details key="start" value="1627"/>
+      <details key="end" value="1633"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.108" references="/0/generateScript/script">
+      <details key="start" value="1585"/>
+      <details key="end" value="1599"/>
+      <details key="line" value="50"/>
+    </eAnnotations>
+    <eAnnotations source="positions.109" references="/0/generateBeforeScript">
+      <details key="start" value="1763"/>
+      <details key="end" value="1988"/>
+      <details key="line" value="59"/>
+    </eAnnotations>
+    <eAnnotations source="positions.110" references="/0/generateBeforeScript/%">
+      <details key="start" value="1825"/>
+      <details key="end" value="1975"/>
+      <details key="line" value="60"/>
+    </eAnnotations>
+    <eAnnotations source="positions.111" references="/0/generateBeforeScript/%/%">
+      <details key="start" value="1880"/>
+      <details key="end" value="1896"/>
+      <details key="line" value="61"/>
+    </eAnnotations>
+    <eAnnotations source="positions.112" references="/0/generateBeforeScript/%/%.1">
+      <details key="start" value="1896"/>
+      <details key="end" value="1968"/>
+      <details key="line" value="62"/>
+    </eAnnotations>
+    <eAnnotations source="positions.113" references="/0/generateBeforeScript/%/%.1/%">
+      <details key="start" value="1939"/>
+      <details key="end" value="1943"/>
+      <details key="line" value="63"/>
+    </eAnnotations>
+    <eAnnotations source="positions.114" references="/0/generateBeforeScript/%/%.1/%.1">
+      <details key="start" value="1944"/>
+      <details key="end" value="1958"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.115" references="/0/generateBeforeScript/%/%.1/%.1/command">
+      <details key="start" value="1944"/>
+      <details key="end" value="1951"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.116" references="/0/generateBeforeScript/%/%.1/%.2">
+      <details key="start" value="1960"/>
+      <details key="end" value="1962"/>
+      <details key="line" value="64"/>
+    </eAnnotations>
+    <eAnnotations source="positions.117" references="/0/generateBeforeScript/%/%.1/command">
+      <details key="start" value="1902"/>
+      <details key="end" value="1917"/>
+      <details key="line" value="62"/>
+    </eAnnotations>
+    <eAnnotations source="positions.118" references="/0/generateBeforeScript/%/%.1/%.3">
+      <details key="start" value="1920"/>
+      <details key="end" value="1935"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.119" references="/0/generateBeforeScript/%/%.1/%.3/script">
+      <details key="start" value="1920"/>
+      <details key="end" value="1926"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.120" references="/0/generateBeforeScript/%/%.2">
+      <details key="start" value="1829"/>
+      <details key="end" value="1877"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.121" references="/0/generateBeforeScript/%/%.2/%">
+      <details key="start" value="1830"/>
+      <details key="end" value="1844"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.122" references="/0/generateBeforeScript/%/%.2/%/script">
+      <details key="start" value="1830"/>
+      <details key="end" value="1836"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.123" references="/0/generateBeforeScript/%/%.2/%/%">
+      <details key="start" value="1840"/>
+      <details key="end" value="1844"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.124" references="/0/generateBeforeScript/%/%.2/%.1">
+      <details key="start" value="1849"/>
+      <details key="end" value="1876"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.125" references="/0/generateBeforeScript/%/%.2/%.1/%">
+      <details key="start" value="1849"/>
+      <details key="end" value="1864"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.126" references="/0/generateBeforeScript/%/%.2/%.1/%/script">
+      <details key="start" value="1849"/>
+      <details key="end" value="1855"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.127" references="/0/generateBeforeScript/script">
+      <details key="start" value="1801"/>
+      <details key="end" value="1821"/>
+      <details key="line" value="59"/>
+    </eAnnotations>
+    <eAnnotations source="positions.128" references="/0/generateTags">
+      <details key="start" value="1992"/>
+      <details key="end" value="2162"/>
+      <details key="line" value="68"/>
+    </eAnnotations>
+    <eAnnotations source="positions.129" references="/0/generateTags/%">
+      <details key="start" value="2036"/>
+      <details key="end" value="2149"/>
+      <details key="line" value="69"/>
+    </eAnnotations>
+    <eAnnotations source="positions.130" references="/0/generateTags/%/%">
+      <details key="start" value="2083"/>
+      <details key="end" value="2090"/>
+      <details key="line" value="70"/>
+    </eAnnotations>
+    <eAnnotations source="positions.131" references="/0/generateTags/%/%.1">
+      <details key="start" value="2090"/>
+      <details key="end" value="2142"/>
+      <details key="line" value="71"/>
+    </eAnnotations>
+    <eAnnotations source="positions.132" references="/0/generateTags/%/%.1/%">
+      <details key="start" value="2120"/>
+      <details key="end" value="2124"/>
+      <details key="line" value="72"/>
+    </eAnnotations>
+    <eAnnotations source="positions.133" references="/0/generateTags/%/%.1/%.1">
+      <details key="start" value="2125"/>
+      <details key="end" value="2132"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.134" references="/0/generateTags/%/%.1/%.1/tag">
+      <details key="start" value="2125"/>
+      <details key="end" value="2128"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.135" references="/0/generateTags/%/%.1/%.2">
+      <details key="start" value="2134"/>
+      <details key="end" value="2136"/>
+      <details key="line" value="73"/>
+    </eAnnotations>
+    <eAnnotations source="positions.136" references="/0/generateTags/%/%.1/tag">
+      <details key="start" value="2096"/>
+      <details key="end" value="2104"/>
+      <details key="line" value="71"/>
+    </eAnnotations>
+    <eAnnotations source="positions.137" references="/0/generateTags/%/%.1/%.3">
+      <details key="start" value="2107"/>
+      <details key="end" value="2116"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.138" references="/0/generateTags/%/%.1/%.3/tags">
+      <details key="start" value="2107"/>
+      <details key="end" value="2111"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.139" references="/0/generateTags/%/%.2">
+      <details key="start" value="2040"/>
+      <details key="end" value="2080"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.140" references="/0/generateTags/%/%.2/%">
+      <details key="start" value="2041"/>
+      <details key="end" value="2053"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.141" references="/0/generateTags/%/%.2/%/tags">
+      <details key="start" value="2041"/>
+      <details key="end" value="2045"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.142" references="/0/generateTags/%/%.2/%/%">
+      <details key="start" value="2049"/>
+      <details key="end" value="2053"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.143" references="/0/generateTags/%/%.2/%.1">
+      <details key="start" value="2058"/>
+      <details key="end" value="2079"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.144" references="/0/generateTags/%/%.2/%.1/%">
+      <details key="start" value="2058"/>
+      <details key="end" value="2067"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.145" references="/0/generateTags/%/%.2/%.1/%/tags">
+      <details key="start" value="2058"/>
+      <details key="end" value="2062"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.146" references="/0/generateTags/tags">
+      <details key="start" value="2022"/>
+      <details key="end" value="2032"/>
+      <details key="line" value="68"/>
+    </eAnnotations>
+    <eAnnotations source="positions.147" references="/0/generateOnly">
+      <details key="start" value="2166"/>
+      <details key="end" value="2370"/>
+      <details key="line" value="77"/>
+    </eAnnotations>
+    <eAnnotations source="positions.148" references="/0/generateOnly/%">
+      <details key="start" value="2210"/>
+      <details key="end" value="2357"/>
+      <details key="line" value="78"/>
+    </eAnnotations>
+    <eAnnotations source="positions.149" references="/0/generateOnly/%/%">
+      <details key="start" value="2261"/>
+      <details key="end" value="2268"/>
+      <details key="line" value="79"/>
+    </eAnnotations>
+    <eAnnotations source="positions.150" references="/0/generateOnly/%/%.1">
+      <details key="start" value="2268"/>
+      <details key="end" value="2350"/>
+      <details key="line" value="80"/>
+    </eAnnotations>
+    <eAnnotations source="positions.151" references="/0/generateOnly/%/%.1/%">
+      <details key="start" value="2318"/>
+      <details key="end" value="2322"/>
+      <details key="line" value="81"/>
+    </eAnnotations>
+    <eAnnotations source="positions.152" references="/0/generateOnly/%/%.1/%.1">
+      <details key="start" value="2323"/>
+      <details key="end" value="2340"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.153" references="/0/generateOnly/%/%.1/%.1/onlyBranch">
+      <details key="start" value="2323"/>
+      <details key="end" value="2333"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.154" references="/0/generateOnly/%/%.1/%.2">
+      <details key="start" value="2342"/>
+      <details key="end" value="2344"/>
+      <details key="line" value="82"/>
+    </eAnnotations>
+    <eAnnotations source="positions.155" references="/0/generateOnly/%/%.1/onlyBranch">
+      <details key="start" value="2274"/>
+      <details key="end" value="2298"/>
+      <details key="line" value="80"/>
+    </eAnnotations>
+    <eAnnotations source="positions.156" references="/0/generateOnly/%/%.1/%.3">
+      <details key="start" value="2301"/>
+      <details key="end" value="2314"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.157" references="/0/generateOnly/%/%.1/%.3/only">
+      <details key="start" value="2301"/>
+      <details key="end" value="2305"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.158" references="/0/generateOnly/%/%.2">
+      <details key="start" value="2214"/>
+      <details key="end" value="2258"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.159" references="/0/generateOnly/%/%.2/%">
+      <details key="start" value="2215"/>
+      <details key="end" value="2227"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.160" references="/0/generateOnly/%/%.2/%/only">
+      <details key="start" value="2215"/>
+      <details key="end" value="2219"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.161" references="/0/generateOnly/%/%.2/%/%">
+      <details key="start" value="2223"/>
+      <details key="end" value="2227"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.162" references="/0/generateOnly/%/%.2/%.1">
+      <details key="start" value="2232"/>
+      <details key="end" value="2257"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.163" references="/0/generateOnly/%/%.2/%.1/%">
+      <details key="start" value="2232"/>
+      <details key="end" value="2245"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.164" references="/0/generateOnly/%/%.2/%.1/%/only">
+      <details key="start" value="2232"/>
+      <details key="end" value="2236"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.165" references="/0/generateOnly/only">
+      <details key="start" value="2196"/>
+      <details key="end" value="2206"/>
+      <details key="line" value="77"/>
+    </eAnnotations>
+    <eAnnotations source="positions.166" references="/0/generateDependencies">
+      <details key="start" value="2374"/>
+      <details key="end" value="2644"/>
+      <details key="line" value="86"/>
+    </eAnnotations>
+    <eAnnotations source="positions.167" references="/0/generateDependencies/%">
+      <details key="start" value="2442"/>
+      <details key="end" value="2631"/>
+      <details key="line" value="87"/>
+    </eAnnotations>
+    <eAnnotations source="positions.168" references="/0/generateDependencies/%/%">
+      <details key="start" value="2513"/>
+      <details key="end" value="2528"/>
+      <details key="line" value="88"/>
+    </eAnnotations>
+    <eAnnotations source="positions.169" references="/0/generateDependencies/%/%.1">
+      <details key="start" value="2528"/>
+      <details key="end" value="2624"/>
+      <details key="line" value="89"/>
+    </eAnnotations>
+    <eAnnotations source="positions.170" references="/0/generateDependencies/%/%.1/%">
+      <details key="start" value="2588"/>
+      <details key="end" value="2592"/>
+      <details key="line" value="90"/>
+    </eAnnotations>
+    <eAnnotations source="positions.171" references="/0/generateDependencies/%/%.1/%.1">
+      <details key="start" value="2593"/>
+      <details key="end" value="2614"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.172" references="/0/generateDependencies/%/%.1/%.1/dependency">
+      <details key="start" value="2593"/>
+      <details key="end" value="2603"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.173" references="/0/generateDependencies/%/%.1/%.2">
+      <details key="start" value="2616"/>
+      <details key="end" value="2618"/>
+      <details key="line" value="91"/>
+    </eAnnotations>
+    <eAnnotations source="positions.174" references="/0/generateDependencies/%/%.1/dependency">
+      <details key="start" value="2534"/>
+      <details key="end" value="2556"/>
+      <details key="line" value="89"/>
+    </eAnnotations>
+    <eAnnotations source="positions.175" references="/0/generateDependencies/%/%.1/%.3">
+      <details key="start" value="2559"/>
+      <details key="end" value="2584"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.176" references="/0/generateDependencies/%/%.1/%.3/dependencies">
+      <details key="start" value="2559"/>
+      <details key="end" value="2571"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.177" references="/0/generateDependencies/%/%.2">
+      <details key="start" value="2446"/>
+      <details key="end" value="2510"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.178" references="/0/generateDependencies/%/%.2/%">
+      <details key="start" value="2447"/>
+      <details key="end" value="2467"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.179" references="/0/generateDependencies/%/%.2/%/dependencies">
+      <details key="start" value="2447"/>
+      <details key="end" value="2459"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.180" references="/0/generateDependencies/%/%.2/%/%">
+      <details key="start" value="2463"/>
+      <details key="end" value="2467"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.181" references="/0/generateDependencies/%/%.2/%.1">
+      <details key="start" value="2472"/>
+      <details key="end" value="2509"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.182" references="/0/generateDependencies/%/%.2/%.1/%">
+      <details key="start" value="2472"/>
+      <details key="end" value="2497"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.183" references="/0/generateDependencies/%/%.2/%.1/%/dependencies">
+      <details key="start" value="2472"/>
+      <details key="end" value="2484"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.184" references="/0/generateDependencies/dependencies">
+      <details key="start" value="2412"/>
+      <details key="end" value="2438"/>
+      <details key="line" value="86"/>
+    </eAnnotations>
+    <eAnnotations source="positions.185" references="/0/generateArtifacts">
+      <details key="start" value="2648"/>
+      <details key="end" value="3007"/>
+      <details key="line" value="95"/>
+    </eAnnotations>
+    <eAnnotations source="positions.186" references="/0/generateArtifacts/%">
+      <details key="start" value="2699"/>
+      <details key="end" value="2994"/>
+      <details key="line" value="96"/>
+    </eAnnotations>
+    <eAnnotations source="positions.187" references="/0/generateArtifacts/%/%">
+      <details key="start" value="2717"/>
+      <details key="end" value="2729"/>
+      <details key="line" value="97"/>
+    </eAnnotations>
+    <eAnnotations source="positions.188" references="/0/generateArtifacts/%/%.1">
+      <details key="start" value="2729"/>
+      <details key="end" value="2831"/>
+      <details key="line" value="98"/>
+    </eAnnotations>
+    <eAnnotations source="positions.189" references="/0/generateArtifacts/%/%.1/%">
+      <details key="start" value="2757"/>
+      <details key="end" value="2767"/>
+      <details key="line" value="99"/>
+    </eAnnotations>
+    <eAnnotations source="positions.190" references="/0/generateArtifacts/%/%.1/%.1">
+      <details key="start" value="2769"/>
+      <details key="end" value="2822"/>
+      <details key="line" value="100"/>
+    </eAnnotations>
+    <eAnnotations source="positions.191" references="/0/generateArtifacts/%/%.1/%.1/%">
+      <details key="start" value="2797"/>
+      <details key="end" value="2803"/>
+      <details key="line" value="101"/>
+    </eAnnotations>
+    <eAnnotations source="positions.192" references="/0/generateArtifacts/%/%.1/%.1/%.1">
+      <details key="start" value="2804"/>
+      <details key="end" value="2810"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.193" references="/0/generateArtifacts/%/%.1/%.1/%.1/p">
+      <details key="start" value="2804"/>
+      <details key="end" value="2805"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.194" references="/0/generateArtifacts/%/%.1/%.1/%.2">
+      <details key="start" value="2812"/>
+      <details key="end" value="2814"/>
+      <details key="line" value="102"/>
+    </eAnnotations>
+    <eAnnotations source="positions.195" references="/0/generateArtifacts/%/%.1/%.1/p">
+      <details key="start" value="2775"/>
+      <details key="end" value="2783"/>
+      <details key="line" value="100"/>
+    </eAnnotations>
+    <eAnnotations source="positions.196" references="/0/generateArtifacts/%/%.1/%.1/%.3">
+      <details key="start" value="2786"/>
+      <details key="end" value="2793"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.197" references="/0/generateArtifacts/%/%.1/%.1/%.3/a">
+      <details key="start" value="2786"/>
+      <details key="end" value="2787"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.198" references="/0/generateArtifacts/%/%.1/%.2">
+      <details key="start" value="2733"/>
+      <details key="end" value="2754"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.199" references="/0/generateArtifacts/%/%.1/%.2/%">
+      <details key="start" value="2734"/>
+      <details key="end" value="2741"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.200" references="/0/generateArtifacts/%/%.1/%.2/%/a">
+      <details key="start" value="2734"/>
+      <details key="end" value="2735"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.201" references="/0/generateArtifacts/%/%.2">
+      <details key="start" value="2833"/>
+      <details key="end" value="2894"/>
+      <details key="line" value="104"/>
+    </eAnnotations>
+    <eAnnotations source="positions.202" references="/0/generateArtifacts/%/%.2/%">
+      <details key="start" value="2870"/>
+      <details key="end" value="2878"/>
+      <details key="line" value="105"/>
+    </eAnnotations>
+    <eAnnotations source="positions.203" references="/0/generateArtifacts/%/%.2/%.1">
+      <details key="start" value="2879"/>
+      <details key="end" value="2885"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.204" references="/0/generateArtifacts/%/%.2/%.1/a">
+      <details key="start" value="2879"/>
+      <details key="end" value="2880"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.205" references="/0/generateArtifacts/%/%.2/%.2">
+      <details key="start" value="2887"/>
+      <details key="end" value="2889"/>
+      <details key="line" value="106"/>
+    </eAnnotations>
+    <eAnnotations source="positions.206" references="/0/generateArtifacts/%/%.2/%.3">
+      <details key="start" value="2837"/>
+      <details key="end" value="2867"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.207" references="/0/generateArtifacts/%/%.2/%.3/%">
+      <details key="start" value="2838"/>
+      <details key="end" value="2847"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.208" references="/0/generateArtifacts/%/%.2/%.3/%/a">
+      <details key="start" value="2838"/>
+      <details key="end" value="2839"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.209" references="/0/generateArtifacts/%/%.2/%.3/%/%">
+      <details key="start" value="2843"/>
+      <details key="end" value="2847"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.210" references="/0/generateArtifacts/%/%.2/%.3/%.1">
+      <details key="start" value="2852"/>
+      <details key="end" value="2866"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.211" references="/0/generateArtifacts/%/%.2/%.3/%.1/%">
+      <details key="start" value="2852"/>
+      <details key="end" value="2858"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.212" references="/0/generateArtifacts/%/%.2/%.3/%.1/%/a">
+      <details key="start" value="2852"/>
+      <details key="end" value="2853"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.213" references="/0/generateArtifacts/%/%.2/%.3/%.1/%.1">
+      <details key="start" value="2862"/>
+      <details key="end" value="2866"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.214" references="/0/generateArtifacts/%/%.3">
+      <details key="start" value="2896"/>
+      <details key="end" value="2987"/>
+      <details key="line" value="107"/>
+    </eAnnotations>
+    <eAnnotations source="positions.215" references="/0/generateArtifacts/%/%.3/%">
+      <details key="start" value="2950"/>
+      <details key="end" value="2952"/>
+      <details key="line" value="108"/>
+    </eAnnotations>
+    <eAnnotations source="positions.216" references="/0/generateArtifacts/%/%.3/%.1">
+      <details key="start" value="2953"/>
+      <details key="end" value="2978"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.217" references="/0/generateArtifacts/%/%.3/%.1/%">
+      <details key="start" value="2968"/>
+      <details key="end" value="2977"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.218" references="/0/generateArtifacts/%/%.3/%.1/%/a">
+      <details key="start" value="2968"/>
+      <details key="end" value="2969"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.219" references="/0/generateArtifacts/%/%.3/%.2">
+      <details key="start" value="2980"/>
+      <details key="end" value="2982"/>
+      <details key="line" value="109"/>
+    </eAnnotations>
+    <eAnnotations source="positions.220" references="/0/generateArtifacts/%/%.3/%.3">
+      <details key="start" value="2900"/>
+      <details key="end" value="2947"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.221" references="/0/generateArtifacts/%/%.3/%.3/%">
+      <details key="start" value="2901"/>
+      <details key="end" value="2918"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.222" references="/0/generateArtifacts/%/%.3/%.3/%/%">
+      <details key="start" value="2901"/>
+      <details key="end" value="2910"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.223" references="/0/generateArtifacts/%/%.3/%.3/%/%/a">
+      <details key="start" value="2901"/>
+      <details key="end" value="2902"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.224" references="/0/generateArtifacts/%/%.3/%.3/%/%.1">
+      <details key="start" value="2914"/>
+      <details key="end" value="2918"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.225" references="/0/generateArtifacts/%/%.3/%.3/%.1">
+      <details key="start" value="2923"/>
+      <details key="end" value="2946"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.226" references="/0/generateArtifacts/%/%.3/%.3/%.1/%">
+      <details key="start" value="2923"/>
+      <details key="end" value="2938"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.227" references="/0/generateArtifacts/%/%.3/%.3/%.1/%/%">
+      <details key="start" value="2923"/>
+      <details key="end" value="2932"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.228" references="/0/generateArtifacts/%/%.3/%.3/%.1/%/%/a">
+      <details key="start" value="2923"/>
+      <details key="end" value="2924"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.229" references="/0/generateArtifacts/%/%.3/%.3/%.1/%.1">
+      <details key="start" value="2942"/>
+      <details key="end" value="2946"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.230" references="/0/generateArtifacts/%/%.4">
+      <details key="start" value="2703"/>
+      <details key="end" value="2714"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.231" references="/0/generateArtifacts/%/%.4/a">
+      <details key="start" value="2704"/>
+      <details key="end" value="2705"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.232" references="/0/generateArtifacts/%/%.4/%">
+      <details key="start" value="2709"/>
+      <details key="end" value="2713"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.233" references="/0/generateArtifacts/a">
+      <details key="start" value="2683"/>
+      <details key="end" value="2695"/>
+      <details key="line" value="95"/>
+    </eAnnotations>
+    <eAnnotations source="positions.234" references="/0/generateReport">
+      <details key="start" value="3011"/>
+      <details key="end" value="3108"/>
+      <details key="line" value="113"/>
+    </eAnnotations>
+    <eAnnotations source="positions.235" references="/0/generateReport/%">
+      <details key="start" value="3061"/>
+      <details key="end" value="3080"/>
+      <details key="line" value="114"/>
+    </eAnnotations>
+    <eAnnotations source="positions.236" references="/0/generateReport/%.1">
+      <details key="start" value="3081"/>
+      <details key="end" value="3093"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.237" references="/0/generateReport/%.1/report">
+      <details key="start" value="3081"/>
+      <details key="end" value="3087"/>
+      <details key="line" value="0"/>
+    </eAnnotations>
+    <eAnnotations source="positions.238" references="/0/generateReport/report">
+      <details key="start" value="3043"/>
+      <details key="end" value="3057"/>
+      <details key="line" value="113"/>
+    </eAnnotations>
+  </ecore:EAnnotation>
+</xmi:XMI>

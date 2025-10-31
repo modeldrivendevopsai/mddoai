@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="generate" name="com.mddoai.codegeneration.gitlab.acceleo">
+    <property name="ECLIPSE_HOME" value="../../../../../../../Eclipse/eclipse-modeling-2025-03-R-win32-x86_64/eclipse"/>
+    <property name="ECLIPSE_WORKSPACE" value="../../../.."/>
+
+    <!-- The classpath with only the dependencies used by the project -->
+    <path id="com.mddoai.codegeneration.gitlab.acceleo.libraryclasspath">
+        <pathelement location="${ECLIPSE_WORKSPACE}/com.mddoai.codegeneration.gitlab.acceleo/bin"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.osgi.annotation.versioning_1.1.2.202109301733.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.osgi.annotation.bundle_2.0.0.202202082230.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.osgi.service.component.annotations_1.5.1.202212101352.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.osgi.service.metatype.annotations_1.4.1.202109301733.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.runtime_3.33.0.v20250206-0919.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi_3.23.0.v20250228-0640.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.fx.osgi_3.9.0.202210162353.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.osgi.compatibility.state_1.2.1100.v20250129-0721.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.common_3.20.0.v20250129-1348.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.jobs_3.15.500.v20250204-0817.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.registry_3.12.300.v20250129-1129.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.preferences_3.11.300.v20250130-0533.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.osgi.service.prefs_1.1.2.202109301733.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.core.contenttype_3.9.600.v20241001-1711.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.equinox.app_1.7.300.v20250130-0528.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.ecore_2.38.0.v20241018-1213.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.common_2.41.0.v20241204-1554.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.ecore.xmi_2.38.0.v20240721-0634.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ocl_3.22.0.v20240902-1518.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/lpg.runtime.java_2.0.17.v201004271640.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ocl.common_1.22.0.v20240902-1518.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.ocl.ecore_3.22.0.v20240902-1518.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.common_3.7.15.202402190857.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.model_3.7.15.202402190857.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.profiler_3.7.15.202402190857.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.engine_3.7.15.202402190857.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.codegen.ecore_2.41.0.v20241204-1212.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.codegen_2.25.0.v20240911-1027.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/com.google.guava_33.4.8.jre.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.parser_3.7.15.202402190857.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.apache.ant_1.10.15.v20240901-1000/lib/ant-antlr.jar"/>
+    </path>
+
+    <path id="com.mddoai.codegeneration.gitlab.acceleo.classpath">
+        <path refid="com.mddoai.codegeneration.gitlab.acceleo.libraryclasspath"/>
+    </path>
+
+    <!-- The classpath with only the jars available in the plugin folder of Eclipse -->
+    <path id="com.mddoai.codegeneration.gitlab.acceleo.libraryclasspath.alljars">
+        <pathelement location="../com.mddoai.codegeneration.gitlab.acceleo/bin"/>
+        <fileset dir="${ECLIPSE_HOME}/plugins/" includes="*.jar"/>
+    </path>
+
+    <path id="com.mddoai.codegeneration.gitlab.acceleo.classpath.alljars">
+        <path refid="com.mddoai.codegeneration.gitlab.acceleo.libraryclasspath.alljars"/>
+    </path>
+
+    <!-- The default task with the jars used by this project -->
+    <target name="generate">
+        <java classname="com.mddoai.codegeneration.gitlab.acceleo.main.Generate" classpathref="com.mddoai.codegeneration.gitlab.acceleo.classpath">
+            <arg value="${model}"/>
+            <arg value="${target}"/>
+        </java>
+    </target>
+
+    <!--
+        In case of problem you can also try with all the jar available in your Eclipse
+        Keep in mind that having two versions of the same jar can create problems
+    -->
+    <target name="generate.alljars">
+        <java classname="com.mddoai.codegeneration.gitlab.acceleo.main.Generate" classpathref="com.mddoai.codegeneration.gitlab.acceleo.classpath">
+            <arg value="${model}"/>
+            <arg value="${target}"/>
+        </java>
+    </target>
+</project>

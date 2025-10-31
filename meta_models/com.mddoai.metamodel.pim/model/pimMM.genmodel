@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.pim/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.pim.edit/src-gen" editorDirectory="/com.mddoai.metamodel.pim.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.pim" modelName="PimMM" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>pimMM.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="PimMM" basePackage="com.mddoai.metamodel.pim" disposableProviderFactory="true"
+      ecorePackage="pimMM.ecore#/">
+    <genClasses ecoreClass="pimMM.ecore#//Pipeline">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Pipeline/stages"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Stage">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Stage/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Stage/tool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Stage/script"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Script">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Script/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Script/commands"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Commands">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Commands/commands"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Command">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Command/command"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>

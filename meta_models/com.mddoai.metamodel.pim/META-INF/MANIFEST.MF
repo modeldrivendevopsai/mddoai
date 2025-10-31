@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: com.mddoai.metamodel.pim;singleton:=true
+Automatic-Module-Name: com.mddoai.metamodel.pim
+Bundle-Version: 0.1.0.qualifier
+Bundle-ClassPath: .
+Bundle-Vendor: %providerName
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.mddoai.metamodel.pim.pimMM,
+ com.mddoai.metamodel.pim.pimMM.impl,
+ com.mddoai.metamodel.pim.pimMM.util
+Require-Bundle: org.eclipse.emf.ecore;visibility:=reexport,
+ org.eclipse.core.runtime
+Bundle-ActivationPolicy: lazy

@@ -1,0 +1,116 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/gitlab')]
+
+
+[template public generateElement(aPipeline : Pipeline)]
+[comment @main/]
+[file ('.gitlab-ci.yml', false, 'UTF-8')]
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+[generateStages(aPipeline.stages)/]
+[generateVariables(aPipeline.variables)/]
+[if (aPipeline.jobs->notEmpty())]
+[for (j: Job | aPipeline.jobs)]
+[generateJob(j)/]
+[/for]
+[/if]
+[/file]
+[/template]
+[template public generateStages(stages : OrderedSet(String))]
+stages:
+[for (stage: String | stages)]
+  - [stage/]
+[/for]
+[/template]
+
+[template public generateVariables(variables: Variables)]
+[if (variables <> null and variables.variables->notEmpty())]
+variables:
+[for (variable : Variable | variables.variables)]
+  [variable.name/]: [variable.value/]
+[/for]
+[/if]
+[/template]
+
+[template public generateJob(job: Job)]
+[job.name/]:
+  stage: [job.stage/]
+  [if (job.image <> null)]
+  image: [job.image/]
+  [/if]
+  [generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateDependencies(job.dependencies)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
+[/template]
+[comment][generateTags(job.tags)/][/comment]
+[template public generateScript(script: Script)]
+[if (script <> null and script.commands->notEmpty())]
+script:
+[for (command: Comand | script.commands)]
+  - [command.comand/]
+[/for]
+[/if]
+[/template]
+
+[template public generateBeforeScript(script: BeforeScript)]
+[if (script <> null and script.commands->notEmpty())]
+before_script:
+[for (command: Comand | script.commands)]
+  - [command.comand/]
+[/for]
+[/if]
+[/template]
+
+[template public generateTags(tags: Tags)]
+[if (tags <> null and tags.tags->notEmpty())]
+tags:
+[for (tag: Tag | tags.tags)]
+  - [tag.tag/]
+[/for]
+[/if]
+[/template]
+
+[template public generateOnly(only: Only)]
+[if (only <> null and only.branches->notEmpty())]
+only:
+[for (onlyBranch: OnlyBranches | only.branches)]
+  - [onlyBranch.branch/]
+[/for]
+[/if]
+[/template]
+
+[template public generateDependencies(dependencies: Dependencies)]
+[if (dependencies <> null and dependencies.dependencies->notEmpty())]
+dependencies:
+[for (dependency: Dependency | dependencies.dependencies)]
+  - [dependency.dependency/]
+[/for]
+[/if]
+[/template]
+
+[template public generateArtifacts(a : Artifact)]
+[if (a <> null)]
+artifacts:
+[if (a.paths->notEmpty())]
+  paths:
+  [for (p : Path | a.paths)]
+    - [p.path/]
+  [/for]  
+[/if]
+[if (a <> null and a.when <> null)]
+  when: [a.when/]
+[/if]
+[if (a.reports <> null and a.reports.junit <> null)]
+  [generateReport(a.reports)/]
+[/if]
+[/if]
+[/template]
+
+[template public generateReport(report: Report)]
+reports:
+  junit: [report.junit/]
+[/template]

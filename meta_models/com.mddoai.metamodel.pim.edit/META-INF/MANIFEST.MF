@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: com.mddoai.metamodel.pim.edit;singleton:=true
+Automatic-Module-Name: com.mddoai.metamodel.pim.edit
+Bundle-Version: 1.0.0.qualifier
+Bundle-ClassPath: .
+Bundle-Activator: com.mddoai.metamodel.pim.pimMM.provider.PimMMEditPlugin$Implementation
+Bundle-Vendor: %providerName
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.mddoai.metamodel.pim.pimMM.provider
+Require-Bundle: org.eclipse.core.runtime,
+ com.mddoai.metamodel.pim;visibility:=reexport,
+ org.eclipse.emf.edit;visibility:=reexport
+Bundle-ActivationPolicy: lazy

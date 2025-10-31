@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>com.mddoai</name>
+	<comment></comment>
+	<projects>
+		<project>com.mddoai.codegeneration.gitlab.acceleo</project>
+		<project>com.mddoai.metamodel.gitlab</project>
+		<project>com.mddoai.metamodel.gitlab.edit</project>
+		<project>com.mddoai.metamodel.gitlab.editor</project>
+		<project>com.mddoai.metamodel.pim</project>
+		<project>com.mddoai.metamodel.pim.design</project>
+		<project>com.mddoai.metamodel.pim.edit</project>
+		<project>com.mddoai.metamodel.pim.editor</project>
+		<project>com.mddoai.metamodel.pim.samples</project>
+		<project>com.mddoai.metamodel.swarch</project>
+		<project>com.mddoai.metamodel.swarch.edit</project>
+		<project>com.mddoai.metamodel.swarch.editor</project>
+		<project>com.mddoai.metamodel.swarch.samples</project>
+		<project>com.mddoai.transformations.pim2psm</project>
+		<project>core</project>
+		<project>mddoai_umbrella</project>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.jdt.core.javabuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.jdt.core.javanature</nature>
+	</natures>
+</projectDescription>

@@ -1,0 +1,185 @@
+-- @nsURI SWArchMM=http://www.mddoai.com/mddoai/metamodel/swarch
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+
+module swarch2pim;
+create OUT : PIMMM from IN : SWArchMM;
+
+rule SWArch2PIMPipeline {
+  from
+    source: SWArchMM!SoftwareArchitecture
+  to
+    target: PIMMM!Pipeline (
+      stages <- 
+        source.defineAllStagesBasedOnConfig(
+          source.unit_test,
+          source.health_check,
+          source.lint_check,
+          thisModule.getListOfMandatoryStagesBasedOnType(source.type)
+        )
+        ->collect(s | thisModule.createStage(Tuple { pipeline = source, stage = s }))
+    )
+}
+
+
+--- This functions returns the mandatory stages based on the type of the project.
+helper def: getListOfMandatoryStagesBasedOnType(type : String) : Sequence(String) =
+  if type = 'framework' then
+    Sequence {'build', 'push'}
+  else if type = 'jar' then
+    Sequence {'build'}
+  else
+    Sequence {}
+  endif
+  endif;
+
+--- Utility function that appends under conditions to make the rest of the code cleaner.
+helper def: appendIf(seq : Sequence(String), cond : Boolean, elem : String) : Sequence(String) =
+  if cond then
+    seq->append(elem)
+  else
+    seq
+  endif;
+  
+--- Utility function to check if a certain string contains a certain pattern.
+helper def: containsAny(str : String, patterns : Sequence(String)) : Boolean =
+  patterns->exists(p | str.indexOf(p) <> -1);
+
+--- Gets all the stages based on the configuration of the SW arch model. 
+helper context SWArchMM!SoftwareArchitecture def: defineAllStagesBasedOnConfig(unitTest: String, healthCheck: String, lintCheck: String, mandatoryStages: Sequence(String)) : Sequence(String) =
+    Sequence{'build','unitTest','lintCheck','healthCheck','push'}->select(s | 
+        mandatoryStages->includes(s)
+        or (s='unitTest' and not unitTest.oclIsUndefined() and unitTest<>'')
+        or (s='healthCheck' and not healthCheck.oclIsUndefined() and healthCheck<>'')
+        or (s='lintCheck' and not lintCheck.oclIsUndefined() and lintCheck<>'')
+    );
+
+--- Defines which parameter to use as the testing tool.
+helper context SWArchMM!SoftwareArchitecture def: getTestingTool() : String =
+	if self.language = 'java' then
+		self.build_system
+	else
+		self.language + '3'
+	endif;
+
+--- Defines which parameter to use as the build tool.
+helper context SWArchMM!SoftwareArchitecture def: getBuildTool(): String = self.build_system;
+
+--- From what I know most of the time health checks are performed using curl, but for the chatbot there is the shell script. Another thing that LLM could determine... maybe.
+helper context SWArchMM!SoftwareArchitecture def: getHealthCheckTool(): String = '';
+ 
+--- Defines which parameter to use as the push tool.
+helper context SWArchMM!SoftwareArchitecture def: getPushTool(): String = self.build_system;
+
+--- Defines which parameter to use as the lint_check tool.
+helper context SWArchMM!SoftwareArchitecture def: getLintCheckTool(): String = self.build_system;
+
+--- Defines the tool used to execute the command
+helper context SWArchMM!SoftwareArchitecture def: getTool(stage: String) : String =
+	if stage = 'unitTest' then
+		self.getTestingTool()
+	else if stage = 'lintCheck' then
+		self.getLintCheckTool()
+	else if stage = 'build' then
+		self.getBuildTool()
+	else if stage = 'push' then
+		self.getPushTool()
+	else if stage = 'healthCheck' then
+		self.getHealthCheckTool()
+	else
+		''
+	endif
+	endif
+	endif
+	endif
+	endif;
+
+helper def: getScriptName(stage: String) : String = stage + '.script';
+
+--- Only way to create objects in ATL
+lazy rule createCommand {
+	from
+		source: String
+	to
+		target: PIMMM!Command(
+			command <- 	source
+		)
+}
+
+--- Based on the stage, returns the commands needed for that stage.
+helper context SWArchMM!SoftwareArchitecture def: getCommands(stage: String): Sequence(PIMMM!Command) = 
+	if stage = 'unitTest' then
+		if self.unit_test = 'true' then
+			Sequence{
+				thisModule.createCommand('test')
+			}
+		else
+			Sequence{
+				thisModule.createCommand(self.unit_test)
+			}
+		endif
+	else if stage = 'build' then
+		if self.build_system = 'gradle' then
+			Sequence{
+				thisModule.createCommand('clean -x test')
+			}
+		else
+			Sequence{
+				thisModule.createCommand('build -t ${IMAGE_TAG} .')
+			}
+		endif
+	else if stage = 'healthCheck' then
+		Sequence{
+			thisModule.createCommand(self.health_check)
+		}
+	else if stage = 'push' then
+		Sequence{
+			thisModule.createCommand('login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}'),
+			thisModule.createCommand('push ${IMAGE_TAG}')
+		}
+	else if stage = 'lintCheck' then
+		Sequence{
+			thisModule.createCommand('check')
+		}
+	else
+		Sequence{
+		}
+	endif
+	endif
+	endif
+	endif
+	endif;
+		
+--- Object Commands creation
+lazy rule createCommands {
+  from
+    source: TupleType(pipeline : SWArchMM!SoftwareArchitecture, stage : String)
+  to
+    target : PIMMM!Commands (
+      commands <- source.pipeline.getCommands(source.stage)
+    )
+}
+
+--- Object Script creation
+lazy rule createScript{
+	from
+		source: TupleType(pipeline : SWArchMM!SoftwareArchitecture, stage : String)
+	to
+		target:PIMMM!Script(
+			name <- thisModule.getScriptName(source.stage),
+			commands <- thisModule.createCommands(source)
+		)
+}
+
+--- Object Stage creation
+lazy rule createStage{
+	from
+		source: TupleType(pipeline : SWArchMM!SoftwareArchitecture, stage : String)
+	to
+		target:PIMMM!Stage(
+			name <- source.stage,
+			tool <- source.pipeline.getTool(source.stage),
+			script <- thisModule.createScript(source)
+		)
+}
+
+
