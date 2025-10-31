@@ -172,7 +172,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: main/build/reports/jacoco/test/html/
+          path: ${{ github.workspace }}/**/build/reports/jacoco/test/html/
 
   deploy_pages:
     name: Upload Coverage to Pages
