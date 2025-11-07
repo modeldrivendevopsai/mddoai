@@ -113,9 +113,9 @@ The project folder structure consists of these folders:
 - `update_site` - this folder contains the reference to the feature from the feature folder and it is responsible for building the update site.
 
 ## Coverage reports
-[E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
-[Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
-[Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
+- [E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
+- [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
+- [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
 
 ## License
 
