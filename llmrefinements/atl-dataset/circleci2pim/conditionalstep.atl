@@ -1,0 +1,41 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module conditionalstep;
+create OUT : CICD from IN : CircleCI;
+
+abstract rule ConditionalStep2ConditionalStep {
+    from
+        input : CircleCI!ConditionalStep
+    to
+        output : CICD!ConditionalStep(
+            thenRun <- input.steps
+        )
+}
+
+rule WhenStep2ConditionalStep extends ConditionalStep2ConditionalStep {
+    from
+        input : CircleCI!WhenStep
+    to
+        output : CICD!ConditionalStep(
+            ifCondition <- input.condition
+        )
+}
+
+rule UnlessStep2ConditionalStep extends ConditionalStep2ConditionalStep {
+    from
+        input : CircleCI!UnlessStep
+    to
+        output : CICD!ConditionalStep(
+            ifCondition <- thisModule.NegateLogic(input.condition)
+        )
+}
+
+lazy rule NegateLogic {
+    from
+        input : CircleCI!Logic
+    to
+        output : CICD!Negation(
+            rhs <- input
+        )
+}

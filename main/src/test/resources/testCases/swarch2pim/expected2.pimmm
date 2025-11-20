@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <pimMM:Pipeline name="framework-chatbot" jobStreams="/1"/>
+  <pimMM:ScriptJob name="build">
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker build -t ${IMAGE_TAG} ."/>
+    </steps>
+  </pimMM:ScriptJob>
+</xmi:XMI>

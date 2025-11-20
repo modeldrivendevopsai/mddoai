@@ -1,0 +1,152 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module expressions_values_literals;
+create OUT : CICD from IN : CircleCI;
+
+-- Expression / Value / Literal Rules
+
+rule Concat2Concat extends Expression2Expression {
+    from
+        input : CircleCI!Concat
+    to
+        output : CICD!Concat(
+            expressions <- input.expressions
+        )
+}
+
+rule DotOperator2DotOp extends Value2Value {
+    from
+        input : CircleCI!DotOperator
+    to
+        output : CICD!DotOp(
+            lhs <- input.lhs,
+            rhs <- input.rhs
+        )
+}
+
+rule VariableReference2VariableReference extends Value2Value {
+    from
+        input : CircleCI!VariableReference
+    to
+        output : CICD!VariableReference(
+            reference <- input.reference
+        )
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+    from
+        input : CircleCI!StringLiteral
+    to
+        output : CICD!StringLiteral(
+            value <- input.value
+        )
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+    from
+        input : CircleCI!IntegerLiteral
+    to
+        output : CICD!IntegerLiteral(
+            value <- input.value
+        )
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+    from
+        input : CircleCI!DoubleLiteral
+    to
+        output : CICD!DoubleLiteral(
+            value <- input.value
+        )
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+    from
+        input : CircleCI!BooleanLiteral
+    to
+        output : CICD!BooleanLiteral(
+            value <- input.value
+        )
+}
+
+rule And2And extends InfinitaryOperator2Expression {
+    from
+        input : CircleCI!And(
+            input.operands->size() > 1
+        )
+    to
+        output : CICD!And(
+            lhs <- 
+                if input.operands->size() = 2 then
+                    input.operands->first()
+                else
+                    thisModule.LazyAnd2And(input.operands->subSequence(1, input.operands->size() - 1))
+                endif,
+            rhs <- input.operands->last()
+        )
+}
+
+rule Or2Or extends InfinitaryOperator2Expression {
+    from
+        input : CircleCI!Or(
+            input.operands->size() > 1
+        )
+    to
+        output : CICD!Or(
+            lhs <- 
+                if input.operands->size() = 2 then
+                    input.operands->first()
+                else
+                    thisModule.LazyAnd2And(input.operands->subSequence(1, input.operands->size() - 1))
+                endif,
+            rhs <- input.operands->last()
+        )
+}
+
+rule Equals2EqualityOp extends InfinitaryOperator2Expression {
+    from
+        input : CircleCI!Equals(
+            input.operands->size() = 2
+        )
+    to
+        output : CICD!EqualityOp(
+            lhs <- input.operands->first(),
+            op <- #"==",
+            rhs <- input.operands->last()
+        )
+}
+
+rule Equals2And extends InfinitaryOperator2Expression {
+    from
+        input : CircleCI!Equals(
+            input.operands->size() > 2
+        )
+    to
+        output : CICD!And(
+            lhs <- 
+                if input.operands->size() = 3 then
+                    thisModule.CreateEquals(input.operands->first(), input.operands->at(2))
+                else
+                    thisModule.LazyEquals2And(input.operands->subSequence(1, input.operands->size() - 1))
+                endif,
+            rhs <- thisModule.CreateEquals(input.operands->first(), input.operands->last())
+        )
+}
+
+rule Not2Negation extends UnaryOperator2UnaryOp {
+    from
+        input : CircleCI!Not
+    to
+        output : CICD!Negation
+}
+
+rule VariableAssignment2Assignment {
+    from
+        input : CircleCI!VariableAssignment
+    to
+        output : CICD!Assignment(
+            key <- input.key,
+            value <- input.value
+        )
+}

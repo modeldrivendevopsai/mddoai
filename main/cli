@@ -1,0 +1,5 @@
+#!/bin/sh
+
+chmod +x ./build/install/com.mddoai/bin/com.mddoai
+
+./build/install/com.mddoai/bin/com.mddoai "$@"

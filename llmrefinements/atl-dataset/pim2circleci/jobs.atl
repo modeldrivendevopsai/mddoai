@@ -1,0 +1,185 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module jobs;
+create OUT : CircleCI from IN : CICD;
+
+-- Abstract and lazy job helpers
+helper context CICD!Job def : job2JobHelper() : CircleCI!Job =
+	if self.oclIsTypeOf(CICD!ScriptJob) then
+		thisModule.ScriptJob2Job(self)
+	else OclUndefined
+	endif;
+
+helper context CICD!Job def : job2ExecutorHelper() : CircleCI!Executor =
+	if self.checkIfTransform2DockerExecutor() then
+		thisModule.Job2DockerExecutor(self)
+	else if self.agent.oclIsTypeOf(CICD!MacOSAgent) then
+		thisModule.Job2MacOSExecutor(self)
+	else if self.agent.oclIsTypeOf(CICD!WindowsAgent) or self.agent.oclIsTypeOf(CICD!LinuxAgent) or self.agent.oclIsTypeOf(CICD!CustomAgent) then
+		thisModule.Job2MachineExecutor(self)
+	else
+		OclUndefined
+	endif
+	endif
+	endif;
+
+helper context CICD!Job def : checkIfTransform2DockerExecutor() : Boolean =
+	if self.services->notEmpty() then
+		true
+	else if self.agent.oclIsTypeOf(CICD!LinuxAgent) then
+		if not self.agent.container.oclIsUndefined() then
+			true
+		else
+			false
+		endif
+	else
+		false
+	endif
+	endif;
+
+-- ScriptJob → CircleCI Job
+unique lazy rule ScriptJob2Job {
+	from
+		input : CICD!ScriptJob
+	to
+		output : CircleCI!Job(
+			environmentVariables <- input.environmentVariables,
+			executor <- input.job2ExecutorHelper(),
+			name <- input.id,
+			parameters <- input.inputs,
+			steps <- input.steps->collect(step | thisModule.step2StepHelper(step))->flatten()
+		)
+}
+
+-- Workflow job configuration
+unique lazy rule Job2WorkflowDefinedJobConfiguration {
+	from
+		input : CICD!ScriptJob
+	using {
+		job : CircleCI!Job = input.job2JobHelper();
+	}
+	to
+		output : CircleCI!WorkflowDefinedJobConfiguration(
+			job <- job,
+			matrix <- input.matrix,
+			name <- if not job.oclIsUndefined() then job.name else OclUndefined endif,
+			requires <- input.previous->collect(j | j.job2WorkflowJobHelper())
+		)
+}
+
+-- Pipeline call job → workflow orb job configuration
+unique lazy rule PipelineCallJob2WorkflowOrbJobConfiguration {
+	from
+		input : CICD!PipelineCallJob
+	to
+		output : CircleCI!WorkflowOrbJobConfiguration (
+			orb <- thisModule.PipelineCallJob2OrbReference(''),
+			name <- input.id,
+			jobName <- 'continue',
+			arguments <- input.args->union(
+				if not input.pipelinePath.oclIsUndefined() then
+					Sequence{thisModule.CreateVariableAssignment('configuration_path', input.pipelinePath)}
+				else
+					Sequence{}
+				endif
+			)
+		)
+}
+
+-- Executors
+unique lazy rule Job2DockerExecutor {
+	from
+		input : CICD!Job
+	to
+		output : CircleCI!DockerExecutor(
+			containers <- Sequence{
+				if input.agent.oclIsTypeOf(CICD!LinuxAgent) then
+					if not input.agent.container.oclIsUndefined() then
+						input.agent.container
+					else
+						thisModule.CreateNullDockerContainer(input.agent)
+					endif
+				else
+					thisModule.CreateNullDockerContainer(input.agent)
+				endif
+			}->union(input.services)->collect(container | 
+				if not container.oclIsTypeOf(CircleCI!NullDockerContainer) then
+					thisModule.DockerContainer2DockerContainer(container)
+				else
+					container
+				endif
+			),
+			environmentVariables <- input.environmentVariables,
+			shell <- if not input.shell.oclIsUndefined() then input.shell.expression2ExpressionHelper() else OclUndefined endif,
+			workingDirectory <- if not input.workingDirectory.oclIsUndefined() then input.workingDirectory.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+unique lazy rule Job2MacOSExecutor {
+	from
+		input : CICD!Job
+	to
+		output : CircleCI!MacOSExecutor(
+			xcode <- if not input.agent.xcode.oclIsUndefined() then input.agent.xcode.expression2ExpressionHelper() else thisModule.String2StringLiteral('latest') endif,
+			environmentVariables <- input.environmentVariables,
+			shell <- if not input.shell.oclIsUndefined() then input.shell.expression2ExpressionHelper() else OclUndefined endif,
+			workingDirectory <- if not input.workingDirectory.oclIsUndefined() then input.workingDirectory.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+unique lazy rule Job2MachineExecutor {
+	from
+		input : CICD!Job
+	to
+		output : CircleCI!MachineExecutor(
+			image <- if input.agent.oclIsKindOf(CICD!PresetAgent) then input.agent.image.expression2ExpressionHelper() else thisModule.getCICDProperty(input.agent.labels, 'MACHINE_IMAGE') endif,
+			environmentVariables <- input.environmentVariables,
+			shell <- if not input.shell.oclIsUndefined() then input.shell.expression2ExpressionHelper() else OclUndefined endif,
+			workingDirectory <- if not input.workingDirectory.oclIsUndefined() then input.workingDirectory.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+-- Null Docker container creation
+lazy rule CreateNullDockerContainer {
+	from
+		input : CICD!Agent
+	to
+		output : CircleCI!NullDockerContainer (
+			agent <- if input.oclIsTypeOf(CICD!WindowsAgent) then #WINDOWS
+					else if input.oclIsTypeOf(CICD!MacOSAgent) then #MACOS
+					else if input.oclIsTypeOf(CICD!LinuxAgent) then #LINUX
+					else #CUSTOM
+					endif
+					endif
+					endif,
+			image <- if input.oclIsKindOf(CICD!PresetAgent) then input.image.expression2ExpressionHelper() 
+					 else if input.oclIsTypeOf(CICD!CustomAgent) then thisModule.getCICDProperty(input.agent.labels, 'MACHINE_IMAGE') 
+					 else OclUndefined endif
+					 endif
+		)
+}
+
+-- Helper to extract agent properties
+helper def : getCICDProperty(labels : Sequence(CICD!Expression), name : String) : CircleCI!Expression =
+	if labels->isEmpty() then
+		OclUndefined
+	else if labels->first().expression2String().startsWith('%%__CICD__' + name + '#%!!__#%!!') then 
+		if labels->first().oclIsTypeOf(CICD!Concat) then
+			let concat : CICD!Concat = labels->first()
+			in
+			if concat.expressions->size() = 2 then
+				concat.expressions->last()
+			else
+				thisModule.CreateConcat(concat.expressions->excluding(concat.expressions->first()))
+			endif
+		else if labels->first().oclIsTypeOf(CICD!StringLiteral) then
+			thisModule.String2StringLiteral(labels->first().expression2String().split('#%!!__#%!!')->last())
+		else
+			OclUndefined
+		endif
+	else 
+		thisModule.getCICDProperty(labels->excluding(labels->first()), name)
+	endif
+	endif
+;

@@ -1,0 +1,59 @@
+-- @path GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module triggers2triggers;
+create OUT : CICD from IN : GHA;
+
+-- ===========================
+-- TRIGGER → TRIGGER RULES
+-- ===========================
+
+abstract rule Trigger2Trigger {
+	from
+		ghaTrigger : GHA!Trigger
+	to
+		cicdTrigger : CICD!Trigger
+}
+
+rule ScheduledTrigger2ScheduledTrigger extends Trigger2Trigger {
+	from
+		ghaTrigger : GHA!ScheduleTrigger
+	to
+		cicdTrigger : CICD!ScheduledTrigger(
+			crons <- ghaTrigger.crons->collect(cron | cron.expression2String())
+		)
+}
+
+rule PushTrigger2PushTrigger extends Trigger2Trigger {
+	from
+		ghaTrigger : GHA!PushTrigger
+	to
+		cicdTrigger : CICD!PushTrigger(
+			tagGlobs <- 
+				if not ghaTrigger.ignoreSpecifiedTags then
+					ghaTrigger.tags->collect(tag | tag.expression2String())
+				else
+					Sequence{'*'}->union(ghaTrigger.tags->collect(tag | tag.negationString()))
+				endif,
+			branchGlobs <- 
+				if not ghaTrigger.ignoreSpecifiedBranches then
+					ghaTrigger.branches->collect(branch | branch.expression2String())
+				else
+					Sequence{'*'}->union(ghaTrigger.branches->collect(branch | branch.negationString()))
+				endif
+		)		
+}
+
+rule PullRequestTrigger2PullRequestTrigger extends Trigger2Trigger {
+	from
+		ghaTrigger : GHA!PullRequestTrigger
+	to
+		cicdTrigger : CICD!PullRequestTrigger(
+			branchGlobs <- 
+				if not ghaTrigger.ignoreSpecifiedBranches then
+					ghaTrigger.branches->collect(branch | branch.expression2String())
+				else
+					Sequence{'*'}->union(ghaTrigger.branches->collect(branch | branch.negationString()))
+				endif
+		)	
+}

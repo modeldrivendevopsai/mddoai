@@ -1,0 +1,38 @@
+abstract rule Parameter2Parameter {
+	from
+		input : CICD!Parameter
+	to
+		output : GHA!Parameter(
+			description <- input.description,
+			id <- input.id
+		)
+}
+
+rule Input2Input extends Parameter2Parameter {
+	from
+		input : CICD!Input
+	to
+		output : GHA!Input(
+			default <- input.defaultValue,
+			isRequired <- input.required,
+			options <- input.choices,
+			type <- thisModule.MapInputType(input.type)
+		)
+}
+
+rule Output2Output extends Parameter2Parameter {
+	from
+		input : CICD!Output
+	to
+		output : GHA!Output(
+			value <- input.value
+		)
+}
+
+helper def : MapInputType(type : CICD!ParameterType) : GHA!ParameterType =
+	if type = #STRING then #STRING
+	else if type = #NUMBER then #NUMBER
+	else if type = #BOOLEAN then #BOOLEAN
+	else if type = #CHOICE then #CHOICE
+	else #STRING
+	endif;

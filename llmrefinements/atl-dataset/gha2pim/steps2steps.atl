@@ -1,0 +1,106 @@
+-- steps2steps.atl
+-- @nsURI GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @nsURI CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module steps2steps;
+create OUT : CICD from IN : GHA;
+
+-- Abstract step mapping
+abstract rule AbstractStep2Step {
+    from
+        ghaStep : GHA!AbstractStep
+    to
+        cicdStep : CICD!Step
+}
+
+-- Non-conditional steps
+abstract rule Step2NonConditionalStep extends AbstractStep2Step {
+    from
+        ghaStep : GHA!Step
+    to
+        cicdStep : CICD!NonConditionalStep(
+            id <- ghaStep.id,
+            timeoutMinutes <- ghaStep.timeoutMinutes,
+            environmentVariables <- ghaStep.environmentVariables,
+            allowFailure <-
+                if not ghaStep.continueOnError.oclIsUndefined() then
+                    ghaStep.continueOnError.expression2Boolean()
+                else
+                    OclUndefined
+                endif,
+            name <-
+                if not ghaStep.name.oclIsUndefined() then
+                    ghaStep.name.expression2String()
+                else
+                    OclUndefined
+                endif,
+            workingDirectory <- ghaStep.workingDirectory
+        )
+}
+
+-- Conditional steps
+rule IfStep2ConditionalStep extends AbstractStep2Step {
+    from
+        ghaStep : GHA!IfStep
+    to
+        cicdStep : CICD!ConditionalStep(
+            ifCondition <- ghaStep.ifCondition,
+            thenRun <- ghaStep.thenRun
+        )
+}
+
+-- Command steps
+rule Command2Command extends Step2NonConditionalStep {
+    from
+        ghaStep : GHA!Command
+    to
+        cicdStep : CICD!Command(
+            program <- ghaStep.command,
+            shell <- ghaStep.shell
+        )
+}
+
+-- Package steps for plugins
+rule Package2Plugin extends Step2NonConditionalStep {
+    from
+        ghaStep : GHA!Package(
+            not ghaStep.uses.expression2String().startsWith('actions/cache') and
+            not ghaStep.uses.expression2String().startsWith('actions/upload-artifact') and
+            not ghaStep.uses.expression2String().startsWith('actions/download-artifact') and
+            not ghaStep.uses.expression2String().startsWith('actions/checkout')
+        )
+    using {
+        plugin : String = ghaStep.uses.expression2String().split('@')->first();
+        version : String = ghaStep.uses.expression2String().split('@')->last();
+    }
+    to
+        cicdStep : CICD!Plugin(
+            pluginName <- plugin,
+            version <- if version <> plugin then version else OclUndefined endif,
+            kwargs <- ghaStep.args
+        )
+}
+
+-- Package steps for caching
+rule Package2Cache extends Step2NonConditionalStep {
+    from
+        ghaStep : GHA!Package(
+            ghaStep.uses.expression2String().startsWith('actions/cache')
+        )
+    to
+        cicdStep : CICD!Cache(
+            keys <- thisModule.getVariable(ghaStep.args, 'key'),
+            paths <- thisModule.getVariable(ghaStep.args, 'path'),
+            store <-
+                if ghaStep.uses.expression2String().startsWith('actions/cache/restore') then
+                    #LOAD
+                else if ghaStep.uses.expression2String().startsWith('actions/cache/save') then
+                    #STORE
+                else
+                    #BOTH
+                endif
+                endif
+        )
+}
+
+-- Package steps

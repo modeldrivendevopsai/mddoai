@@ -1,0 +1,182 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module expressions_values_literals;
+create OUT : CircleCI from IN : CICD;
+
+-- Expression / Value / Literal Rules
+
+lazy rule Concat2Concat {
+	from
+		input : CICD!Concat
+	to
+		output : CircleCI!Concat(
+			expressions <- input.expressions->collect(expr | expr.expression2ExpressionHelper())
+		)
+}
+
+lazy rule DotOp2DotOperator {
+	from
+		input : CICD!DotOp
+	to
+		output : CircleCI!DotOperator(
+			lhs <- if not input.lhs.oclIsUndefined() then input.lhs.expression2ValueHelper() else OclUndefined endif,
+			rhs <- if not input.rhs.oclIsUndefined() then input.rhs.expression2ValueHelper() else OclUndefined endif
+		)
+}
+
+lazy rule VariableReference2VariableReference {
+	from
+		input : CICD!VariableReference
+	to
+		output : CircleCI!VariableReference(
+			reference <- input.reference
+		)
+}
+
+lazy rule StringLiteral2StringLiteral {
+	from
+		input : CICD!StringLiteral
+	to
+		output : CircleCI!StringLiteral(
+			value <- input.value
+		)
+}
+
+lazy rule IntegerLiteral2IntegerLiteral {
+	from
+		input : CICD!IntegerLiteral
+	to
+		output : CircleCI!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+lazy rule DoubleLiteral2DoubleLiteral {
+	from
+		input : CICD!DoubleLiteral
+	to
+		output : CircleCI!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+lazy rule BooleanLiteral2BooleanLiteral {
+	from
+		input : CICD!BooleanLiteral
+	to
+		output : CircleCI!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+lazy rule And2And {
+	from
+		input : CICD!And
+	to
+		output : CircleCI!And(
+			operands <- Sequence{input.lhs, input.rhs}->collect(expr | expr.expression2LogicHelper())
+		)
+}
+
+lazy rule Or2Or {
+	from
+		input : CICD!Or
+	to
+		output : CircleCI!Or(
+			operands <- Sequence{input.lhs, input.rhs}->collect(expr | expr.expression2LogicHelper())
+		)
+}
+
+lazy rule EqualsEqualityOp2Equals {
+	from
+		input : CICD!EqualityOp
+	to
+		output : CircleCI!Equals(
+			operands <- Sequence{input.lhs, input.rhs}->collect(expr | expr.expression2ExpressionHelper())
+		)
+}
+
+lazy rule NotEqualsEqualityOp2Not {
+	from
+		input : CICD!EqualityOp
+	to
+		output : CircleCI!Not(
+			operand <- thisModule.EqualsEqualityOp2Equals(input)
+		)
+}
+
+lazy rule String2StringLiteral {
+	from
+		input : String
+	to
+		output : CircleCI!StringLiteral(
+			value <- input
+		)
+}
+
+-- Helpers for Expression/Value/Literal conversion
+
+helper context CICD!Expression def : expression2ExpressionHelper() : CircleCI!Expression =
+	if self.oclIsTypeOf(CICD!Concat) then
+		thisModule.Concat2Concat(self)
+	else
+		self.expression2ValueHelper()
+	endif;
+
+helper context CICD!Expression def : expression2LogicHelper() : CircleCI!Logic =
+	if self.oclIsTypeOf(CICD!And) then
+		thisModule.And2And(self)
+	else if self.oclIsTypeOf(CICD!Or) then
+		thisModule.Or2Or(self)
+	else if self.oclIsTypeOf(CICD!EqualityOp) then
+		if self.op = #"==" then
+			thisModule.EqualsEqualityOp2Equals(self)
+		else
+			thisModule.NotEqualsEqualityOp2Not(self)
+		endif
+	else
+		self.expression2ValueHelper()
+	endif
+	endif
+	endif;
+
+helper context CICD!Expression def : expression2ValueHelper() : CircleCI!Value =
+	if self.oclIsTypeOf(CICD!VariableReference) then
+		thisModule.VariableReference2VariableReference(self)
+	else if self.oclIsTypeOf(CICD!DotOp) then
+		thisModule.DotOp2DotOperator(self)
+	else if self.oclIsTypeOf(CICD!StringLiteral) then
+		thisModule.StringLiteral2StringLiteral(self)
+	else if self.oclIsTypeOf(CICD!IntegerLiteral) then
+		thisModule.IntegerLiteral2IntegerLiteral(self)
+	else if self.oclIsTypeOf(CICD!DoubleLiteral) then
+		thisModule.DoubleLiteral2DoubleLiteral(self)
+	else if self.oclIsTypeOf(CICD!BooleanLiteral) then
+		thisModule.BooleanLiteral2BooleanLiteral(self)
+	else
+		OclUndefined
+	endif
+	endif
+	endif
+	endif
+	endif
+	endif;
+
+helper context CICD!Expression def : expression2String() : String = 'EXPRESSION';
+
+helper context CICD!Concat def : expression2String() : String =
+	let exprStrings : Sequence(String) =
+		self.expressions->collect(expr | if expr.oclIsTypeOf(CICD!VariableReference) then '<<' + expr.expression2String() + '>>' else expr.expression2String() endif)
+	in exprStrings->iterate(exprString; joinedString: String = '' | joinedString.concat(exprString));
+
+helper context CICD!VariableReference def : expression2String() : String =
+	self.reference.name;
+
+helper context CICD!StringLiteral def : expression2String() : String = self.value;
+
+helper context CICD!IntegerLiteral def : expression2String() : String = self.value.toString();
+
+helper context CICD!DoubleLiteral def : expression2String() : String = self.value.toString();
+
+helper context CICD!BooleanLiteral def : expression2String() : String = self.value.toString();

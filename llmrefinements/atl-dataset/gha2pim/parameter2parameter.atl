@@ -1,0 +1,54 @@
+-- @path GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module parameters2parameters;
+create OUT : CICD from IN : GHA;
+
+-- ==============================
+-- PARAMETERS → PARAMETERS RULES
+-- ==============================
+
+abstract rule Parameter2Parameter {
+	from
+		input : GHA!Parameter
+	to
+		output : CICD!Parameter(
+			description <- input.description,
+			id <- input.id
+		)
+}
+
+rule Input2Input extends Parameter2Parameter {
+	from
+		input : GHA!Input
+	to
+		output : CICD!Input(
+			choices <- input.options,
+			defaultValue <- input.default,
+			required <- input.isRequired,
+			type <-
+				if input.type = #STRING then
+					#STRING
+				else if input.type = #NUMBER then
+					#NUMBER
+				else if input.type = #BOOLEAN then
+					#BOOLEAN
+				else if input.type = #CHOICE then
+					#CHOICE
+				else
+					#STRING
+				endif
+				endif
+				endif
+				endif
+		)
+}
+
+rule Output2Output extends Parameter2Parameter {
+	from
+		input : GHA!Output
+	to
+		output : CICD!Output(
+			value <- input.value
+		)
+}

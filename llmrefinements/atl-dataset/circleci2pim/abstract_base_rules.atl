@@ -1,0 +1,105 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module abstract_base_rules;
+create OUT : CICD from IN : CircleCI;
+
+-- Base rules for polymorphic mapping
+
+abstract rule Trigger2Trigger {
+    from
+        input : CircleCI!Trigger
+    to
+        output : CICD!Trigger(
+            branchGlobs <- 
+                if input.ignoreSpecifiedBranches then
+                    Sequence{thisModule.String2StringLiteral('*')}
+                        .union(input.branches->collect(branch | thisModule.NegateExpression(branch)))
+                else
+                    input.branches
+                endif
+        )
+}
+
+abstract rule WorkflowJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowJobConfiguration
+    to
+        output : CICD!Job(
+            id <- input.name,
+            ifCondition <- 
+                if input.requires->isEmpty() and not input.refImmediateComposite().condition.oclIsUndefined() then
+                    if input.refImmediateComposite().isWhen then
+                        input.refImmediateComposite().condition
+                    else
+                        thisModule.NegateLogic(input.refImmediateComposite().condition)
+                    endif
+                else
+                    OclUndefined
+                endif,
+            matrix <- input.matrix,
+            name <- input.name,
+            previous <- input.requires->select(job | not job.oclIsUndefined())
+                ->select(job | not job.oclIsTypeOf(CircleCI!WorkflowApprovalJobConfiguration))
+        )
+}
+
+abstract rule WorkflowOrbJobConfiguration2Job extends WorkflowJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowOrbJobConfiguration
+    to
+        output : CICD!Job
+}
+
+abstract rule Expression2Expression {
+    from
+        input : CircleCI!Expression
+    to
+        output : CICD!Expression
+}
+
+abstract rule Value2Value {
+    from
+        input : CircleCI!Value
+    to
+        output : CICD!Value
+}
+
+abstract rule Literal2Literal extends Value2Value {
+    from
+        input : CircleCI!Literal
+    to
+        output : CICD!Literal
+}
+
+abstract rule Logic2Expression {
+    from
+        input : CircleCI!Logic
+    to
+        output : CICD!Expression
+}
+
+abstract rule InfinitaryOperator2Expression extends Logic2Expression {
+    from
+        input : CircleCI!InfinitaryOperator
+    to
+        output : CICD!Expression
+}
+
+abstract rule UnaryOperator2UnaryOp extends Logic2Expression {
+    from
+        input : CircleCI!UnaryOperator
+    to
+        output : CICD!UnaryOp(
+            rhs <- input.operand
+        )
+}
+
+abstract rule ConditionalStep2ConditionalStep {
+    from
+        input : CircleCI!ConditionalStep
+    to
+        output : CICD!ConditionalStep(
+            thenRun <- input.steps
+        )
+}

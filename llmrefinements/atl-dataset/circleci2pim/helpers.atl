@@ -1,0 +1,137 @@
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module helpers;
+create OUT : CICD from IN : CircleCI;
+
+-- Helpers (OCL functions)
+
+helper context CircleCI!Executor def : executor2AgentHelper() : CICD!Agent =
+	if self.oclIsUndefined() then
+		OclUndefined
+	else if self.oclIsTypeOf(CircleCI!DockerExecutor) then
+		thisModule.DockerExecutor2Agent(self)
+	else if self.oclIsTypeOf(CircleCI!MachineExecutor) then
+		if self.image.startsWith('linux-') or self.image.startsWith('ubuntu-') then
+			thisModule.MachineExecutor2LinuxAgent(self)
+		else if self.image.startsWith('windows-') then
+			thisModule.MachineExecutor2WindowsAgent(self)
+		else
+			thisModule.MachineExecutor2CustomAgent(self)
+		endif
+		endif
+	else if self.oclIsTypeOf(CircleCI!MacOSExecutor) then
+		thisModule.MacOSExecutor2Agent(self)
+	else if self.oclIsTypeOf(CircleCI!ExecutorReferenceExecutor) then
+		self.executor.executor2AgentHelper()
+	else if self.oclIsTypeOf(CircleCI!OrbReferenceExecutor) and self.orb.oclIsTypeOf(CircleCI!OrbDefinition) then
+		let executor : CircleCI!Executor = self.orb.getExecutorByName(self.orbExecutorName) in
+		if executor.oclIsUndefined() then
+			OclUndefined
+		else
+			executor.executor2AgentHelper()
+		endif
+	else if self.oclIsTypeOf(CircleCI!OrbReferenceExecutor) and self.orb.oclIsTypeOf(CircleCI!OrbReference) then
+		thisModule.Labels2Agent(Sequence{self.orb.reference + '/' + self.orbExecutorName})
+	else
+		OclUndefined
+	endif
+	endif
+	endif
+	endif
+	endif
+	endif
+	endif;
+
+helper context CircleCI!Step def : step2StepHelper() : CICD!Step =
+	if self.oclIsUndefined() then
+		Sequence{}
+	else if self.oclIsTypeOf(CircleCI!CommandReferenceStep) then
+		self.command.steps->collect(step | step.step2StepHelper())->flatten()
+	else
+		Sequence{self}
+	endif
+	endif;
+
+helper def : getVariableValue(variables : Sequence(CircleCI!VariableAssignment), name : String) : CircleCI!Expression =
+	let variableSequence : Sequence(CircleCI!VariableAssignment) = variables->collect(variable | variable.key.name = name) in
+	if variableSequence->isEmpty() then OclUndefined else variableSequence->first().value endif;
+
+helper def : orbDefinitionReference2StepsHelper(orbDefinition : CircleCI!OrbDefinition, jobName : String) : Sequence(CircleCI!Step) =
+	if orbDefinition.commands->collect(command | command.name = jobName)->notEmpty() then
+		orbDefinition.commands->collect(command | command.name = jobName)->first().steps
+	else if orbDefinition.jobs->collect(job | job.name = jobName)->notEmpty() then
+		orbDefinition.jobs->collect(job | job.name = jobName)->first().steps
+	else
+		Sequence{}
+	endif
+	endif;
+
+helper def : getJobStreamOrigins(jobs : Sequence(CircleCI!WorkflowJobConfiguration)) : Sequence(CircleCI!WorkflowJobConfiguration) =
+	jobs->select(job | not job.oclIsUndefined())->select(job | job.requires->select(job | not job.oclIsUndefined())->select(j | not j.oclIsTypeOf(CircleCI!WorkflowApprovalJobConfiguration))->isEmpty());
+
+helper def : PARAMETER_TYPE_2_INPUT_TYPE(parameterType : CircleCI!PARAMETER_TYPES) : CICD!INPUT_TYPE =
+	if parameterType = #string then
+		#STRING
+	else if parameterType = #boolean then
+		#BOOLEAN
+	else if parameterType = #integer then
+		#NUMBER
+	else if parameterType = #enum then
+		#CHOICE
+	else
+		#STRING
+	endif
+	endif
+	endif
+	endif;
+
+helper context CircleCI!Expression def : expression2String() : String =
+	'EXPRESSION';
+
+helper context CircleCI!Concat def : expression2String() : String =
+	self.expressions->iterate(expression; acc : String = '' |
+		acc + expression.expression2String()
+	);
+
+helper context CircleCI!Value def : expression2String() : String =
+	'VALUE';
+
+helper context CircleCI!Literal def : expression2String() : String =
+	'LITERAL';
+
+helper context CircleCI!StringLiteral def : expression2String() : String =
+	self.value;
+
+helper context CircleCI!IntegerLiteral def : expression2String() : String =
+	self.value.toString();
+
+helper context CircleCI!DoubleLiteral def : expression2String() : String =
+	self.value.toString();
+
+helper context CircleCI!BooleanLiteral def : expression2String() : String =
+	self.value.toString();
+
+helper context CircleCI!VariableReference def : expression2String() : String =
+	self.reference.name;
+
+helper context CircleCI!Expression def : startsWith(string : String) : Boolean =
+	false;
+
+helper context CircleCI!Concat def : startsWith(string : String) : Boolean =
+	let expressions : Sequence(CircleCI!Expression) = self.expressions->select(expression | not expression.oclIsUndefined()) in
+	if expressions->isEmpty() then
+		false
+	else
+		expressions->first().startsWith(string)
+	endif;
+
+helper context CircleCI!StringLiteral def : startsWith(string : String) : Boolean =
+	self.value.startsWith(string);
+
+helper context CircleCI!OrbDefinition def : getExecutorByName(name : String) : CircleCI!Executor =
+	let executors : Sequence(CircleCI!Executor) = self.executors->select(executor | executor.name = name) in
+	if executors->isEmpty() then
+		OclUndefined
+	else
+		executors->first()
+	endif;

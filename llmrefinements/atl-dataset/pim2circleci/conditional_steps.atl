@@ -1,0 +1,58 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module conditional_steps;
+create OUT : CircleCI from IN : CICD;
+
+-- Conditional steps → WhenStep
+lazy rule ConditionalStep2WhenStep {
+	from
+		input : CICD!ConditionalStep
+	to
+		output : CircleCI!WhenStep(
+			condition <-
+				if not input.ifCondition.oclIsUndefined() then
+					input.ifCondition.expression2LogicHelper()
+				else
+					OclUndefined
+				endif,
+			steps <- input.thenRun->collect(step | thisModule.step2StepHelper(step))->flatten()
+		)
+}
+
+-- Conditional steps → UnlessStep
+lazy rule ConditionalStep2UnlessStep {
+	from
+		input : CICD!ConditionalStep
+	to
+		output : CircleCI!UnlessStep(
+			condition <-
+				if not input.ifCondition.oclIsUndefined() then
+					input.ifCondition.expression2LogicHelper()
+				else
+					OclUndefined
+				endif,
+			steps <- input.elseRun->collect(step | thisModule.step2StepHelper(step))->flatten()
+		)
+}
+
+-- Helpers for converting WhenStep and UnlessStep back to ConditionalStep
+lazy rule WhenStep2ConditionalStep {
+	from
+		input : CICD!WhenStep
+	to
+		output : CircleCI!ConditionalStep(
+			ifCondition <- input.condition,
+			thenRun <- input.steps
+		)
+}
+
+lazy rule UnlessStep2ConditionalStep {
+	from
+		input : CICD!UnlessStep
+	to
+		output : CircleCI!ConditionalStep(
+			ifCondition <- input.condition,
+			elseRun <- input.steps
+		)
+}

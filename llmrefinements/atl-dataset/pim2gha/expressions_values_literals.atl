@@ -1,0 +1,159 @@
+module expressions_values_literals;
+create OUT : GHA from IN : CICD;
+
+abstract rule Expression2Expression {
+	from
+		input : CICD!Expression
+	to
+		output : GHA!Expression
+}
+
+rule Concat2Concat extends Expression2Expression {
+	from
+		input : CICD!Concat
+	to
+		output : GHA!Concat(
+			expressions <- input.expressions
+		)
+}
+
+abstract rule BinaryOp2BinaryOp extends Expression2Expression {
+	from
+		input : CICD!BinaryOp
+	to
+		output : GHA!BinaryOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}
+
+abstract rule LogicalOp2LogicalOp extends BinaryOp2BinaryOp {
+	from
+		input : CICD!LogicalOp
+	to
+		output : GHA!LogicalOp
+}
+
+rule And2And extends LogicalOp2LogicalOp {
+	from
+		input : CICD!And
+	to
+		output : GHA!And
+}
+
+rule Or2Or extends LogicalOp2LogicalOp {
+	from
+		input : CICD!Or
+	to
+		output : GHA!Or
+}
+
+rule EqualityOp2Equality extends BinaryOp2BinaryOp {
+	from
+		input : CICD!EqualityOp
+	to
+		output : GHA!Equality(
+			op <- if input.op = #"==" then #"==" else #"!=" endif
+		)
+}
+
+rule ComparisonOp2Comparison extends BinaryOp2BinaryOp {
+	from
+		input : CICD!ComparisonOp
+	to
+		output : GHA!Comparison(
+			op <- 
+				if input.op = #">" then #">"
+				else if input.op = #">=" then #">="
+				else if input.op = #"<" then #"<"
+				else #"<="
+				endif
+				endif
+				endif
+		)
+}
+
+abstract rule Value2Value extends Expression2Expression {
+	from
+		input : CICD!Value
+	to
+		output : GHA!Value
+}
+
+rule VariableReference2VariableReference extends Value2Value {
+	from
+		input : CICD!VariableReference
+	to
+		output : GHA!VariableReference(
+			reference <- input.reference
+		)
+}
+
+abstract rule Literal2Literal extends Value2Value {
+	from
+		input : CICD!Literal
+	to
+		output : GHA!Literal
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+	from
+		input : CICD!StringLiteral
+	to
+		output : GHA!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+	from
+		input : CICD!IntegerLiteral
+	to
+		output : GHA!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+	from
+		input : CICD!DoubleLiteral
+	to
+		output : GHA!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+	from
+		input : CICD!BooleanLiteral
+	to
+		output : GHA!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+abstract rule UnaryOp2UnaryOp extends Expression2Expression {
+	from
+		input : CICD!UnaryOp
+	to
+		output: GHA!UnaryOp(
+			childExpr <- input.rhs
+		)
+}
+
+rule Negation2Not extends UnaryOp2UnaryOp {
+	from
+		input : CICD!Negation
+	to
+		output : GHA!Not
+}
+
+rule DotOp2DotOp extends BinaryOp2BinaryOp {
+	from
+		input : CICD!DotOp
+	to
+		output : GHA!DotOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}

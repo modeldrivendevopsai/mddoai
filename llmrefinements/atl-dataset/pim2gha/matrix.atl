@@ -1,0 +1,38 @@
+module matrix;
+create OUT : GHA from IN : CICD;
+
+rule Matrix2Matrix {
+	from
+		cicdMatrix : CICD!Matrix
+	to
+		ghaMatrix : GHA!Matrix(
+			axes <- cicdMatrix.axes,
+			excludes <- cicdMatrix.excludes,
+			failFast <- 
+				if not cicdMatrix.failFast.oclIsUndefined() then
+					thisModule.Boolean2BooleanLiteral(cicdMatrix.failFast)
+				else
+					OclUndefined
+				endif,
+			includes <- cicdMatrix.includes
+		)
+}
+
+rule MatrixAxis2MatrixAxis {
+	from
+		cicdAxis : CICD!MatrixAxis
+	to
+		ghaAxis : GHA!MatrixAxis(
+			cells <- cicdAxis.cells,
+			name <- cicdAxis.name
+		)
+}
+
+rule MatrixCombination2MatrixCombination {
+	from
+		cicdComb : CICD!MatrixCombination
+	to
+		ghaComb : GHA!MatrixCombination(
+			entries <- cicdComb.combinationEntries
+		)
+}

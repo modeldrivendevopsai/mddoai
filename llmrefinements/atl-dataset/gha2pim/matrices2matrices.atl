@@ -1,0 +1,43 @@
+-- matrices2matrices.atl
+-- @nsURI GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @nsURI CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module matrices2matrices;
+create OUT : CICD from IN : GHA;
+
+-- Matrix mapping
+rule Matrix2Matrix {
+    from
+        ghaMatrix : GHA!Matrix
+    to
+        cicdMatrix : CICD!Matrix(
+            axes <- ghaMatrix.axes,
+            includes <- ghaMatrix.includes,
+            excludes <- ghaMatrix.excludes,
+            failFast <- 
+                if not ghaMatrix.failFast.oclIsUndefined() then
+                    ghaMatrix.failFast.expression2Boolean()
+                else
+                    OclUndefined
+                endif
+        )
+}
+
+rule MatrixAxis2MatrixAxis {
+    from
+        ghaAxis : GHA!MatrixAxis
+    to
+        cicdAxis : CICD!MatrixAxis(
+            name <- ghaAxis.name,
+            cells <- ghaAxis.cells
+        )
+}
+
+rule MatrixCombination2MatrixCombination {
+    from
+        ghaCombination : GHA!MatrixCombination
+    to
+        cicdCombination : CICD!MatrixCombination(
+            combinationEntries <- ghaCombination.entries
+        )
+}

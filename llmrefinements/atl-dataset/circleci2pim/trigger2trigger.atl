@@ -1,0 +1,38 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module trigger2trigger;
+create OUT : CICD from IN : CircleCI;
+
+abstract rule Trigger2Trigger {
+    from
+        input : CircleCI!Trigger
+    to
+        output : CICD!Trigger(
+            branchGlobs <- 
+                if input.ignoreSpecifiedBranches then
+                    Sequence{thisModule.String2StringLiteral('*')}
+                        .union(input.branches->collect(branch | thisModule.NegateExpression(branch)))
+                else
+                    input.branches
+                endif
+        )
+}
+
+rule ScheduleTrigger2ScheduledTrigger extends Trigger2Trigger {
+    from
+        input : CircleCI!ScheduleTrigger
+    to
+        output : CICD!ScheduledTrigger(
+            crons <- input.cron.split('\n')
+        )
+}
+
+lazy rule NegateExpression {
+    from
+        input : CircleCI!Expression
+    to
+        output : CICD!Negation(
+            rhs <- input
+        )
+}

@@ -1,0 +1,45 @@
+-- @atlcompiler atl2010
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module contractMatrixInputs;
+create OUT : CICD refining IN : CICD;
+
+rule DropInput {
+	from
+		input : CICD!Input (
+			input.id.isMatrixAxisInput()
+		)
+	to
+		drop
+}
+
+rule VariableReference {
+	from
+		input : CICD!VariableReference (
+			input.reference.isMatrixAxisInput()
+		)
+	using {
+		matrix : CICD!Matrix = input.reference.refImmediateComposite().refImmediateComposite().matrix;
+	}
+	to
+		output : CICD!VariableReference (
+			reference <- matrix.axes->select(axis | axis.name.name = input.reference.name)->first().name
+		)
+}
+
+helper context CICD!VariableDeclaration def : isMatrixAxisInput() : Boolean =
+	if self.refImmediateComposite().oclIsTypeOf(CICD!Input) then
+		let input : CICD!Input = self.refImmediateComposite() in
+		if input.refImmediateComposite().oclIsKindOf(CICD!Job) then
+			let matrix : CICD!Matrix = input.refImmediateComposite().matrix in
+			if matrix.oclIsUndefined() then
+				false
+			else let matrixVariableDeclarations : Sequence(CICD!VariableDeclaration) = matrix.axes->collect(axis | axis.name) in
+				matrixVariableDeclarations->exists(variableDeclaration | variableDeclaration.name = self.name)
+			endif
+		else
+			false
+		endif
+	else
+		false
+	endif;

@@ -1,0 +1,45 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module trigger;
+create OUT : CircleCI from IN : CICD;
+
+-- Abstract base rule for triggers
+abstract rule trigger2trigger {
+	from
+		input : CICD!Trigger
+	to
+		output : CircleCI!Trigger(
+			branches <- input.branchGlobs->collect(glob | thisModule.String2StringLiteral(glob))
+		)
+}
+
+-- Scheduled trigger specialized rule
+rule scheduledtrigger2scheduletrigger extends trigger2trigger {
+	from
+		input : CICD!ScheduledTrigger
+	to
+		output : CircleCI!ScheduleTrigger(
+			cron <- thisModule.joinStrings(input.crons, '\n')
+		)
+}
+
+-- Helper to join strings with a separator
+helper def : joinStrings(stringSequence : Sequence(String), sep : String) : String =
+	stringSequence->iterate(string; joinedString : String = '' |
+		if stringSequence->indexOf(string) = stringSequence->size() then
+			joinedString.concat(string)
+		else
+			joinedString.concat(string).concat(sep)
+		endif
+	);
+
+-- Helper to convert string to CircleCI StringLiteral
+lazy rule string2stringliteral {
+	from
+		input : String
+	to
+		output : CircleCI!StringLiteral(
+			value <- input
+		)
+}

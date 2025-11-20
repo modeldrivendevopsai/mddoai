@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %pluginName
+Bundle-SymbolicName: com.mddoai.metamodel.swarch.edit;singleton:=true
+Automatic-Module-Name: com.mddoai.metamodel.swarch.edit
+Bundle-Version: 1.0.0.qualifier
+Bundle-ClassPath: .
+Bundle-Activator: com.mddoai.metamodel.swarch.provider.SwarchEditPlugin$Implementation
+Bundle-Vendor: %providerName
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.mddoai.metamodel.swarch.provider
+Require-Bundle: org.eclipse.core.runtime,
+ com.mddoai.metamodel.swarch;visibility:=reexport,
+ org.eclipse.emf.edit;visibility:=reexport
+Bundle-ActivationPolicy: lazy

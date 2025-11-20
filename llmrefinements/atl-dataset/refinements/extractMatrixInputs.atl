@@ -1,0 +1,545 @@
+-- @path CICD1=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CICD2=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module extractMatrixInputs;
+create OUT : CICD2 from IN : CICD1;
+
+abstract rule PipelineBlock {
+	from
+		input : CICD1!PipelineBlock
+	to
+		output : CICD2!PipelineBlock(
+			agent <- input.agent,
+			environmentVariables <- input.environmentVariables,
+			inputs <- input.inputs,
+			name <- input.name,
+			outputs <- input.outputs,
+			shell <- input.shell,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+rule Pipeline extends PipelineBlock {
+	from
+		input : CICD1!Pipeline
+	to
+		output : CICD2!Pipeline(
+			triggers <- input.triggers,
+			jobStreams <- input.jobStreams
+		)
+}
+
+abstract rule Job extends PipelineBlock {
+	from
+		input : CICD1!Job
+	to
+		output : CICD2!Job(
+			id <- input.id,
+			ifCondition <- input.ifCondition,
+			inputs <- 
+				input.inputs->union(
+					if not input.matrix.oclIsUndefined() then
+						input.matrix.axes->collect(
+							axis | 
+							thisModule.MatrixAxis2Input(axis.name)
+						)
+					else
+						Sequence{}
+					endif
+				),
+			services <- input.services,
+			matrix <- input.matrix,
+			next <- input.next,
+			previous <- input.previous,
+			maxAttempts <- input.maxAttempts,
+			allowFailure <- input.allowFailure
+		)
+}
+
+unique lazy rule MatrixAxis2Input {
+	from
+		input : CICD1!VariableDeclaration
+	to
+		output : CICD2!Input (
+			id <- thisModule.CopyVariableDeclaration(input)
+		)
+}
+
+lazy rule CopyVariableDeclaration {
+	from
+		input : CICD1!VariableDeclaration
+	to
+		output : CICD2!VariableDeclaration (
+			name <- input.name
+		)
+}
+
+rule ScriptJob extends Job {
+	from
+		input : CICD1!ScriptJob
+	to
+		output : CICD2!ScriptJob(
+			steps <- input.steps
+		)
+}
+
+rule PipelineCallJob extends Job {
+	from
+		input : CICD1!PipelineCallJob
+	to
+		output : CICD2!PipelineCallJob(
+			pipelinePath <- input.pipelinePath,
+			args <- input.args
+		)
+}
+
+abstract rule Agent {
+	from
+		input : CICD1!Agent
+	to
+		output : CICD2!Agent
+}
+
+rule CustomAgent extends Agent {
+	from
+		input : CICD1!CustomAgent
+	to
+		output : CICD2!CustomAgent (
+			labels <- input.labels
+		)
+}
+
+abstract rule PresetAgent extends Agent {
+	from
+		input : CICD1!PresetAgent
+	to
+		output : CICD2!PresetAgent (
+			image <- input.image
+		)
+}
+
+rule LinuxAgent extends PresetAgent {
+	from
+		input : CICD1!LinuxAgent
+	to
+		output : CICD2!LinuxAgent (
+			container <- input.container
+		)
+}
+
+rule WindowsAgent extends PresetAgent {
+	from
+		input : CICD1!WindowsAgent
+	to
+		output : CICD2!WindowsAgent
+}
+
+rule MacOSAgent extends PresetAgent {
+	from
+		input : CICD1!MacOSAgent
+	to
+		output : CICD2!MacOSAgent (
+			xcode <- input.xcode
+		)
+}
+
+rule DockerContainer {
+	from
+		input : CICD1!DockerContainer
+	to
+		output : CICD2!DockerContainer(
+			environmentVariables <- input.environmentVariables,
+			image <- input.image,
+			label <- input.label,
+			network <- input.network,
+			options <- input.options,
+			ports <- input.ports,
+			registryPassword <- input.registryPassword,
+			registryUsername <- input.registryUsername,
+			volumes <- input.volumes
+		)
+}
+
+abstract rule Trigger {
+	from
+		input : CICD1!Trigger
+	to
+		output : CICD2!Trigger(
+			branchGlobs <- input.branchGlobs
+		)
+}
+
+rule PushTrigger extends Trigger {
+	from
+		input : CICD1!PushTrigger
+	to
+		output : CICD2!PushTrigger(
+			tagGlobs <- input.tagGlobs
+		)
+}
+
+rule PullRequestTrigger extends Trigger {
+	from
+		input : CICD1!PullRequestTrigger
+	to
+		output : CICD2!PullRequestTrigger
+}
+
+rule ManualTrigger extends Trigger {
+	from
+		input : CICD1!ManualTrigger
+	to
+		output : CICD2!ManualTrigger
+}
+
+rule ScheduledTrigger extends Trigger {
+	from
+		input : CICD1!ScheduledTrigger
+	to
+		output : CICD2!ScheduledTrigger(
+			crons <- input.crons
+		)
+}
+
+rule WebhookTrigger extends Trigger {
+	from
+		input : CICD1!WebhookTrigger
+	to
+		output : CICD2!WebhookTrigger
+}
+
+rule Matrix {
+	from
+		input : CICD1!Matrix
+	to
+		output : CICD2!Matrix(
+			axes <- input.axes,
+			excludes <- input.excludes,
+			includes <- input.includes,
+			failFast <- input.failFast
+		)
+}
+
+rule MatrixAxis {
+	from
+		input : CICD1!MatrixAxis
+	to
+		output : CICD2!MatrixAxis(
+			name <- input.name,
+			cells <- input.cells
+		)
+}
+
+rule MatrixCombination {
+	from
+		input : CICD1!MatrixCombination
+	to
+		output : CICD2!MatrixCombination(
+			combinationEntries <- input.combinationEntries
+		)
+}
+
+abstract rule Parameter {
+	from
+		input : CICD1!Parameter
+	to
+		output : CICD2!Parameter(
+			description <- input.description,
+			id <- input.id
+		)
+}
+
+rule Input extends Parameter {
+	from
+		input : CICD1!Input
+	to
+		output : CICD2!Input(
+			defaultValue <- input.defaultValue,
+			required <- input.required,
+			type <- input.type
+		)
+}
+
+rule Output extends Parameter {
+	from
+		input : CICD1!Output
+	to
+		output : CICD2!Output(
+			value <- input.value
+		)
+}
+
+abstract rule Step {
+	from
+		input : CICD1!Step
+	to
+		output : CICD2!Step
+}
+
+rule ConditionalStep extends Step {
+	from
+		input : CICD1!ConditionalStep
+	to
+		output : CICD2!ConditionalStep (
+			elseRun <- input.elseRun,
+			ifCondition <- input.ifCondition,
+			thenRun <- input.thenRun
+		)
+}
+
+abstract rule NonConditionalStep extends Step {
+	from
+		input : CICD1!NonConditionalStep
+	to
+		output : CICD2!NonConditionalStep (
+			allowFailure <- input.allowFailure,
+			environmentVariables <- input.environmentVariables,
+			id <- input.id,
+			name <- input.name,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+rule Command extends NonConditionalStep {
+	from
+		input : CICD1!Command
+	to
+		output : CICD2!Command(
+			program <- input.program,
+			shell <- input.shell
+		)
+}
+
+rule Plugin extends NonConditionalStep {
+	from
+		input : CICD1!Plugin
+	to
+		output : CICD2!Plugin(
+			kwargs <- input.kwargs,
+			pluginName <- input.pluginName,
+			version <- input.version
+		)
+}
+
+rule Cache extends NonConditionalStep {
+	from
+		input : CICD1!Cache
+	to
+		output : CICD2!Cache(
+			cacheName <- input.cacheName,
+			keys <- input.keys,
+			paths <- input.paths,
+			store <- input.store
+		)
+}
+
+rule Artifact extends NonConditionalStep {
+	from
+		input : CICD1!Artifact
+	to
+		output : CICD2!Artifact(
+			artifactName <- input.artifactName,
+			excludePaths <- input.excludePaths,
+			includePaths <- input.includePaths,
+			retentionTime <- input.retentionTime,
+			store <- input.store
+		)
+}
+
+rule Checkout extends NonConditionalStep {
+	from
+		input : CICD1!Checkout
+	to
+		output : CICD2!Checkout(
+			path <- input.path
+		)
+}
+
+abstract rule Expression {
+	from
+		input : CICD1!Expression
+	to
+		output : CICD2!Expression
+}
+
+rule Assignment extends Expression {
+	from
+		input : CICD1!Assignment
+	to
+		output : CICD2!Assignment(
+			key <- input.key,
+			value <- input.value
+		)
+}
+
+rule Concat extends Expression {
+	from
+		input : CICD1!Concat
+	to
+		output : CICD2!Concat(
+			expressions <- input.expressions
+		)
+}
+
+abstract rule BinaryOp extends Expression {
+	from
+		input : CICD1!BinaryOp
+	to
+		output : CICD2!BinaryOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}
+
+rule DotOp extends BinaryOp {
+	from
+		input : CICD1!DotOp
+	to
+		output : CICD2!DotOp
+}
+
+rule EqualityOp extends BinaryOp {
+	from
+		input : CICD1!EqualityOp
+	to
+		output : CICD2!EqualityOp(
+			op <-
+				if input.op = #"==" then
+					#"=="
+				else
+					#"!="
+				endif
+		)
+}
+
+rule ComparisonOp extends BinaryOp {
+	from
+		input : CICD1!ComparisonOp
+	to
+		output : CICD2!ComparisonOp(
+			op <-
+				if input.op = #">" then
+					#">"
+				else if input.op = #">=" then
+					#">="
+				else if input.op = #"<" then
+					#"<"
+				else
+					#"<="
+				endif
+				endif
+				endif
+		)
+}
+
+abstract rule LogicalOp extends BinaryOp {
+	from
+		input : CICD1!LogicalOp
+	to
+		output : CICD2!LogicalOp
+}
+
+rule And extends LogicalOp {
+	from
+		input : CICD1!And
+	to
+		output : CICD2!And
+}
+
+rule Or extends LogicalOp {
+	from
+		input : CICD1!Or
+	to
+		output : CICD2!Or
+}
+
+abstract rule UnaryOp extends Expression {
+	from
+		input : CICD1!UnaryOp
+	to
+		output : CICD2!UnaryOp(
+			rhs <- input.rhs
+		)
+}
+
+rule Negation extends UnaryOp {
+	from
+		input : CICD1!Negation
+	to
+		output : CICD2!Negation
+}
+
+abstract rule Value extends Expression {
+	from
+		input : CICD1!Value
+	to
+		output : CICD2!Value
+}
+
+abstract rule Literal extends Value {
+	from
+		input : CICD1!Literal
+	to
+		output : CICD2!Literal
+}
+
+rule StringLiteral extends Literal {
+	from
+		input : CICD1!StringLiteral
+	to
+		output : CICD2!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral extends Literal {
+	from
+		input : CICD1!IntegerLiteral
+	to
+		output : CICD2!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral extends Literal {
+	from
+		input : CICD1!DoubleLiteral
+	to
+		output : CICD2!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral extends Literal {
+	from
+		input : CICD1!BooleanLiteral
+	to
+		output : CICD2!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+rule VariableReference extends Value {
+	from
+		input : CICD1!VariableReference
+	to
+		output : CICD2!VariableReference(
+			reference <- 
+				if input.reference.refImmediateComposite().oclIsKindOf(CICD1!MatrixAxis) then
+					thisModule.MatrixAxis2Input(input.reference).id
+				else
+					input.reference
+				endif
+		)
+}
+
+rule VariableDeclaration {
+	from
+		input : CICD1!VariableDeclaration
+	to
+		output : CICD2!VariableDeclaration(
+			name <- input.name
+		)
+}

@@ -1,0 +1,136 @@
+-- @path GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module jobs2jobs;
+create OUT : CICD from IN : GHA;
+
+-- ===========================
+-- JOB TRANSFORMATION RULES
+-- ===========================
+
+abstract rule Job2Job {
+	from
+		ghaJob : GHA!Job
+	to
+		cicdJob : CICD!Job(
+			agent <- ghaJob.getAgent(),
+			allowFailure <- 
+				if not ghaJob.continueOnError.oclIsUndefined() then
+					ghaJob.continueOnError.expression2Boolean()
+				else
+					OclUndefined
+				endif,
+			environmentVariables <- ghaJob.environmentVariables,
+			id <- ghaJob.name,
+			ifCondition <- ghaJob.ifCondition,
+			matrix <- ghaJob.strategy,
+			name <- 
+				if not ghaJob.jobName.oclIsUndefined() then
+					ghaJob.jobName.expression2String()
+				else
+					OclUndefined
+				endif,
+			next <- ghaJob.necessaryFor,
+			outputs <- ghaJob.outputs,
+			shell <-
+				if not ghaJob.defaults.oclIsUndefined() then
+					ghaJob.defaults.shell
+				else
+					OclUndefined
+				endif,
+			services <- ghaJob.services,
+			workingDirectory <-
+				if not ghaJob.defaults.oclIsUndefined() then
+					ghaJob.defaults.workingDirectory
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule ScriptJob2ScriptJob extends Job2Job {
+	from
+		ghaJob : GHA!ScriptJob
+	to
+		cicdJob : CICD!ScriptJob(
+			steps <- ghaJob.steps
+		)
+}
+
+rule WorkflowCallJob2PipelineCallJob extends Job2Job {
+	from
+		ghaJob : GHA!WorkflowCallJob
+	to
+		cicdJob : CICD!PipelineCallJob(
+			pipelinePath <- ghaJob.uses,
+			args <- ghaJob.args
+		)
+}
+
+-- ===========================
+-- AGENT HELPER RULES
+-- ===========================
+
+helper context GHA!Job def : getAgent() : CICD!Agent =
+	if self.agent.oclIsUndefined() then
+		OclUndefined
+	else if not thisModule.checkForLabel(self.agent.labels, 'ubuntu').oclIsUndefined() or not thisModule.checkForLabel(self.agent.labels, 'linux').oclIsUndefined() then
+		thisModule.Job2LinuxAgent(self)
+	else if not thisModule.checkForLabel(self.agent.labels, 'windows').oclIsUndefined() then 
+		thisModule.Job2WindowsAgent(self)
+	else if not thisModule.checkForLabel(self.agent.labels, 'macos').oclIsUndefined() then 
+		thisModule.Job2MacOSAgent(self)
+	else
+		thisModule.Job2CustomAgent(self)
+	endif
+	endif
+	endif
+	endif;
+
+lazy rule Job2LinuxAgent {
+	from
+		job : GHA!Job
+	to
+		agent : CICD!LinuxAgent (
+			container <- job.container,
+			image <- 
+				if not thisModule.checkForLabel(job.agent.labels, 'ubuntu').oclIsUndefined() then
+					thisModule.checkForLabel(job.agent.labels, 'ubuntu')
+				else
+					thisModule.checkForLabel(job.agent.labels, 'linux')
+				endif
+		)
+}
+
+lazy rule Job2WindowsAgent {
+	from
+		job : GHA!Job
+	to
+		agent : CICD!WindowsAgent (
+			image <- thisModule.checkForLabel(job.agent.labels, 'windows')
+		)
+}
+
+lazy rule Job2MacOSAgent {
+	from
+		job : GHA!Job
+	to
+		agent : CICD!MacOSAgent (
+			image <- thisModule.checkForLabel(job.agent.labels, 'macos'),
+			xcode <- thisModule.getCICDProperty(job.agent.labels, 'XCODE')
+		)
+}
+
+lazy rule Job2CustomAgent {
+	from
+		job : GHA!Job
+	to
+		agent : CICD!CustomAgent(
+			labels <- 
+				if not job.agent.oclIsUndefined() then
+					job.agent.labels
+				else
+					Sequence{}
+				endif
+		)
+}

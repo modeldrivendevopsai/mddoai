@@ -1,0 +1,110 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module jobs;
+create OUT : CICD from IN : CircleCI;
+
+abstract rule WorkflowJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowJobConfiguration
+    to
+        output : CICD!Job(
+            id <- input.name,
+            ifCondition <-
+                if input.requires->isEmpty() and not input.refImmediateComposite().condition.oclIsUndefined() then
+                    if input.refImmediateComposite().isWhen then
+                        input.refImmediateComposite().condition
+                    else
+                        thisModule.NegateLogic(input.refImmediateComposite().condition)
+                    endif
+                else
+                    OclUndefined
+                endif,
+            matrix <- input.matrix,
+            name <- input.name,
+            previous <- input.requires->select(job | not job.oclIsUndefined())
+                ->select(job | not job.oclIsTypeOf(CircleCI!WorkflowApprovalJobConfiguration))
+        )
+}
+
+rule WorkflowDefinedJobConfiguration2ScriptJob extends WorkflowJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowDefinedJobConfiguration
+    to
+        output : CICD!ScriptJob(
+            agent <- input.job.executor.executor2AgentHelper(),
+            environmentVariables <- input.job.environmentVariables,
+            inputs <- input.job.parameters,
+            services <- 
+                if input.job.executor.oclIsUndefined() then
+                    Sequence{}
+                else if input.job.executor.oclIsTypeOf(CircleCI!DockerExecutor) then
+                    if input.job.executor.containers->size() > 1 then
+                        input.job.executor.containers->subSequence(2, input.job.executor.containers->size())
+                            ->collect(container | thisModule.DockerContainer2DockerContainer(container))
+                    else
+                        Sequence{}
+                    endif
+                else
+                    Sequence{}
+                endif
+                endif,
+            shell <- input.job.executor.shell,
+            steps <- 
+                input.preSteps->collect(step | step.step2StepHelper())->flatten()
+                ->union(input.job.steps->collect(step | step.step2StepHelper())->flatten())
+                ->union(input.postSteps->collect(step | step.step2StepHelper())->flatten()),
+            workingDirectory <- input.job.executor.workingDirectory
+        )
+}
+
+abstract rule WorkflowOrbJobConfiguration2Job extends WorkflowJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowOrbJobConfiguration
+    to
+        output : CICD!Job
+}
+
+rule OrbReferenceWorkflowOrbJobConfiguration2ScriptJob extends WorkflowOrbJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowOrbJobConfiguration(
+            input.orb.oclIsTypeOf(CircleCI!OrbReference) and
+            not input.orb.reference.startsWith('circleci/continuation@')
+        )
+    to
+        output : CICD!ScriptJob(
+            steps <- input.preSteps->collect(step | step.step2StepHelper())->flatten()->union(
+                Sequence{thisModule.OrbReference2Plugin(input.orb, input.arguments)}
+            )->union(input.postSteps->collect(step | step.step2StepHelper())->flatten()),
+            agent <- input.executor.executor2AgentHelper(),
+            services <- 
+                if input.executor.oclIsUndefined() then
+                    Sequence{}
+                else if input.executor.oclIsTypeOf(CircleCI!DockerExecutor) then
+                    if input.executor.containers->size() > 1 then
+                        input.executor.containers->subSequence(2, input.executor.containers->size())
+                            ->collect(container | thisModule.DockerContainer2DockerContainer(container))
+                    else
+                        Sequence{}
+                    endif
+                else
+                    Sequence{}
+                endif
+                endif,
+            shell <- input.executor.shell,
+            workingDirectory <- input.executor.workingDirectory
+        )
+}
+
+rule OrbReferenceWorkflowOrbJobConfiguration2PipelineCallJob extends WorkflowOrbJobConfiguration2Job {
+    from
+        input : CircleCI!WorkflowOrbJobConfiguration(
+            input.orb.oclIsTypeOf(CircleCI!OrbReference) and
+            input.orb.reference.startsWith('circleci/continuation@')
+        )
+    to
+        output : CICD!PipelineCallJob(
+            pipelinePath <- thisModule.getVariableValue(input.arguments, 'configuration_path'),
+            args <- input.arguments->select(arg | arg.key <> 'configuration_path')
+        )
+}

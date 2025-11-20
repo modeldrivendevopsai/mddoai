@@ -1,0 +1,46 @@
+abstract rule Job2Job {
+	from
+		cicdJob : CICD!Job
+	to
+		ghaJob : GHA!Job(
+			agent <- 
+				if not cicdJob.agent.oclIsUndefined() then cicdJob.agent.agent2AgentHelper() else OclUndefined endif,
+			container <- 
+				if cicdJob.agent.oclIsTypeOf(CICD!LinuxAgent) then cicdJob.agent.container else OclUndefined endif,
+			continueOnError <- 
+				if not cicdJob.allowFailure.oclIsUndefined() then thisModule.Boolean2BooleanLiteral(cicdJob.allowFailure) else OclUndefined endif,
+			defaults <- 
+				if not cicdJob.shell.oclIsUndefined() or not cicdJob.workingDirectory.oclIsUndefined() then
+					thisModule.Defaults(cicdJob.shell, cicdJob.workingDirectory)
+				else OclUndefined endif,
+			dependsOn <- cicdJob.previous,
+			environmentVariables <- cicdJob.environmentVariables,
+			ifCondition <- cicdJob.ifCondition,
+			jobName <- if not cicdJob.name.oclIsUndefined() then thisModule.String2StringLiteral(cicdJob.name) else OclUndefined endif,
+			name <- cicdJob.id.replaceAll('/', '-'),
+			outputs <- cicdJob.outputs, 
+			services <- cicdJob.services->collect(service | thisModule.DockerContainer2Service(service)),
+			strategy <- cicdJob.matrix,
+			timeoutMinutes <- if not cicdJob.timeoutMinutes.oclIsUndefined() then thisModule.Integer2IntegerLiteral(cicdJob.timeoutMinutes) else OclUndefined endif
+		)
+}
+
+rule ScriptJob2ScriptJob extends Job2Job {
+	from
+		cicdJob : CICD!ScriptJob
+	to
+		ghaJob : GHA!ScriptJob(
+			steps <- cicdJob.steps
+		)
+}
+
+rule PipelineCallJob2WorkflowCallJob extends Job2Job {
+	from
+		cicdJob : CICD!PipelineCallJob
+	to
+		ghaJob : GHA!WorkflowCallJob(
+			uses <- cicdJob.pipelinePath,
+			args <- cicdJob.args,
+			agent <- thisModule.CreateAgent(Sequence{'ubuntu-latest'})
+		)
+}

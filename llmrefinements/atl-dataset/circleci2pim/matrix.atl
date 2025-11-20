@@ -1,0 +1,34 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module matrix;
+create OUT : CICD from IN : CircleCI;
+
+rule Matrix2Matrix {
+    from
+        input : CircleCI!Matrix
+    to
+        output : CICD!Matrix(
+            axes <- input.parameters,
+            excludes <- input.excludes
+        )
+}
+
+rule MatrixParameter2MatrixAxis {
+    from
+        input : CircleCI!MatrixParameter
+    to
+        output : CICD!MatrixAxis(
+            name <- input.name,
+            cells <- input.cells
+        )
+}
+
+rule MatrixCombination2MatrixCombination {
+    from
+        input : CircleCI!MatrixCombination
+    to
+        output : CICD!MatrixCombination(
+            combinationEntries <- input.entries
+        )
+}

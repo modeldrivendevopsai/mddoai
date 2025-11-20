@@ -1,0 +1,22 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module workflow2pipeline;
+create OUT : CICD from IN : CircleCI;
+
+rule Workflow2Pipeline {
+    from
+        input : CircleCI!Workflow
+    to
+        output : CICD!Pipeline(
+            inputs <- input.refImmediateComposite().parameters,
+            jobStreams <- thisModule.getJobStreamOrigins(input.jobs),
+            name <- input.name,
+            triggers <- input.triggers
+        )
+}
+
+helper def : getJobStreamOrigins(jobs : Sequence(CircleCI!WorkflowJobConfiguration)) : Sequence(CircleCI!WorkflowJobConfiguration) =
+    jobs->select(job | not job.oclIsUndefined())
+        ->select(job | job.requires->select(job | not job.oclIsUndefined())
+        ->select(j | not j.oclIsTypeOf(CircleCI!WorkflowApprovalJobConfiguration))->isEmpty());

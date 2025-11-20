@@ -1,0 +1,52 @@
+-- containers2containers.atl
+-- @nsURI GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @nsURI CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module containers2containers;
+create OUT : CICD from IN : GHA;
+
+-- Container mapping
+rule Container2DockerContainer {
+    from
+        container : GHA!Container
+    to
+        dockerContainer : CICD!DockerContainer(
+            image <- container.image,
+            environmentVariables <- container.environmentVariables,
+            ports <- container.ports,
+            volumes <- container.volumes,
+            registryUsername <- container.username,
+            registryPassword <- container.password,
+            options <- 
+                if not container.options.oclIsUndefined() then
+                    container.options.expression2String()
+                else
+                    OclUndefined
+                endif
+        )
+}
+
+-- Service mapping (uses containers)
+rule Service2DockerContainer {
+    from
+        service : GHA!Service
+    using {
+        container : GHA!Container = service.value;
+    }
+    to
+        dockerContainer : CICD!DockerContainer(
+            label <- service.key,
+            image <- container.image,
+            environmentVariables <- container.environmentVariables,
+            ports <- container.ports,
+            volumes <- container.volumes,
+            registryUsername <- container.username,
+            registryPassword <- container.password,
+            options <-  
+                if not container.options.oclIsUndefined() then
+                    container.options.expression2String()
+                else
+                    OclUndefined
+                endif
+        )
+}

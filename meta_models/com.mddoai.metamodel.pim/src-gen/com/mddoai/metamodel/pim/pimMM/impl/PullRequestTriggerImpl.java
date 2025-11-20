@@ -1,0 +1,37 @@
+/**
+ */
+package com.mddoai.metamodel.pim.pimMM.impl;
+
+import com.mddoai.metamodel.pim.pimMM.PimMMPackage;
+import com.mddoai.metamodel.pim.pimMM.PullRequestTrigger;
+
+import org.eclipse.emf.ecore.EClass;
+
+/**
+ * <!-- begin-user-doc -->
+ * An implementation of the model object '<em><b>Pull Request Trigger</b></em>'.
+ * <!-- end-user-doc -->
+ *
+ * @generated
+ */
+public class PullRequestTriggerImpl extends TriggerImpl implements PullRequestTrigger {
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected PullRequestTriggerImpl() {
+		super();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	protected EClass eStaticClass() {
+		return PimMMPackage.Literals.PULL_REQUEST_TRIGGER;
+	}
+
+} //PullRequestTriggerImpl

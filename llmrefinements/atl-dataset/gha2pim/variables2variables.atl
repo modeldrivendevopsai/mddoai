@@ -1,0 +1,29 @@
+-- variables2variables.atl
+-- @nsURI GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @nsURI CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module variables2variables;
+create OUT : CICD from IN : GHA;
+
+-- Variable declaration mapping
+rule VariableDeclaration2VariableDeclaration {
+    from
+        input : GHA!VariableDeclaration
+    to
+        output : CICD!VariableDeclaration(
+            name <- input.name
+        )
+}
+
+-- Variable assignment mapping
+rule VariableAssignment2Assigment {
+    from
+        variableAssignment : GHA!VariableAssignment(
+            not thisModule.isSpecificPackageArg(variableAssignment)
+        )
+    to
+        assignment : CICD!Assignment (
+            key <- variableAssignment.key,
+            value <- variableAssignment.value
+        )
+}

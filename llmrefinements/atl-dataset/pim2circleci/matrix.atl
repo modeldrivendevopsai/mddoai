@@ -1,0 +1,58 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module matrix;
+create OUT : CircleCI from IN : CICD;
+
+-- Matrix
+rule Matrix2Matrix {
+	from
+		input : CICD!Matrix
+	to
+		output : CircleCI!Matrix(
+			parameters <- input.axes,
+			excludes <- input.excludes
+		)
+}
+
+-- Matrix axis → matrix parameter
+rule MatrixParameter2MatrixAxis {
+	from
+		input : CICD!MatrixAxis
+	to
+		output : CircleCI!MatrixParameter(
+			cells <- input.cells->collect(cell | cell.expression2ExpressionHelper()),
+			name <- input.name
+		)
+}
+
+-- Matrix combination
+rule MatrixCombination2MatrixCombination {
+	from
+		input : CICD!MatrixCombination
+	to
+		output : CircleCI!MatrixCombination(
+			entries <- input.combinationEntries
+		)
+}
+
+-- Conditional steps
+lazy rule WhenStep2ConditionalStep {
+	from
+		input : CICD!WhenStep
+	to
+		output : CircleCI!ConditionalStep(
+			ifCondition <- input.condition,
+			thenRun <- input.steps
+		)
+}
+
+lazy rule UnlessStep2ConditionalStep {
+	from
+		input : CICD!UnlessStep
+	to
+		output : CircleCI!ConditionalStep(
+			ifCondition <- input.condition,
+			elseRun <- input.steps
+		)
+}

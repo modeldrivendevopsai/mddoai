@@ -1,0 +1,45 @@
+abstract rule Step2AbstractStep {
+	from
+		cicdStep : CICD!Step
+	to
+		ghaStep : GHA!AbstractStep
+}
+
+rule ConditionalStep2IfStep extends Step2AbstractStep {
+	from
+		cicdStep : CICD!ConditionalStep
+	to
+		ghaStep : GHA!IfStep(
+			ifCondition <- cicdStep.ifCondition,
+			thenRun <- cicdStep.thenRun->first()
+		)
+}
+
+abstract rule NonConditionalStep2Step extends Step2AbstractStep {
+	from
+		cicdStep : CICD!NonConditionalStep
+	to
+		ghaStep : GHA!Step(
+			continueOnError <- if not cicdStep.allowFailure.oclIsUndefined() then thisModule.Boolean2BooleanLiteral(cicdStep.allowFailure) else OclUndefined endif,
+			environmentVariables <- cicdStep.environmentVariables,			
+			id <- cicdStep.id,
+			name <- if not cicdStep.name.oclIsUndefined() then thisModule.String2StringLiteral(cicdStep.name) else OclUndefined endif,
+			timeoutMinutes <- cicdStep.timeoutMinutes,
+			workingDirectory <- cicdStep.workingDirectory
+		)
+}
+
+rule Command2Command extends NonConditionalStep2Step {
+	from
+		cicdStep : CICD!Command
+	to
+		ghaStep : GHA!Command(
+			command <- cicdStep.program,
+			shell <- cicdStep.shell
+		)
+}
+
+rule Plugin2Package extends NonConditionalStep2Step { ... }
+rule Cache2Package extends NonConditionalStep2Step { ... }
+rule Artifact2Package extends NonConditionalStep2Step { ... }
+rule Checkout2Package extends NonConditionalStep2Step { ... }

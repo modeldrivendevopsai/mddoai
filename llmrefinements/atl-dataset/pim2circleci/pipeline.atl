@@ -1,0 +1,87 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module pipeline;
+create OUT : CircleCI from IN : CICD;
+
+-- Main pipeline transformation
+rule pipeline2pipeline {
+	from
+		input : CICD!Pipeline
+	to
+		output : CircleCI!Pipeline(
+			jobs <- thisModule.getAllJobs(input.jobStreams)->collect(job | job.job2JobHelper()),
+			orbs <- 
+				thisModule.getAllJobs(input.jobStreams)
+					->select(job | job.oclIsTypeOf(CICD!ScriptJob))
+					->collect(job | job.steps)
+					->flatten()
+					->collect(step | step.getChildren())
+					->flatten()
+					->select(step | step.oclIsTypeOf(CICD!Plugin))
+					->select(step | step.checkIfOrb())
+					->collect(step | thisModule.Plugin2OrbReference(step.getReference(), step))
+				->union(
+					if thisModule.getAllJobs(input.jobStreams)->exists(job | job.oclIsTypeOf(CICD!PipelineCallJob)) then 
+						Sequence{thisModule.PipelineCallJob2OrbReference('')} 
+					else 
+						Sequence{} 
+					endif
+				),
+			parameters <- input.inputs,
+			workflows <- Sequence{thisModule.Pipeline2Workflow(input)}
+		)
+}
+
+-- Helper for workflow creation
+lazy rule pipeline2workflow {
+	from
+		input : CICD!Pipeline
+	using {
+		conditions : Sequence(CICD!Expression) = input.jobStreams->collect(jobStream | jobStream.ifCondition)->select(ifCondition | not ifCondition.oclIsUndefined());
+	}
+	to
+		output : CircleCI!Workflow(
+			condition <-
+				if conditions->size() = 1 then
+					conditions->first().expression2LogicHelper()
+				else if conditions->size() > 1 then
+					thisModule.ConjunctExpressions(conditions)
+				else
+					OclUndefined
+				endif
+				endif,
+			isWhen <-
+				if conditions->notEmpty() then
+					true
+				else
+					OclUndefined
+				endif,
+			jobs <- thisModule.getAllJobs(input.jobStreams)->collect(job | job.job2WorkflowJobHelper()),
+			name <- input.name,
+			triggers <- input.triggers->select(trigger | trigger.oclIsTypeOf(CICD!ScheduledTrigger))
+		)
+}
+
+-- Recursive helper to get all jobs including next streams
+helper def : getAllJobs(jobStreams : Sequence(CICD!Job)) : Sequence(CICD!Job) =
+	let next : Sequence(CICD!Job) = 
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(CICD!Job)) = Sequence{} | 
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in 
+	if next.isEmpty() then
+		jobStreams
+	else 
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+-- Default helper for steps (empty sequence)
+helper context CICD!Step def : getChildren() : Sequence(CICD!Step) =
+	Sequence{};
+
+helper context CICD!NonConditionalStep def : getChildren() : Sequence(CICD!Step) =
+	Sequence{self};
+
+helper context CICD!ConditionalStep def : getChildren() : Sequence(CICD!Step) =
+	Sequence{self}->union(self.thenRun->collect(step | step.getChildren())->flatten())->union(self.elseRun->collect(step | step.getChildren())->flatten());

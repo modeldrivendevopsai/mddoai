@@ -1,0 +1,47 @@
+module pipeline;
+create OUT : GHA from IN : CICD;
+
+rule Pipeline2Workflow {
+	from
+		pipeline : CICD!Pipeline
+	to
+		workflow : GHA!Workflow(
+			defaults <- 
+				if not pipeline.shell.oclIsUndefined() or not pipeline.workingDirectory.oclIsUndefined() then
+					thisModule.Defaults(pipeline.shell, pipeline.workingDirectory)
+				else
+					OclUndefined
+				endif,
+			environmentVariables <- pipeline.environmentVariables,
+			jobs <- thisModule.getAllJobs(pipeline.jobStreams),
+			name <- 
+				if not pipeline.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(pipeline.name)
+				else
+					OclUndefined
+				endif,
+			triggers <- pipeline.triggers->union(
+				if pipeline.inputs->notEmpty() or pipeline.outputs->notEmpty() or thisModule.getAllJobs(pipeline.jobStreams)->exists(job | job.inputs->notEmpty()) then 
+					 Sequence{
+						thisModule.CreateWorkflowDispatchTrigger(
+					 		pipeline.inputs->union(thisModule.getAllJobs(pipeline.jobStreams)->collect(job | job.inputs)->flatten()),
+							pipeline.outputs
+					 	)
+					 }
+				else 
+					Sequence{}
+				endif
+			)
+		)
+}
+
+lazy rule CreateWorkflowDispatchTrigger {
+	from
+		inputs : Sequence(CICD!Input),
+		outputs : Sequence(CICD!Output)
+	to
+		workflowCallTrigger : GHA!WorkflowCallTrigger(
+			inputs <- inputs,
+			outputs <- outputs
+		)
+}

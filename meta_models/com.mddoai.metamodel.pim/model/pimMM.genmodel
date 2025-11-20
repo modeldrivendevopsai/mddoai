@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.pim/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.pim.edit/src-gen" editorDirectory="/com.mddoai.metamodel.pim.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.pim" modelName="PimMM" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>pimMM.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="PimMM" basePackage="com.mddoai.metamodel.pim" disposableProviderFactory="true"
+      ecorePackage="pimMM.ecore#/">
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="pimMM.ecore#//INPUT_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//INPUT_TYPE/STRING"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//INPUT_TYPE/NUMBER"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//INPUT_TYPE/BOOLEAN"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//INPUT_TYPE/CHOICE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="pimMM.ecore#//EQUALITY_OPS">
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//EQUALITY_OPS/EQUALS"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//EQUALITY_OPS/NOT_EQUALS"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="pimMM.ecore#//COMPARISON_OPS">
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//COMPARISON_OPS/GT"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//COMPARISON_OPS/GTE"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//COMPARISON_OPS/LT"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//COMPARISON_OPS/LTE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="pimMM.ecore#//CACHE_MODE">
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//CACHE_MODE/STORE"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//CACHE_MODE/LOAD"/>
+      <genEnumLiterals ecoreEnumLiteral="pimMM.ecore#//CACHE_MODE/BOTH"/>
+    </genEnums>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//PipelineBlock">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//PipelineBlock/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/agent"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/inputs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/outputs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/environmentVariables"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//PipelineBlock/timeoutMinutes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/workingDirectory"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineBlock/shell"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Pipeline">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Pipeline/triggers"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//Pipeline/jobStreams"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Job">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Job/id"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Job/ifCondition"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Job/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Job/matrix"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//Job/previous"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//Job/next"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Job/maxAttempts"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Job/allowFailure"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//ScriptJob">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//ScriptJob/steps"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//PipelineCallJob">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineCallJob/pipelinePath"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PipelineCallJob/args"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Agent"/>
+    <genClasses ecoreClass="pimMM.ecore#//CustomAgent">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//CustomAgent/labels"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//PresetAgent">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//PresetAgent/image"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//LinuxAgent">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//LinuxAgent/container"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//WindowsAgent"/>
+    <genClasses ecoreClass="pimMM.ecore#//MacOSAgent">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//MacOSAgent/xcode"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//DockerContainer">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//DockerContainer/label"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/image"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/environmentVariables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/volumes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/ports"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//DockerContainer/options"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/registryUsername"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/registryPassword"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//DockerContainer/network"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Trigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Trigger/branchGlobs"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//PushTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//PushTrigger/tagGlobs"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//PullRequestTrigger"/>
+    <genClasses ecoreClass="pimMM.ecore#//ManualTrigger"/>
+    <genClasses ecoreClass="pimMM.ecore#//ScheduledTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//ScheduledTrigger/crons"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Matrix">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Matrix/axes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Matrix/includes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Matrix/excludes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Matrix/failFast"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//MatrixAxis">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//MatrixAxis/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//MatrixAxis/cells"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//MatrixCombination">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//MatrixCombination/combinationEntries"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Parameter">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Parameter/id"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Parameter/description"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Input">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Input/type"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Input/defaultValue"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Input/required"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Input/choices"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Output">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Output/value"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Step"/>
+    <genClasses ecoreClass="pimMM.ecore#//ConditionalStep">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//ConditionalStep/ifCondition"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//ConditionalStep/thenRun"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//ConditionalStep/elseRun"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//NonConditionalStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//NonConditionalStep/id"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//NonConditionalStep/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//NonConditionalStep/environmentVariables"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//NonConditionalStep/allowFailure"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//NonConditionalStep/workingDirectory"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//NonConditionalStep/timeoutMinutes"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Command">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Command/program"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Command/shell"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Plugin">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Plugin/pluginName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Plugin/version"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Plugin/kwargs"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Cache">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Cache/cacheName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Cache/keys"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Cache/paths"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Cache/store"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Artifact">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Artifact/artifactName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Artifact/includePaths"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Artifact/excludePaths"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Artifact/retentionTime"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//Artifact/store"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Checkout">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Checkout/path"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//VariableDeclaration">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//VariableDeclaration/name"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Assignment">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Assignment/key"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Assignment/value"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Expression"/>
+    <genClasses ecoreClass="pimMM.ecore#//Concat">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//Concat/expressions"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Value"/>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//Literal"/>
+    <genClasses ecoreClass="pimMM.ecore#//StringLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//StringLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//IntegerLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//IntegerLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//DoubleLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//DoubleLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//BooleanLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//BooleanLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//VariableReference">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference pimMM.ecore#//VariableReference/reference"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//BinaryOp">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//BinaryOp/lhs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//BinaryOp/rhs"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//EqualityOp">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//EqualityOp/op"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//ComparisonOp">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute pimMM.ecore#//ComparisonOp/op"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//DotOp"/>
+    <genClasses image="false" ecoreClass="pimMM.ecore#//LogicalOp"/>
+    <genClasses ecoreClass="pimMM.ecore#//And"/>
+    <genClasses ecoreClass="pimMM.ecore#//Or"/>
+    <genClasses ecoreClass="pimMM.ecore#//UnaryOp">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference pimMM.ecore#//UnaryOp/rhs"/>
+    </genClasses>
+    <genClasses ecoreClass="pimMM.ecore#//Negation"/>
+  </genPackages>
+</genmodel:GenModel>

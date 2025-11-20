@@ -1,0 +1,69 @@
+-- @path GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module workflows2pipelines;
+create OUT : CICD from IN : GHA;
+
+-- ===========================
+-- WORKFLOW → PIPELINE RULES
+-- ===========================
+
+rule Workflow2Pipeline {
+	from
+		workflow : GHA!Workflow
+	to
+		pipeline : CICD!Pipeline(			
+			environmentVariables <- workflow.environmentVariables,
+			
+			inputs <- 
+				workflow.triggers
+					->select(trigger | trigger.oclIsKindOf(GHA!InputTrigger))
+					->collect(trigger | trigger.inputs)
+					->flatten(),
+					
+			jobStreams <- thisModule.getJobStreamOrigins(workflow.jobs),
+			
+			name <-				
+				if not workflow.name.oclIsUndefined() then
+					workflow.name.expression2String()
+				else
+					OclUndefined
+				endif,
+				
+			outputs <- 
+				workflow.triggers
+					->select(trigger | trigger.oclIsKindOf(GHA!WorkflowCallTrigger))
+					->collect(trigger | trigger.outputs)
+					->flatten(),
+					
+			shell <-
+				if not workflow.defaults.oclIsUndefined() then
+					workflow.defaults.shell
+				else
+					OclUndefined
+				endif,
+				
+			triggers <- 
+				workflow.triggers
+					->select(
+						trigger | 
+						not trigger.oclIsKindOf(GHA!InputTrigger) and 
+						not trigger.oclIsKindOf(GHA!StandardEventTrigger) and 
+						not trigger.oclIsTypeOf(GHA!WorkflowRunTrigger)
+					),
+					
+			workingDirectory <-
+				if not workflow.defaults.oclIsUndefined() then
+					workflow.defaults.workingDirectory
+				else
+					OclUndefined
+				endif
+		)
+}
+
+-- ===========================
+-- WORKFLOW HELPERS
+-- ===========================
+
+helper def : getJobStreamOrigins(jobs : Sequence(GHA!Job)) : Sequence(GHA!Job) = 
+	jobs->select(job | job.dependsOn->isEmpty());

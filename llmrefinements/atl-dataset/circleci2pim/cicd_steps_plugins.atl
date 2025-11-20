@@ -1,0 +1,144 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module cicd_steps_plugins;
+create OUT : CICD from IN : CircleCI;
+
+rule RunStep2Command {
+    from
+        input : CircleCI!RunStep
+    to
+        output : CICD!Command(
+            environmentVariables <- input.environmentVariables,
+            name <- if input.name.oclIsUndefined() then OclUndefined else input.name.expression2String() endif,
+            program <- input.command,
+            workingDirectory <- input.workingDirectory,
+            shell <- input.shell,
+            timeoutMinutes <- input.noOutputTimeout
+        )
+}
+
+rule CheckoutStep2Checkout {
+    from
+        input : CircleCI!CheckoutStep
+    to
+        output : CICD!Checkout(
+            path <- input.path
+        )
+}
+
+rule SetupRemoteDockerStep2Plugin {
+    from
+        input : CircleCI!SetupRemoteDockerStep
+    to
+        output : CICD!Plugin(
+            pluginName <- 'setup_remote_docker',
+            version <- if input.version.oclIsUndefined() then OclUndefined else input.version.expression2String() endif,
+            kwargs <- 
+                if input.dockerLayerCaching.oclIsUndefined() then 
+                    Sequence{} 
+                else 
+                    Sequence{thisModule.CreateVariableAssignment('docker_layer_caching', input.dockerLayerCaching)} 
+                endif
+        )
+}
+
+rule SaveCacheStep2Cache {
+    from
+        input : CircleCI!SaveCacheStep
+    to
+        output : CICD!Cache(
+            cacheName <- input.name,
+            keys <- input.key,
+            paths <- input.paths,
+            store <- #STORE
+        )
+}
+
+rule RestoreCacheStep2Cache {
+    from
+        input : CircleCI!RestoreCacheStep
+    to
+        output : CICD!Cache(
+            cacheName <- input.name,
+            keys <- input.keys,
+            store <- #LOAD
+        )
+}
+
+rule StoreArtifactsStep2Artifact {
+    from
+        input : CircleCI!StoreArtifactsStep
+    to
+        output : CICD!Artifact(
+            artifactName <- 
+                thisModule.String2StringLiteral(
+                    'artifact_' + CircleCI!StoreArtifactsStep.allInstances()->indexOf(input).toString()
+                ),
+            includePaths <- Sequence{input.path},
+            store <- true
+        )
+}
+
+rule StoreTestResultsStep2Plugin {
+    from
+        input : CircleCI!StoreTestResultsStep
+    to
+        output : CICD!Plugin(
+            pluginName <- 'store_test_results',
+            kwargs <- Sequence{thisModule.CreateVariableAssignment('path', input.path)}
+        )
+}
+
+rule PersistToWorkspaceStep2Plugin {
+    from
+        input : CircleCI!PersistToWorkspaceStep
+    to
+        output : CICD!Plugin(
+            pluginName <- 'persist_to_workspace',
+            kwargs <- Sequence{
+                thisModule.CreateVariableAssignment('root', input.root),
+                thisModule.CreateVariableAssignment('paths', thisModule.ExpressionSequence2Concat(input.paths))
+            }
+        )
+}
+
+rule AttachToWorkspaceStep2Plugin {
+    from
+        input : CircleCI!AttachWorkspaceStep
+    to
+        output : CICD!Plugin(
+            pluginName <- 'attach_to_workspace',
+            kwargs <- Sequence{thisModule.CreateVariableAssignment('at', input.at)}
+        )
+}
+
+rule AddSSHKeysStep2Plugin {
+    from
+        input : CircleCI!AddSSHKeysStep
+    to
+        output : CICD!Plugin(
+            pluginName <- 'add_ssh_keys',
+            kwargs <- Sequence{
+                thisModule.CreateVariableAssignment('fingerprints', thisModule.ExpressionSequence2Concat(input.fingerprints))
+            }
+        )
+}
+
+rule OrbReferenceOrbReferenceStep2Plugin {
+    from
+        input : CircleCI!OrbReferenceStep(
+            input.orb.oclIsTypeOf(CircleCI!OrbReference)
+        )
+    using {
+        pluginName : String = input.orb.reference.split('@')->first() + '/' + input.jobName;
+        version : String = input.orb.reference.split('@')->last();
+    }
+    to
+        output : CICD!Plugin(
+            name <- input.orb.name,
+            pluginName <- pluginName,
+            version <- if version <> input.orb.reference.split('@')->first() then version else OclUndefined endif,
+            kwargs <- input.arguments
+        )
+}

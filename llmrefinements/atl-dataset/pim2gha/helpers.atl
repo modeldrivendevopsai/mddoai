@@ -1,0 +1,152 @@
+module helpers;
+create OUT : GHA from IN : CICD;
+
+-- Job stream helper
+helper def : getAllJobs(jobStreams : Sequence(CICD!Job)) : Sequence(CICD!Job) =
+	let next : Sequence(CICD!Job) = 
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(CICD!Job)) = Sequence{} | 
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in 
+	if next.isEmpty() then
+		jobStreams
+	else 
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+-- Agent creation
+lazy rule CreateAgent {
+	from
+		input : Sequence(String)
+	to
+		output : GHA!Agent(
+			labels <- input->collect(string | thisModule.String2StringLiteral(string))
+		)
+}
+
+-- Literal conversions
+lazy rule String2StringLiteral {
+	from
+		string : String
+	to
+		stringLiteral : GHA!StringLiteral(
+			value <- string
+		)
+}
+
+lazy rule Boolean2BooleanLiteral {
+	from
+		boolean : Boolean
+	to
+		booleanLiteral : GHA!BooleanLiteral(
+			value <- boolean
+		)
+}
+
+lazy rule Integer2IntegerLiteral {
+	from
+		integer : Integer
+	to
+		integerLiteral : GHA!IntegerLiteral(
+			value <- integer
+		)
+}
+
+-- Defaults creation
+lazy rule Defaults {
+	from
+		shell : CICD!Expression,
+		workingDirectory : CICD!Expression
+	to
+		defaults : GHA!Defaults(
+			shell <- shell,
+			workingDirectory <- workingDirectory
+		)
+}
+
+-- Docker container to service mapping
+lazy rule DockerContainer2Service {
+	from
+		dockerContainer : CICD!DockerContainer
+	to
+		service : GHA!Service(
+			key <- dockerContainer.label,
+			value <- dockerContainer
+		)
+}
+
+-- Agent mappings
+helper context CICD!Agent def : agent2AgentHelper() : GHA!Agent =
+	OclUndefined;
+
+helper context CICD!CustomAgent def : agent2AgentHelper() : GHA!Agent =
+	thisModule.CustomAgent2Agent(self);
+
+helper context CICD!LinuxAgent def : agent2AgentHelper() : GHA!Agent =
+	thisModule.LinuxAgent2Agent(self);
+
+helper context CICD!MacOSAgent def : agent2AgentHelper() : GHA!Agent =
+	thisModule.MacOSAgent2Agent(self);
+
+helper context CICD!WindowsAgent def : agent2AgentHelper() : GHA!Agent =
+	thisModule.WindowsAgent2Agent(self);
+
+-- Additional lazy rules for agent conversion
+lazy rule CustomAgent2Agent {
+	from
+		cicdAgent : CICD!CustomAgent
+	to
+		ghaAgent : GHA!Agent(
+			labels <- cicdAgent.labels
+		)
+}
+
+lazy rule LinuxAgent2Agent {
+	from
+		cicdAgent : CICD!LinuxAgent
+	to
+		ghaAgent : GHA!Agent (
+			labels <- Sequence{if cicdAgent.image.oclIsUndefined() then thisModule.String2StringLiteral('ubuntu-latest') else cicdAgent.image endif}
+		)
+}
+
+lazy rule MacOSAgent2Agent {
+	from
+		cicdAgent : CICD!MacOSAgent
+	to
+		ghaAgent : GHA!Agent (
+			labels <- Sequence{if cicdAgent.image.oclIsUndefined() then thisModule.String2StringLiteral('macos-latest') else cicdAgent.image endif}->union(
+				if cicdAgent.xcode.oclIsUndefined() then
+					Sequence{}
+				else if cicdAgent.xcode.oclIsTypeOf(CICD!StringLiteral) then
+					if cicdAgent.xcode.value = 'latest' then
+						Sequence{}
+					else
+						Sequence{thisModule.ConcatExpressions(Sequence{thisModule.String2StringLiteral('%%__CICD__XCODE#%!!__#%!!'), cicdAgent.xcode})}
+					endif
+				else
+					Sequence{thisModule.ConcatExpressions(Sequence{thisModule.String2StringLiteral('%%__CICD__XCODE#%!!__#%!!'), cicdAgent.xcode})}
+				endif
+				endif
+			)
+		)
+}
+
+lazy rule WindowsAgent2Agent {
+	from
+		cicdAgent : CICD!WindowsAgent
+	to
+		ghaAgent : GHA!Agent (
+			labels <- Sequence{if cicdAgent.image.oclIsUndefined() then thisModule.String2StringLiteral('windows-latest') else cicdAgent.image endif}
+		)
+}
+
+-- Expression concatenation helper
+lazy rule ConcatExpressions {
+	from
+		input : Sequence(GHA!Expression)
+	to
+		output : GHA!Concat (
+			expressions <- input
+		)
+}

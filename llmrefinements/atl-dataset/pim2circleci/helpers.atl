@@ -1,0 +1,140 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module helpers;
+create OUT : CircleCI from IN : CICD;
+
+-- General helpers
+
+helper def : getCICDProperty(labels : Sequence(CICD!Expression), name : String) : CircleCI!Expression =
+	if labels.oclIsUndefined() or labels->isEmpty() then
+		OclUndefined
+	else if labels->first().expression2String().startsWith('%%__CICD__' + name + '#%!!__#%!!') then 
+		if labels->first().oclIsTypeOf(CICD!Concat) then
+			let concat : CICD!Concat = labels->first()
+			in
+			if concat.expressions->size() = 2 then
+				concat.expressions->last()
+			else
+				thisModule.CreateConcat(concat.expressions->excluding(concat.expressions->first()))
+			endif
+		else if labels->first().oclIsTypeOf(CICD!StringLiteral) then
+			thisModule.String2StringLiteral(labels->first().expression2String().split('#%!!__#%!!')->last())
+		else
+			OclUndefined
+		endif
+	else 
+		thisModule.getCICDProperty(labels->excluding(labels->first()), name)
+	endif
+	endif;
+
+helper def : joinStrings(stringSequence : Sequence(String), sep : String) : String =
+	stringSequence->iterate(string; joinedString : String = '' |
+		if stringSequence->indexOf(string) = stringSequence->size() then
+			joinedString.concat(string)
+		else
+			joinedString.concat(string).concat(sep)
+		endif
+	);
+
+helper def : getVariable(variableAssignments : Sequence(CICD!Assignment), name : String) : CICD!Expression =
+	let matchingVariables : Sequence(CICD!Assignment) = variableAssignments->select(ass | ass.key.name = name) in
+	if matchingVariables->notEmpty() then
+		matchingVariables->first().value
+	else
+		OclUndefined
+	endif;
+
+helper def : getAllJobs(jobStreams : Sequence(CICD!Job)) : Sequence(CICD!Job) =
+	let next : Sequence(CICD!Job) = 
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(CICD!Job)) = Sequence{} | 
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in 
+	if next.isEmpty() then
+		jobStreams
+	else 
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+helper def : step2StepHelper(step : CICD!Step) : Sequence(CircleCI!Step) =
+	if step.oclIsTypeOf(CICD!ConditionalStep) then
+		Sequence{thisModule.ConditionalStep2WhenStep(step)}->union(
+			if step.elseRun->notEmpty() then
+				Sequence{thisModule.ConditionalStep2UnlessStep(step)} 
+			else 
+				Sequence{} 
+			endif
+		)
+	else if step.oclIsTypeOf(CICD!Command) then
+		Sequence{thisModule.Command2RunStep(step)}
+	else if step.oclIsTypeOf(CICD!Plugin) then
+		if step.pluginName = 'setup_remote_docker' then
+			Sequence{thisModule.Plugin2SetupRemoteDockerStep(step)}
+		else if step.pluginName = 'store_test_results' then
+			Sequence{thisModule.Plugin2StoreTestResultsStep(step)}
+		else if step.pluginName = 'persist_to_workspace' then
+			Sequence{thisModule.Plugin2PersistToWorkspaceStep(step)}
+		else if step.pluginName = 'attach_to_workspace' then
+			Sequence{thisModule.Plugin2AttachToWorkspaceStep(step)}
+		else if step.pluginName = 'add_ssh_keys' then
+			Sequence{thisModule.Plugin2AddSSHKeysStep(step)}
+		else
+			Sequence{thisModule.Plugin2OrbReferenceStep(step)}
+		endif
+		endif
+		endif
+		endif
+		endif
+	else if step.oclIsTypeOf(CICD!Checkout) then
+		Sequence{thisModule.Checkout2CheckoutStep(step)}
+	else if step.oclIsTypeOf(CICD!Cache) then
+		if step.store = #STORE then
+			Sequence{thisModule.Cache2SaveCacheStep(step)}
+		else if step.store = #LOAD then
+			Sequence{thisModule.Cache2RestoreCacheStep(step)}
+		else
+			Sequence{}
+		endif
+	else if step.oclIsTypeOf(CICD!Artifact) then
+		if step.store then
+			Sequence{thisModule.Artifact2StoreArtifactsStep(step)}
+		else
+			Sequence{}
+		endif
+	else
+		OclUndefined
+	endif;
+
+-- Plugin-specific helpers
+
+helper context CICD!Plugin def : getReference() : String =
+	let pluginNameParts : Sequence(String) = self.pluginName.split('/') in
+	thisModule.joinStrings(
+		if pluginNameParts->size() = 1 then 
+			pluginNameParts 
+		else 
+			pluginNameParts->subSequence(1, pluginNameParts->size() - 1) 
+		endif, 
+		'/'
+	) + if self.version.oclIsUndefined() then '' else '@' + self.version endif;
+
+helper context CICD!Plugin def : checkIfOrb() : Boolean =
+	if self.pluginName = 'setup_remote_docker' then
+		false
+	else if self.pluginName = 'store_test_results' then
+		false
+	else if self.pluginName = 'persist_to_workspace' then
+		false
+	else if self.pluginName = 'attach_to_workspace' then
+		false
+	else if self.pluginName = 'add_ssh_keys' then
+		false
+	else
+		true
+	endif
+	endif
+	endif
+	endif
+	endif;
+

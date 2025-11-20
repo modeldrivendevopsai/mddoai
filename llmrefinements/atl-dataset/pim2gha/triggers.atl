@@ -1,0 +1,43 @@
+module triggers;
+create OUT : GHA from IN : CICD;
+
+abstract rule Trigger2Trigger {
+	from
+		cicdTrigger : CICD!Trigger
+	to
+		ghaTrigger : GHA!Trigger
+}
+
+rule ScheduledTrigger2ScheduledTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : CICD!ScheduledTrigger
+	to
+		ghaTrigger : GHA!ScheduleTrigger(
+			crons <- cicdTrigger.crons->collect(cron | thisModule.String2StringLiteral(cron))
+		)
+}
+
+rule PullRequestTrigger2PullRequestTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : CICD!PullRequestTrigger
+	to
+		ghaTrigger : GHA!PullRequestTrigger(
+			branches <- cicdTrigger.branchGlobs->collect(glob | thisModule.String2StringLiteral(glob))
+		)
+}
+
+rule PushTrigger2PushTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : CICD!PushTrigger
+	to
+		ghaTrigger : GHA!PushTrigger(
+			branches <- cicdTrigger.branchGlobs->collect(glob | thisModule.String2StringLiteral(glob))
+		)
+}
+
+rule ManualTrigger2WorkflowDispatchTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : CICD!ManualTrigger
+	to
+		ghaTrigger : GHA!WorkflowDispatchTrigger
+}

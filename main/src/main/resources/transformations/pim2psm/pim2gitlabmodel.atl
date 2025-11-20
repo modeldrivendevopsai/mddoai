@@ -1,0 +1,217 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pim2gitlabmodel;
+create OUT : GitLabMM from IN : PIM;
+
+-- Main pipeline transformation
+rule Pipeline2GitlabPipeline {
+    from
+        source : PIM!Pipeline
+    to
+        target : GitLabMM!Pipeline (
+            stages <- source.jobStreams->collect(j | j.name),
+            jobs <- source.jobStreams->collect(j | thisModule.createJob(j)),
+            variables <- thisModule.createVariables(source)
+        )
+}
+
+-- Create a variable
+lazy rule createVariable {
+    from
+        name : String,
+        value : String
+    to
+        var : GitLabMM!Variable (
+            name <- name,
+            value <- value
+        )
+}
+
+-- Create variables for the pipeline
+lazy rule createVariables {
+    from
+        source : PIM!Pipeline
+    to
+        vars : GitLabMM!Variables (
+            variables <- Sequence {
+                thisModule.createVariable('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/chatbot-app-image'),
+                thisModule.createVariable('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}')
+            }
+        )
+}
+
+-- Transform PIM Job to GitLab Job
+lazy rule createJob {
+    from
+        source : PIM!Job
+    to
+        target : GitLabMM!Job (
+            name <- source.name,
+            stage <- source.name,
+            script <- if source.oclIsTypeOf(PIM!ScriptJob) then
+                        thisModule.createScript(source)
+                      else
+                        OclUndefined
+                      endif,
+            beforeScript <- if source.name='unitTest' then
+                                thisModule.createBeforeScript()
+                            else
+                                OclUndefined
+                            endif,
+            tags <- thisModule.createTags(),
+            only <- thisModule.createOnly(),
+            dependencies <- thisModule.createDependencies(source),
+            image <- thisModule.getImageForJob(source),
+            artifacts <- if thisModule.hasArtifacts(source) then
+                thisModule.createArtifacts(source)
+            else
+                OclUndefined
+            endif,
+            when <- thisModule.getWhenForJob(source)
+        )
+}
+
+-- Map Job steps to GitLab script
+lazy rule createScript {
+    from
+        job : PIM!ScriptJob
+    to
+        script : GitLabMM!Script (
+            commands <- job.steps->collect(s | thisModule.createCommand(s.program.value))
+        )
+}
+
+lazy rule createCommand {
+    from
+        cmdString : String
+    to
+        cmd : GitLabMM!Comand (
+            comand <- cmdString
+        )
+}
+
+-- GitLab BeforeScript for unitTest
+lazy rule createBeforeScript {
+    from
+        dummy : OclAny
+	to
+        beforeScript : GitLabMM!BeforeScript (
+            commands <- Sequence{thisModule.createCommand('python3 -m pip install --break-system-packages -r requirements.txt')}
+        )
+}
+
+-- GitLab tags (always add default tag)
+lazy rule createTags {
+	from
+        dummy : OclAny
+    to
+        tags : GitLabMM!Tags (
+            tags <- Sequence{thisModule.createTag('ai-shared')}
+        )
+}
+
+lazy rule createTag {
+    from
+        tagName : String
+    to
+        tag : GitLabMM!Tag (
+            tag <- tagName
+        )
+}
+
+-- Only run on main branch
+lazy rule createOnly {
+	from
+        dummy : OclAny
+    to
+        only : GitLabMM!Only (
+            branches <- Sequence{thisModule.createOnlyBranch('main')}
+        )
+}
+
+lazy rule createOnlyBranch {
+    from
+        branchName : String
+    to
+        branch : GitLabMM!OnlyBranches (
+            branch <- branchName
+        )
+}
+
+-- Job dependencies
+lazy rule createDependencies {
+    from
+        job : PIM!Job
+    to
+        deps : GitLabMM!Dependencies (
+            dependencies <- 
+                if job.name='healthCheck' then Sequence{thisModule.createDependency('build')}
+                else if job.name='push' then Sequence{thisModule.createDependency('healthCheck')}
+                else Sequence{}
+                endif
+				endif
+        )
+}
+
+lazy rule createDependency {
+    from
+        depName : String
+    to
+        dep : GitLabMM!Dependency (
+            dependency <- depName
+        )
+}
+
+-- Helper: Check if a job should have artifacts
+helper def : hasArtifacts(job : PIM!Job) : Boolean = false;
+
+-- Artifacts (optional, if build/unitTest)
+lazy rule createArtifacts {
+    from
+        job : PIM!Job (
+            job.name = 'build' or job.name = 'unitTest'
+        )
+    to
+        artifacts : GitLabMM!Artifact (
+            when <- if job.name='unitTest' then 'always' else OclUndefined endif,
+            paths <- if job.name='build' then Sequence{thisModule.createPath('build/libs/*.jar')}
+                     else if job.name='unitTest' then Sequence{thisModule.createPath('build/test-results/**/*.xml')}
+                     else Sequence{}
+                     endif
+                     endif,
+            reports <- if job.name='unitTest' then thisModule.createReports() else OclUndefined endif
+        )
+}
+
+lazy rule createReports {
+	from
+        dummy : OclAny
+    to
+        report : GitLabMM!Report (
+            junit <- 'build/test-results/test/**/TEST-*.xml'
+        )
+}
+
+lazy rule createPath {
+    from
+        p : String
+    to
+        path : GitLabMM!Path (
+            path <- p
+        )
+}
+
+-- Docker image per job (optional)
+helper def : getImageForJob(job : PIM!Job) : String =
+    if job.name='unitTest' then 'python:3.12-slim'
+    else if job.name='healthCheck' then 'curlimages/curl:latest'
+    else OclUndefined
+    endif
+	endif;
+
+-- When condition
+helper def : getWhenForJob(job : PIM!Job) : String =
+    if job.name='unitTest' then 'always'
+    else OclUndefined
+    endif;

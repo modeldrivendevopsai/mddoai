@@ -1,0 +1,176 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module lazy_rules;
+create OUT : CICD from IN : CircleCI;
+
+-- Lazy / Helper Rules
+
+lazy rule NegateExpression {
+    from
+        input : CircleCI!Expression
+    to
+        output : CICD!Negation(
+            rhs <- input
+        )
+}
+
+lazy rule OrbReference2Plugin {
+    from
+        input : CircleCI!OrbReference,
+        arguments : Sequence(CircleCI!VariableAssignment)
+    using {
+        pluginName : String = input.reference.split('@')->first();
+        version : String = input.reference.split('@')->last();
+    }
+    to
+        output : CICD!Plugin(
+            name <- input.name,
+            pluginName <- pluginName,
+            version <- if version <> pluginName then version else OclUndefined endif,
+            kwargs <- arguments
+        )
+}
+
+lazy rule DockerExecutor2Agent {
+    from
+        input : CircleCI!DockerExecutor
+    to
+        output : CICD!LinuxAgent(
+            image <-
+                if input.containers->first().oclIsUndefined() then
+                    OclUndefined
+                else if input.containers->first().oclIsTypeOf(CircleCI!NullDockerContainer) then
+                    input.containers->first().image
+                else
+                    OclUndefined
+                endif
+                endif,
+            container <- 
+                if input.containers->first().oclIsUndefined() then
+                    OclUndefined
+                else if not input.containers->first().oclIsTypeOf(CircleCI!NullDockerContainer) then
+                    thisModule.DockerContainer2DockerContainer(input.containers->first())
+                else
+                    OclUndefined
+                endif
+                endif
+        )
+}
+
+lazy rule DockerContainer2DockerContainer {
+    from
+        input : CircleCI!DockerContainer
+    to
+        output : CICD!DockerContainer(
+            environmentVariables <- input.environmentVariables->collect(ass | thisModule.CopyAssignment(ass)),
+            image <- if not input.image.oclIsUndefined() then input.image.copyExpression() else OclUndefined endif,
+            label <- if input.name.oclIsUndefined() then input.image.expression2String() else input.name.expression2String() endif,
+            registryPassword <- if not input.password.oclIsUndefined() then input.password.copyExpression() else OclUndefined endif,
+            registryUsername <- if not input.username.oclIsUndefined() then input.username.copyExpression() else OclUndefined endif
+        )
+}
+
+lazy rule CopyAssignment {
+    from
+        input : CircleCI!VariableAssignment
+    to
+        output : CICD!Assignment(
+            key <- thisModule.CreateVariableDeclaration(input.key.name),
+            value <- input.value.copyExpression()
+        )
+}
+
+lazy rule CreateVariableDeclaration {
+    from
+        input : String
+    to
+        output : CICD!VariableDeclaration(
+            name <- input
+        )
+}
+
+lazy rule CopyVariableDeclaration {
+    from
+        input : CircleCI!VariableDeclaration
+    to
+        output : CICD!VariableDeclaration(
+            name <- input.name
+        )
+}
+
+lazy rule CopyStringLiteral {
+    from
+        input : CircleCI!StringLiteral
+    to
+        output : CICD!StringLiteral(
+            value <- input.value
+        )
+}
+
+lazy rule CopyIntegerLiteral {
+    from
+        input : CircleCI!IntegerLiteral
+    to
+        output : CICD!IntegerLiteral(
+            value <- input.value
+        )
+}
+
+lazy rule CopyDoubleLiteral {
+    from
+        input : CircleCI!DoubleLiteral
+    to
+        output : CICD!DoubleLiteral(
+            value <- input.value
+        )
+}
+
+lazy rule CopyBooleanLiteral {
+    from
+        input : CircleCI!BooleanLiteral
+    to
+        output : CICD!BooleanLiteral(
+            value <- input.value
+        )
+}
+
+lazy rule CopyDotOperator {
+    from
+        input : CircleCI!DotOperator
+    to
+        output : CICD!DotOp(
+            lhs <- input.lhs.copyExpression(),
+            rhs <- input.rhs.copyExpression()
+        )
+}
+
+lazy rule CopyVariableReference {
+    from
+        input : CircleCI!VariableReference
+    to
+        output : CICD!VariableReference(
+            reference <- input.reference
+        )
+}
+
+lazy rule CopyConcat {
+    from
+        input : CircleCI!Concat
+    to
+        output : CICD!Concat(
+            expressions <- input.expressions->collect(expression | expression.copyExpression())
+        )
+}
+
+lazy rule MachineExecutor2CustomAgent {
+    from
+        input : CircleCI!MachineExecutor
+    to
+        output : CICD!CustomAgent(
+            labels <- Sequence{thisModule.String2StringLiteral('%%CICD__MACHINE_AGENT')}
+                ->union(
+                    if input.image.oclIsUndefined() then 
+                        Sequence{} 
+                    else 
+                        Sequence{thisModule.CreateConcat(Sequence{thisModule.String2StringLiteral('%%__CICD__MACHINE_IMAGE#%!!__#%!!'), input.image})} 

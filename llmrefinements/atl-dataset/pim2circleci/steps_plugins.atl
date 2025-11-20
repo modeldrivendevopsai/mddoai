@@ -1,0 +1,212 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module steps_plugins;
+create OUT : CircleCI from IN : CICD;
+
+-- Helper for mapping any step to the corresponding CircleCI step
+helper def : step2StepHelper(step : CICD!Step) : Sequence(CircleCI!Step) =
+	if step.oclIsTypeOf(CICD!ConditionalStep) then
+		Sequence{thisModule.ConditionalStep2WhenStep(step)}->union(
+			if step.elseRun->notEmpty() then
+				Sequence{thisModule.ConditionalStep2UnlessStep(step)} 
+			else 
+				Sequence{} 
+			endif
+		)
+	else if step.oclIsTypeOf(CICD!Command) then
+		Sequence{thisModule.Command2RunStep(step)}
+	else if step.oclIsTypeOf(CICD!Plugin) then
+		if step.pluginName = 'setup_remote_docker' then
+			Sequence{thisModule.Plugin2SetupRemoteDockerStep(step)}
+		else if step.pluginName = 'store_test_results' then
+			Sequence{thisModule.Plugin2StoreTestResultsStep(step)}
+		else if step.pluginName = 'persist_to_workspace' then
+			Sequence{thisModule.Plugin2PersistToWorkspaceStep(step)}
+		else if step.pluginName = 'attach_to_workspace' then
+			Sequence{thisModule.Plugin2AttachToWorkspaceStep(step)}
+		else if step.pluginName = 'add_ssh_keys' then
+			Sequence{thisModule.Plugin2AddSSHKeysStep(step)}
+		else
+			Sequence{thisModule.Plugin2OrbReferenceStep(step)}
+		endif
+		endif
+		endif
+		endif
+	else if step.oclIsTypeOf(CICD!Checkout) then
+		Sequence{thisModule.Checkout2CheckoutStep(step)}
+	else if step.oclIsTypeOf(CICD!Cache) then
+		if step.store = #STORE then
+			Sequence{thisModule.Cache2SaveCacheStep(step)}
+		else if step.store = #LOAD then
+			Sequence{thisModule.Cache2RestoreCacheStep(step)}
+		else
+			Sequence{}
+		endif
+	else if step.oclIsTypeOf(CICD!Artifact) then
+		if step.store then
+			Sequence{thisModule.Artifact2StoreArtifactsStep(step)}
+		else
+			Sequence{}
+		endif
+	else
+		OclUndefined
+	endif
+	endif
+	endif
+	endif
+	endif
+;
+
+-- Conditional steps
+lazy rule ConditionalStep2WhenStep {
+	from
+		input : CICD!ConditionalStep
+	to
+		output : CircleCI!WhenStep(
+			condition <- if not input.ifCondition.oclIsUndefined() then input.ifCondition.expression2LogicHelper() else OclUndefined endif,
+			steps <- input.thenRun->collect(step | thisModule.step2StepHelper(step))->flatten()
+		)
+}
+
+lazy rule ConditionalStep2UnlessStep {
+	from
+		input : CICD!ConditionalStep
+	to
+		output : CircleCI!UnlessStep(
+			condition <- if not input.ifCondition.oclIsUndefined() then input.ifCondition.expression2LogicHelper() else OclUndefined endif,
+			steps <- input.elseRun->collect(step | thisModule.step2StepHelper(step))->flatten()
+		)
+}
+
+-- Command step
+lazy rule Command2RunStep {
+	from
+		input : CICD!Command
+	to
+		output : CircleCI!RunStep(
+			command <- if not input.program.oclIsUndefined() then input.program.expression2ExpressionHelper() else OclUndefined endif,
+			environmentVariables <- input.environmentVariables,
+			name <- if not input.name.oclIsUndefined() then thisModule.String2StringLiteral(input.name) else OclUndefined endif,
+			shell <- if not input.shell.oclIsUndefined() then input.shell.expression2ExpressionHelper() else OclUndefined endif,
+			noOutputTimeout <- if not input.timeoutMinutes.oclIsUndefined() then input.timeoutMinutes.expression2ExpressionHelper() else OclUndefined endif,
+			workingDirectory <- if not input.workingDirectory.oclIsUndefined() then input.workingDirectory.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+-- Checkout step
+lazy rule Checkout2CheckoutStep {
+	from
+		input : CICD!Checkout
+	to
+		output : CircleCI!CheckoutStep(
+			path <- if not input.path.oclIsUndefined() then input.path.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+-- Cache steps
+lazy rule Cache2SaveCacheStep {
+	from
+		input : CICD!Cache
+	to
+		output : CircleCI!SaveCacheStep(
+			key <- if input.keys->notEmpty() then input.keys->first().expression2ExpressionHelper() else OclUndefined endif,
+			name <- if not input.cacheName.oclIsUndefined() then input.cacheName.expression2ExpressionHelper() else OclUndefined endif,
+			paths <- input.paths->collect(path | path.expression2ExpressionHelper())
+		)
+}
+
+lazy rule Cache2RestoreCacheStep {
+	from
+		input : CICD!Cache
+	to
+		output : CircleCI!RestoreCacheStep(
+			keys <- input.keys->collect(key | key.expression2ExpressionHelper()),
+			name <- if not input.cacheName.oclIsUndefined() then input.cacheName.expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+-- Artifact step
+lazy rule Artifact2StoreArtifactsStep {
+	from
+		input : CICD!Artifact
+	to
+		output : CircleCI!StoreArtifactsStep(
+			path <- if input.includePaths->notEmpty() then input.includePaths->first().expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+-- Plugin steps
+lazy rule Plugin2SetupRemoteDockerStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!SetupRemoteDockerStep(
+			dockerLayerCaching <- if not thisModule.getVariable(input.kwargs, 'docker_layer_caching').oclIsUndefined() then thisModule.getVariable(input.kwargs, 'docker_layer_caching').expression2ExpressionHelper() else OclUndefined endif,
+			version <- input.version
+		)
+}
+
+lazy rule Plugin2StoreTestResultsStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!StoreTestResultsStep(
+			path <- if not thisModule.getVariable(input.kwargs, 'path').oclIsUndefined() then thisModule.getVariable(input.kwargs, 'path').expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+lazy rule Plugin2PersistToWorkspaceStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!PersistToWorkspaceStep(
+			paths <- if not thisModule.getVariable(input.kwargs, 'paths').oclIsUndefined() then thisModule.getVariable(input.kwargs, 'paths').expression2ExpressionHelper() else OclUndefined endif,
+			root <- if not thisModule.getVariable(input.kwargs, 'root').oclIsUndefined() then thisModule.getVariable(input.kwargs, 'root').expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+lazy rule Plugin2AttachToWorkspaceStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!AttachWorkspaceStep(
+			at <- if not thisModule.getVariable(input.kwargs, 'at').oclIsUndefined() then thisModule.getVariable(input.kwargs, 'at').expression2ExpressionHelper() else OclUndefined endif
+		)
+}
+
+lazy rule Plugin2AddSSHKeysStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!AddSSHKeysStep(
+			fingerprints <- if thisModule.getVariable(input.kwargs, 'fingerprints').oclIsTypeOf(CICD!Concat) then
+				thisModule.getVariable(input.kwargs, 'fingerprints').expressions->collect(expression | expression.expression2ExpressionHelper())
+			else if not thisModule.getVariable(input.kwargs, 'fingerprints').oclIsUndefined() then
+				thisModule.getVariable(input.kwargs, 'fingerprints').expression2ExpressionHelper()
+			else
+				OclUndefined
+			endif
+		)
+}
+
+-- Plugin → OrbReferenceStep
+lazy rule Plugin2OrbReferenceStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CircleCI!OrbReferenceStep(
+			arguments <- input.kwargs,
+			jobName <- input.pluginName.split('/')->last(),
+			orb <- thisModule.Plugin2OrbReference(input.getReference(), input)
+		)
+}
+
+-- Helpers
+helper def : getVariable(variableAssignments : Sequence(CICD!Assignment), name : String) : CICD!Expression =
+	let matchingVariables : Sequence(CICD!Assignment) = variableAssignments->select(ass | ass.key.name = name) in
+	if matchingVariables->notEmpty() then
+		matchingVariables->first().value
+	else
+		OclUndefined
+	endif;

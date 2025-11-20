@@ -1,0 +1,569 @@
+-- @path CICD1=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CICD2=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module simplifyConditionals;
+create OUT : CICD2 from IN : CICD1;
+
+abstract rule PipelineBlock {
+	from
+		input : CICD1!PipelineBlock
+	to
+		output : CICD2!PipelineBlock(
+			agent <- input.agent,
+			environmentVariables <- input.environmentVariables,
+			inputs <- input.inputs,
+			name <- input.name,
+			outputs <- input.outputs,
+			shell <- input.shell,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+rule Pipeline extends PipelineBlock {
+	from
+		input : CICD1!Pipeline
+	to
+		output : CICD2!Pipeline(
+			triggers <- input.triggers,
+			jobStreams <- input.jobStreams
+		)
+}
+
+abstract rule Job extends PipelineBlock {
+	from
+		input : CICD1!Job
+	to
+		output : CICD2!Job(
+			id <- input.id,
+			ifCondition <- input.ifCondition,
+			services <- input.services,
+			matrix <- input.matrix,
+			next <- input.next,
+			previous <- input.previous,
+			maxAttempts <- input.maxAttempts,
+			allowFailure <- input.allowFailure
+		)
+}
+
+rule ScriptJob extends Job {
+	from
+		input : CICD1!ScriptJob
+	to
+		output : CICD2!ScriptJob(
+			steps <- input.steps->collect(step | step.step2StepHelper())->flatten()
+		)
+}
+
+rule PipelineCallJob extends Job {
+	from
+		input : CICD1!PipelineCallJob
+	to
+		output : CICD2!PipelineCallJob(
+			pipelinePath <- input.pipelinePath,
+			args <- input.args
+		)
+}
+
+abstract rule Agent {
+	from
+		input : CICD1!Agent
+	to
+		output : CICD2!Agent
+}
+
+rule CustomAgent extends Agent {
+	from
+		input : CICD1!CustomAgent
+	to
+		output : CICD2!CustomAgent (
+			labels <- input.labels
+		)
+}
+
+abstract rule PresetAgent extends Agent {
+	from
+		input : CICD1!PresetAgent
+	to
+		output : CICD2!PresetAgent (
+			image <- input.image
+		)
+}
+
+rule LinuxAgent extends PresetAgent {
+	from
+		input : CICD1!LinuxAgent
+	to
+		output : CICD2!LinuxAgent (
+			container <- input.container
+		)
+}
+
+rule WindowsAgent extends PresetAgent {
+	from
+		input : CICD1!WindowsAgent
+	to
+		output : CICD2!WindowsAgent
+}
+
+rule MacOSAgent extends PresetAgent {
+	from
+		input : CICD1!MacOSAgent
+	to
+		output : CICD2!MacOSAgent (
+			xcode <- input.xcode
+		)
+}
+
+rule DockerContainer {
+	from
+		input : CICD1!DockerContainer
+	to
+		output : CICD2!DockerContainer(
+			environmentVariables <- input.environmentVariables,
+			image <- input.image,
+			label <- input.label,
+			network <- input.network,
+			options <- input.options,
+			ports <- input.ports,
+			registryPassword <- input.registryPassword,
+			registryUsername <- input.registryUsername,
+			volumes <- input.volumes
+		)
+}
+
+abstract rule Trigger {
+	from
+		input : CICD1!Trigger
+	to
+		output : CICD2!Trigger(
+			branchGlobs <- input.branchGlobs
+		)
+}
+
+rule PushTrigger extends Trigger {
+	from
+		input : CICD1!PushTrigger
+	to
+		output : CICD2!PushTrigger(
+			tagGlobs <- input.tagGlobs
+		)
+}
+
+rule PullRequestTrigger extends Trigger {
+	from
+		input : CICD1!PullRequestTrigger
+	to
+		output : CICD2!PullRequestTrigger
+}
+
+rule ManualTrigger extends Trigger {
+	from
+		input : CICD1!ManualTrigger
+	to
+		output : CICD2!ManualTrigger
+}
+
+rule ScheduledTrigger extends Trigger {
+	from
+		input : CICD1!ScheduledTrigger
+	to
+		output : CICD2!ScheduledTrigger(
+			crons <- input.crons
+		)
+}
+
+rule WebhookTrigger extends Trigger {
+	from
+		input : CICD1!WebhookTrigger
+	to
+		output : CICD2!WebhookTrigger
+}
+
+rule Matrix {
+	from
+		input : CICD1!Matrix
+	to
+		output : CICD2!Matrix(
+			axes <- input.axes,
+			excludes <- input.excludes,
+			includes <- input.includes,
+			failFast <- input.failFast
+		)
+}
+
+rule MatrixAxis {
+	from
+		input : CICD1!MatrixAxis
+	to
+		output : CICD2!MatrixAxis(
+			name <- input.name,
+			cells <- input.cells
+		)
+}
+
+rule MatrixCombination {
+	from
+		input : CICD1!MatrixCombination
+	to
+		output : CICD2!MatrixCombination(
+			combinationEntries <- input.combinationEntries
+		)
+}
+
+abstract rule Parameter {
+	from
+		input : CICD1!Parameter
+	to
+		output : CICD2!Parameter(
+			description <- input.description,
+			id <- input.id
+		)
+}
+
+rule Input extends Parameter {
+	from
+		input : CICD1!Input
+	to
+		output : CICD2!Input(
+			defaultValue <- input.defaultValue,
+			required <- input.required,
+			type <- input.type
+		)
+}
+
+rule Output extends Parameter {
+	from
+		input : CICD1!Output
+	to
+		output : CICD2!Output(
+			value <- input.value
+		)
+}
+
+lazy rule MakeConditionalThenStep {
+	from
+		ifCondition : CICD1!Expression,
+		step : CICD1!Step
+	to
+		output : CICD2!ConditionalStep(
+			ifCondition <- ifCondition,
+			thenRun <- Sequence{step.step2StepHelper()}
+		)
+}
+
+lazy rule MakeConditionalElseStep {
+	from
+		ifCondition : CICD1!Expression,
+		step : CICD1!Step
+	to
+		output : CICD2!ConditionalStep(
+			ifCondition <- thisModule.NegateExpression(ifCondition),
+			thenRun <- Sequence{step.step2StepHelper()}
+		)
+}
+
+lazy rule NegateExpression {
+	from
+		expression : CICD1!Expression
+	to
+		output : CICD2!Negation(
+			rhs <- expression
+		)
+}
+
+lazy rule Command {
+	from
+		input : CICD1!Command
+	to
+		output : CICD2!Command(
+			allowFailure <- input.allowFailure,
+			environmentVariables <- input.environmentVariables,
+			id <- input.id,
+			name <- input.name,
+			program <- input.program,
+			shell <- input.shell,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+lazy rule Plugin {
+	from
+		input : CICD1!Plugin
+	to
+		output : CICD2!Plugin(
+			allowFailure <- input.allowFailure,
+			environmentVariables <- input.environmentVariables,
+			id <- input.id,
+			kwargs <- input.kwargs,
+			name <- input.name,
+			pluginName <- input.pluginName,
+			timeoutMinutes <- input.timeoutMinutes,
+			version <- input.version,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+lazy rule Cache {
+	from
+		input : CICD1!Cache
+	to
+		output : CICD2!Cache(
+			allowFailure <- input.allowFailure,
+			cacheName <- input.cacheName,
+			environmentVariables <- input.environmentVariables,
+			id <- input.id,
+			keys <- input.keys,
+			name <- input.name,
+			paths <- input.paths,
+			store <- input.store,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+lazy rule Artifact {
+	from
+		input : CICD1!Artifact
+	to
+		output : CICD2!Artifact(
+			allowFailure <- input.allowFailure,
+			artifactName <- input.artifactName,			
+			environmentVariables <- input.environmentVariables,
+			excludePaths <- input.excludePaths,
+			id <- input.id,
+			includePaths <- input.includePaths,
+			name <- input.name,
+			retentionTime <- input.retentionTime,
+			store <- input.store,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+lazy rule Checkout {
+	from
+		input : CICD1!Checkout
+	to
+		output : CICD2!Checkout(
+			allowFailure <- input.allowFailure,
+			environmentVariables <- input.environmentVariables,
+			id <- input.id,
+			name <- input.name,
+			path <- input.path,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+abstract rule Expression {
+	from
+		input : CICD1!Expression
+	to
+		output : CICD2!Expression
+}
+
+rule Assignment extends Expression {
+	from
+		input : CICD1!Assignment
+	to
+		output : CICD2!Assignment(
+			key <- input.key,
+			value <- input.value
+		)
+}
+
+rule Concat extends Expression {
+	from
+		input : CICD1!Concat
+	to
+		output : CICD2!Concat(
+			expressions <- input.expressions
+		)
+}
+
+abstract rule BinaryOp extends Expression {
+	from
+		input : CICD1!BinaryOp
+	to
+		output : CICD2!BinaryOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}
+
+rule DotOp extends BinaryOp {
+	from
+		input : CICD1!DotOp
+	to
+		output : CICD2!DotOp
+}
+
+rule EqualityOp extends BinaryOp {
+	from
+		input : CICD1!EqualityOp
+	to
+		output : CICD2!EqualityOp(
+			op <-
+				if input.op = #"==" then
+					#"=="
+				else
+					#"!="
+				endif
+		)
+}
+
+rule ComparisonOp extends BinaryOp {
+	from
+		input : CICD1!ComparisonOp
+	to
+		output : CICD2!ComparisonOp(
+			op <-
+				if input.op = #">" then
+					#">"
+				else if input.op = #">=" then
+					#">="
+				else if input.op = #"<" then
+					#"<"
+				else
+					#"<="
+				endif
+				endif
+				endif
+		)
+}
+
+abstract rule LogicalOp extends BinaryOp {
+	from
+		input : CICD1!LogicalOp
+	to
+		output : CICD2!LogicalOp
+}
+
+rule And extends LogicalOp {
+	from
+		input : CICD1!And
+	to
+		output : CICD2!And
+}
+
+rule Or extends LogicalOp {
+	from
+		input : CICD1!Or
+	to
+		output : CICD2!Or
+}
+
+abstract rule UnaryOp extends Expression {
+	from
+		input : CICD1!UnaryOp
+	to
+		output : CICD2!UnaryOp(
+			rhs <- input.rhs
+		)
+}
+
+rule Negation extends UnaryOp {
+	from
+		input : CICD1!Negation
+	to
+		output : CICD2!Negation
+}
+
+abstract rule Value extends Expression {
+	from
+		input : CICD1!Value
+	to
+		output : CICD2!Value
+}
+
+abstract rule Literal extends Value {
+	from
+		input : CICD1!Literal
+	to
+		output : CICD2!Literal
+}
+
+rule StringLiteral extends Literal {
+	from
+		input : CICD1!StringLiteral
+	to
+		output : CICD2!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral extends Literal {
+	from
+		input : CICD1!IntegerLiteral
+	to
+		output : CICD2!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral extends Literal {
+	from
+		input : CICD1!DoubleLiteral
+	to
+		output : CICD2!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral extends Literal {
+	from
+		input : CICD1!BooleanLiteral
+	to
+		output : CICD2!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+rule VariableReference extends Value {
+	from
+		input : CICD1!VariableReference
+	to
+		output : CICD2!VariableReference(
+			reference <- input.reference
+		)
+}
+
+rule VariableDeclaration {
+	from
+		input : CICD1!VariableDeclaration
+	to
+		output : CICD2!VariableDeclaration(
+			name <- input.name
+		)
+}
+
+helper context CICD1!Step def : step2StepHelper() : Sequence(CICD2!Step) =
+	if self.oclIsTypeOf(CICD1!ConditionalStep) then
+		self.splitConditionalStep()
+	else if self.oclIsTypeOf(CICD1!Command) then
+		thisModule.Command(self)
+	else if self.oclIsTypeOf(CICD1!Plugin) then
+		thisModule.Plugin(self)
+	else if self.oclIsTypeOf(CICD1!Cache) then
+		thisModule.Cache(self)
+	else if self.oclIsTypeOf(CICD1!Artifact) then
+		thisModule.Artifact(self)
+	else
+		thisModule.Checkout(self)
+	endif
+	endif
+	endif
+	endif
+	endif;
+
+helper context CICD1!ConditionalStep def : splitConditionalStep() : Sequence(CICD2!ConditionalStep) =
+	self.thenRun->collect(
+		step | 
+		thisModule.MakeConditionalThenStep(self.ifCondition, step)
+	)->union(self.elseRun->collect(
+			step |
+			thisModule.MakeConditionalElseStep(self.ifCondition, step)
+		)
+	);

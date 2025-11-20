@@ -1,0 +1,152 @@
+image: gradle:8.14.3-jdk21-alpine
+
+stages:
+  - gradle_build
+  - docker_build
+  - test
+  - e2e
+  - coverage
+  - deploy
+  - release_candidate
+
+before_script:
+  - cd main
+
+variables:
+  IMAGE_NAME: "${CI_REGISTRY_IMAGE}/mddoai"
+  IMAGE_TAG: "${IMAGE_NAME}:1.0"
+
+gradle_build:
+  stage: gradle_build
+  script:
+    - chmod +x ./gradlew
+    - rm -rf ~/.gradle/daemon ~/.gradle/caches
+    - ./gradlew --stop || true
+    - ./gradlew clean build -x test installDist
+    - ./gradlew clean build -x test installDist
+  artifacts:
+    paths:
+      - main/build/
+    expire_in: 1 week
+
+docker_build:
+  stage: docker_build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker build -t ${IMAGE_TAG} .
+    - docker save ${IMAGE_TAG} -o image.tar
+  artifacts:
+    paths:
+      - main/image.tar
+  dependencies:
+    - gradle_build
+  only:
+    - main
+
+unit_tests:
+  stage: test
+  dependencies:
+    - gradle_build
+  script:
+    - chmod +x ./gradlew
+    - ./gradlew test
+  coverage: '/    - Instruction Coverage: ([0-9.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: main/build/test-results/test/**/TEST-*.xml
+    expire_in: 1 week
+    paths:
+      - main/build/jacoco/test.exec
+
+integration_tests:
+  stage: test
+  dependencies:
+    - gradle_build
+  script:
+    - chmod +x ./gradlew
+    - ./gradlew integrationTest
+  coverage: '/    - Instruction Coverage: ([0-9.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: main/build/test-results/integrationTest/**/TEST-*.xml
+    expire_in: 1 week
+    paths:
+      - main/build/jacoco/integrationTest.exec
+
+e2e_tests:
+  stage: test
+  dependencies:
+    - gradle_build
+  script:
+    - chmod +x ./gradlew
+    - ./gradlew e2eTest
+  coverage: '/    - Instruction Coverage: ([0-9.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: main/build/test-results/e2eTest/**/TEST-*.xml
+    expire_in: 1 week
+    paths:
+      - main/build/jacoco/e2eTest.exec
+
+cli_check:
+  stage: e2e
+  dependencies:
+    - gradle_build
+  script:
+    - chmod +x ./cli
+    - ./cli swarch2gitlab ./src/test/resources/testCases/e2e/input1.swarch ./test/generatedCode
+    - chmod +x ../pipeline_tests/fileExistsTest.sh
+    - ../pipeline_tests/fileExistsTest.sh
+  artifacts:
+    when: always
+    paths:
+       - main/test/
+    expire_in: 1 week
+
+coverage_report:
+  stage: coverage
+  dependencies:
+    - gradle_build
+    - unit_tests
+    - integration_tests
+    - e2e_tests
+  script:
+    - chmod +x ./gradlew
+    - ./gradlew jacocoTestReport
+  coverage: '/    - Instruction Coverage: ([0-9.]+)%/'
+  artifacts:
+    paths:
+      - main/build/reports/jacoco/test/html/
+    expire_in: 1 week
+
+pages:
+   stage: deploy
+   dependencies:
+     - coverage_report
+   script:
+     - cd ../
+     - mkdir public
+     - mv main/build/reports/jacoco/test/html/* public/
+   artifacts:
+     paths:
+       - public
+   when: always
+
+release_candidate: 
+   stage: release_candidate
+   image: docker:24.0.5
+   services:
+     - docker:24.0.5-dind
+   script:
+     - docker load -i image.tar
+     - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+     - docker push ${IMAGE_TAG}
+   dependencies:
+     - docker_build
+   only: 
+     - main

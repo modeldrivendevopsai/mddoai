@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+
+<!--
+-->
+
+<plugin>
+
+   <extension point="org.eclipse.ui.newWizards">
+      <!-- @generated swarch -->
+      <category
+            id="org.eclipse.emf.ecore.Wizard.category.ID"
+            name="%_UI_Wizard_category"/>
+      <wizard
+            id="com.mddoai.metamodel.swarch.presentation.SwarchModelWizardID"
+            name="%_UI_SwarchModelWizard_label"
+            class="com.mddoai.metamodel.swarch.presentation.SwarchModelWizard"
+            category="org.eclipse.emf.ecore.Wizard.category.ID"
+            icon="icons/full/obj16/SwarchModelFile.gif">
+         <description>%_UI_SwarchModelWizard_description</description>
+         <selection class="org.eclipse.core.resources.IResource"/>
+      </wizard>
+   </extension>
+
+   <extension point="org.eclipse.ui.editors">
+      <!-- @generated swarch -->
+      <editor
+            id="com.mddoai.metamodel.swarch.presentation.SwarchEditorID"
+            name="%_UI_SwarchEditor_label"
+            icon="icons/full/obj16/SwarchModelFile.gif"
+            extensions="swarch"
+            class="com.mddoai.metamodel.swarch.presentation.SwarchEditor"
+            contributorClass="com.mddoai.metamodel.swarch.presentation.SwarchActionBarContributor">
+      </editor>
+   </extension>
+
+</plugin>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>mddoai_umbrella</name>
+	<comment></comment>
+	<projects>
+		<project>com.mddoai</project>
+		<project>com.mddoai.codegeneration.gitlab.acceleo</project>
+		<project>com.mddoai.feature</project>
+		<project>com.mddoai.metamodel.gitlab</project>
+		<project>com.mddoai.metamodel.gitlab.edit</project>
+		<project>com.mddoai.metamodel.gitlab.editor</project>
+		<project>com.mddoai.metamodel.pim</project>
+		<project>com.mddoai.metamodel.pim.design</project>
+		<project>com.mddoai.metamodel.pim.edit</project>
+		<project>com.mddoai.metamodel.pim.editor</project>
+		<project>com.mddoai.metamodel.pim.samples</project>
+		<project>com.mddoai.metamodel.swarch</project>
+		<project>com.mddoai.metamodel.swarch.design</project>
+		<project>com.mddoai.metamodel.swarch.edit</project>
+		<project>com.mddoai.metamodel.swarch.editor</project>
+		<project>com.mddoai.transformations.pim2psm</project>
+		<project>com.mddoai.transformations.swarch2pim</project>
+		<project>com.mddoai.update</project>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+	</natures>
+</projectDescription>

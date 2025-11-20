@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<swarch:SoftwareArchitecture xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch" name="framework-chatbot" type="framework" build_system="docker" language="python" unit_test="test/run_unit_tests.py" health_check="./scripts/health_check.sh"/>

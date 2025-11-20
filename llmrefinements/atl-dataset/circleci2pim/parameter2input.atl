@@ -1,0 +1,23 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CircleCI=/d.fe.up.pt.cicd.circleci.metamodel/model/CircleCI.ecore
+
+module parameter2input;
+create OUT : CICD from IN : CircleCI;
+
+rule Parameter2Input {
+    from
+        input : CircleCI!Parameter
+    to
+        output : CICD!Input(
+            defaultValue <- input.default,
+            description <- 
+                if not input.description.oclIsUndefined() then
+                    thisModule.String2StringLiteral(input.description)
+                else
+                    OclUndefined
+                endif,
+            id <- input.name,
+            required <- not input.default.oclIsUndefined(),
+            type <- thisModule.PARAMETER_TYPE_2_INPUT_TYPE(input.type)
+        )
+}

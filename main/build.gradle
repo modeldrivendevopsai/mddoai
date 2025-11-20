@@ -1,0 +1,240 @@
+plugins {
+	id 'application'
+ 	id 'distribution'
+ 	id 'jacoco'
+	id 'org.barfuin.gradle.jacocolog' version "3.1.0"
+}
+
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "https://repo.eclipse.org/content/groups/releases/"
+    }
+    maven {
+        url = "https://repo.spring.io/plugins-release/"
+    }
+    maven {
+        url = "https://repo.eclipse.org/content/groups/atl"
+    }
+}
+
+dependencies {
+    implementation group: 'commons-io', name: 'commons-io', version: '2.14.0'
+    implementation 'commons-cli:commons-cli:1.4'
+    
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: '3.30.0'
+
+    // https://mvnrepository.com/artifact/org.eclipse.ocl/org.eclipse.ocl.ecore
+    implementation group: 'org.eclipse.ocl', name: 'org.eclipse.ocl.ecore', version: '3.3.0.v20130520-1222'
+    // https://mvnrepository.com/artifact/org.eclipse.ocl/org.eclipse.ocl
+    implementation group: 'org.eclipse.ocl', name: 'org.eclipse.ocl', version: '3.4.2.v20140725-2242'
+    // https://mvnrepository.com/artifact/org.eclipse.acceleo/org.eclipse.ocl.common
+    implementation group: 'org.eclipse.acceleo', name: 'org.eclipse.ocl.common', version: '1.2.0.v20140610-0641'
+
+    // https://mvnrepository.com/artifact/lpg.runtime.java/lpg.runtime.java
+    implementation group: 'lpg.runtime.java', name: 'lpg.runtime.java', version: '2.0.17.v201004271640'
+
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe.utils
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe.utils', version: '1.11.0'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.ecore.xmi
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore.xmi', version: '2.36.0'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.ecore
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore', version: '2.35.0'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.codegen
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.codegen', version: '2.23.0'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.common
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.common', version: '2.29.0'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.edit
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.edit', version: '2.21.0'
+
+    // https://mvnrepository.com/artifact/org.eclipse.epsilon/org.eclipse.epsilon.eml.engine
+    implementation group: 'org.eclipse.epsilon', name: 'org.eclipse.epsilon.eml.engine', version: '2.0.0'
+    // https://mvnrepository.com/artifact/org.eclipse.epsilon/org.eclipse.epsilon.emc.emf
+    implementation group: 'org.eclipse.epsilon', name: 'org.eclipse.epsilon.emc.emf', version: '2.0.0'
+    // https://mvnrepository.com/artifact/org.eclipse.epsilon/org.eclipse.epsilon.emc.plainxml
+    implementation group: 'org.eclipse.epsilon', name: 'org.eclipse.epsilon.emc.plainxml', version: '2.0.0'
+    
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
+    testImplementation 'junit:junit:4.13.2'
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+	testRuntimeOnly 'org.junit.platform:junit-platform-engine:1.12.2'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'
+}
+
+
+sourceSets {
+   	main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java/unit']
+        }
+    }
+    integrationTest {
+        java.srcDir file('src/test/java/integration')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+    e2eTest {
+        java.srcDir file('src/test/java/e2e')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+jar {
+    manifest {
+        attributes('Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '))
+    }
+}
+
+
+startScripts {
+    classpath = files('$APP_HOME/lib/*')
+}
+
+application {
+    mainClass = 'main.java.Main'
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+
+    e2eTestImplementation.extendsFrom testImplementation
+    e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
+    
+}
+
+def standardTestLogging = {
+    events "passed", "skipped", "failed"
+    exceptionFormat "full"
+    showStandardStreams = true
+}
+
+task integrationTest(type: Test) {
+	finalizedBy 'integrationJacocoTestReport'
+	
+	jacoco {
+        destinationFile = file("$buildDir/jacoco/integrationTest.exec")
+    }
+
+    description = "Runs the integration tests."
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    useJUnitPlatform()
+    testLogging standardTestLogging
+}
+
+task e2eTest(type: Test) {
+	finalizedBy 'e2eJacocoTestReport'
+	
+	jacoco {
+        destinationFile = file("$buildDir/jacoco/e2eTest.exec")
+    }
+	
+    description = "Runs the end-to-end tests."
+    testClassesDirs = sourceSets.e2eTest.output.classesDirs
+    classpath = sourceSets.e2eTest.runtimeClasspath
+
+    useJUnitPlatform()
+    testLogging standardTestLogging
+}
+
+test {
+	finalizedBy 'unitJacocoTestReport'
+	
+	jacoco {
+        destinationFile = file("$buildDir/jacoco/test.exec")
+    }
+
+    description = "Runs all tests."
+
+    useJUnitPlatform()
+    testLogging standardTestLogging
+}
+
+jacocoTestReport {
+	sourceSets sourceSets.main
+	
+	executionData fileTree(dir: "$buildDir/jacoco", include: ["*.exec"])
+	
+	afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/Main.class'])
+        })
+    }
+    
+   	reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.register('e2eJacocoTestReport', JacocoReport) {
+    dependsOn tasks.e2eTest
+
+    executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["e2eTest.exec"]))
+
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+        files(sourceSets.main.output).collect {
+            fileTree(dir: it, exclude: ['**/Main.class'])
+        }
+    )
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.register('integrationJacocoTestReport', JacocoReport) {
+    dependsOn tasks.integrationTest
+
+    executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["integrationTest.exec"]))
+
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+        files(sourceSets.main.output).collect {
+            fileTree(dir: it, exclude: ['**/Main.class'])
+        }
+    )
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.register('unitJacocoTestReport', JacocoReport) {
+    dependsOn tasks.test
+
+    executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["test.exec"]))
+
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+        files(sourceSets.main.output).collect {
+            fileTree(dir: it, exclude: ['**/Main.class'])
+        }
+    )
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}

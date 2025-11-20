@@ -1,0 +1,175 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module extractEnvironmentVariablesFromSteps;
+create OUT : CICD refining IN : CICD;
+
+rule ScriptJob {
+	from
+		input: CICD!ScriptJob
+	to
+		output: CICD!ScriptJob(
+			agent <- input.agent,
+			inputs <- input.inputs,
+			name <- input.name,
+			outputs <- input.outputs,
+			shell <- input.shell,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory,
+			id <- input.id,
+			ifCondition <- input.ifCondition,
+			services <- input.services,
+			matrix <- input.matrix,
+			next <- input.next,
+			previous <- input.previous,
+			maxAttempts <- input.maxAttempts,
+			allowFailure <- input.allowFailure,
+			shell <- input.shell,
+			steps <- input.steps,
+			environmentVariables <- input.environmentVariables->union(thisModule.extractEnvironmentVariables(input.steps))
+		)
+}
+
+abstract rule Step {
+	from
+		input : CICD!Step
+	to
+		output : CICD!Step
+}
+
+rule ConditionalStep extends Step {
+	from
+		input : CICD!ConditionalStep
+	to
+		output : CICD!ConditionalStep(
+			ifCondition <- input.ifCondition,
+			thenRun <- input.thenRun,
+			elseRun <- input.elseRun
+		)
+}
+
+abstract rule NonConditionalStep extends Step {
+	from
+		input : CICD!NonConditionalStep
+	to
+		output : CICD!NonConditionalStep(
+			allowFailure <- input.allowFailure,
+			environmentVariables <- Sequence{},
+			id <- input.id,
+			name <- input.name,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+rule Command extends NonConditionalStep {
+	from
+		input : CICD!Command
+	to
+		output : CICD!Command(
+			program <- input.program,
+			shell <- input.shell
+		)
+}
+
+rule Plugin extends NonConditionalStep {
+	from
+		input : CICD!Plugin
+	to
+		output : CICD!Plugin(
+			pluginName <- input.pluginName,
+			version <- input.version,
+			kwargs <- input.kwargs
+		)
+}
+
+rule Cache extends NonConditionalStep {
+	from
+		input : CICD!Cache
+	to
+		output : CICD!Cache(
+			cacheName <- input.cacheName,
+			keys <- input.keys,
+			paths <- input.paths,
+			store <- input.store
+		)
+}
+
+rule Artifact extends NonConditionalStep {
+	from
+		input : CICD!Artifact
+	to
+		output : CICD!Artifact(
+			artifactName <- input.artifactName,
+			includePaths <- input.includePaths,
+			excludePaths <- input.excludePaths,
+			retentionTime <- input.retentionTime,
+			store <- input.store
+		)
+}
+
+rule Checkout extends NonConditionalStep {
+	from
+		input : CICD!Checkout
+	to
+		output : CICD!Checkout(
+			path <- input.path
+		)
+}
+
+rule VariableDeclaration {
+	from
+		input : CICD!VariableDeclaration
+	to
+		output : CICD!VariableDeclaration(
+			name <- input.name
+		)
+}
+
+rule EnvironmentNonConditionalStep extends VariableDeclaration {
+	from
+		input : CICD!VariableDeclaration(
+			input.isStepEnvironmentVariable()
+		)
+	using {
+		step : CICD!NonConditionalStep = input.refImmediateComposite().refImmediateComposite();
+	}
+	to
+		output : CICD!VariableDeclaration(
+			name <- thisModule.getStepPrefix(step) + input.name
+		)
+}
+
+helper context CICD!VariableDeclaration def : isStepEnvironmentVariable() : Boolean =
+	if self.refImmediateComposite().oclIsTypeOf(CICD!Assignment) then
+		if self.refImmediateComposite().refImmediateComposite().oclIsKindOf(CICD!NonConditionalStep) then
+			self.refImmediateComposite().refImmediateComposite().environmentVariables->collect(assignment | assignment.key)->includes(self)
+		else
+			false
+		endif
+	else
+		false
+	endif;
+
+helper def : getStepPrefix(step : CICD!Step) : String =
+	if step.refImmediateComposite().oclIsTypeOf(CICD!ConditionalStep) then
+		let conditionalStep : CICD!ConditionalStep = step.refImmediateComposite() in
+		if conditionalStep.thenRun->includes(step) then
+			thisModule.getStepPrefix(conditionalStep) + 'THEN_STEP_' + conditionalStep.thenRun->indexOf(step).toString() + '_'
+		else if conditionalStep.elseRun->includes(step) then
+			thisModule.getStepPrefix(conditionalStep) + 'ELSE_STEP_' + conditionalStep.elseRun->indexOf(step).toString() + '_'
+		else
+			''
+		endif
+		endif
+	else
+		'STEP_' + step.refImmediateComposite().steps->indexOf(step).toString() + '_'
+	endif;
+	
+helper def : extractEnvironmentVariables(steps : Sequence(CICD!Step)) : Sequence(CICD!Assignment) =
+	steps->collect(step | 
+		if step.oclIsKindOf(CICD!ConditionalStep) then
+			thisModule.extractEnvironmentVariables(step.thenRun)->union(thisModule.extractEnvironmentVariables(step.elseRun))
+		else
+			step.environmentVariables
+		endif
+	)->flatten();

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description:Group xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:description="http://www.eclipse.org/sirius/description/1.1.0" xmlns:description_1="http://www.eclipse.org/sirius/diagram/description/1.1.0" xmlns:properties="http://www.eclipse.org/sirius/properties/1.0.0" xmlns:style="http://www.eclipse.org/sirius/diagram/description/style/1.1.0" xmlns:tool="http://www.eclipse.org/sirius/diagram/description/tool/1.1.0" xmlns:tool_1="http://www.eclipse.org/sirius/description/tool/1.1.0" name="project" version="12.0.0.2017041100">
+  <ownedViewpoints name="pipeline" modelFileExtension="pimmm">
+    <ownedRepresentations xsi:type="description_1:DiagramDescription" name="Pipeline Diagram" domainClass="pimMM::Pipeline" enablePopupBars="true">
+      <metamodel href="http://www.mddoai.com/mddoai/metamodel/pim#/"/>
+      <metamodel href="http://www.eclipse.org/emf/2003/XMLType#/"/>
+      <metamodel href="http://www.w3.org/XML/1998/namespace#/"/>
+      <defaultLayer name="Default">
+        <nodeMappings name="Pipeline" semanticCandidatesExpression="var:self" domainClass="pimMM::Pipeline">
+          <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:'Pipeline'" labelPosition="node" resizeKind="NSEW" width="-1" height="-1">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+          </style>
+        </nodeMappings>
+        <edgeMappings name="StageToCommand" sourceMapping="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@containerMappings[name='Stage']" targetMapping="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@containerMappings[name='Commands']" targetFinderExpression="feature:script">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <edgeMappings name="PipelineToStage" sourceMapping="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@nodeMappings[name='Pipeline']" targetMapping="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@containerMappings[name='Stage']" targetFinderExpression="feature:stages">
+          <style sizeComputationExpression="2">
+            <strokeColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            <centerLabelStyleDescription labelSize="12">
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            </centerLabelStyleDescription>
+          </style>
+        </edgeMappings>
+        <containerMappings name="Commands" semanticCandidatesExpression="feature:eAllContents" domainClass="pimMM::Script" childrenPresentation="List">
+          <subNodeMappings name="Command" semanticCandidatesExpression="feature:eAllContents" domainClass="pimMM::Command">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="aql:self.command" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12" labelExpression="aql:'Commands'">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_gray']"/>
+          </style>
+        </containerMappings>
+        <containerMappings name="Stage" semanticCandidatesExpression="feature:eAllContents" domainClass="pimMM::Stage" childrenPresentation="List">
+          <subNodeMappings name="Tool" semanticCandidatesExpression="var:self" domainClass="pimMM::Stage">
+            <style xsi:type="style:SquareDescription" labelSize="12" labelExpression="feature:tool" labelPosition="node" resizeKind="NSEW">
+              <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+              <color xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='gray']"/>
+            </style>
+          </subNodeMappings>
+          <style xsi:type="style:FlatContainerStyleDescription" borderSizeComputationExpression="1" labelSize="12">
+            <borderColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <labelColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='black']"/>
+            <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='white']"/>
+            <foregroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='light_gray']"/>
+          </style>
+        </containerMappings>
+        <toolSections>
+          <ownedTools xsi:type="tool:NodeCreationDescription" name="createCommand" forceRefresh="true" nodeMappings="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@containerMappings[name='Commands']/@subNodeMappings[name='Command']">
+            <variable name="container"/>
+            <viewVariable name="containerView"/>
+            <initialOperation>
+              <firstModelOperations xsi:type="tool_1:ChangeContext" browseExpression="aql:self.commands">
+                <subModelOperations xsi:type="tool_1:CreateInstance" typeName="pimMM::Command" referenceName="commands">
+                  <subModelOperations xsi:type="tool_1:SetValue" featureName="command" valueExpression="aql:'echo &quot;insert command here&quot;'"/>
+                </subModelOperations>
+              </firstModelOperations>
+            </initialOperation>
+          </ownedTools>
+          <ownedTools xsi:type="tool:ContainerCreationDescription" name="createStage" forceRefresh="true" containerMappings="//@ownedViewpoints[name='pipeline']/@ownedRepresentations[name='Pipeline%20Diagram']/@defaultLayer/@containerMappings[name='Stage']">
+            <variable name="container"/>
+            <viewVariable name="containerView"/>
+            <initialOperation>
+              <firstModelOperations xsi:type="tool_1:ChangeContext" browseExpression="var:container">
+                <subModelOperations xsi:type="tool_1:CreateInstance" typeName="pimMM::Stage" referenceName="stages">
+                  <subModelOperations xsi:type="tool_1:SetValue" featureName="name" valueExpression="aql:'isnert name'"/>
+                  <subModelOperations xsi:type="tool_1:SetValue" featureName="tool" valueExpression="aql:'insert tool'"/>
+                  <subModelOperations xsi:type="tool_1:ChangeContext" browseExpression="var:instance">
+                    <subModelOperations xsi:type="tool_1:CreateInstance" typeName="pimMM::Script" referenceName="script">
+                      <subModelOperations xsi:type="tool_1:SetValue" featureName="name" valueExpression="aql:'set'"/>
+                      <subModelOperations xsi:type="tool_1:ChangeContext" browseExpression="var:instance">
+                        <subModelOperations xsi:type="tool_1:CreateInstance" typeName="pimMM::Commands" referenceName="commands">
+                          <subModelOperations xsi:type="tool_1:ChangeContext" browseExpression="var:instance">
+                            <subModelOperations xsi:type="tool_1:CreateInstance" typeName="pimMM::Command" referenceName="commands">
+                              <subModelOperations xsi:type="tool_1:SetValue" featureName="command" valueExpression="aql:'echo &quot;insert command&quot;'"/>
+                            </subModelOperations>
+                          </subModelOperations>
+                        </subModelOperations>
+                      </subModelOperations>
+                    </subModelOperations>
+                  </subModelOperations>
+                </subModelOperations>
+              </firstModelOperations>
+            </initialOperation>
+          </ownedTools>
+        </toolSections>
+      </defaultLayer>
+    </ownedRepresentations>
+  </ownedViewpoints>
+  <extensions xsi:type="properties:ViewExtensionDescription" name="Pipeline Properties View">
+    <categories name="Default Category">
+      <pages name="StagePage" labelExpression="Stage" domainClass="pimMM::Stage" groups="//@extensions.0/@categories.0/@groups.0"/>
+      <pages name="ScriptPage" labelExpression="Script" domainClass="pimMM::Script" groups="//@extensions.0/@categories.0/@groups.1 //@extensions.0/@categories.0/@groups.2"/>
+      <groups name="StageGroup" labelExpression="Stage" domainClass="pimMM::Stage">
+        <controls xsi:type="properties:TextDescription" name="name" labelExpression="Name" helpExpression="Name of selected stage" valueExpression="feature:name">
+          <initialOperation>
+            <firstModelOperations xsi:type="tool_1:SetValue" featureName="name" valueExpression="var:newValue"/>
+          </initialOperation>
+          <conditionalStyles preconditionExpression="aql:self.name=''">
+            <style>
+              <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='red']"/>
+            </style>
+          </conditionalStyles>
+        </controls>
+        <controls xsi:type="properties:TextDescription" name="tool" labelExpression="Tool" helpExpression="Tool for the selected stage" valueExpression="feature:tool">
+          <initialOperation>
+            <firstModelOperations xsi:type="tool_1:SetValue" featureName="tool" valueExpression="var:newValue"/>
+          </initialOperation>
+          <conditionalStyles preconditionExpression="aql:self.tool=''">
+            <style>
+              <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='red']"/>
+            </style>
+          </conditionalStyles>
+        </controls>
+      </groups>
+      <groups name="ScriptGroup" labelExpression="Group" domainClass="pimMM::Script">
+        <controls xsi:type="properties:TextDescription" name="name" labelExpression="Name" helpExpression="Name for the selected script" valueExpression="feature:name">
+          <initialOperation>
+            <firstModelOperations xsi:type="tool_1:SetValue" featureName="name" valueExpression="var:newValue"/>
+          </initialOperation>
+          <conditionalStyles preconditionExpression="aql:self.name=''">
+            <style>
+              <backgroundColor xsi:type="description:SystemColor" href="environment:/viewpoint#//@systemColors/@entries[name='red']"/>
+            </style>
+          </conditionalStyles>
+        </controls>
+      </groups>
+      <groups name="CommandsGroup" labelExpression="Group" domainClass="pimMM::Script">
+        <controls xsi:type="properties:ListDescription" name="Commands" labelExpression="Commands" valueExpression="aql:self.commands.commands" displayExpression="aql:value.command"/>
+      </groups>
+    </categories>
+  </extensions>
+</description:Group>

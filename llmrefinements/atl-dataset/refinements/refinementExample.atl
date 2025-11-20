@@ -1,0 +1,36 @@
+-- @path CICD1=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+-- @path CICD2=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module cicdRefinement;
+create OUT : CICD2 from IN : CICD1;
+
+lazy rule String2StringLiteral {
+	from
+		input : String
+	to
+		output : CICD2!StringLiteral(
+			value <- input
+		)
+}
+
+rule ReplaceStep {
+	from
+		input : CICD1!Step (
+			input.refImmediateComposite().id = '' and
+			input.refImmediateComposite().steps->indexOf(input) = 2
+		)
+	to
+		output : 
+			CICD2!Command (
+				program <- thisModule.String2StringLiteral('')
+			)
+}
+
+abstract rule Step {
+	from
+		input : CICD1!Step (
+			not (input.refImmediateComposite().id = '' and	not input.refImmediateComposite().steps->indexOf(input) = 2)
+		)
+	to
+		output : CICD2!Step()
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>build</stages>
+  <stages>test</stages>
+  <jobs name="build-job" stage="build">
+    <script>gradle clean build -x test</script>
+    <artifacts>
+      <paths>build/libs/*.jar</paths>
+    </artifacts>
+  </jobs>
+  <jobs name="pmd-check-job" stage="test">
+    <script>gradle check</script>
+  </jobs>
+</gitlabMM:Pipeline>

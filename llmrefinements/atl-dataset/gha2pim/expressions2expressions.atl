@@ -1,0 +1,152 @@
+-- expressions2expressions.atl
+-- @nsURI GHA=/d.fe.up.pt.cicd.gha.metamodel/model/GHA.ecore
+-- @nsURI CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module expressions2expressions;
+create OUT : CICD from IN : GHA;
+
+-- Expression mappings
+abstract rule Expression2Expression {
+    from
+        ghaExpression : GHA!Expression
+    to
+        cicdExpression : CICD!Expression
+}
+
+rule Concat2Concat extends Expression2Expression {
+    from
+        ghaExpression : GHA!Concat
+    to
+        cicdExpression : CICD!Concat(
+            expressions <- ghaExpression.expressions    
+        )
+}
+
+abstract rule BinaryOp2BinaryOp extends Expression2Expression {
+    from
+        ghaExpression : GHA!BinaryOp
+    to
+        cicdExpression : CICD!BinaryOp(
+            lhs <- ghaExpression.lhs,
+            rhs <- ghaExpression.rhs
+        )
+}
+
+rule DotOp2DotOp extends BinaryOp2BinaryOp {
+    from
+        ghaExpression : GHA!DotOp
+    to
+        cicdExpression : CICD!DotOp
+}
+
+abstract rule LogicalOp2LogicalOp extends BinaryOp2BinaryOp {
+    from
+        ghaExpression : GHA!LogicalOp
+    to
+        cicdExpression : CICD!LogicalOp
+}
+
+rule And2And extends LogicalOp2LogicalOp {
+    from
+        ghaExpression : GHA!And
+    to
+        cicdExpression : CICD!And
+}
+
+rule Or2Or extends LogicalOp2LogicalOp {
+    from
+        ghaExpression : GHA!Or
+    to
+        cicdExpression : CICD!Or
+}
+
+rule Equality2EqualityOp extends BinaryOp2BinaryOp {
+    from
+        ghaExpression : GHA!Equality
+    to
+        cicdExpression : CICD!EqualityOp(
+            op <- if ghaExpression.op = #"==" then #"==" else #"!=" endif
+        )
+}
+
+rule Comparison2ComparisonOp extends BinaryOp2BinaryOp {
+    from
+        ghaExpression : GHA!Comparison
+    to
+        cicdExpression : CICD!ComparisonOp(
+            op <- 
+                if ghaExpression.op = #">" then #">"
+                else if ghaExpression.op = #">=" then #">="
+                else if ghaExpression.op = #"<" then #"<"
+                else #"<="
+                endif
+                endif
+                endif
+        )
+}
+
+abstract rule Value2Value extends Expression2Expression {
+    from
+        ghaExpression : GHA!Value
+    to
+        cicdExpression : CICD!Value
+}
+
+abstract rule Literal2Literal extends Value2Value {
+    from
+        ghaExpression : GHA!Literal
+    to
+        cicdExpression : CICD!Literal
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+    from
+        ghaExpression : GHA!StringLiteral
+    to
+        cicdExpression : CICD!StringLiteral(
+            value <- ghaExpression.value    
+        )
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+    from
+        ghaExpression : GHA!IntegerLiteral
+    to
+        cicdExpression : CICD!IntegerLiteral(
+            value <- ghaExpression.value    
+        )
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+    from
+        ghaExpression : GHA!DoubleLiteral
+    to
+        cicdExpression : CICD!DoubleLiteral(
+            value <- ghaExpression.value    
+        )
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+    from
+        ghaExpression : GHA!BooleanLiteral
+    to
+        cicdExpression : CICD!BooleanLiteral(
+            value <- ghaExpression.value    
+        )
+}
+
+abstract rule UnaryOp2UnaryOp extends Expression2Expression {
+    from
+        ghaExpression : GHA!UnaryOp
+    to
+        cicdExpression : CICD!UnaryOp(
+            rhs <- ghaExpression.childExpr
+        )
+}
+
+rule Not2Negation extends UnaryOp2UnaryOp {
+    from
+        ghaExpression : GHA!Not
+    to
+        cicdExpression : CICD!Negation
+}

@@ -1,0 +1,104 @@
+-- @path CICD=/d.fe.up.pt.cicd.metamodel/model/CICD.ecore
+
+module extractJobInputs;
+create OUT : CICD refining IN : CICD;
+
+abstract rule PipelineBlock {
+	from
+		input : CICD!PipelineBlock
+	to
+		output : CICD!PipelineBlock (
+			agent <- input.agent,
+			environmentVariables <- input.environmentVariables,
+			inputs <- input.inputs,
+			name <- input.name,
+			outputs <- input.outputs,
+			shell <- input.shell,
+			timeoutMinutes <- input.timeoutMinutes,
+			workingDirectory <- input.workingDirectory
+		)
+}
+
+rule Pipeline extends PipelineBlock {
+	from
+		input : CICD!Pipeline
+	to 
+		output : CICD!Pipeline (
+			inputs <-
+				input.inputs->union(
+					thisModule.getAllJobs(input.jobStreams)
+					->collect(job | job.inputs)
+					->flatten()
+				),
+			jobStreams <- input.jobStreams,
+			triggers <- input.triggers
+		)
+}
+
+abstract rule Job extends PipelineBlock {
+	from
+		input : CICD!Job
+	to
+		output : CICD!Job (
+			allowFailure <- input.allowFailure,
+			id <- input.id,
+			ifCondition <- input.ifCondition,
+			inputs <- Sequence{},
+			matrix <- input.matrix,
+			maxAttempts <- input.maxAttempts,
+			next <- input.next,
+			services <- input.services
+		)
+}
+
+rule ScriptJob extends Job {
+	from
+		input : CICD!ScriptJob
+	to
+		output : CICD!ScriptJob (
+			steps <- input.steps
+		)
+}
+
+rule PipelineCallJob extends Job {
+	from
+		input : CICD!PipelineCallJob
+	to
+		output : CICD!PipelineCallJob (
+			pipelinePath <- input.pipelinePath,
+			args <- input.args
+		)
+}
+
+rule VariableDeclaration {
+	from
+		input : CICD!VariableDeclaration (
+			input.isJobInput()
+		)
+	using {
+		job : CICD!Job = input.refImmediateComposite().refImmediateComposite();
+	}
+	to
+		output : CICD!VariableDeclaration (
+			name <- job.id + '_' + input.name
+		)
+}
+
+helper context CICD!VariableDeclaration def : isJobInput() : Boolean =
+	if self.refImmediateComposite().oclIsTypeOf(CICD!Input) then
+		self.refImmediateComposite().refImmediateComposite().oclIsKindOf(CICD!Job)
+	else
+		false
+	endif;
+
+helper def : getAllJobs(jobStreams : Sequence(CICD!Job)) : Sequence(CICD!Job) =
+	let next : Sequence(CICD!Job) = 
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(CICD!Job)) = Sequence{} | 
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in 
+	if next.isEmpty() then
+		jobStreams
+	else 
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
