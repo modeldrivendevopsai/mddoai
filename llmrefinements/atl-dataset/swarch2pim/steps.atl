@@ -1,0 +1,56 @@
+-- @nsURI SWArchMM=http://www.mddoai.com/mddoai/metamodel/swarch
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+
+module steps;
+create OUT : PIMMM from IN : SWArchMM;
+
+-- Map stages to commands
+helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : Sequence(PIMMM!Command) =
+  if stage = 'unitTest' then
+    if self.unit_test = 'true' then
+      Sequence { thisModule.createCommand(self.build_system + ' test') }
+    else
+      Sequence { thisModule.createCommand('python3 ' + self.unit_test) }
+    endif
+  else if stage = 'build' then
+    if self.build_system = 'gradle' then
+      Sequence { thisModule.createCommand(self.build_system + ' clean -x test') }
+    else
+      Sequence { thisModule.createCommand(self.build_system + ' build -t ${IMAGE_TAG} .') }
+    endif
+  else if stage = 'healthCheck' then
+    Sequence { thisModule.createCommand(' ' + self.health_check) }
+  else if stage = 'push' then
+    Sequence {
+      thisModule.createCommand(self.build_system + ' login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}'),
+      thisModule.createCommand(self.build_system + ' push ${IMAGE_TAG}')
+    }
+  else if stage = 'lintCheck' then
+    Sequence { thisModule.createCommand(self.build_system + ' check') }
+  else
+    Sequence {}
+  endif
+  endif
+  endif
+  endif
+  endif;
+
+-- Create String Literal
+lazy rule createStringLiteral {
+  from
+    source : String
+  to
+    target : PIMMM!StringLiteral (
+      value <- source
+    )
+}
+
+-- Create Command
+lazy rule createCommand {
+  from
+    source : String
+  to
+    target : PIMMM!Command (
+      program <- thisModule.createStringLiteral(source)
+    )
+}

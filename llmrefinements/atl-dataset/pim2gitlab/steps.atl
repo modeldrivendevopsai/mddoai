@@ -1,0 +1,34 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module steps;
+create OUT : GitLabMM from IN : PIM;
+
+-- Map Job steps to GitLab script
+lazy rule createScript {
+    from
+        job : PIM!ScriptJob
+    to
+        script : GitLabMM!Script (
+            commands <- job.steps->collect(s | thisModule.createCommand(s.program.value))
+        )
+}
+
+lazy rule createCommand {
+    from
+        cmdString : String
+    to
+        cmd : GitLabMM!Comand (
+            comand <- cmdString
+        )
+}
+
+-- GitLab BeforeScript for unitTest
+lazy rule createBeforeScript {
+    from
+        dummy : OclAny
+	to
+        beforeScript : GitLabMM!BeforeScript (
+            commands <- Sequence{thisModule.createCommand('python3 -m pip install --break-system-packages -r requirements.txt')}
+        )
+}

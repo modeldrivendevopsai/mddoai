@@ -1,0 +1,42 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pipeline;
+create OUT : GitLabMM from IN : PIM;
+
+-- Main pipeline transformation
+rule Pipeline2GitlabPipeline {
+    from
+        source : PIM!Pipeline
+    to
+        target : GitLabMM!Pipeline (
+            stages <- source.jobStreams->collect(j | j.name),
+            jobs <- source.jobStreams->collect(j | thisModule.createJob(j)),
+            variables <- thisModule.createVariables(source)
+        )
+}
+
+-- Create variables for the pipeline
+lazy rule createVariables {
+    from
+        source : PIM!Pipeline
+    to
+        vars : GitLabMM!Variables (
+            variables <- Sequence {
+                thisModule.createVariable('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/chatbot-app-image'),
+                thisModule.createVariable('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}')
+            }
+        )
+}
+
+-- Create a variable
+lazy rule createVariable {
+    from
+        name : String,
+        value : String
+    to
+        var : GitLabMM!Variable (
+            name <- name,
+            value <- value
+        )
+}

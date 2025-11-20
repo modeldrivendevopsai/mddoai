@@ -1,0 +1,74 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module jobs;
+create OUT : GitLabMM from IN : PIM;
+
+-- Transform PIM Job to GitLab Job
+lazy rule createJob {
+    from
+        source : PIM!Job
+    to
+        target : GitLabMM!Job (
+            name <- source.name,
+            stage <- source.name,
+            script <- if source.oclIsTypeOf(PIM!ScriptJob) then
+                        thisModule.createScript(source)
+                      else
+                        OclUndefined
+                      endif,
+            beforeScript <- if source.name='unitTest' then
+                                thisModule.createBeforeScript()
+                            else
+                                OclUndefined
+                            endif,
+            tags <- thisModule.createTags(),
+            only <- thisModule.createOnly(),
+            dependencies <- thisModule.createDependencies(source),
+            image <- thisModule.getImageForJob(source),
+            artifacts <- if thisModule.hasArtifacts(source) then
+                thisModule.createArtifacts(source)
+            else
+                OclUndefined
+            endif,
+            when <- thisModule.getWhenForJob(source)
+        )
+}
+
+-- Job dependencies
+lazy rule createDependencies {
+    from
+        job : PIM!Job
+    to
+        deps : GitLabMM!Dependencies (
+            dependencies <- 
+                if job.name='healthCheck' then Sequence{thisModule.createDependency('build')}
+                else if job.name='push' then Sequence{thisModule.createDependency('healthCheck')}
+                else Sequence{}
+                endif
+				endif
+        )
+}
+
+lazy rule createDependency {
+    from
+        depName : String
+    to
+        dep : GitLabMM!Dependency (
+            dependency <- depName
+        )
+}
+
+-- Docker image per job (optional)
+helper def : getImageForJob(job : PIM!Job) : String =
+    if job.name='unitTest' then 'python:3.12-slim'
+    else if job.name='healthCheck' then 'curlimages/curl:latest'
+    else OclUndefined
+    endif
+	endif;
+
+-- When condition
+helper def : getWhenForJob(job : PIM!Job) : String =
+    if job.name='unitTest' then 'always'
+    else OclUndefined
+    endif;

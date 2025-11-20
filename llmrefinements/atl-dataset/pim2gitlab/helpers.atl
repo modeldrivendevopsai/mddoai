@@ -1,0 +1,82 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module helpers;
+create OUT : GitLabMM from IN : PIM;
+
+-- Always add default tag
+lazy rule createTags {
+	from
+        dummy : OclAny
+    to
+        tags : GitLabMM!Tags (
+            tags <- Sequence{thisModule.createTag('ai-shared')}
+        )
+}
+
+lazy rule createTag {
+    from
+        tagName : String
+    to
+        tag : GitLabMM!Tag (
+            tag <- tagName
+        )
+}
+
+-- Only run on main branch
+lazy rule createOnly {
+	from
+        dummy : OclAny
+    to
+        only : GitLabMM!Only (
+            branches <- Sequence{thisModule.createOnlyBranch('main')}
+        )
+}
+
+lazy rule createOnlyBranch {
+    from
+        branchName : String
+    to
+        branch : GitLabMM!OnlyBranches (
+            branch <- branchName
+        )
+}
+
+-- Helper: Check if a job should have artifacts
+helper def : hasArtifacts(job : PIM!Job) : Boolean = false;
+
+-- Artifacts
+lazy rule createArtifacts {
+    from
+        job : PIM!Job (
+            job.name = 'build' or job.name = 'unitTest'
+        )
+    to
+        artifacts : GitLabMM!Artifact (
+            when <- if job.name='unitTest' then 'always' else OclUndefined endif,
+            paths <- if job.name='build' then Sequence{thisModule.createPath('build/libs/*.jar')}
+                     else if job.name='unitTest' then Sequence{thisModule.createPath('build/test-results/**/*.xml')}
+                     else Sequence{}
+                     endif
+                     endif,
+            reports <- if job.name='unitTest' then thisModule.createReports() else OclUndefined endif
+        )
+}
+
+lazy rule createReports {
+	from
+        dummy : OclAny
+    to
+        report : GitLabMM!Report (
+            junit <- 'build/test-results/test/**/TEST-*.xml'
+        )
+}
+
+lazy rule createPath {
+    from
+        p : String
+    to
+        path : GitLabMM!Path (
+            path <- p
+        )
+}

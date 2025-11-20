@@ -1,0 +1,43 @@
+-- @nsURI SWArchMM=http://www.mddoai.com/mddoai/metamodel/swarch
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+
+module jobs;
+create OUT : PIMMM from IN : SWArchMM;
+
+-- Helper: Determine mandatory jobs based on type
+helper def: getMandatoryJobs(type : String) : Sequence(String) =
+  if type = 'framework' then
+    Sequence {'build', 'push'}
+  else if type = 'jar' then
+    Sequence {'build'}
+  else
+    Sequence {}
+  endif
+  endif;
+
+-- Helper: Append element if condition true
+helper def: appendIf(seq : Sequence(String), cond : Boolean, elem : String) : Sequence(String) =
+  if cond then seq->append(elem)
+  else seq
+  endif;
+
+-- Helper: Create ScriptJob for a stage
+lazy rule createScriptJob {
+  from
+    source : TupleType(pipeline : SWArchMM!SoftwareArchitecture, stage : String)
+  to
+    target : PIMMM!ScriptJob (
+      name <- source.stage,
+      steps <- source.pipeline.getCommands(source.stage)
+    )
+}
+
+-- Helper: Create all jobs dynamically based on SWArch properties
+helper context SWArchMM!SoftwareArchitecture def: defineAllJobs() : Sequence(PIMMM!Job) =
+  let stages : Sequence(String) = Sequence{'build','unitTest','lintCheck','healthCheck','push'}->
+        select(s | thisModule.getMandatoryJobs(self.type)->includes(s)
+                  or (s='unitTest' and not self.unit_test.oclIsUndefined() and self.unit_test<>'')
+                  or (s='healthCheck' and not self.health_check.oclIsUndefined() and self.health_check<>'')
+                  or (s='lintCheck' and not self.lint_check.oclIsUndefined() and self.lint_check<>'')
+        )
+  in stages->collect(s | thisModule.createScriptJob(Tuple { pipeline = self, stage = s }));

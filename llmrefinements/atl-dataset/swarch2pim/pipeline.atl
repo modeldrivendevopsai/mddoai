@@ -1,0 +1,16 @@
+-- @nsURI SWArchMM=http://www.mddoai.com/mddoai/metamodel/swarch
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+
+module pipeline;
+create OUT : PIMMM from IN : SWArchMM;
+
+-- Main pipeline creation
+rule SWArch2PIMPipeline {
+  from
+    source : SWArchMM!SoftwareArchitecture
+  to
+    target : PIMMM!Pipeline (
+      name <- source.name,
+      jobStreams <- source.defineAllJobs()
+    )
+}
