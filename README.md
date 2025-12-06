@@ -1,5 +1,6 @@
 # MDDOAI
-This project transforms software architecture models into usable GitLab CI pipeline YAML code.
+This project transforms SoftWareArchitecture models into usable CI/CD pipelines using Model-driven techniques.
+Find the [old documentation here](before_opensource.md)
 
 ## Building
 ### 1. Clone the repo
