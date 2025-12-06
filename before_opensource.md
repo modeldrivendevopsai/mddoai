@@ -38,7 +38,30 @@ While all the new documenation should be published here in the repo, here's all 
   - LLM conclusions and next steps: https://zenis.atlassian.net/wiki/external/MmVkZTUxNWE4NWFhNGE5OWI1ZjA3MzQ0NzJhNDIyNDY
 15. Open-source licensing for MDDOAI: https://zenis.atlassian.net/wiki/external/YjlkMjQzYzNhZmEwNDIwY2I2YTI4ODlmNGExZjY3YzY
 
-*Design:*
+*Design:* https://zenis.atlassian.net/wiki/external/MmE5NWFmNjNjYzg1NGI4NThlOWVkYzI3NjVlMWMyZjA
+1. Transformation rules from SW Arch to PIM: https://zenis.atlassian.net/wiki/external/M2Q4ZGU0ODE2MzgzNDBmNThhNzQxMGVkZjc4MmE4Mjg
+2. Transformation rules from CI Pipeline model to GitLab model: https://zenis.atlassian.net/wiki/external/NTVlOTdkYWU4MmE4NDQxYmFlNGU4NTdiOGYyNjI5OGY
+3. Transformation rules from GitLab model to GitLab code: https://zenis.atlassian.net/wiki/external/NWFmNjAxYzVlNzE3NGZkYTg1Mzg1YzNlNTRlYWQ1Yjg
+4. Transformation module UML class diagram: https://zenis.atlassian.net/wiki/external/YTEwMmNmYTFlM2I1NGE5ZmExMmQ0ZDAxYzQwOTI1NTI
+5. Transformation generator module UML class diagram: https://zenis.atlassian.net/wiki/external/MjYyOWE3YjU2MGQ5NDBlM2JlZGI5YzJiNWZmYTI0Mjg
+
+*Development:* https://zenis.atlassian.net/wiki/external/NGVmODQ1ZWZkNDY0NGIzN2E4MzM5NzZlMDlkNjE5ZDk
+1. Project folder structure: https://zenis.atlassian.net/wiki/external/OGE5MzA2YjFkNmRkNGU4MDg0ZDRjNTQwZjk4ZDVlNGI
+2. Meta-models:
+   - Software Architecture Meta-Model: https://zenis.atlassian.net/wiki/external/NWM5OTE3OGJlNzUyNGFlNmFlYTJkMzc5YzczY2Q1YmQ
+   - Pipeline Meta-Model: https://zenis.atlassian.net/wiki/external/Zjg0NmJjYWM1NDNmNGZiYjllOGE0NmI0MDYyNTlhMWY
+   - Gitlab Meta-Model: https://zenis.atlassian.net/wiki/external/MWQzMDQ5NTI0ZWQzNGEzZmI2ODM4YjA0ODAxMTM1YzQ
+3. Transformation modules:
+   - M2M for SW Arch to PIM transformation module: https://zenis.atlassian.net/wiki/external/YzM3Y2Y1MmQyY2M5NDcyNmJmOTkxN2ExMGMwMjdjZjM
+   - M2M for PIM to GitLab model transformation module: https://zenis.atlassian.net/wiki/external/ZmE1YmVlOGM3NTY0NGU2YjllNGQ5NTI5ZTc1MGFjYzA
+   - M2C transformation generator module: https://zenis.atlassian.net/wiki/external/M2Y2MDlkZDNhMTQ2NGM2MmE3ZGJmZDFkNGVlMDQ3MDI
+4. Visualization DSLs:
+   - SW arch visualization with Sirius Viewpoints: https://zenis.atlassian.net/wiki/external/OGIzZGIwNmViOGNkNDBmZDlhMTgxMzUxNTAxNzE5OWY
+  - PIM visualization with Sirius Viewpoints: https://zenis.atlassian.net/wiki/external/NzFlZWJlYmUzYTAxNDFlZTg1OTViNjhiOWEwN2M5ZGI
+5. Creating custom Eclipse Update site: https://zenis.atlassian.net/wiki/external/ZTcxNjJhMjQ5ODBhNGQ5NjhiOTUzNDBjMjliY2UzMTc
+6. Rule generation with LLMs: https://zenis.atlassian.net/wiki/external/NDE0YzdhY2E3YTY1NDcwNGI1MTQyNTA0ZmExNzU1M2Y
+ - ATL dataset: https://zenis.atlassian.net/wiki/external/ZWViMTNhMmRmZTVlNDE4NThlOWNlZGI5ZjE0MGM1NjI
+
 
 
 
