@@ -62,6 +62,39 @@ While all the new documenation should be published here in the repo, here's all 
 6. Rule generation with LLMs: https://zenis.atlassian.net/wiki/external/NDE0YzdhY2E3YTY1NDcwNGI1MTQyNTA0ZmExNzU1M2Y
  - ATL dataset: https://zenis.atlassian.net/wiki/external/ZWViMTNhMmRmZTVlNDE4NThlOWNlZGI5ZjE0MGM1NjI
 
+*Testing:* https://zenis.atlassian.net/wiki/external/YjE1ZmQ2OGNhODhjNGFhZWJlMjhhMmJhNmI4YTZjYTY
+1. Testing the visualization for SW Arch: https://zenis.atlassian.net/wiki/external/ODQ4MTVkNzk5MjNiNDQ2M2JlZDc5Yzg1ZDQ0M2NmMjA
+2. Integration Tests: https://zenis.atlassian.net/wiki/external/ZDg3MTQ4NGIwYjE1NDAwMmE3MTJhYmIxZDNlNjY5OWQ
+3. E2E Tests: https://zenis.atlassian.net/wiki/external/MjU3YmE3MzVlNzI0NDU2OGI2YWZmZmQzMjI5NTY3ZmY
+4. Unit Tests for MDDOAI: https://zenis.atlassian.net/wiki/external/ODI5NjdiZTEyOWNlNGMyMmE5OTFhMWM1NmY4MDc3NDA
+
+*Deployment:* nothing useful
+
+*CI/CD*: 
+1. Build system and dependency management: https://zenis.atlassian.net/wiki/external/YzYzODMwMjVjN2JkNGQ5MmFkMmUwYTViNDVlMzA3OTI
+2. MDDOAI Pipeline design: https://zenis.atlassian.net/wiki/external/ZGIwNWRhN2I5MWIxNGE3NzliZGJiZjE2NmEyNjMzOTQ
+3. Code coverage report: https://zenis.atlassian.net/wiki/external/MDY1N2NjNmYxODljNDUxZDk5ZWFlYWRiMzhjOGRjNGE
+4. Automated pipeline generation through GitLab: https://zenis.atlassian.net/wiki/external/NGM4ZTFjOTBkODc3NDViMmE1YmY2ODdjYmIwYjk1ODM
+
+*Handbooks:*
+1. How to install Java: https://zenis.atlassian.net/wiki/external/YTk5ODAwMTRmMDk5NDhjN2I0ZDRhMzM5ZWM3ZThiNGQ
+2. How to install and set up Eclipse for modeling: https://zenis.atlassian.net/wiki/external/MWRiMTU2OWRlYjZmNDZiYTk3YTNhNmE5NGUwZDIwMWM
+3. How to setup and run M2C demo: https://zenis.atlassian.net/wiki/external/OWFkNjY1ZTlkODI5NDkxZDkyYWE1MzdlMjdhZDczMDc
+4. Project initialization: https://zenis.atlassian.net/wiki/external/ZjYxYmJhZWNmMjNhNDgyM2I1NzViZDdhNWQxN2YzNzM
+5. Updating project: https://zenis.atlassian.net/wiki/external/MDUxZmYyMTQxOGViNDRkNThiMTEyYzBlMTQzY2ZlN2E
+6. How to view each meta-model: https://zenis.atlassian.net/wiki/external/MWFjNGY2YzdiNGQ0NDBlM2FjNTkxZDc1MzBkMDBhY2M
+7. Creating a new model representation and editing it: https://zenis.atlassian.net/wiki/external/ODJjN2IzOGMzYjhiNGI4OWJiNjgzNGIxZGY0NGQzZjA
+8. Model Visual representation with Eclipse Sirius: https://zenis.atlassian.net/wiki/external/ZGM2ZjJhOTU0ODVlNGUxNzk0MGRmOWM5ZTE3NzA3YmE
+9. CLI tool: https://zenis.atlassian.net/wiki/external/MzUxMDZmNTY4ZGNhNDIyYmI5Yzk5ZWEwNmNjZDUzZjY
+10. How to use containerized MDDOAI: https://zenis.atlassian.net/wiki/external/MTAwN2I1MjcxM2YzNGJmM2E1YmVhOTJiYzk5MTk1OGY
+11. Useful guides: https://zenis.atlassian.net/wiki/external/OWU3ZDZhOTRjYmMxNDQ5ZWIzZWIwNGE3MDIzNjI0OTE
+12. MDDOAI Getting started: https://zenis.atlassian.net/wiki/external/NGM5MmZiZGZmOWZlNDg1NDk1N2NjZjMyMzU3OTk0ZGE
+13. Used terms and acronyms
+    - Project naming conventions: https://zenis.atlassian.net/wiki/external/MTRhYWQ3NmNiYTM2NDQxYzg0NDNhNjUxYWFhNzc5ZDk
+    - ATL terms: https://zenis.atlassian.net/wiki/external/N2VmMDU1NTc5YjVlNGRlYjlkZmMxNGM4NmFiOThkY2E
+   
+The long-term goal is to move useful docs to the repo. Feel free to do it and clean up this page line by line.
+
 
 
 
