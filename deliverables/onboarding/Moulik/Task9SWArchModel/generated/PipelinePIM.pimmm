@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ASCII"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="build" tool="gradle">
+    <script name="build.script">
+      <commands>
+        <commands command="clean -x test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="unitTest" tool="gradle">
+    <script name="unitTest.script">
+      <commands>
+        <commands command="test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="lintCheck" tool="gradle">
+    <script name="lintCheck.script">
+      <commands>
+        <commands command="check"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

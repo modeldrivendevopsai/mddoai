@@ -1,0 +1,19 @@
+stages:
+  - build
+  - test
+  - lint
+
+build_job:
+  stage: build
+  script:
+    - gradle clean build
+
+test_job:
+  stage: test
+  script:
+    - gradle test
+
+lint_job:
+  stage: lint
+  script:
+    - gradle check

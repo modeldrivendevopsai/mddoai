@@ -1,0 +1,39 @@
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+stages:
+  - build
+  - test
+  - lint
+
+
+build:
+  stage: build
+  script:
+    - gradle clean
+    - gradle build
+  artifacts:
+    paths:
+      - build/libs/*.jar
+  only:
+    - main
+  
+test:
+  stage: test
+  script:
+    - gradle test
+  only:
+    - main
+  
+lint:
+  stage: lint
+  script:
+    - gradle check
+  only:
+    - main
+  

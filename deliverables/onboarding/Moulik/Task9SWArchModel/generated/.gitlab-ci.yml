@@ -1,0 +1,45 @@
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+stages:
+  - build
+  - unitTest
+  - lintCheck
+
+
+build:
+  stage: build
+  script:
+    - gradle clean -x test
+  artifacts:
+    paths:
+      - build/libs/*.jar
+  only:
+    - main
+  
+unitTest:
+  stage: unitTest
+  image: python:3.12-slim
+  script:
+    - gradle test
+  artifacts:
+    paths:
+      - build/test-results/**/*.xml
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+  only:
+    - main
+  
+lintCheck:
+  stage: lintCheck
+  script:
+    - gradle check
+  only:
+    - main
+  

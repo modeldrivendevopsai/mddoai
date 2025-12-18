@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="build" tool="gradle">
+    <script name="build_job">
+      <commands>
+        <commands command="clean"/>
+        <commands command="build"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="test" tool="gradle">
+    <script name="test_job">
+      <commands>
+        <commands command="test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="lint" tool="gradle">
+    <script name="lint_job">
+      <commands>
+        <commands command="check"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>
