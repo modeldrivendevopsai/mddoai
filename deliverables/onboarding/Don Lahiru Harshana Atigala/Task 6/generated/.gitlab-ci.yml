@@ -1,0 +1,51 @@
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+stages:
+  - build stage
+  - Test stage
+  - Generate stage
+  - Verify stage 
+  - Release stage
+
+
+build stage:
+  stage: build stage
+  script:
+    - Gradle gradlew.bat clean build
+  only:
+    - main
+  
+Test stage:
+  stage: Test stage
+  script:
+    - Gradle gradlew.bat test
+  only:
+    - main
+  
+Generate stage:
+  stage: Generate stage
+  script:
+    - Gradle gradlew.bat generate
+  only:
+    - main
+  
+Verify stage :
+  stage: Verify stage 
+  script:
+    - Shell if exist generated\.gitlab-ci.yml (echo OK) else (exit /b 1)
+  only:
+    - main
+  
+Release stage:
+  stage: Release stage
+  script:
+    - Shell echo "publish release"
+  only:
+    - main
+  
