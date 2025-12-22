@@ -1,0 +1,48 @@
+stages:
+  - build
+  - test
+  - generate
+  - verify
+  - release
+
+image: alpine:3.20
+
+build_mddoai:
+  stage: build
+  script: 'mkdir -p out && echo "mddoai-package" > out/build_package.txt'
+  artifacts:
+    paths:
+      - out/build_package.txt
+    expire_in: 7 days
+
+unit_tests:
+  stage: test
+  script: 'mkdir -p out && echo "tests-passed" > out/test_report.txt'
+  artifacts:
+    when: always
+    paths:
+      - out/test_report.txt
+    expire_in: 7 days
+
+generate_gitlab_ci:
+  stage: generate
+  script: 'mkdir -p generated && echo "# generated pipeline" > generated/.gitlab-ci.yml'
+  artifacts:
+    paths:
+      - generated/.gitlab-ci.yml
+    expire_in: 7 days
+
+verify_generated_file:
+  stage: verify
+  script: 'test -f generated/.gitlab-ci.yml && echo "OK: generated file exists"'
+
+stop:
+  stage: release
+  when: manual
+  allow_failure: true
+  script: 'echo "Stop selected. No release published."'
+
+publish_release:
+  stage: release
+  when: manual
+  script: 'echo "Publish release selected."'
