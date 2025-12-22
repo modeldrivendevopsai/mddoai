@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="build stage" tool="Gradle">
+    <script>
+      <commands>
+        <commands command="gradlew.bat clean build"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="Test stage" tool="Gradle">
+    <script>
+      <commands>
+        <commands command="gradlew.bat test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="Generate stage" tool="Gradle">
+    <script>
+      <commands>
+        <commands command="gradlew.bat generate"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="Verify stage " tool="Shell">
+    <script>
+      <commands>
+        <commands command="if exist generated\.gitlab-ci.yml (echo OK) else (exit /b 1)"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="Release stage" tool="Shell">
+    <script>
+      <commands>
+        <commands command="echo &quot;publish release&quot;"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

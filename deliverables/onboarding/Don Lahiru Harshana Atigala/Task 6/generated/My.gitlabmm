@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ASCII"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>build stage</stages>
+  <stages>Test stage</stages>
+  <stages>Generate stage</stages>
+  <stages>Verify stage </stages>
+  <stages>Release stage</stages>
+  <jobs name="build stage" stage="build stage">
+    <script>
+      <commands comand="Gradle gradlew.bat clean build"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="Test stage" stage="Test stage">
+    <script>
+      <commands comand="Gradle gradlew.bat test"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="Generate stage" stage="Generate stage">
+    <script>
+      <commands comand="Gradle gradlew.bat generate"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="Verify stage " stage="Verify stage ">
+    <script>
+      <commands comand="Shell if exist generated\.gitlab-ci.yml (echo OK) else (exit /b 1)"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="Release stage" stage="Release stage">
+    <script>
+      <commands comand="Shell echo &quot;publish release&quot;"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+</gitlabMM:Pipeline>
