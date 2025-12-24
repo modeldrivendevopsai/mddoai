@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="buildFrontend" tool="nodejs">
+    <script name="Frontend.script">
+      <commands>
+        <commands command="npm ci"/>
+        <commands command="npm run build"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="buildBackend" tool="gradle">
+    <script name="buildBackend.script">
+      <commands>
+        <commands command="./gradlew build -x test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="systemTest" tool="gradle">
+    <script name="systemTest.script">
+      <commands>
+        <commands command="./gradlew test"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="package" tool="docker">
+    <script name="package.script">
+      <commands>
+        <commands command="docker build -t ${IMAGE_TAG} ."/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="deployBackend" tool="deployment">
+    <script name="deployBackend.script">
+      <commands>
+        <commands command="./scripts/deploy_backend.sh"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="deployFrontend" tool="deployFrontend">
+    <script name="deployFrontend.script">
+      <commands>
+        <commands command="./scripts/deploy_frontend.sh"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

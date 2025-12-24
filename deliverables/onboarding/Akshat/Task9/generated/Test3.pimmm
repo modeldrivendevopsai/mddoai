@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ASCII"?>
+<pimMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+  <stages name="unitTest" tool="docker">
+    <script name="unitTest.script">
+      <commands>
+        <commands command="./scripts/system_test.sh"/>
+      </commands>
+    </script>
+  </stages>
+  <stages name="healthCheck" tool="">
+    <script name="healthCheck.script">
+      <commands>
+        <commands command="./scripts/health_check.sh"/>
+      </commands>
+    </script>
+  </stages>
+</pimMM:Pipeline>

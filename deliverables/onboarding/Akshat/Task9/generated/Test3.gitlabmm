@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ASCII"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>unitTest</stages>
+  <stages>healthCheck</stages>
+  <jobs name="unitTest" stage="unitTest" image="python:3.12-slim">
+    <script>
+      <commands comand="docker ./scripts/system_test.sh"/>
+    </script>
+    <beforeScript>
+      <commands comand="python3 -m pip install --break-system-packages -r requirements.txt"/>
+    </beforeScript>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="healthCheck" stage="healthCheck" image="curlimages/curl:latest">
+    <script>
+      <commands comand=" ./scripts/health_check.sh"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+    <dependencies>
+      <dependencies dependency="build"/>
+    </dependencies>
+  </jobs>
+</gitlabMM:Pipeline>

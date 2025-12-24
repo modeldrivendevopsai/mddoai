@@ -1,0 +1,27 @@
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+build_job:
+  stage: build
+  script:
+    - echo "Build frontend"
+    - echo "Build backend"
+
+test_job:
+  stage: test
+  script:
+    - echo "Run system tests"
+
+package_job:
+  stage: package
+  script:
+    - echo "Package artifacts"
+
+deploy_job:
+  stage: deploy
+  script:
+    - echo "Deploy backend"
+    - echo "Deploy frontend"

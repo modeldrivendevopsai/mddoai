@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ASCII"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>buildFrontend</stages>
+  <stages>buildBackend</stages>
+  <stages>systemTest</stages>
+  <stages>package</stages>
+  <stages>deployBackend</stages>
+  <stages>deployFrontend</stages>
+  <jobs name="buildFrontend" stage="buildFrontend">
+    <script>
+      <commands comand="nodejs npm ci"/>
+      <commands comand="nodejs npm run build"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="buildBackend" stage="buildBackend">
+    <script>
+      <commands comand="gradle ./gradlew build -x test"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="systemTest" stage="systemTest">
+    <script>
+      <commands comand="gradle ./gradlew test"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="package" stage="package">
+    <script>
+      <commands comand="docker docker build -t ${IMAGE_TAG} ."/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="deployBackend" stage="deployBackend">
+    <script>
+      <commands comand="deployment ./scripts/deploy_backend.sh"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+  <jobs name="deployFrontend" stage="deployFrontend">
+    <script>
+      <commands comand="deployFrontend ./scripts/deploy_frontend.sh"/>
+    </script>
+    <tags>
+      <tags tag="ai-shared"/>
+    </tags>
+    <only>
+      <branches branch="main"/>
+    </only>
+  </jobs>
+</gitlabMM:Pipeline>
