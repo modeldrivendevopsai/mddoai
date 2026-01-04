@@ -121,7 +121,8 @@ The project folder structure consists of these folders:
 ## Draw.io diagrams
 
 View - Use Draw.io to open the file "drawio diagrams.xml"
-Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready.
+
+Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready. The PR approver should always restore the merged branch. This URL should open draw.io directly - https://app.diagrams.net/#Hmodeldrivendevopsai%2Fmddoai%2Fdraw.io-diagrams%2Fdrawio%20diagrams.xml#%7B
 
 ## License
 
