@@ -118,6 +118,11 @@ The project folder structure consists of these folders:
 - [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
 
+## Draw.io diagrams
+
+View - Use Draw.io to open the file "drawio diagrams.xml"
+Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready.
+
 ## License
 
 This project is licensed under the **Eclipse Public License 2.0 (EPL-2.0)**.  
