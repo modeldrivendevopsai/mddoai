@@ -2,14 +2,35 @@ name: MDDOAI CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags: ["*"]
   pull_request:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}/mddoai
-  IMAGE_TAG: ghcr.io/${{ github.repository }}/mddoai:1.0
 
 jobs:
+  determine_version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.IMAGE_TAG }}
+      version: ${{ steps.tag.outputs.VERSION }}
+    steps:
+      - name: Calculate image tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            VERSION="1.0-snapshot"
+          else
+            VERSION="1.x-snapshot"
+          fi
+          IMAGE_TAG="${{ env.IMAGE_NAME }}:${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
   gradle_build:
     name: Gradle Build
     runs-on: ubuntu-latest
@@ -40,7 +61,7 @@ jobs:
   docker_build:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: gradle_build
+    needs: [gradle_build, determine_version]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,11 +77,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f main/Dockerfile -t $IMAGE_TAG main
+          docker build -f main/Dockerfile -t ${{ needs.determine_version.outputs.image_tag }} main
 
       - name: Save Docker image
         run: |
-          docker save $IMAGE_TAG -o main/image.tar
+          docker save ${{ needs.determine_version.outputs.image_tag }} -o main/image.tar
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
@@ -226,11 +247,13 @@ jobs:
       id-token: write
     steps:
       - uses: actions/deploy-pages@v4
-      
-  release_candidate:
-    name: Release Candidate (Docker Push)
+
+  push_image:
+    name: Push Docker Image
     runs-on: ubuntu-latest
-    needs: docker_build
+    needs:
+      [docker_build,determine_version,unit_tests,integration_tests,e2e_tests,cli_check]
+    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
@@ -248,4 +271,5 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker image
-        run: docker push $IMAGE_TAG
+        run: |
+          docker push ${{ needs.determine_version.outputs.image_tag }}
