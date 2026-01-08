@@ -20,8 +20,6 @@ build:
   stage: build
   script:
     - docker build -t ${IMAGE_TAG} .
-  only:
-    - main
   
 unitTest:
   stage: unitTest
@@ -30,8 +28,6 @@ unitTest:
     - python3 -m pip install --break-system-packages -r requirements.txt
   script:
     - python3 test/run_unit_tests.py
-  only:
-    - main
   
 healthCheck:
   stage: healthCheck
@@ -40,8 +36,6 @@ healthCheck:
     -  ./scripts/health_check.sh
   dependencies:
     - build
-  only:
-    - main
   
 push:
   stage: push
