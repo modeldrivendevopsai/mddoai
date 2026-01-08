@@ -7,7 +7,7 @@ Find the [old documentation here](before_opensource.md)
 Run this command:
 
 ```
-git clone https://gitlab.com/model-driven-devops-ai/core.git
+git clone https://github.com/modeldrivendevopsai/mddoai.git
 ```
 
 to clone the repo.
@@ -32,7 +32,10 @@ To use it run this command from the main directory:
 ./cli.bat <Type> <InputModelPath> <OutputFolder>
 ```
 
-`<Type>` - this is the type of transformation. Currently only one is possible swarch2gitlab. This will take in the SW Arch model and generate a .gitlab-ci.yml file.
+`<Type>` - this is the type of transformation. Available transformation types are:
+- `swarch2gitlab`: Transforms Software Architecture model into GitLab CI/CD pipeline (.gitlab-ci.yml)
+- `pim2gitlab`: Transforms Platform Independent Model into GitLab CI/CD pipeline
+- `psm2gitlab`: Transforms Gitlab Platform Specific Model into GitLab CI/CD pipeline
 
 `<InputModelPath>` - This is the path to the input model.
 
@@ -53,7 +56,125 @@ To run the E2E, integration and unit tests you can run these commands individual
 ./gradlew test
 ```
 
-## Dependency Management
+## How to Use Docker Images
+
+You can pull and run MDDOAI Docker images from the GitHub Container Registry (GHCR).
+
+### Pulling Images
+
+```bash
+# Pull the latest development version (recommended for development)
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot
+
+# Pull a specific production release
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+
+# Pull the testing version (for feature branch testing)
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.x-snapshot
+```
+
+### Running the Container
+
+```bash
+# Basic usage with mounted volumes
+# $(pwd) = current directory, -v mounts host folders to container paths
+docker run -v "$(pwd)/input:/app/input" -v "$(pwd)/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot \
+  swarch2gitlab "/app/input/model.swarch" "/app/output"
+
+# Or using absolute paths
+docker run -v "/path/to/input:/app/input" -v "/path/to/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot \
+  swarch2gitlab "/app/input/model.swarch" "/app/output"
+
+# CI/CD pipeline usage (with pull and cleanup)
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot
+docker run --rm -v "$(pwd)/input:/app/input" -v "$(pwd)/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot \
+  swarch2gitlab "/app/input/model.swarch" "/app/output"
+```
+
+**Note:** The container expects the input model file and will generate the GitLab CI YAML in the output directory.
+
+## Docker Image Versioning Strategy
+
+MDDOAI uses a three-tier Docker image tagging strategy. This section explains each tag type, when to use it, and how the CI/CD pipeline manages versions.
+
+---
+
+## Versioning Tags
+
+### `1.x-snapshot`
+
+**Purpose:** Testing tag for all feature branches
+
+**Characteristics:**
+- Overwritten on every feature branch push
+- Not safe for production use
+- Useful for quick testing
+
+**Example workflow:**
+```bash
+# Create feature branch
+git checkout -b fix-parser-bug
+
+# Make changes and push
+git push origin fix-parser-bug
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.x-snapshot
+```
+
+---
+
+### `1.0-snapshot`
+
+**Purpose:** Latest code from the main branch
+
+**Characteristics:**
+- Overwritten on every main branch commit
+- Semi-stable
+- Recommended for development
+
+**Example workflow:**
+```bash
+# Merge PR to main
+git checkout main
+git merge fix-parser-bug
+git push origin main
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0-snapshot
+```
+
+---
+
+### `1.0.1`, `1.0.2`, `1.1.0`
+
+**Purpose:** Permanent production releases
+
+**Characteristics:**
+- Never overwritten
+- Never expires
+- Follows Semantic Versioning (MAJOR.MINOR.PATCH)
+- Ideal for production deployments
+
+**Example workflow:**
+```bash
+# Ready to release? Create and push tag
+git tag -a 1.0.1 -m "Release 1.0.1 - Fixed parser bug"
+git push origin 1.0.1
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0.1
+```
+
+---
+
+## Comparison Table
+
+| Tag           | Stability    | Overwritten?       | Use Case        |
+|---------------|--------------|--------------------|-----------------|
+| `1.x-snapshot`| Unstable     | Yes (any branch)   | Feature Testing |
+| `1.0-snapshot`| Semi-stable  | Yes (main only)    | Development     |
+| `1.0.1`       | Stable       | Never              | Production      |
+
+
+See the image tags in the MDDOAI Container Registry for available tags available at https://github.com/modeldrivendevopsai/mddoai/pkgs/container/mddoai%2Fmddoai
 All project dependencies are managed through the build.gradle file using Gradle’s dependency management infrastructure.
 
 ### Core Libraries
