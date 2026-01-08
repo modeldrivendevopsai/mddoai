@@ -72,7 +72,12 @@ lazy rule createJobFromStage {
                 endif,
             image <- thisModule.getImageForStage(stage),
             tags <- thisModule.createTags(stage),
-            only <- thisModule.createOnly(stage),
+            only <- if stage.name = 'push' then
+						thisModule.createOnly(stage)
+					else			
+						OclUndefined
+					endif,
+			
             dependencies <- if stage.name = 'healthCheck' then
                     thisModule.createDependencies(stage, 'build')
                 else if stage.name = 'push' then
