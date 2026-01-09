@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:description="http://www.eclipse.org/sirius/description/1.1.0" xmlns:description_1="http://www.eclipse.org/sirius/diagram/description/1.1.0" xmlns:diagram="http://www.eclipse.org/sirius/diagram/1.1.0" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.3/notation" xmlns:style="http://www.eclipse.org/sirius/diagram/description/style/1.1.0" xmlns:viewpoint="http://www.eclipse.org/sirius/1.1.0" xsi:schemaLocation="http://www.eclipse.org/sirius/description/1.1.0 http://www.eclipse.org/sirius/1.1.0#//description http://www.eclipse.org/sirius/diagram/description/1.1.0 http://www.eclipse.org/sirius/diagram/1.1.0#//description http://www.eclipse.org/sirius/diagram/description/style/1.1.0 http://www.eclipse.org/sirius/diagram/1.1.0#//description/style">
-  <viewpoint:DAnalysis uid="_RusgEC_REfCSC7dNfxLt7A" selectedViews="_TXg4AC_REfCSC7dNfxLt7A" version="15.4.1.202403191723">
+  <viewpoint:DAnalysis uid="_RusgEC_REfCSC7dNfxLt7A" selectedViews="_TXg4AC_REfCSC7dNfxLt7A _75bqAOzrEfClofjFrfyiag _75f7cOzrEfClofjFrfyiag _76RXgOzrEfClofjFrfyiag" version="15.4.1.202403191723">
     <semanticResources>gitlabMM.ecore</semanticResources>
     <semanticResources>gitlabMM.genmodel</semanticResources>
     <ownedViews xmi:type="viewpoint:DView" uid="_TXg4AC_REfCSC7dNfxLt7A">
       <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']"/>
-      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" uid="_TZl7oC_REfCSC7dNfxLt7A" name="gitlabMM" repPath="#_TY2UwC_REfCSC7dNfxLt7A" changeId="1752061265191">
+      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" uid="_TZl7oC_REfCSC7dNfxLt7A" name="gitlabMM" repPath="#_TY2UwC_REfCSC7dNfxLt7A" changeId="1767919453053">
         <description xmi:type="description_1:DiagramDescription" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']"/>
         <target xmi:type="ecore:EPackage" href="gitlabMM.ecore#/"/>
       </ownedRepresentationDescriptors>
+    </ownedViews>
+    <ownedViews xmi:type="viewpoint:DView" uid="_75bqAOzrEfClofjFrfyiag">
+      <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Review']"/>
+    </ownedViews>
+    <ownedViews xmi:type="viewpoint:DView" uid="_75f7cOzrEfClofjFrfyiag">
+      <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Archetype']"/>
+    </ownedViews>
+    <ownedViews xmi:type="viewpoint:DView" uid="_76RXgOzrEfClofjFrfyiag">
+      <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Generation']"/>
     </ownedViews>
   </viewpoint:DAnalysis>
   <diagram:DSemanticDiagram uid="_TY2UwC_REfCSC7dNfxLt7A">
@@ -20,6 +29,10 @@
             <children xmi:type="notation:Node" xmi:id="_z7PsEzCZEfCx3-FZZUUoHw" type="3010" element="_z6Z-kDCZEfCx3-FZZUUoHw">
               <styles xmi:type="notation:FontStyle" xmi:id="_z7PsFDCZEfCx3-FZZUUoHw" fontName="Segoe UI" fontHeight="8"/>
               <layoutConstraint xmi:type="notation:Location" xmi:id="_z7PsFTCZEfCx3-FZZUUoHw"/>
+            </children>
+            <children xmi:type="notation:Node" xmi:id="_76XeIOzrEfClofjFrfyiag" type="3010" element="_7549AOzrEfClofjFrfyiag">
+              <styles xmi:type="notation:FontStyle" xmi:id="_76XeIezrEfClofjFrfyiag" fontName="Segoe UI" fontHeight="8"/>
+              <layoutConstraint xmi:type="notation:Location" xmi:id="_76XeIuzrEfClofjFrfyiag"/>
             </children>
             <styles xmi:type="notation:SortingStyle" xmi:id="_z7JlcTCZEfCx3-FZZUUoHw"/>
             <styles xmi:type="notation:FilteringStyle" xmi:id="_z7JlcjCZEfCx3-FZZUUoHw"/>
@@ -517,6 +530,14 @@
         </ownedStyle>
         <actualMapping xmi:type="description_1:NodeMapping" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@defaultLayer/@containerMappings[name='EC%20EClass']/@subNodeMappings[name='EC%20EAttribute']"/>
       </ownedElements>
+      <ownedElements xmi:type="diagram:DNodeListElement" uid="_7549AOzrEfClofjFrfyiag" name=" workflow : Workflow" tooltipText="">
+        <target xmi:type="ecore:EReference" href="gitlabMM.ecore#//Pipeline/workflow"/>
+        <semanticElements xmi:type="ecore:EReference" href="gitlabMM.ecore#//Pipeline/workflow"/>
+        <ownedStyle xmi:type="diagram:BundledImage" uid="_756LIOzrEfClofjFrfyiag" labelAlignment="LEFT" color="114,159,207">
+          <description xmi:type="style:BundledImageDescription" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@defaultLayer/@containerMappings[name='EC%20EClass']/@subNodeMappings[name='EC%20EReferenceNode']/@style"/>
+        </ownedStyle>
+        <actualMapping xmi:type="description_1:NodeMapping" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@defaultLayer/@containerMappings[name='EC%20EClass']/@subNodeMappings[name='EC%20EReferenceNode']"/>
+      </ownedElements>
     </ownedDiagramElements>
     <ownedDiagramElements xmi:type="diagram:DNodeList" uid="_z6I40DCZEfCx3-FZZUUoHw" name="Job" tooltipText="" outgoingEdges="_z67jADCZEfCx3-FZZUUoHw _JLjIclvFEfCI8sF139hE1Q _JLkWgFvFEfCI8sF139hE1Q _EENktlvREfCI8sF139hE1Q _g-KytFvREfCI8sF139hE1Q _v7z2nFvREfCI8sF139hE1Q" incomingEdges="_z6zAIDCZEfCx3-FZZUUoHw" width="12" height="10">
       <target xmi:type="ecore:EClass" href="gitlabMM.ecore#//Job"/>
@@ -919,6 +940,7 @@
     <activatedLayers xmi:type="description_1:Layer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@defaultLayer"/>
     <activatedLayers xmi:type="description_1:AdditionalLayer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@additionalLayers[name='Package']"/>
     <activatedLayers xmi:type="description_1:AdditionalLayer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']/@additionalLayers[name='Validation']"/>
+    <activatedLayers xmi:type="description_1:AdditionalLayer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Archetype']/@ownedRepresentationExtensions[name='Entities%20With%20Archetypes']/@layers[name='Archetypes']"/>
     <target xmi:type="ecore:EPackage" href="gitlabMM.ecore#/"/>
   </diagram:DSemanticDiagram>
 </xmi:XMI>

@@ -166,6 +166,24 @@ public interface GitlabMMFactory extends EFactory {
 	Path createPath();
 
 	/**
+	 * Returns a new object of class '<em>Rule</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Rule</em>'.
+	 * @generated
+	 */
+	Rule createRule();
+
+	/**
+	 * Returns a new object of class '<em>Workflow</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Workflow</em>'.
+	 * @generated
+	 */
+	Workflow createWorkflow();
+
+	/**
 	 * Returns the package supported by this factory.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->

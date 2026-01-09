@@ -2,9 +2,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.provider;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMFactory;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
+import com.mddoai.metamodel.gitlab.gitlabMM.Rule;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,8 +12,6 @@ import org.eclipse.emf.common.notify.AdapterFactory;
 import org.eclipse.emf.common.notify.Notification;
 
 import org.eclipse.emf.common.util.ResourceLocator;
-
-import org.eclipse.emf.ecore.EStructuralFeature;
 
 import org.eclipse.emf.edit.provider.ComposeableAdapterFactory;
 import org.eclipse.emf.edit.provider.IEditingDomainItemProvider;
@@ -28,12 +25,12 @@ import org.eclipse.emf.edit.provider.ItemProviderAdapter;
 import org.eclipse.emf.edit.provider.ViewerNotification;
 
 /**
- * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline} object.
+ * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule} object.
  * <!-- begin-user-doc -->
  * <!-- end-user-doc -->
  * @generated
  */
-public class PipelineItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
+public class RuleItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
 		IStructuredItemContentProvider, ITreeItemContentProvider, IItemLabelProvider, IItemPropertySource {
 	/**
 	 * This constructs an instance from a factory and a notifier.
@@ -41,7 +38,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public PipelineItemProvider(AdapterFactory adapterFactory) {
+	public RuleItemProvider(AdapterFactory adapterFactory) {
 		super(adapterFactory);
 	}
 
@@ -56,68 +53,99 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		if (itemPropertyDescriptors == null) {
 			super.getPropertyDescriptors(object);
 
-			addStagesPropertyDescriptor(object);
+			addIfPropertyDescriptor(object);
+			addWhenPropertyDescriptor(object);
+			addChangesPropertyDescriptor(object);
+			addExistsPropertyDescriptor(object);
+			addVariablesPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
 
 	/**
-	 * This adds a property descriptor for the Stages feature.
+	 * This adds a property descriptor for the If feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addStagesPropertyDescriptor(Object object) {
+	protected void addIfPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Pipeline_stages_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Pipeline_stages_feature",
-								"_UI_Pipeline_type"),
-						GitlabMMPackage.Literals.PIPELINE__STAGES, true, false, false,
+						getResourceLocator(), getString("_UI_Rule_if_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule_if_feature", "_UI_Rule_type"),
+						GitlabMMPackage.Literals.RULE__IF, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
-	 * This specifies how to implement {@link #getChildren} and is used to deduce an appropriate feature for an
-	 * {@link org.eclipse.emf.edit.command.AddCommand}, {@link org.eclipse.emf.edit.command.RemoveCommand} or
-	 * {@link org.eclipse.emf.edit.command.MoveCommand} in {@link #createCommand}.
+	 * This adds a property descriptor for the When feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	@Override
-	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
-		if (childrenFeatures == null) {
-			super.getChildrenFeatures(object);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__JOBS);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__VARIABLES);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__WORKFLOW);
-		}
-		return childrenFeatures;
+	protected void addWhenPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule_when_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule_when_feature", "_UI_Rule_type"),
+						GitlabMMPackage.Literals.RULE__WHEN, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
+	 * This adds a property descriptor for the Changes feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	@Override
-	protected EStructuralFeature getChildFeature(Object object, Object child) {
-		// Check the type of the specified child object and return the proper feature to use for
-		// adding (see {@link AddCommand}) it as a child.
-
-		return super.getChildFeature(object, child);
+	protected void addChangesPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule_changes_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule_changes_feature", "_UI_Rule_type"),
+						GitlabMMPackage.Literals.RULE__CHANGES, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
-	 * This returns Pipeline.gif.
+	 * This adds a property descriptor for the Exists feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExistsPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule_exists_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule_exists_feature", "_UI_Rule_type"),
+						GitlabMMPackage.Literals.RULE__EXISTS, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Variables feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addVariablesPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule_variables_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule_variables_feature", "_UI_Rule_type"),
+						GitlabMMPackage.Literals.RULE__VARIABLES, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This returns Rule.gif.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
 	public Object getImage(Object object) {
-		return overlayImage(object, getResourceLocator().getImage("full/obj16/Pipeline"));
+		return overlayImage(object, getResourceLocator().getImage("full/obj16/Rule"));
 	}
 
 	/**
@@ -138,7 +166,9 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	 */
 	@Override
 	public String getText(Object object) {
-		return getString("_UI_Pipeline_type");
+		String label = ((Rule) object).getIf();
+		return label == null || label.length() == 0 ? getString("_UI_Rule_type")
+				: getString("_UI_Rule_type") + " " + label;
 	}
 
 	/**
@@ -152,14 +182,13 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	public void notifyChanged(Notification notification) {
 		updateChildren(notification);
 
-		switch (notification.getFeatureID(Pipeline.class)) {
-		case GitlabMMPackage.PIPELINE__STAGES:
+		switch (notification.getFeatureID(Rule.class)) {
+		case GitlabMMPackage.RULE__IF:
+		case GitlabMMPackage.RULE__WHEN:
+		case GitlabMMPackage.RULE__CHANGES:
+		case GitlabMMPackage.RULE__EXISTS:
+		case GitlabMMPackage.RULE__VARIABLES:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
-			return;
-		case GitlabMMPackage.PIPELINE__JOBS:
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-		case GitlabMMPackage.PIPELINE__WORKFLOW:
-			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
 		super.notifyChanged(notification);
@@ -175,15 +204,6 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	@Override
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
-
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.PIPELINE__JOBS, GitlabMMFactory.eINSTANCE.createJob()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__VARIABLES,
-				GitlabMMFactory.eINSTANCE.createVariables()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__WORKFLOW,
-				GitlabMMFactory.eINSTANCE.createWorkflow()));
 	}
 
 	/**

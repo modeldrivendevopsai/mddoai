@@ -14,6 +14,7 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Pipeline/stages"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/jobs"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/workflow"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Job">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/name"/>
@@ -71,6 +72,16 @@
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Path">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Path/path"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Rule">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule/if"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule/when"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule/changes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule/exists"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule/variables"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Workflow">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Workflow/rules"/>
     </genClasses>
   </genPackages>
 </genmodel:GenModel>

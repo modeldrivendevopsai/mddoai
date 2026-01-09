@@ -4,7 +4,7 @@ package com.mddoai.metamodel.gitlab.gitlabMM.provider;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMFactory;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
+import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,24 +16,22 @@ import org.eclipse.emf.common.util.ResourceLocator;
 
 import org.eclipse.emf.ecore.EStructuralFeature;
 
-import org.eclipse.emf.edit.provider.ComposeableAdapterFactory;
 import org.eclipse.emf.edit.provider.IEditingDomainItemProvider;
 import org.eclipse.emf.edit.provider.IItemLabelProvider;
 import org.eclipse.emf.edit.provider.IItemPropertyDescriptor;
 import org.eclipse.emf.edit.provider.IItemPropertySource;
 import org.eclipse.emf.edit.provider.IStructuredItemContentProvider;
 import org.eclipse.emf.edit.provider.ITreeItemContentProvider;
-import org.eclipse.emf.edit.provider.ItemPropertyDescriptor;
 import org.eclipse.emf.edit.provider.ItemProviderAdapter;
 import org.eclipse.emf.edit.provider.ViewerNotification;
 
 /**
- * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline} object.
+ * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Workflow} object.
  * <!-- begin-user-doc -->
  * <!-- end-user-doc -->
  * @generated
  */
-public class PipelineItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
+public class WorkflowItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
 		IStructuredItemContentProvider, ITreeItemContentProvider, IItemLabelProvider, IItemPropertySource {
 	/**
 	 * This constructs an instance from a factory and a notifier.
@@ -41,7 +39,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public PipelineItemProvider(AdapterFactory adapterFactory) {
+	public WorkflowItemProvider(AdapterFactory adapterFactory) {
 		super(adapterFactory);
 	}
 
@@ -56,25 +54,8 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		if (itemPropertyDescriptors == null) {
 			super.getPropertyDescriptors(object);
 
-			addStagesPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
-	}
-
-	/**
-	 * This adds a property descriptor for the Stages feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addStagesPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Pipeline_stages_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Pipeline_stages_feature",
-								"_UI_Pipeline_type"),
-						GitlabMMPackage.Literals.PIPELINE__STAGES, true, false, false,
-						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -89,9 +70,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__JOBS);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__VARIABLES);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__WORKFLOW);
+			childrenFeatures.add(GitlabMMPackage.Literals.WORKFLOW__RULES);
 		}
 		return childrenFeatures;
 	}
@@ -110,14 +89,14 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	}
 
 	/**
-	 * This returns Pipeline.gif.
+	 * This returns Workflow.gif.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
 	public Object getImage(Object object) {
-		return overlayImage(object, getResourceLocator().getImage("full/obj16/Pipeline"));
+		return overlayImage(object, getResourceLocator().getImage("full/obj16/Workflow"));
 	}
 
 	/**
@@ -138,7 +117,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	 */
 	@Override
 	public String getText(Object object) {
-		return getString("_UI_Pipeline_type");
+		return getString("_UI_Workflow_type");
 	}
 
 	/**
@@ -152,13 +131,8 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	public void notifyChanged(Notification notification) {
 		updateChildren(notification);
 
-		switch (notification.getFeatureID(Pipeline.class)) {
-		case GitlabMMPackage.PIPELINE__STAGES:
-			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
-			return;
-		case GitlabMMPackage.PIPELINE__JOBS:
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-		case GitlabMMPackage.PIPELINE__WORKFLOW:
+		switch (notification.getFeatureID(Workflow.class)) {
+		case GitlabMMPackage.WORKFLOW__RULES:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -177,13 +151,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.PIPELINE__JOBS, GitlabMMFactory.eINSTANCE.createJob()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__VARIABLES,
-				GitlabMMFactory.eINSTANCE.createVariables()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__WORKFLOW,
-				GitlabMMFactory.eINSTANCE.createWorkflow()));
+				createChildParameter(GitlabMMPackage.Literals.WORKFLOW__RULES, GitlabMMFactory.eINSTANCE.createRule()));
 	}
 
 	/**

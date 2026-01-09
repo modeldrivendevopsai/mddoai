@@ -18,6 +18,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getStages <em>Stages</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getJobs <em>Jobs</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getWorkflow <em>Workflow</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline()
@@ -70,5 +71,27 @@ public interface Pipeline extends EObject {
 	 * @generated
 	 */
 	void setVariables(Variables value);
+
+	/**
+	 * Returns the value of the '<em><b>Workflow</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Workflow</em>' containment reference.
+	 * @see #setWorkflow(Workflow)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Workflow()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Workflow getWorkflow();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getWorkflow <em>Workflow</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Workflow</em>' containment reference.
+	 * @see #getWorkflow()
+	 * @generated
+	 */
+	void setWorkflow(Workflow value);
 
 } // Pipeline

@@ -88,6 +88,10 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 			return createVariable();
 		case GitlabMMPackage.PATH:
 			return createPath();
+		case GitlabMMPackage.RULE:
+			return createRule();
+		case GitlabMMPackage.WORKFLOW:
+			return createWorkflow();
 		default:
 			throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
 		}
@@ -267,6 +271,28 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	public Path createPath() {
 		PathImpl path = new PathImpl();
 		return path;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Rule createRule() {
+		RuleImpl rule = new RuleImpl();
+		return rule;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Workflow createWorkflow() {
+		WorkflowImpl workflow = new WorkflowImpl();
+		return workflow;
 	}
 
 	/**

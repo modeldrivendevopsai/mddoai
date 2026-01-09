@@ -7,6 +7,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 import java.util.Collection;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -35,6 +36,7 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getStages <em>Stages</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getJobs <em>Jobs</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getWorkflow <em>Workflow</em>}</li>
  * </ul>
  *
  * @generated
@@ -69,6 +71,16 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @ordered
 	 */
 	protected Variables variables;
+
+	/**
+	 * The cached value of the '{@link #getWorkflow() <em>Workflow</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getWorkflow()
+	 * @generated
+	 * @ordered
+	 */
+	protected Workflow workflow;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -173,12 +185,66 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @generated
 	 */
 	@Override
+	public Workflow getWorkflow() {
+		return workflow;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetWorkflow(Workflow newWorkflow, NotificationChain msgs) {
+		Workflow oldWorkflow = workflow;
+		workflow = newWorkflow;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.PIPELINE__WORKFLOW, oldWorkflow, newWorkflow);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setWorkflow(Workflow newWorkflow) {
+		if (newWorkflow != workflow) {
+			NotificationChain msgs = null;
+			if (workflow != null)
+				msgs = ((InternalEObject) workflow).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__WORKFLOW, null, msgs);
+			if (newWorkflow != null)
+				msgs = ((InternalEObject) newWorkflow).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__WORKFLOW, null, msgs);
+			msgs = basicSetWorkflow(newWorkflow, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PIPELINE__WORKFLOW, newWorkflow,
+					newWorkflow));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
 		case GitlabMMPackage.PIPELINE__JOBS:
 			return ((InternalEList<?>) getJobs()).basicRemove(otherEnd, msgs);
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 			return basicSetVariables(null, msgs);
+		case GitlabMMPackage.PIPELINE__WORKFLOW:
+			return basicSetWorkflow(null, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -197,6 +263,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			return getJobs();
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 			return getVariables();
+		case GitlabMMPackage.PIPELINE__WORKFLOW:
+			return getWorkflow();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -221,6 +289,9 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 			setVariables((Variables) newValue);
 			return;
+		case GitlabMMPackage.PIPELINE__WORKFLOW:
+			setWorkflow((Workflow) newValue);
+			return;
 		}
 		super.eSet(featureID, newValue);
 	}
@@ -242,6 +313,9 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 			setVariables((Variables) null);
 			return;
+		case GitlabMMPackage.PIPELINE__WORKFLOW:
+			setWorkflow((Workflow) null);
+			return;
 		}
 		super.eUnset(featureID);
 	}
@@ -260,6 +334,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			return jobs != null && !jobs.isEmpty();
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 			return variables != null;
+		case GitlabMMPackage.PIPELINE__WORKFLOW:
+			return workflow != null;
 		}
 		return super.eIsSet(featureID);
 	}

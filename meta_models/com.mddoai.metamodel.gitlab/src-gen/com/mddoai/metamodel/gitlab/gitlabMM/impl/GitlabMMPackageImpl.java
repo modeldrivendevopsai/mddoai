@@ -15,12 +15,14 @@ import com.mddoai.metamodel.gitlab.gitlabMM.OnlyBranches;
 import com.mddoai.metamodel.gitlab.gitlabMM.Path;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
 import com.mddoai.metamodel.gitlab.gitlabMM.Report;
+import com.mddoai.metamodel.gitlab.gitlabMM.Rule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tag;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
@@ -148,6 +150,20 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	private EClass pathEClass = null;
 
 	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass ruleEClass = null;
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass workflowEClass = null;
+
+	/**
 	 * Creates an instance of the model <b>Package</b>, registered with
 	 * {@link org.eclipse.emf.ecore.EPackage.Registry EPackage.Registry} by the package
 	 * package URI value.
@@ -249,6 +265,16 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	@Override
 	public EReference getPipeline_Variables() {
 		return (EReference) pipelineEClass.getEStructuralFeatures().get(2);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getPipeline_Workflow() {
+		return (EReference) pipelineEClass.getEStructuralFeatures().get(3);
 	}
 
 	/**
@@ -677,6 +703,86 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
+	public EClass getRule() {
+		return ruleEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getRule_If() {
+		return (EAttribute) ruleEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getRule_When() {
+		return (EAttribute) ruleEClass.getEStructuralFeatures().get(1);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getRule_Changes() {
+		return (EAttribute) ruleEClass.getEStructuralFeatures().get(2);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getRule_Exists() {
+		return (EAttribute) ruleEClass.getEStructuralFeatures().get(3);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getRule_Variables() {
+		return (EAttribute) ruleEClass.getEStructuralFeatures().get(4);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EClass getWorkflow() {
+		return workflowEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getWorkflow_Rules() {
+		return (EReference) workflowEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public GitlabMMFactory getGitlabMMFactory() {
 		return (GitlabMMFactory) getEFactoryInstance();
 	}
@@ -705,6 +811,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		createEAttribute(pipelineEClass, PIPELINE__STAGES);
 		createEReference(pipelineEClass, PIPELINE__JOBS);
 		createEReference(pipelineEClass, PIPELINE__VARIABLES);
+		createEReference(pipelineEClass, PIPELINE__WORKFLOW);
 
 		jobEClass = createEClass(JOB);
 		createEAttribute(jobEClass, JOB__NAME);
@@ -762,6 +869,16 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 
 		pathEClass = createEClass(PATH);
 		createEAttribute(pathEClass, PATH__PATH);
+
+		ruleEClass = createEClass(RULE);
+		createEAttribute(ruleEClass, RULE__IF);
+		createEAttribute(ruleEClass, RULE__WHEN);
+		createEAttribute(ruleEClass, RULE__CHANGES);
+		createEAttribute(ruleEClass, RULE__EXISTS);
+		createEAttribute(ruleEClass, RULE__VARIABLES);
+
+		workflowEClass = createEClass(WORKFLOW);
+		createEReference(workflowEClass, WORKFLOW__RULES);
 	}
 
 	/**
@@ -803,6 +920,9 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
 				IS_ORDERED);
 		initEReference(getPipeline_Variables(), this.getVariables(), null, "variables", null, 0, 1, Pipeline.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
+				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getPipeline_Workflow(), this.getWorkflow(), null, "workflow", null, 0, 1, Pipeline.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
@@ -909,6 +1029,24 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEClass(pathEClass, Path.class, "Path", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getPath_Path(), ecorePackage.getEString(), "path", null, 1, 1, Path.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+		initEClass(ruleEClass, Rule.class, "Rule", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEAttribute(getRule_If(), ecorePackage.getEString(), "if", null, 0, 1, Rule.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getRule_When(), ecorePackage.getEString(), "when", null, 0, 1, Rule.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getRule_Changes(), ecorePackage.getEString(), "changes", null, 0, -1, Rule.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getRule_Exists(), ecorePackage.getEString(), "exists", null, 0, -1, Rule.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getRule_Variables(), ecorePackage.getEString(), "variables", null, 0, -1, Rule.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+		initEClass(workflowEClass, Workflow.class, "Workflow", !IS_ABSTRACT, !IS_INTERFACE,
+				IS_GENERATED_INSTANCE_CLASS);
+		initEReference(getWorkflow_Rules(), this.getRule(), null, "rules", null, 0, -1, Workflow.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
+				IS_ORDERED);
 
 		// Create resource
 		createResource(eNS_URI);

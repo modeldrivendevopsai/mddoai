@@ -441,6 +441,52 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected RuleItemProvider ruleItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createRuleAdapter() {
+		if (ruleItemProvider == null) {
+			ruleItemProvider = new RuleItemProvider(this);
+		}
+
+		return ruleItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Workflow} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected WorkflowItemProvider workflowItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Workflow}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createWorkflowAdapter() {
+		if (workflowItemProvider == null) {
+			workflowItemProvider = new WorkflowItemProvider(this);
+		}
+
+		return workflowItemProvider;
+	}
+
+	/**
 	 * This returns the root adapter factory that contains this factory.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -577,6 +623,10 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 			variableItemProvider.dispose();
 		if (pathItemProvider != null)
 			pathItemProvider.dispose();
+		if (ruleItemProvider != null)
+			ruleItemProvider.dispose();
+		if (workflowItemProvider != null)
+			workflowItemProvider.dispose();
 	}
 
 }
