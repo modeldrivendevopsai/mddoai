@@ -894,6 +894,43 @@ public interface GitlabMMPackage extends EPackage {
 	int WORKFLOW_OPERATION_COUNT = 0;
 
 	/**
+	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.MatrixImpl <em>Matrix</em>}' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.MatrixImpl
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getMatrix()
+	 * @generated
+	 */
+	int MATRIX = 18;
+
+	/**
+	 * The feature id for the '<em><b>Abc</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int MATRIX__ABC = 0;
+
+	/**
+	 * The number of structural features of the '<em>Matrix</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int MATRIX_FEATURE_COUNT = 1;
+
+	/**
+	 * The number of operations of the '<em>Matrix</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int MATRIX_OPERATION_COUNT = 0;
+
+	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline <em>Pipeline</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -1481,6 +1518,27 @@ public interface GitlabMMPackage extends EPackage {
 	EReference getWorkflow_Rules();
 
 	/**
+	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix <em>Matrix</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for class '<em>Matrix</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Matrix
+	 * @generated
+	 */
+	EClass getMatrix();
+
+	/**
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix#getAbc <em>Abc</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the attribute '<em>Abc</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Matrix#getAbc()
+	 * @see #getMatrix()
+	 * @generated
+	 */
+	EAttribute getMatrix_Abc();
+
+	/**
 	 * Returns the factory that creates the instances of the model.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -1978,6 +2036,24 @@ public interface GitlabMMPackage extends EPackage {
 		 * @generated
 		 */
 		EReference WORKFLOW__RULES = eINSTANCE.getWorkflow_Rules();
+
+		/**
+		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.MatrixImpl <em>Matrix</em>}' class.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.MatrixImpl
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getMatrix()
+		 * @generated
+		 */
+		EClass MATRIX = eINSTANCE.getMatrix();
+
+		/**
+		 * The meta object literal for the '<em><b>Abc</b></em>' attribute feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EAttribute MATRIX__ABC = eINSTANCE.getMatrix_Abc();
 
 	}
 

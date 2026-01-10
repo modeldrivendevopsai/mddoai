@@ -184,6 +184,15 @@ public interface GitlabMMFactory extends EFactory {
 	Workflow createWorkflow();
 
 	/**
+	 * Returns a new object of class '<em>Matrix</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Matrix</em>'.
+	 * @generated
+	 */
+	Matrix createMatrix();
+
+	/**
 	 * Returns the package supported by this factory.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->

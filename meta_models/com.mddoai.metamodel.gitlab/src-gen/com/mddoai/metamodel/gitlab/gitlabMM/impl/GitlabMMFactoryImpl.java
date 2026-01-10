@@ -92,6 +92,8 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 			return createRule();
 		case GitlabMMPackage.WORKFLOW:
 			return createWorkflow();
+		case GitlabMMPackage.MATRIX:
+			return createMatrix();
 		default:
 			throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
 		}
@@ -293,6 +295,17 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	public Workflow createWorkflow() {
 		WorkflowImpl workflow = new WorkflowImpl();
 		return workflow;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Matrix createMatrix() {
+		MatrixImpl matrix = new MatrixImpl();
+		return matrix;
 	}
 
 	/**

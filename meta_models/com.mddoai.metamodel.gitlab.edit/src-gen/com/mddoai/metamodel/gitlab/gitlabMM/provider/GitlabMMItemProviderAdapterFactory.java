@@ -487,6 +487,29 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MatrixItemProvider matrixItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMatrixAdapter() {
+		if (matrixItemProvider == null) {
+			matrixItemProvider = new MatrixItemProvider(this);
+		}
+
+		return matrixItemProvider;
+	}
+
+	/**
 	 * This returns the root adapter factory that contains this factory.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -627,6 +650,8 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 			ruleItemProvider.dispose();
 		if (workflowItemProvider != null)
 			workflowItemProvider.dispose();
+		if (matrixItemProvider != null)
+			matrixItemProvider.dispose();
 	}
 
 }

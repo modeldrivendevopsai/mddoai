@@ -10,6 +10,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Dependency;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMFactory;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
+import com.mddoai.metamodel.gitlab.gitlabMM.Matrix;
 import com.mddoai.metamodel.gitlab.gitlabMM.Only;
 import com.mddoai.metamodel.gitlab.gitlabMM.OnlyBranches;
 import com.mddoai.metamodel.gitlab.gitlabMM.Path;
@@ -162,6 +163,13 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	private EClass workflowEClass = null;
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass matrixEClass = null;
 
 	/**
 	 * Creates an instance of the model <b>Package</b>, registered with
@@ -783,6 +791,26 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
+	public EClass getMatrix() {
+		return matrixEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getMatrix_Abc() {
+		return (EAttribute) matrixEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public GitlabMMFactory getGitlabMMFactory() {
 		return (GitlabMMFactory) getEFactoryInstance();
 	}
@@ -879,6 +907,9 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 
 		workflowEClass = createEClass(WORKFLOW);
 		createEReference(workflowEClass, WORKFLOW__RULES);
+
+		matrixEClass = createEClass(MATRIX);
+		createEAttribute(matrixEClass, MATRIX__ABC);
 	}
 
 	/**
@@ -1047,6 +1078,10 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEReference(getWorkflow_Rules(), this.getRule(), null, "rules", null, 0, -1, Workflow.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
 				IS_ORDERED);
+
+		initEClass(matrixEClass, Matrix.class, "Matrix", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEAttribute(getMatrix_Abc(), ecorePackage.getEString(), "abc", null, 0, 1, Matrix.class, !IS_TRANSIENT,
+				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		// Create resource
 		createResource(eNS_URI);
