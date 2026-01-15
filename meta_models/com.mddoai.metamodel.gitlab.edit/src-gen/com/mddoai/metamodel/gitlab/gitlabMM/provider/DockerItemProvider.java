@@ -2,8 +2,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.provider;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.Docker;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,12 +25,12 @@ import org.eclipse.emf.edit.provider.ItemProviderAdapter;
 import org.eclipse.emf.edit.provider.ViewerNotification;
 
 /**
- * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule} object.
+ * This is the item provider adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Docker} object.
  * <!-- begin-user-doc -->
  * <!-- end-user-doc -->
  * @generated
  */
-public class RuleItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
+public class DockerItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
 		IStructuredItemContentProvider, ITreeItemContentProvider, IItemLabelProvider, IItemPropertySource {
 	/**
 	 * This constructs an instance from a factory and a notifier.
@@ -38,7 +38,7 @@ public class RuleItemProvider extends ItemProviderAdapter implements IEditingDom
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public RuleItemProvider(AdapterFactory adapterFactory) {
+	public DockerItemProvider(AdapterFactory adapterFactory) {
 		super(adapterFactory);
 	}
 
@@ -53,99 +53,52 @@ public class RuleItemProvider extends ItemProviderAdapter implements IEditingDom
 		if (itemPropertyDescriptors == null) {
 			super.getPropertyDescriptors(object);
 
-			addIfPropertyDescriptor(object);
-			addWhenPropertyDescriptor(object);
-			addChangesPropertyDescriptor(object);
-			addExistsPropertyDescriptor(object);
-			addVariablesPropertyDescriptor(object);
+			addPlatformPropertyDescriptor(object);
+			addUserPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
 
 	/**
-	 * This adds a property descriptor for the If feature.
+	 * This adds a property descriptor for the Platform feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addIfPropertyDescriptor(Object object) {
+	protected void addPlatformPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Rule_if_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Rule_if_feature", "_UI_Rule_type"),
-						GitlabMMPackage.Literals.RULE__IF, true, false, false,
+						getResourceLocator(), getString("_UI_Docker_platform_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Docker_platform_feature",
+								"_UI_Docker_type"),
+						GitlabMMPackage.Literals.DOCKER__PLATFORM, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
-	 * This adds a property descriptor for the When feature.
+	 * This adds a property descriptor for the User feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addWhenPropertyDescriptor(Object object) {
+	protected void addUserPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Rule_when_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Rule_when_feature", "_UI_Rule_type"),
-						GitlabMMPackage.Literals.RULE__WHEN, true, false, false,
+						getResourceLocator(), getString("_UI_Docker_user_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Docker_user_feature", "_UI_Docker_type"),
+						GitlabMMPackage.Literals.DOCKER__USER, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
-	 * This adds a property descriptor for the Changes feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addChangesPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Rule_changes_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Rule_changes_feature", "_UI_Rule_type"),
-						GitlabMMPackage.Literals.RULE__CHANGES, true, false, false,
-						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This adds a property descriptor for the Exists feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addExistsPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Rule_exists_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Rule_exists_feature", "_UI_Rule_type"),
-						GitlabMMPackage.Literals.RULE__EXISTS, true, false, false,
-						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This adds a property descriptor for the Variables feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addVariablesPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Rule_variables_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Rule_variables_feature", "_UI_Rule_type"),
-						GitlabMMPackage.Literals.RULE__VARIABLES, true, false, false,
-						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This returns Rule.gif.
+	 * This returns Docker.gif.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
 	public Object getImage(Object object) {
-		return overlayImage(object, getResourceLocator().getImage("full/obj16/Rule"));
+		return overlayImage(object, getResourceLocator().getImage("full/obj16/Docker"));
 	}
 
 	/**
@@ -166,9 +119,9 @@ public class RuleItemProvider extends ItemProviderAdapter implements IEditingDom
 	 */
 	@Override
 	public String getText(Object object) {
-		String label = ((Rule) object).getIf();
-		return label == null || label.length() == 0 ? getString("_UI_Rule_type")
-				: getString("_UI_Rule_type") + " " + label;
+		String label = ((Docker) object).getPlatform();
+		return label == null || label.length() == 0 ? getString("_UI_Docker_type")
+				: getString("_UI_Docker_type") + " " + label;
 	}
 
 	/**
@@ -182,12 +135,9 @@ public class RuleItemProvider extends ItemProviderAdapter implements IEditingDom
 	public void notifyChanged(Notification notification) {
 		updateChildren(notification);
 
-		switch (notification.getFeatureID(Rule.class)) {
-		case GitlabMMPackage.RULE__IF:
-		case GitlabMMPackage.RULE__WHEN:
-		case GitlabMMPackage.RULE__CHANGES:
-		case GitlabMMPackage.RULE__EXISTS:
-		case GitlabMMPackage.RULE__VARIABLES:
+		switch (notification.getFeatureID(Docker.class)) {
+		case GitlabMMPackage.DOCKER__PLATFORM:
+		case GitlabMMPackage.DOCKER__USER:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		}

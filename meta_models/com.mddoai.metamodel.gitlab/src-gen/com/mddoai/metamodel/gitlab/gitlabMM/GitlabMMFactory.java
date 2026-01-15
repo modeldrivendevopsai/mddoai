@@ -166,13 +166,13 @@ public interface GitlabMMFactory extends EFactory {
 	Path createPath();
 
 	/**
-	 * Returns a new object of class '<em>Rule</em>'.
+	 * Returns a new object of class '<em>Rule </em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return a new object of class '<em>Rule</em>'.
+	 * @return a new object of class '<em>Rule </em>'.
 	 * @generated
 	 */
-	Rule createRule();
+	Rule_ createRule_();
 
 	/**
 	 * Returns a new object of class '<em>Workflow</em>'.
@@ -184,6 +184,114 @@ public interface GitlabMMFactory extends EFactory {
 	Workflow createWorkflow();
 
 	/**
+	 * Returns a new object of class '<em>Image</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Image</em>'.
+	 * @generated
+	 */
+	Image createImage();
+
+	/**
+	 * Returns a new object of class '<em>Docker</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Docker</em>'.
+	 * @generated
+	 */
+	Docker createDocker();
+
+	/**
+	 * Returns a new object of class '<em>Kubernetes</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Kubernetes</em>'.
+	 * @generated
+	 */
+	Kubernetes createKubernetes();
+
+	/**
+	 * Returns a new object of class '<em>Service</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Service</em>'.
+	 * @generated
+	 */
+	Service createService();
+
+	/**
+	 * Returns a new object of class '<em>Cache</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Cache</em>'.
+	 * @generated
+	 */
+	Cache createCache();
+
+	/**
+	 * Returns a new object of class '<em>Key</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Key</em>'.
+	 * @generated
+	 */
+	Key createKey();
+
+	/**
+	 * Returns a new object of class '<em>Need</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Need</em>'.
+	 * @generated
+	 */
+	Need createNeed();
+
+	/**
+	 * Returns a new object of class '<em>Environment</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Environment</em>'.
+	 * @generated
+	 */
+	Environment createEnvironment();
+
+	/**
+	 * Returns a new object of class '<em>After Script</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>After Script</em>'.
+	 * @generated
+	 */
+	AfterScript createAfterScript();
+
+	/**
+	 * Returns a new object of class '<em>Default</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Default</em>'.
+	 * @generated
+	 */
+	Default createDefault();
+
+	/**
+	 * Returns a new object of class '<em>Retry</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Retry</em>'.
+	 * @generated
+	 */
+	Retry createRetry();
+
+	/**
+	 * Returns a new object of class '<em>Axis</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Axis</em>'.
+	 * @generated
+	 */
+	Axis createAxis();
+
+	/**
 	 * Returns a new object of class '<em>Matrix</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -191,6 +299,15 @@ public interface GitlabMMFactory extends EFactory {
 	 * @generated
 	 */
 	Matrix createMatrix();
+
+	/**
+	 * Returns a new object of class '<em>Parallel</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Parallel</em>'.
+	 * @generated
+	 */
+	Parallel createParallel();
 
 	/**
 	 * Returns the package supported by this factory.

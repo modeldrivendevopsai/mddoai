@@ -147,8 +147,8 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 		}
 
 		@Override
-		public Adapter caseRule(Rule object) {
-			return createRuleAdapter();
+		public Adapter caseRule_(Rule_ object) {
+			return createRule_Adapter();
 		}
 
 		@Override
@@ -157,8 +157,73 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 		}
 
 		@Override
+		public Adapter caseImage(Image object) {
+			return createImageAdapter();
+		}
+
+		@Override
+		public Adapter caseDocker(Docker object) {
+			return createDockerAdapter();
+		}
+
+		@Override
+		public Adapter caseKubernetes(Kubernetes object) {
+			return createKubernetesAdapter();
+		}
+
+		@Override
+		public Adapter caseService(Service object) {
+			return createServiceAdapter();
+		}
+
+		@Override
+		public Adapter caseCache(Cache object) {
+			return createCacheAdapter();
+		}
+
+		@Override
+		public Adapter caseKey(Key object) {
+			return createKeyAdapter();
+		}
+
+		@Override
+		public Adapter caseNeed(Need object) {
+			return createNeedAdapter();
+		}
+
+		@Override
+		public Adapter caseEnvironment(Environment object) {
+			return createEnvironmentAdapter();
+		}
+
+		@Override
+		public Adapter caseAfterScript(AfterScript object) {
+			return createAfterScriptAdapter();
+		}
+
+		@Override
+		public Adapter caseDefault(Default object) {
+			return createDefaultAdapter();
+		}
+
+		@Override
+		public Adapter caseRetry(Retry object) {
+			return createRetryAdapter();
+		}
+
+		@Override
+		public Adapter caseAxis(Axis object) {
+			return createAxisAdapter();
+		}
+
+		@Override
 		public Adapter caseMatrix(Matrix object) {
 			return createMatrixAdapter();
+		}
+
+		@Override
+		public Adapter caseParallel(Parallel object) {
+			return createParallelAdapter();
 		}
 
 		@Override
@@ -405,16 +470,16 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 	}
 
 	/**
-	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule <em>Rule</em>}'.
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_ <em>Rule </em>}'.
 	 * <!-- begin-user-doc -->
 	 * This default implementation returns null so that we can easily ignore cases;
 	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
 	 * <!-- end-user-doc -->
 	 * @return the new adapter.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_
 	 * @generated
 	 */
-	public Adapter createRuleAdapter() {
+	public Adapter createRule_Adapter() {
 		return null;
 	}
 
@@ -433,6 +498,174 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 	}
 
 	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image <em>Image</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Image
+	 * @generated
+	 */
+	public Adapter createImageAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Docker <em>Docker</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Docker
+	 * @generated
+	 */
+	public Adapter createDockerAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes <em>Kubernetes</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes
+	 * @generated
+	 */
+	public Adapter createKubernetesAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service <em>Service</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Service
+	 * @generated
+	 */
+	public Adapter createServiceAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache <em>Cache</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Cache
+	 * @generated
+	 */
+	public Adapter createCacheAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Key <em>Key</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Key
+	 * @generated
+	 */
+	public Adapter createKeyAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Need <em>Need</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Need
+	 * @generated
+	 */
+	public Adapter createNeedAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment <em>Environment</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Environment
+	 * @generated
+	 */
+	public Adapter createEnvironmentAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.AfterScript <em>After Script</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.AfterScript
+	 * @generated
+	 */
+	public Adapter createAfterScriptAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Default <em>Default</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Default
+	 * @generated
+	 */
+	public Adapter createDefaultAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Retry <em>Retry</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Retry
+	 * @generated
+	 */
+	public Adapter createRetryAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Axis <em>Axis</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Axis
+	 * @generated
+	 */
+	public Adapter createAxisAdapter() {
+		return null;
+	}
+
+	/**
 	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix <em>Matrix</em>}'.
 	 * <!-- begin-user-doc -->
 	 * This default implementation returns null so that we can easily ignore cases;
@@ -443,6 +676,20 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 	 * @generated
 	 */
 	public Adapter createMatrixAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Parallel <em>Parallel</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Parallel
+	 * @generated
+	 */
+	public Adapter createParallelAdapter() {
 		return null;
 	}
 

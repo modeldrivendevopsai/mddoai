@@ -2,23 +2,37 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.AfterScript;
 import com.mddoai.metamodel.gitlab.gitlabMM.Artifact;
 import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
+import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
 import com.mddoai.metamodel.gitlab.gitlabMM.Dependencies;
+import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
+import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
+import com.mddoai.metamodel.gitlab.gitlabMM.Need;
 import com.mddoai.metamodel.gitlab.gitlabMM.Only;
+import com.mddoai.metamodel.gitlab.gitlabMM.Parallel;
+import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
+import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
+import com.mddoai.metamodel.gitlab.gitlabMM.Service;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
+import java.util.Collection;
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
+import org.eclipse.emf.ecore.util.EObjectContainmentEList;
+import org.eclipse.emf.ecore.util.InternalEList;
 
 /**
  * <!-- begin-user-doc -->
@@ -33,11 +47,24 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getArtifacts <em>Artifacts</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getScript <em>Script</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getBeforeScript <em>Before Script</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getImage <em>Image</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getTags <em>Tags</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getOnly <em>Only</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getDependencies <em>Dependencies</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getWhen <em>When</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getImage <em>Image</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#isAllowFailure <em>Allow Failure</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getTimeout <em>Timeout</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#isInterruptible <em>Interruptible</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getResourceGroup <em>Resource Group</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getAfterScript <em>After Script</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getCache <em>Cache</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getRules <em>Rules</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getNeeds <em>Needs</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getServices <em>Services</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getEnvironment <em>Environment</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getRetry <em>Retry</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.JobImpl#getParallel <em>Parallel</em>}</li>
  * </ul>
  *
  * @generated
@@ -114,26 +141,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	protected BeforeScript beforeScript;
 
 	/**
-	 * The default value of the '{@link #getImage() <em>Image</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getImage()
-	 * @generated
-	 * @ordered
-	 */
-	protected static final String IMAGE_EDEFAULT = null;
-
-	/**
-	 * The cached value of the '{@link #getImage() <em>Image</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getImage()
-	 * @generated
-	 * @ordered
-	 */
-	protected String image = IMAGE_EDEFAULT;
-
-	/**
 	 * The cached value of the '{@link #getTags() <em>Tags</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -182,6 +189,186 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @ordered
 	 */
 	protected String when = WHEN_EDEFAULT;
+
+	/**
+	 * The cached value of the '{@link #getImage() <em>Image</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getImage()
+	 * @generated
+	 * @ordered
+	 */
+	protected Image image;
+
+	/**
+	 * The default value of the '{@link #isAllowFailure() <em>Allow Failure</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isAllowFailure()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final boolean ALLOW_FAILURE_EDEFAULT = false;
+
+	/**
+	 * The cached value of the '{@link #isAllowFailure() <em>Allow Failure</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isAllowFailure()
+	 * @generated
+	 * @ordered
+	 */
+	protected boolean allowFailure = ALLOW_FAILURE_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getTimeout() <em>Timeout</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getTimeout()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String TIMEOUT_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getTimeout() <em>Timeout</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getTimeout()
+	 * @generated
+	 * @ordered
+	 */
+	protected String timeout = TIMEOUT_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #isInterruptible() <em>Interruptible</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isInterruptible()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final boolean INTERRUPTIBLE_EDEFAULT = false;
+
+	/**
+	 * The cached value of the '{@link #isInterruptible() <em>Interruptible</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isInterruptible()
+	 * @generated
+	 * @ordered
+	 */
+	protected boolean interruptible = INTERRUPTIBLE_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getResourceGroup() <em>Resource Group</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getResourceGroup()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String RESOURCE_GROUP_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getResourceGroup() <em>Resource Group</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getResourceGroup()
+	 * @generated
+	 * @ordered
+	 */
+	protected String resourceGroup = RESOURCE_GROUP_EDEFAULT;
+
+	/**
+	 * The cached value of the '{@link #getAfterScript() <em>After Script</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getAfterScript()
+	 * @generated
+	 * @ordered
+	 */
+	protected AfterScript afterScript;
+
+	/**
+	 * The cached value of the '{@link #getCache() <em>Cache</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getCache()
+	 * @generated
+	 * @ordered
+	 */
+	protected Cache cache;
+
+	/**
+	 * The cached value of the '{@link #getRules() <em>Rules</em>}' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getRules()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<Rule_> rules;
+
+	/**
+	 * The cached value of the '{@link #getNeeds() <em>Needs</em>}' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getNeeds()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<Need> needs;
+
+	/**
+	 * The cached value of the '{@link #getServices() <em>Services</em>}' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getServices()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<Service> services;
+
+	/**
+	 * The cached value of the '{@link #getEnvironment() <em>Environment</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getEnvironment()
+	 * @generated
+	 * @ordered
+	 */
+	protected Environment environment;
+
+	/**
+	 * The cached value of the '{@link #getRetry() <em>Retry</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getRetry()
+	 * @generated
+	 * @ordered
+	 */
+	protected Retry retry;
+
+	/**
+	 * The cached value of the '{@link #getVariables() <em>Variables</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getVariables()
+	 * @generated
+	 * @ordered
+	 */
+	protected Variables variables;
+
+	/**
+	 * The cached value of the '{@link #getParallel() <em>Parallel</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getParallel()
+	 * @generated
+	 * @ordered
+	 */
+	protected Parallel parallel;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -409,7 +596,7 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @generated
 	 */
 	@Override
-	public String getImage() {
+	public Image getImage() {
 		return image;
 	}
 
@@ -418,12 +605,484 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	@Override
-	public void setImage(String newImage) {
-		String oldImage = image;
+	public NotificationChain basicSetImage(Image newImage, NotificationChain msgs) {
+		Image oldImage = image;
 		image = newImage;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__IMAGE,
+					oldImage, newImage);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setImage(Image newImage) {
+		if (newImage != image) {
+			NotificationChain msgs = null;
+			if (image != null)
+				msgs = ((InternalEObject) image).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__IMAGE, null, msgs);
+			if (newImage != null)
+				msgs = ((InternalEObject) newImage).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__IMAGE, null, msgs);
+			msgs = basicSetImage(newImage, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__IMAGE, newImage, newImage));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public boolean isAllowFailure() {
+		return allowFailure;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setAllowFailure(boolean newAllowFailure) {
+		boolean oldAllowFailure = allowFailure;
+		allowFailure = newAllowFailure;
 		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__IMAGE, oldImage, image));
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ALLOW_FAILURE, oldAllowFailure,
+					allowFailure));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String getTimeout() {
+		return timeout;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setTimeout(String newTimeout) {
+		String oldTimeout = timeout;
+		timeout = newTimeout;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__TIMEOUT, oldTimeout, timeout));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public boolean isInterruptible() {
+		return interruptible;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setInterruptible(boolean newInterruptible) {
+		boolean oldInterruptible = interruptible;
+		interruptible = newInterruptible;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__INTERRUPTIBLE, oldInterruptible,
+					interruptible));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String getResourceGroup() {
+		return resourceGroup;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setResourceGroup(String newResourceGroup) {
+		String oldResourceGroup = resourceGroup;
+		resourceGroup = newResourceGroup;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__RESOURCE_GROUP, oldResourceGroup,
+					resourceGroup));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public AfterScript getAfterScript() {
+		return afterScript;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetAfterScript(AfterScript newAfterScript, NotificationChain msgs) {
+		AfterScript oldAfterScript = afterScript;
+		afterScript = newAfterScript;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.JOB__AFTER_SCRIPT, oldAfterScript, newAfterScript);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setAfterScript(AfterScript newAfterScript) {
+		if (newAfterScript != afterScript) {
+			NotificationChain msgs = null;
+			if (afterScript != null)
+				msgs = ((InternalEObject) afterScript).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__AFTER_SCRIPT, null, msgs);
+			if (newAfterScript != null)
+				msgs = ((InternalEObject) newAfterScript).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__AFTER_SCRIPT, null, msgs);
+			msgs = basicSetAfterScript(newAfterScript, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__AFTER_SCRIPT, newAfterScript,
+					newAfterScript));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Cache getCache() {
+		return cache;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetCache(Cache newCache, NotificationChain msgs) {
+		Cache oldCache = cache;
+		cache = newCache;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__CACHE,
+					oldCache, newCache);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setCache(Cache newCache) {
+		if (newCache != cache) {
+			NotificationChain msgs = null;
+			if (cache != null)
+				msgs = ((InternalEObject) cache).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__CACHE, null, msgs);
+			if (newCache != null)
+				msgs = ((InternalEObject) newCache).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__CACHE, null, msgs);
+			msgs = basicSetCache(newCache, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__CACHE, newCache, newCache));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<Rule_> getRules() {
+		if (rules == null) {
+			rules = new EObjectContainmentEList<Rule_>(Rule_.class, this, GitlabMMPackage.JOB__RULES);
+		}
+		return rules;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<Need> getNeeds() {
+		if (needs == null) {
+			needs = new EObjectContainmentEList<Need>(Need.class, this, GitlabMMPackage.JOB__NEEDS);
+		}
+		return needs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<Service> getServices() {
+		if (services == null) {
+			services = new EObjectContainmentEList<Service>(Service.class, this, GitlabMMPackage.JOB__SERVICES);
+		}
+		return services;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Environment getEnvironment() {
+		return environment;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetEnvironment(Environment newEnvironment, NotificationChain msgs) {
+		Environment oldEnvironment = environment;
+		environment = newEnvironment;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.JOB__ENVIRONMENT, oldEnvironment, newEnvironment);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setEnvironment(Environment newEnvironment) {
+		if (newEnvironment != environment) {
+			NotificationChain msgs = null;
+			if (environment != null)
+				msgs = ((InternalEObject) environment).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ENVIRONMENT, null, msgs);
+			if (newEnvironment != null)
+				msgs = ((InternalEObject) newEnvironment).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ENVIRONMENT, null, msgs);
+			msgs = basicSetEnvironment(newEnvironment, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ENVIRONMENT, newEnvironment,
+					newEnvironment));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Retry getRetry() {
+		return retry;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetRetry(Retry newRetry, NotificationChain msgs) {
+		Retry oldRetry = retry;
+		retry = newRetry;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__RETRY,
+					oldRetry, newRetry);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setRetry(Retry newRetry) {
+		if (newRetry != retry) {
+			NotificationChain msgs = null;
+			if (retry != null)
+				msgs = ((InternalEObject) retry).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__RETRY, null, msgs);
+			if (newRetry != null)
+				msgs = ((InternalEObject) newRetry).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__RETRY, null, msgs);
+			msgs = basicSetRetry(newRetry, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__RETRY, newRetry, newRetry));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Variables getVariables() {
+		return variables;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetVariables(Variables newVariables, NotificationChain msgs) {
+		Variables oldVariables = variables;
+		variables = newVariables;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.JOB__VARIABLES, oldVariables, newVariables);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setVariables(Variables newVariables) {
+		if (newVariables != variables) {
+			NotificationChain msgs = null;
+			if (variables != null)
+				msgs = ((InternalEObject) variables).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__VARIABLES, null, msgs);
+			if (newVariables != null)
+				msgs = ((InternalEObject) newVariables).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__VARIABLES, null, msgs);
+			msgs = basicSetVariables(newVariables, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__VARIABLES, newVariables,
+					newVariables));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Parallel getParallel() {
+		return parallel;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetParallel(Parallel newParallel, NotificationChain msgs) {
+		Parallel oldParallel = parallel;
+		parallel = newParallel;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.JOB__PARALLEL, oldParallel, newParallel);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setParallel(Parallel newParallel) {
+		if (newParallel != parallel) {
+			NotificationChain msgs = null;
+			if (parallel != null)
+				msgs = ((InternalEObject) parallel).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__PARALLEL, null, msgs);
+			if (newParallel != null)
+				msgs = ((InternalEObject) newParallel).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__PARALLEL, null, msgs);
+			msgs = basicSetParallel(newParallel, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__PARALLEL, newParallel,
+					newParallel));
 	}
 
 	/**
@@ -623,6 +1282,26 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return basicSetOnly(null, msgs);
 		case GitlabMMPackage.JOB__DEPENDENCIES:
 			return basicSetDependencies(null, msgs);
+		case GitlabMMPackage.JOB__IMAGE:
+			return basicSetImage(null, msgs);
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+			return basicSetAfterScript(null, msgs);
+		case GitlabMMPackage.JOB__CACHE:
+			return basicSetCache(null, msgs);
+		case GitlabMMPackage.JOB__RULES:
+			return ((InternalEList<?>) getRules()).basicRemove(otherEnd, msgs);
+		case GitlabMMPackage.JOB__NEEDS:
+			return ((InternalEList<?>) getNeeds()).basicRemove(otherEnd, msgs);
+		case GitlabMMPackage.JOB__SERVICES:
+			return ((InternalEList<?>) getServices()).basicRemove(otherEnd, msgs);
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+			return basicSetEnvironment(null, msgs);
+		case GitlabMMPackage.JOB__RETRY:
+			return basicSetRetry(null, msgs);
+		case GitlabMMPackage.JOB__VARIABLES:
+			return basicSetVariables(null, msgs);
+		case GitlabMMPackage.JOB__PARALLEL:
+			return basicSetParallel(null, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -645,8 +1324,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return getScript();
 		case GitlabMMPackage.JOB__BEFORE_SCRIPT:
 			return getBeforeScript();
-		case GitlabMMPackage.JOB__IMAGE:
-			return getImage();
 		case GitlabMMPackage.JOB__TAGS:
 			return getTags();
 		case GitlabMMPackage.JOB__ONLY:
@@ -655,6 +1332,34 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return getDependencies();
 		case GitlabMMPackage.JOB__WHEN:
 			return getWhen();
+		case GitlabMMPackage.JOB__IMAGE:
+			return getImage();
+		case GitlabMMPackage.JOB__ALLOW_FAILURE:
+			return isAllowFailure();
+		case GitlabMMPackage.JOB__TIMEOUT:
+			return getTimeout();
+		case GitlabMMPackage.JOB__INTERRUPTIBLE:
+			return isInterruptible();
+		case GitlabMMPackage.JOB__RESOURCE_GROUP:
+			return getResourceGroup();
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+			return getAfterScript();
+		case GitlabMMPackage.JOB__CACHE:
+			return getCache();
+		case GitlabMMPackage.JOB__RULES:
+			return getRules();
+		case GitlabMMPackage.JOB__NEEDS:
+			return getNeeds();
+		case GitlabMMPackage.JOB__SERVICES:
+			return getServices();
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+			return getEnvironment();
+		case GitlabMMPackage.JOB__RETRY:
+			return getRetry();
+		case GitlabMMPackage.JOB__VARIABLES:
+			return getVariables();
+		case GitlabMMPackage.JOB__PARALLEL:
+			return getParallel();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -664,6 +1369,7 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
@@ -682,9 +1388,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 		case GitlabMMPackage.JOB__BEFORE_SCRIPT:
 			setBeforeScript((BeforeScript) newValue);
 			return;
-		case GitlabMMPackage.JOB__IMAGE:
-			setImage((String) newValue);
-			return;
 		case GitlabMMPackage.JOB__TAGS:
 			setTags((Tags) newValue);
 			return;
@@ -696,6 +1399,51 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return;
 		case GitlabMMPackage.JOB__WHEN:
 			setWhen((String) newValue);
+			return;
+		case GitlabMMPackage.JOB__IMAGE:
+			setImage((Image) newValue);
+			return;
+		case GitlabMMPackage.JOB__ALLOW_FAILURE:
+			setAllowFailure((Boolean) newValue);
+			return;
+		case GitlabMMPackage.JOB__TIMEOUT:
+			setTimeout((String) newValue);
+			return;
+		case GitlabMMPackage.JOB__INTERRUPTIBLE:
+			setInterruptible((Boolean) newValue);
+			return;
+		case GitlabMMPackage.JOB__RESOURCE_GROUP:
+			setResourceGroup((String) newValue);
+			return;
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+			setAfterScript((AfterScript) newValue);
+			return;
+		case GitlabMMPackage.JOB__CACHE:
+			setCache((Cache) newValue);
+			return;
+		case GitlabMMPackage.JOB__RULES:
+			getRules().clear();
+			getRules().addAll((Collection<? extends Rule_>) newValue);
+			return;
+		case GitlabMMPackage.JOB__NEEDS:
+			getNeeds().clear();
+			getNeeds().addAll((Collection<? extends Need>) newValue);
+			return;
+		case GitlabMMPackage.JOB__SERVICES:
+			getServices().clear();
+			getServices().addAll((Collection<? extends Service>) newValue);
+			return;
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+			setEnvironment((Environment) newValue);
+			return;
+		case GitlabMMPackage.JOB__RETRY:
+			setRetry((Retry) newValue);
+			return;
+		case GitlabMMPackage.JOB__VARIABLES:
+			setVariables((Variables) newValue);
+			return;
+		case GitlabMMPackage.JOB__PARALLEL:
+			setParallel((Parallel) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -724,9 +1472,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 		case GitlabMMPackage.JOB__BEFORE_SCRIPT:
 			setBeforeScript((BeforeScript) null);
 			return;
-		case GitlabMMPackage.JOB__IMAGE:
-			setImage(IMAGE_EDEFAULT);
-			return;
 		case GitlabMMPackage.JOB__TAGS:
 			setTags((Tags) null);
 			return;
@@ -738,6 +1483,48 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return;
 		case GitlabMMPackage.JOB__WHEN:
 			setWhen(WHEN_EDEFAULT);
+			return;
+		case GitlabMMPackage.JOB__IMAGE:
+			setImage((Image) null);
+			return;
+		case GitlabMMPackage.JOB__ALLOW_FAILURE:
+			setAllowFailure(ALLOW_FAILURE_EDEFAULT);
+			return;
+		case GitlabMMPackage.JOB__TIMEOUT:
+			setTimeout(TIMEOUT_EDEFAULT);
+			return;
+		case GitlabMMPackage.JOB__INTERRUPTIBLE:
+			setInterruptible(INTERRUPTIBLE_EDEFAULT);
+			return;
+		case GitlabMMPackage.JOB__RESOURCE_GROUP:
+			setResourceGroup(RESOURCE_GROUP_EDEFAULT);
+			return;
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+			setAfterScript((AfterScript) null);
+			return;
+		case GitlabMMPackage.JOB__CACHE:
+			setCache((Cache) null);
+			return;
+		case GitlabMMPackage.JOB__RULES:
+			getRules().clear();
+			return;
+		case GitlabMMPackage.JOB__NEEDS:
+			getNeeds().clear();
+			return;
+		case GitlabMMPackage.JOB__SERVICES:
+			getServices().clear();
+			return;
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+			setEnvironment((Environment) null);
+			return;
+		case GitlabMMPackage.JOB__RETRY:
+			setRetry((Retry) null);
+			return;
+		case GitlabMMPackage.JOB__VARIABLES:
+			setVariables((Variables) null);
+			return;
+		case GitlabMMPackage.JOB__PARALLEL:
+			setParallel((Parallel) null);
 			return;
 		}
 		super.eUnset(featureID);
@@ -761,8 +1548,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return script != null;
 		case GitlabMMPackage.JOB__BEFORE_SCRIPT:
 			return beforeScript != null;
-		case GitlabMMPackage.JOB__IMAGE:
-			return IMAGE_EDEFAULT == null ? image != null : !IMAGE_EDEFAULT.equals(image);
 		case GitlabMMPackage.JOB__TAGS:
 			return tags != null;
 		case GitlabMMPackage.JOB__ONLY:
@@ -771,6 +1556,35 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return dependencies != null;
 		case GitlabMMPackage.JOB__WHEN:
 			return WHEN_EDEFAULT == null ? when != null : !WHEN_EDEFAULT.equals(when);
+		case GitlabMMPackage.JOB__IMAGE:
+			return image != null;
+		case GitlabMMPackage.JOB__ALLOW_FAILURE:
+			return allowFailure != ALLOW_FAILURE_EDEFAULT;
+		case GitlabMMPackage.JOB__TIMEOUT:
+			return TIMEOUT_EDEFAULT == null ? timeout != null : !TIMEOUT_EDEFAULT.equals(timeout);
+		case GitlabMMPackage.JOB__INTERRUPTIBLE:
+			return interruptible != INTERRUPTIBLE_EDEFAULT;
+		case GitlabMMPackage.JOB__RESOURCE_GROUP:
+			return RESOURCE_GROUP_EDEFAULT == null ? resourceGroup != null
+					: !RESOURCE_GROUP_EDEFAULT.equals(resourceGroup);
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+			return afterScript != null;
+		case GitlabMMPackage.JOB__CACHE:
+			return cache != null;
+		case GitlabMMPackage.JOB__RULES:
+			return rules != null && !rules.isEmpty();
+		case GitlabMMPackage.JOB__NEEDS:
+			return needs != null && !needs.isEmpty();
+		case GitlabMMPackage.JOB__SERVICES:
+			return services != null && !services.isEmpty();
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+			return environment != null;
+		case GitlabMMPackage.JOB__RETRY:
+			return retry != null;
+		case GitlabMMPackage.JOB__VARIABLES:
+			return variables != null;
+		case GitlabMMPackage.JOB__PARALLEL:
+			return parallel != null;
 		}
 		return super.eIsSet(featureID);
 	}
@@ -790,10 +1604,16 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 		result.append(name);
 		result.append(", stage: ");
 		result.append(stage);
-		result.append(", image: ");
-		result.append(image);
 		result.append(", when: ");
 		result.append(when);
+		result.append(", allowFailure: ");
+		result.append(allowFailure);
+		result.append(", timeout: ");
+		result.append(timeout);
+		result.append(", interruptible: ");
+		result.append(interruptible);
+		result.append(", resourceGroup: ");
+		result.append(resourceGroup);
 		result.append(')');
 		return result.toString();
 	}

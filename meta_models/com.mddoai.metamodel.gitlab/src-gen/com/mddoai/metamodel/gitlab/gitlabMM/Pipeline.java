@@ -19,6 +19,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getJobs <em>Jobs</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getWorkflow <em>Workflow</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefault <em>Default</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline()
@@ -93,5 +94,27 @@ public interface Pipeline extends EObject {
 	 * @generated
 	 */
 	void setWorkflow(Workflow value);
+
+	/**
+	 * Returns the value of the '<em><b>Default</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Default</em>' containment reference.
+	 * @see #setDefault(Default)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Default()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Default getDefault();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefault <em>Default</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Default</em>' containment reference.
+	 * @see #getDefault()
+	 * @generated
+	 */
+	void setDefault(Default value);
 
 } // Pipeline

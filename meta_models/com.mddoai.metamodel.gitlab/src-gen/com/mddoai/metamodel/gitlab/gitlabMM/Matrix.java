@@ -2,6 +2,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 
 /**
@@ -13,7 +14,7 @@ import org.eclipse.emf.ecore.EObject;
  * The following features are supported:
  * </p>
  * <ul>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix#getAbc <em>Abc</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix#getAxes <em>Axes</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getMatrix()
@@ -22,25 +23,15 @@ import org.eclipse.emf.ecore.EObject;
  */
 public interface Matrix extends EObject {
 	/**
-	 * Returns the value of the '<em><b>Abc</b></em>' attribute.
+	 * Returns the value of the '<em><b>Axes</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Axis}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Abc</em>' attribute.
-	 * @see #setAbc(String)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getMatrix_Abc()
-	 * @model
+	 * @return the value of the '<em>Axes</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getMatrix_Axes()
+	 * @model containment="true"
 	 * @generated
 	 */
-	String getAbc();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix#getAbc <em>Abc</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Abc</em>' attribute.
-	 * @see #getAbc()
-	 * @generated
-	 */
-	void setAbc(String value);
+	EList<Axis> getAxes();
 
 } // Matrix

@@ -88,12 +88,38 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 			return createVariable();
 		case GitlabMMPackage.PATH:
 			return createPath();
-		case GitlabMMPackage.RULE:
-			return createRule();
+		case GitlabMMPackage.RULE_:
+			return createRule_();
 		case GitlabMMPackage.WORKFLOW:
 			return createWorkflow();
+		case GitlabMMPackage.IMAGE:
+			return createImage();
+		case GitlabMMPackage.DOCKER:
+			return createDocker();
+		case GitlabMMPackage.KUBERNETES:
+			return createKubernetes();
+		case GitlabMMPackage.SERVICE:
+			return createService();
+		case GitlabMMPackage.CACHE:
+			return createCache();
+		case GitlabMMPackage.KEY:
+			return createKey();
+		case GitlabMMPackage.NEED:
+			return createNeed();
+		case GitlabMMPackage.ENVIRONMENT:
+			return createEnvironment();
+		case GitlabMMPackage.AFTER_SCRIPT:
+			return createAfterScript();
+		case GitlabMMPackage.DEFAULT:
+			return createDefault();
+		case GitlabMMPackage.RETRY:
+			return createRetry();
+		case GitlabMMPackage.AXIS:
+			return createAxis();
 		case GitlabMMPackage.MATRIX:
 			return createMatrix();
+		case GitlabMMPackage.PARALLEL:
+			return createParallel();
 		default:
 			throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
 		}
@@ -281,9 +307,9 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
-	public Rule createRule() {
-		RuleImpl rule = new RuleImpl();
-		return rule;
+	public Rule_ createRule_() {
+		Rule_Impl rule_ = new Rule_Impl();
+		return rule_;
 	}
 
 	/**
@@ -303,9 +329,152 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
+	public Image createImage() {
+		ImageImpl image = new ImageImpl();
+		return image;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Docker createDocker() {
+		DockerImpl docker = new DockerImpl();
+		return docker;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Kubernetes createKubernetes() {
+		KubernetesImpl kubernetes = new KubernetesImpl();
+		return kubernetes;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Service createService() {
+		ServiceImpl service = new ServiceImpl();
+		return service;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Cache createCache() {
+		CacheImpl cache = new CacheImpl();
+		return cache;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Key createKey() {
+		KeyImpl key = new KeyImpl();
+		return key;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Need createNeed() {
+		NeedImpl need = new NeedImpl();
+		return need;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Environment createEnvironment() {
+		EnvironmentImpl environment = new EnvironmentImpl();
+		return environment;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public AfterScript createAfterScript() {
+		AfterScriptImpl afterScript = new AfterScriptImpl();
+		return afterScript;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Default createDefault() {
+		DefaultImpl default_ = new DefaultImpl();
+		return default_;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Retry createRetry() {
+		RetryImpl retry = new RetryImpl();
+		return retry;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Axis createAxis() {
+		AxisImpl axis = new AxisImpl();
+		return axis;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public Matrix createMatrix() {
 		MatrixImpl matrix = new MatrixImpl();
 		return matrix;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Parallel createParallel() {
+		ParallelImpl parallel = new ParallelImpl();
+		return parallel;
 	}
 
 	/**

@@ -20,6 +20,7 @@ import org.eclipse.emf.ecore.InternalEObject;
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 
+import org.eclipse.emf.ecore.util.EDataTypeUniqueEList;
 import org.eclipse.emf.ecore.util.EObjectContainmentEList;
 import org.eclipse.emf.ecore.util.InternalEList;
 
@@ -34,6 +35,11 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getWhen <em>When</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getReports <em>Reports</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getPaths <em>Paths</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getName <em>Name</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExpireIn <em>Expire In</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExpose_as <em>Expose as</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#isUntracked <em>Untracked</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExclude <em>Exclude</em>}</li>
  * </ul>
  *
  * @generated
@@ -78,6 +84,96 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 	 * @ordered
 	 */
 	protected EList<Path> paths;
+
+	/**
+	 * The default value of the '{@link #getName() <em>Name</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getName()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String NAME_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getName() <em>Name</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getName()
+	 * @generated
+	 * @ordered
+	 */
+	protected String name = NAME_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getExpireIn() <em>Expire In</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getExpireIn()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String EXPIRE_IN_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getExpireIn() <em>Expire In</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getExpireIn()
+	 * @generated
+	 * @ordered
+	 */
+	protected String expireIn = EXPIRE_IN_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getExpose_as() <em>Expose as</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getExpose_as()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String EXPOSE_AS_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getExpose_as() <em>Expose as</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getExpose_as()
+	 * @generated
+	 * @ordered
+	 */
+	protected String expose_as = EXPOSE_AS_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #isUntracked() <em>Untracked</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isUntracked()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final boolean UNTRACKED_EDEFAULT = false;
+
+	/**
+	 * The cached value of the '{@link #isUntracked() <em>Untracked</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isUntracked()
+	 * @generated
+	 * @ordered
+	 */
+	protected boolean untracked = UNTRACKED_EDEFAULT;
+
+	/**
+	 * The cached value of the '{@link #getExclude() <em>Exclude</em>}' attribute list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getExclude()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<String> exclude;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -192,6 +288,114 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 	 * @generated
 	 */
 	@Override
+	public String getName() {
+		return name;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setName(String newName) {
+		String oldName = name;
+		name = newName;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__NAME, oldName, name));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String getExpireIn() {
+		return expireIn;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setExpireIn(String newExpireIn) {
+		String oldExpireIn = expireIn;
+		expireIn = newExpireIn;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__EXPIRE_IN, oldExpireIn,
+					expireIn));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String getExpose_as() {
+		return expose_as;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setExpose_as(String newExpose_as) {
+		String oldExpose_as = expose_as;
+		expose_as = newExpose_as;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__EXPOSE_AS, oldExpose_as,
+					expose_as));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public boolean isUntracked() {
+		return untracked;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setUntracked(boolean newUntracked) {
+		boolean oldUntracked = untracked;
+		untracked = newUntracked;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__UNTRACKED, oldUntracked,
+					untracked));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<String> getExclude() {
+		if (exclude == null) {
+			exclude = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.ARTIFACT__EXCLUDE);
+		}
+		return exclude;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
 		case GitlabMMPackage.ARTIFACT__REPORTS:
@@ -216,6 +420,16 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 			return getReports();
 		case GitlabMMPackage.ARTIFACT__PATHS:
 			return getPaths();
+		case GitlabMMPackage.ARTIFACT__NAME:
+			return getName();
+		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
+			return getExpireIn();
+		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
+			return getExpose_as();
+		case GitlabMMPackage.ARTIFACT__UNTRACKED:
+			return isUntracked();
+		case GitlabMMPackage.ARTIFACT__EXCLUDE:
+			return getExclude();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -239,6 +453,22 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 			getPaths().clear();
 			getPaths().addAll((Collection<? extends Path>) newValue);
 			return;
+		case GitlabMMPackage.ARTIFACT__NAME:
+			setName((String) newValue);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
+			setExpireIn((String) newValue);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
+			setExpose_as((String) newValue);
+			return;
+		case GitlabMMPackage.ARTIFACT__UNTRACKED:
+			setUntracked((Boolean) newValue);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXCLUDE:
+			getExclude().clear();
+			getExclude().addAll((Collection<? extends String>) newValue);
+			return;
 		}
 		super.eSet(featureID, newValue);
 	}
@@ -260,6 +490,21 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 		case GitlabMMPackage.ARTIFACT__PATHS:
 			getPaths().clear();
 			return;
+		case GitlabMMPackage.ARTIFACT__NAME:
+			setName(NAME_EDEFAULT);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
+			setExpireIn(EXPIRE_IN_EDEFAULT);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
+			setExpose_as(EXPOSE_AS_EDEFAULT);
+			return;
+		case GitlabMMPackage.ARTIFACT__UNTRACKED:
+			setUntracked(UNTRACKED_EDEFAULT);
+			return;
+		case GitlabMMPackage.ARTIFACT__EXCLUDE:
+			getExclude().clear();
+			return;
 		}
 		super.eUnset(featureID);
 	}
@@ -278,6 +523,16 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 			return reports != null;
 		case GitlabMMPackage.ARTIFACT__PATHS:
 			return paths != null && !paths.isEmpty();
+		case GitlabMMPackage.ARTIFACT__NAME:
+			return NAME_EDEFAULT == null ? name != null : !NAME_EDEFAULT.equals(name);
+		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
+			return EXPIRE_IN_EDEFAULT == null ? expireIn != null : !EXPIRE_IN_EDEFAULT.equals(expireIn);
+		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
+			return EXPOSE_AS_EDEFAULT == null ? expose_as != null : !EXPOSE_AS_EDEFAULT.equals(expose_as);
+		case GitlabMMPackage.ARTIFACT__UNTRACKED:
+			return untracked != UNTRACKED_EDEFAULT;
+		case GitlabMMPackage.ARTIFACT__EXCLUDE:
+			return exclude != null && !exclude.isEmpty();
 		}
 		return super.eIsSet(featureID);
 	}
@@ -295,6 +550,16 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 		StringBuilder result = new StringBuilder(super.toString());
 		result.append(" (when: ");
 		result.append(when);
+		result.append(", name: ");
+		result.append(name);
+		result.append(", expireIn: ");
+		result.append(expireIn);
+		result.append(", expose_as: ");
+		result.append(expose_as);
+		result.append(", untracked: ");
+		result.append(untracked);
+		result.append(", exclude: ");
+		result.append(exclude);
 		result.append(')');
 		return result.toString();
 	}

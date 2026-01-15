@@ -2,6 +2,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 
 /**
@@ -18,11 +19,24 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getArtifacts <em>Artifacts</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getScript <em>Script</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getBeforeScript <em>Before Script</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getImage <em>Image</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getTags <em>Tags</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getOnly <em>Only</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getDependencies <em>Dependencies</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getWhen <em>When</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getImage <em>Image</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#isAllowFailure <em>Allow Failure</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getTimeout <em>Timeout</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#isInterruptible <em>Interruptible</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getResourceGroup <em>Resource Group</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getAfterScript <em>After Script</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getCache <em>Cache</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getRules <em>Rules</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getNeeds <em>Needs</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getServices <em>Services</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getEnvironment <em>Environment</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getRetry <em>Retry</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getParallel <em>Parallel</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob()
@@ -141,26 +155,282 @@ public interface Job extends EObject {
 	void setBeforeScript(BeforeScript value);
 
 	/**
-	 * Returns the value of the '<em><b>Image</b></em>' attribute.
+	 * Returns the value of the '<em><b>Image</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Image</em>' attribute.
-	 * @see #setImage(String)
+	 * @return the value of the '<em>Image</em>' containment reference.
+	 * @see #setImage(Image)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Image()
-	 * @model
+	 * @model containment="true"
 	 * @generated
 	 */
-	String getImage();
+	Image getImage();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getImage <em>Image</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getImage <em>Image</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Image</em>' attribute.
+	 * @param value the new value of the '<em>Image</em>' containment reference.
 	 * @see #getImage()
 	 * @generated
 	 */
-	void setImage(String value);
+	void setImage(Image value);
+
+	/**
+	 * Returns the value of the '<em><b>Allow Failure</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Allow Failure</em>' attribute.
+	 * @see #setAllowFailure(boolean)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_AllowFailure()
+	 * @model
+	 * @generated
+	 */
+	boolean isAllowFailure();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#isAllowFailure <em>Allow Failure</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Allow Failure</em>' attribute.
+	 * @see #isAllowFailure()
+	 * @generated
+	 */
+	void setAllowFailure(boolean value);
+
+	/**
+	 * Returns the value of the '<em><b>Timeout</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Timeout</em>' attribute.
+	 * @see #setTimeout(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Timeout()
+	 * @model
+	 * @generated
+	 */
+	String getTimeout();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getTimeout <em>Timeout</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Timeout</em>' attribute.
+	 * @see #getTimeout()
+	 * @generated
+	 */
+	void setTimeout(String value);
+
+	/**
+	 * Returns the value of the '<em><b>Interruptible</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Interruptible</em>' attribute.
+	 * @see #setInterruptible(boolean)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Interruptible()
+	 * @model
+	 * @generated
+	 */
+	boolean isInterruptible();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#isInterruptible <em>Interruptible</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Interruptible</em>' attribute.
+	 * @see #isInterruptible()
+	 * @generated
+	 */
+	void setInterruptible(boolean value);
+
+	/**
+	 * Returns the value of the '<em><b>Resource Group</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Resource Group</em>' attribute.
+	 * @see #setResourceGroup(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_ResourceGroup()
+	 * @model
+	 * @generated
+	 */
+	String getResourceGroup();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getResourceGroup <em>Resource Group</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Resource Group</em>' attribute.
+	 * @see #getResourceGroup()
+	 * @generated
+	 */
+	void setResourceGroup(String value);
+
+	/**
+	 * Returns the value of the '<em><b>After Script</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>After Script</em>' containment reference.
+	 * @see #setAfterScript(AfterScript)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_AfterScript()
+	 * @model containment="true"
+	 * @generated
+	 */
+	AfterScript getAfterScript();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getAfterScript <em>After Script</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>After Script</em>' containment reference.
+	 * @see #getAfterScript()
+	 * @generated
+	 */
+	void setAfterScript(AfterScript value);
+
+	/**
+	 * Returns the value of the '<em><b>Cache</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Cache</em>' containment reference.
+	 * @see #setCache(Cache)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Cache()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Cache getCache();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getCache <em>Cache</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Cache</em>' containment reference.
+	 * @see #getCache()
+	 * @generated
+	 */
+	void setCache(Cache value);
+
+	/**
+	 * Returns the value of the '<em><b>Rules</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Rules</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Rules()
+	 * @model containment="true"
+	 * @generated
+	 */
+	EList<Rule_> getRules();
+
+	/**
+	 * Returns the value of the '<em><b>Needs</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Need}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Needs</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Needs()
+	 * @model containment="true"
+	 * @generated
+	 */
+	EList<Need> getNeeds();
+
+	/**
+	 * Returns the value of the '<em><b>Services</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Service}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Services</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Services()
+	 * @model containment="true"
+	 * @generated
+	 */
+	EList<Service> getServices();
+
+	/**
+	 * Returns the value of the '<em><b>Environment</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Environment</em>' containment reference.
+	 * @see #setEnvironment(Environment)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Environment()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Environment getEnvironment();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getEnvironment <em>Environment</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Environment</em>' containment reference.
+	 * @see #getEnvironment()
+	 * @generated
+	 */
+	void setEnvironment(Environment value);
+
+	/**
+	 * Returns the value of the '<em><b>Retry</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Retry</em>' containment reference.
+	 * @see #setRetry(Retry)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Retry()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Retry getRetry();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getRetry <em>Retry</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Retry</em>' containment reference.
+	 * @see #getRetry()
+	 * @generated
+	 */
+	void setRetry(Retry value);
+
+	/**
+	 * Returns the value of the '<em><b>Variables</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Variables</em>' containment reference.
+	 * @see #setVariables(Variables)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Variables()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Variables getVariables();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getVariables <em>Variables</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Variables</em>' containment reference.
+	 * @see #getVariables()
+	 * @generated
+	 */
+	void setVariables(Variables value);
+
+	/**
+	 * Returns the value of the '<em><b>Parallel</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Parallel</em>' containment reference.
+	 * @see #setParallel(Parallel)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getJob_Parallel()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Parallel getParallel();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getParallel <em>Parallel</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Parallel</em>' containment reference.
+	 * @see #getParallel()
+	 * @generated
+	 */
+	void setParallel(Parallel value);
 
 	/**
 	 * Returns the value of the '<em><b>Tags</b></em>' containment reference.
