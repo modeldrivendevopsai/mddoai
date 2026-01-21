@@ -21,9 +21,6 @@
          id="com.mddoai.codegeneration.gitlab.acceleo"
          version="0.0.0"/>
 
-   <plugin
-         id="com.mddoai.metamodel.gitLab"
-         version="0.0.0"/>
 
    <plugin
          id="com.mddoai.metamodel.gitlab"

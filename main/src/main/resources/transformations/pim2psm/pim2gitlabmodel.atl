@@ -10,36 +10,55 @@ rule Pipeline2GitlabPipeline {
         source : PIM!Pipeline
     to
         target : GitLabMM!Pipeline (
-            stages <- source.jobStreams->collect(j | j.name),
-            jobs <- source.jobStreams->collect(j | thisModule.createJob(j)),
-            variables <- thisModule.createVariables(source)
+	        workflow <- if source.triggers->notEmpty() then
+	                       thisModule.createWorkflow(source.triggers)
+	                    else
+	                       OclUndefined
+	                    endif,
+			stages <- thisModule.getAllJobs(source.jobStreams)->collect(j | j.id),
+			jobs <- thisModule.getAllJobs(source.jobStreams)->collect(j | thisModule.createJob(j)),
+            variables <- if source.environmentVariables->notEmpty() then
+			                thisModule.createVariables(source.environmentVariables)
+			             else
+			                OclUndefined
+			             endif
+				
         )
 }
 
 -- Create a variable
 lazy rule createVariable {
     from
-        name : String,
-        value : String
+		a : PIM!Assignment
     to
         var : GitLabMM!Variable (
-            name <- name,
-            value <- value
+            name <- a.key.name,
+            value <- a.value
+        )
+}
+
+lazy rule createVariables {
+    from
+        assignments : Sequence(PIM!Assignment)
+    to
+        vars : GitLabMM!Variables (
+            variables <- assignments->collect(a | thisModule.createVariable(a))
         )
 }
 
 -- Create variables for the pipeline
-lazy rule createVariables {
-    from
-        source : PIM!Pipeline
-    to
-        vars : GitLabMM!Variables (
-            variables <- Sequence {
-                thisModule.createVariable('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/chatbot-app-image'),
-                thisModule.createVariable('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}')
-            }
-        )
-}
+--lazy rule createVariables {
+--    from
+--        assignments : PIM!Assignment
+--    to
+--        vars : GitLabMM!Variables (
+--        	variables <- Sequence {source.environmentVariables -> collect (a | thisModule.createVariable(a))}
+--            variables <- Sequence {
+--               thisModule.createVariable('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/chatbot-app-image'),
+--                thisModule.createVariable('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}')
+--            }
+--        )
+--}
 
 -- Transform PIM Job to GitLab Job
 lazy rule createJob {
@@ -47,28 +66,87 @@ lazy rule createJob {
         source : PIM!Job
     to
         target : GitLabMM!Job (
-            name <- source.name,
-            stage <- source.name,
+            name <- source.id,
+            stage <- source.id,
+--			image <- if not source.agent.oclIsUndefined() then
+--						thisModule.createImage(source.agent)
+--					 else
+--					 	OclUndefined
+--					 endif,
+			image <- thisModule.getImageForJob(source),
+--			tags <- if not source.agent.oclIsUndefined() then
+--						thisModule.createTags(source.agent)
+--					 else
+--					 	OclUndefined
+--					 endif,
+			tags <- thisModule.createTags(), --Hardcoded
+
+            services <- if source.services->notEmpty() then
+                           source.services->collect(s | thisModule.createService(s))
+                        else
+                           Sequence{}
+                        endif,
+			needs <- if source.previous->notEmpty() then
+                        source.previous->collect(p | thisModule.createNeed(p.id))
+                     else
+                        Sequence{}
+                     endif,
+			variables <- if source.environmentVariables->notEmpty() then
+			                thisModule.createVariables(source.environmentVariables)
+			             else
+			                OclUndefined
+			             endif,
+			allowFailure <- source.allowFailure,
+			timeout <- if not source.timeoutMinutes.oclIsUndefined() then
+                          source.timeoutMinutes.toString() + 'm'
+                       else
+                          OclUndefined
+                       endif,
+            retry <- if not source.maxAttempts.oclIsUndefined() and 
+                        source.maxAttempts > 1 then
+                        thisModule.createRetry(source.maxAttempts - 1)
+                     else
+                        OclUndefined
+                     endif,
+			parallel <- if not source.matrix.oclIsUndefined() then
+                           thisModule.createParallel(source.matrix)
+                        else
+                           OclUndefined
+                        endif,
+            rules <- if not source.ifCondition.oclIsUndefined() then
+                        Sequence{thisModule.createRule(source.ifCondition)}
+                     else
+                        Sequence{}
+                     endif,
+			
             script <- if source.oclIsTypeOf(PIM!ScriptJob) then
                         thisModule.createScript(source)
                       else
                         OclUndefined
                       endif,
-            beforeScript <- if source.name='unitTest' then
-                                thisModule.createBeforeScript()
-                            else
-                                OclUndefined
-                            endif,
-            tags <- thisModule.createTags(),
-            only <- thisModule.createOnly(),
-            dependencies <- thisModule.createDependencies(source),
-            image <- thisModule.getImageForJob(source),
-            artifacts <- if thisModule.hasArtifacts(source) then
-                thisModule.createArtifacts(source)
-            else
-                OclUndefined
-            endif,
-            when <- thisModule.getWhenForJob(source)
+--			beforeScript <- if source.oclIsTypeOf(PIM!ScriptJob) then
+--								thisModule.createBeforeScript(source.steps)
+--                          else
+--                             OclUndefined
+--                          endif,
+			cache <- if source.oclIsTypeOf(PIM!ScriptJob) then
+                        thisModule.createCache(source.steps)
+                     else
+                        OclUndefined
+                     endif,
+            
+--            only <- thisModule.createOnly(),
+--            dependencies <- thisModule.createDependencies(source),
+--             artifacts <- if source.oclIsTypeOf(PIM!ScriptJob) then
+--                        thisModule.createArtifacts(source.steps)
+--                     else
+--                       OclUndefined
+--                     endif
+			 artifacts <- if thisModule.hasArtifacts(source) then
+	                         thisModule.createArtifacts(source)
+	                      else
+	                         OclUndefined
+	                      endif
         )
 }
 
@@ -78,7 +156,9 @@ lazy rule createScript {
         job : PIM!ScriptJob
     to
         script : GitLabMM!Script (
-            commands <- job.steps->collect(s | thisModule.createCommand(s.program.value))
+            commands <- job.steps
+						    ->select(s | s.oclIsTypeOf(PIM!Command))
+						    ->collect(s | thisModule.createCommand(s.program.toGitLabString()))
         )
 }
 
@@ -202,16 +282,198 @@ lazy rule createPath {
         )
 }
 
+lazy rule createWorkflow {
+    from
+        triggers : Sequence(PIM!Trigger)
+    to
+        workflow : GitLabMM!Workflow (
+            rules <- triggers->collect(t | thisModule.createTriggerRule(t))
+        )
+}
+
+lazy rule createTriggerRule {
+    from
+        trigger : PIM!Trigger
+    to
+        rule_ : GitLabMM!Rule_ (
+            if_ <- if trigger.oclIsTypeOf(PIM!PushTrigger) then
+                      if trigger.branchGlobs->notEmpty() then
+                          '$CI_COMMIT_BRANCH == "' + trigger.branchGlobs->first() + '"'
+                      else
+                          '$CI_COMMIT_BRANCH == "main"'
+                      endif
+                   else if trigger.oclIsTypeOf(PIM!PullRequestTrigger) then
+                      '$CI_PIPELINE_SOURCE == "merge_request_event"'
+                   else if trigger.oclIsTypeOf(PIM!ScheduledTrigger) then
+                      '$CI_PIPELINE_SOURCE == "schedule"'
+                   else
+                      OclUndefined
+                   endif
+                   endif
+                   endif,
+            
+            when <- if trigger.oclIsTypeOf(PIM!ManualTrigger) then
+                       'manual'
+                    else
+                       'on_success'
+                    endif
+        )
+}
+
+lazy rule createRule {
+    from
+        condition : PIM!Expression
+    to
+        rule_ : GitLabMM!Rule_ (
+            if_ <- condition.toGitLabString(),
+            when <- 'on_success'
+        )
+}
+
+lazy rule createService {
+    from
+        container : PIM!DockerContainer
+    to
+        service : GitLabMM!Service (
+            name <- container.image.toGitLabString(),
+            alias <- if not container.label.oclIsUndefined() then
+                        container.label
+                     else
+                        OclUndefined
+                     endif
+        )
+}
+
+lazy rule createNeed {
+    from
+        jobName : String
+    to
+        need : GitLabMM!Need (
+            job <- jobName,
+            artifacts <- true
+        )
+}
+
+lazy rule createRetry {
+    from
+        maxRetries : Integer
+    to
+        retry : GitLabMM!Retry (
+            max <- maxRetries
+        )
+}
+
+lazy rule createParallel {
+    from
+        matrix : PIM!Matrix
+    to
+        parallel : GitLabMM!Parallel (
+            matrix <- thisModule.createMatrix(matrix)
+        )
+}
+
+lazy rule createMatrix {
+    from
+        matrix : PIM!Matrix
+    to
+        gitlabMatrix : GitLabMM!Matrix (
+            axes <- matrix.axes->collect(a | thisModule.createAxis(a))
+        )
+}
+
+lazy rule createAxis {
+    from
+        axis : PIM!MatrixAxis
+    to
+        gitlabAxis : GitLabMM!Axis (
+            name <- axis.name.name,
+            values <- axis.cells->collect(c | c.toGitLabString())
+        )
+}
+
+lazy rule createCache {
+    from
+        steps : Sequence(PIM!Step)
+    to
+        cache : GitLabMM!Cache (
+            key <- let cacheSteps : Sequence(PIM!Cache) = 
+                       steps->select(s | s.oclIsTypeOf(PIM!Cache))
+                   in
+                   if cacheSteps->notEmpty() then
+                       thisModule.createCacheKey(cacheSteps->first().cacheName.toGitLabString())
+                   else
+                       OclUndefined
+                   endif,
+            
+            paths <- let cacheSteps : Sequence(PIM!Cache) = 
+                         steps->select(s | s.oclIsTypeOf(PIM!Cache))
+                     in
+                     if cacheSteps->notEmpty() then
+                         cacheSteps->first().paths->collect(p | p.toGitLabString())
+                     else
+                         Sequence{}
+                     endif
+        )
+}
+
+lazy rule createCacheKey {
+    from
+        keyName : String
+    to
+        key : GitLabMM!Key (
+            name <- keyName
+        )
+}
+
+lazy rule createImage {
+    from
+        imageName : String
+    to
+        image : GitLabMM!Image (
+            name <- imageName
+        )
+}
+
+
+
 -- Docker image per job (optional)
-helper def : getImageForJob(job : PIM!Job) : String =
-    if job.name='unitTest' then 'python:3.12-slim'
-    else if job.name='healthCheck' then 'curlimages/curl:latest'
-    else OclUndefined
+helper def : getImageForJob(job : PIM!Job) : GitLabMM!Image =
+    if job.id='unitTest' then
+        thisModule.createImage('python:3.12-slim')
+    else if job.id='healthCheck' then
+        thisModule.createImage('curlimages/curl:latest')
+    else
+        OclUndefined
     endif
-	endif;
+    endif;
+
 
 -- When condition
 helper def : getWhenForJob(job : PIM!Job) : String =
     if job.name='unitTest' then 'always'
     else OclUndefined
     endif;
+
+helper def : getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+    if jobStreams->isEmpty() then
+        Sequence{}
+    else
+        let nextJobs : Sequence(PIM!Job) = jobStreams->collect(j | j.next)->flatten()
+        in
+        if nextJobs->isEmpty() then
+            jobStreams
+        else
+            jobStreams->union(thisModule.getAllJobs(nextJobs))
+        endif
+    endif;
+
+helper context PIM!Expression def : toGitLabString() : String = 'UNKNOWN';
+helper context PIM!StringLiteral def : toGitLabString() : String = self.value;
+helper context PIM!IntegerLiteral def : toGitLabString() : String = self.value.toString();
+helper context PIM!VariableReference def : toGitLabString() : String = '$' + self.reference.name;
+helper context PIM!EqualityOp def : toGitLabString() : String =
+    self.lhs.toGitLabString() + 
+    (if self.op = #"==" then ' == ' else ' != ' endif) +
+    self.rhs.toGitLabString();
+
+
