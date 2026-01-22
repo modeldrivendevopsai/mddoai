@@ -11,11 +11,7 @@ rule Pipeline2GitlabPipeline {
     to
         target : GitLabMM!Pipeline (
         	-- Checks if triggers collection is empty, if not, creates workflow.
-	        workflow <- if source.triggers->notEmpty() then
-	                       thisModule.createWorkflow(source.triggers)
-	                    else
-	                       OclUndefined
-	                    endif,
+	        workflow <- thisModule.createWorkflow(source.triggers),
 			stages <- source.jobStreams ->collect(j | j.id),
 			jobs <- source.jobStreams ->collect(j | thisModule.createJob(j)),
             variables <- if source.environmentVariables->notEmpty() then
@@ -258,14 +254,21 @@ lazy rule createWorkflow {
         triggers : Sequence(PIM!Trigger)
     to
         workflow : GitLabMM!Workflow (
-            rules <- Sequence{
-                -- Base rules
-                thisModule.createParentPipelineRule(),
-                thisModule.createBranchRule()
-            }->union(
-                -- Trigger-specific rules
-                triggers->collect(t | thisModule.createTriggerRule(t))
-            )
+            rules <- if triggers->isEmpty() then
+                        -- No triggers in PIM: only base rules
+                        Sequence{
+                            thisModule.createParentPipelineRule(),
+                            thisModule.createBranchRule()
+                        }
+                     else
+                        -- Has triggers in PIM: base rules + trigger-specific rules
+                        Sequence{
+                            thisModule.createParentPipelineRule(),
+                            thisModule.createBranchRule()
+                        }->union(
+                            triggers->collect(t | thisModule.createTriggerRule(t))
+                        )
+                     endif
         )
 }
 

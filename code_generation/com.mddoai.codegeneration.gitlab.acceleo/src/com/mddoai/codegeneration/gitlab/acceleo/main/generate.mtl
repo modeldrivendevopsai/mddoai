@@ -13,6 +13,7 @@
 # For more information, visit: https://mddoai.com
 #######################################################################
 
+[generateWorkflow(aPipeline.workflow)/]
 [generateStages(aPipeline.stages)/]
 [generateVariables(aPipeline.variables)/]
 [if (aPipeline.jobs->notEmpty())]
@@ -22,6 +23,20 @@
 [/if]
 [/file]
 [/template]
+
+[template public generateWorkflow(workflow : Workflow)]
+[if (workflow <> null)] 
+workflow:
+  rules:
+[for (r: Rule_ | workflow.rules)]
+    - if: [r.if_/]
+[if (r.when <> null)]
+      when: [r.when/]
+[/if]
+[/for]
+[/if]
+[/template]
+
 [template public generateStages(stages : OrderedSet(String))]
 stages:
 [for (stage: String | stages)]
@@ -42,9 +57,9 @@ variables:
 [job.name/]:
   stage: [job.stage/]
   [if (job.image <> null)]
-  image: [job.image/]
+  image: [job.image.name/]
   [/if]
-  [generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateDependencies(job.dependencies)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
+  [generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateNeeds(job)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
 [/template]
 [comment][generateTags(job.tags)/][/comment]
 [template public generateScript(script: Script)]
@@ -88,6 +103,21 @@ only:
 dependencies:
 [for (dependency: Dependency | dependencies.dependencies)]
   - [dependency.dependency/]
+[/for]
+[/if]
+[/template]
+
+[template public generateNeeds(job: Job)]
+[if (job.needs->notEmpty())]
+needs:
+[for (need : Need | job.needs)]
+  - job: "[need.job/]"
+[if (need.artifacts <> null and need.artifacts = false)]
+    artifacts: false
+[/if]
+[if (need.optional <> null and need.optional = true)]
+    optional: true
+[/if]
 [/for]
 [/if]
 [/template]
