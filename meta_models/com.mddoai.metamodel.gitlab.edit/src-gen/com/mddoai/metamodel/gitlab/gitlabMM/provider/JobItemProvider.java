@@ -99,6 +99,21 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 	}
 
 	/**
+	 * This adds a property descriptor for the When feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addWhenPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Job_when_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Job_when_feature", "_UI_Job_type"),
+						GitlabMMPackage.Literals.JOB__WHEN, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
 	 * This adds a property descriptor for the Image feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -171,21 +186,6 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 						getString("_UI_PropertyDescriptor_description", "_UI_Job_resourceGroup_feature",
 								"_UI_Job_type"),
 						GitlabMMPackage.Literals.JOB__RESOURCE_GROUP, true, false, false,
-						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This adds a property descriptor for the When feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addWhenPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Job_when_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Job_when_feature", "_UI_Job_type"),
-						GitlabMMPackage.Literals.JOB__WHEN, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
