@@ -50,4 +50,8 @@
     <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/chatbot-app-image"/>
     <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
   </variables>
+  <workflow>
+    <rules if_="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
+    <rules if_="$CI_COMMIT_BRANCH"/>
+  </workflow>
 </gitlabMM:Pipeline>
