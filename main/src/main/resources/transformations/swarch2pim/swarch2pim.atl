@@ -11,8 +11,22 @@ rule SWArch2PIMPipeline {
   to
     target : PIMMM!Pipeline (
       name <- source.name,
-      jobStreams <- source.defineAllJobs()
+      jobStreams <- source.defineAllJobs(),
+	  environmentVariables <- source.createPipelineVariables()
     )
+  do {
+    thisModule.buildJob <- target.jobStreams->select(j | j.id = 'build')->first();
+    thisModule.healthCheckJob <- target.jobStreams->select(j | j.id = 'healthCheck')->first();
+    thisModule.pushJob <- target.jobStreams->select(j | j.id = 'push')->first();
+    
+    if (not thisModule.healthCheckJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
+      thisModule.healthCheckJob.previous <- Sequence{thisModule.buildJob};
+    }
+    
+    if (not thisModule.pushJob.oclIsUndefined() and not thisModule.healthCheckJob.oclIsUndefined()) {
+      thisModule.pushJob.previous <- Sequence{thisModule.healthCheckJob};
+    }
+  }
 }
 
 -- Helper: Determine mandatory jobs based on type
@@ -39,7 +53,50 @@ lazy rule createScriptJob {
   to
     target : PIMMM!ScriptJob (
       name <- source.stage,
-      steps <- source.pipeline.getCommands(source.stage)
+      id <- source.stage,
+      steps <- source.pipeline.getCommands(source.stage),
+      agent <- source.pipeline.getAgentForStage(source.stage)
+    )
+}
+
+-- Determine which agent/image to use for each stage
+helper context SWArchMM!SoftwareArchitecture def: getAgentForStage(stage : String) : PIMMM!Agent =
+  if stage = 'unitTest' then
+    if self.language = 'python' then
+      thisModule.createLinuxAgent('python:3.12-slim')
+    else if self.language = 'java' then
+      thisModule.createLinuxAgent('openjdk:17-slim')
+    else if self.language = 'node' or self.language = 'javascript' then
+      thisModule.createLinuxAgent('node:18-alpine')
+    else
+      OclUndefined  -- Use default runner
+    endif
+    endif
+    endif
+  else if stage = 'healthCheck' then
+    thisModule.createLinuxAgent('curlimages/curl:latest')
+  else
+    OclUndefined  -- Use default runner
+  endif
+  endif;
+
+-- Create LinuxAgent
+lazy rule createLinuxAgent {
+  from
+    imageName : String
+  to
+    agent : PIMMM!LinuxAgent (
+      container <- thisModule.createDockerContainer(imageName)
+    )
+}
+
+-- Create DockerContainer
+lazy rule createDockerContainer {
+  from
+    imageName : String
+  to
+    container : PIMMM!DockerContainer (
+      image <- thisModule.createStringLiteral(imageName)
     )
 }
 
@@ -105,3 +162,37 @@ helper context SWArchMM!SoftwareArchitecture def: defineAllJobs() : Sequence(PIM
         )
   in stages->collect(s | thisModule.createScriptJob(Tuple { pipeline = self, stage = s }));
 
+  
+helper context SWArchMM!SoftwareArchitecture def: createPipelineVariables() : Sequence(PIMMM!Assignment) =
+  if self.type = 'framework' or self.type = 'docker-image' then
+    Sequence {
+      thisModule.createAssignment('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/' + self.name + '-image'),
+      thisModule.createAssignment('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}')
+    }
+  else
+    Sequence {}
+  endif;
+  
+  
+-- Create Assignment (Variable = Value)
+lazy rule createAssignment {
+  from
+    key : String,
+    value : String
+  to
+    assignment : PIMMM!Assignment (
+      key <- thisModule.createVariableDeclaration(key),
+      value <- thisModule.createStringLiteral(value)
+    )
+}
+
+
+-- Create Variable Declaration
+lazy rule createVariableDeclaration {
+  from
+    source : String
+  to
+    target : PIMMM!VariableDeclaration (
+      name <- source
+    )
+}
