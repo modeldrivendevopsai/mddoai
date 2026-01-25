@@ -54,7 +54,7 @@ lazy rule createJob {
             name <- source.id,
             stage <- source.id,
 			image <- if source.agent.oclIsUndefined() then
-						thisModule.getImageForJob(source)
+						OclUndefined
 					 else
 					 	thisModule.createImage(source.agent)
 					 endif,
@@ -428,25 +428,12 @@ lazy rule createCacheKey {
 
 lazy rule createImage {
     from
-        imageName : String
+        agent : PIM!LinuxAgent
     to
         image : GitLabMM!Image (
-            name <- imageName
+            name <- agent.container.image.toGitLabString()
         )
 }
-
-
-
--- Docker image per job (optional)
-helper def : getImageForJob(job : PIM!Job) : GitLabMM!Image =
-    if job.id='unitTest' then
-        thisModule.createImage('python:3.12-slim')
-    else if job.id='healthCheck' then
-        thisModule.createImage('curlimages/curl:latest')
-    else
-        OclUndefined
-    endif
-    endif;
 
 
 -- When condition

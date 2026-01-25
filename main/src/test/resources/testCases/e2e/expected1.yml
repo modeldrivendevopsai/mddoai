@@ -6,6 +6,11 @@
 # For more information, visit: https://mddoai.com
 #######################################################################
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_COMMIT_BRANCH
+
 stages:
   - build
   - unitTest
@@ -14,14 +19,12 @@ stages:
 
 variables:
   IMAGE_NAME: ${CI_REGISTRY_IMAGE}/chatbot-app-image
-  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
 
 build:
   stage: build
   script:
     - docker build -t ${IMAGE_TAG} .
-  only:
-    - main
   
 unitTest:
   stage: unitTest
@@ -30,26 +33,20 @@ unitTest:
     - python3 -m pip install --break-system-packages -r requirements.txt
   script:
     - python3 test/run_unit_tests.py
-  only:
-    - main
   
 healthCheck:
   stage: healthCheck
   image: curlimages/curl:latest
   script:
     -  ./scripts/health_check.sh
-  dependencies:
-    - build
-  only:
-    - main
+  needs:
+    - job: "build"
   
 push:
   stage: push
   script:
     - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
     - docker push ${IMAGE_TAG}
-  dependencies:
-    - healthCheck
-  only:
-    - main
+  needs:
+    - job: "healthCheck"
   
