@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="ASCII"?>
-<gitlabMM:Pipeline xmi:version="2.0"
-  xmlns:xmi="http://www.omg.org/XMI"
-  xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
   <stages>build</stages>
   <stages>unitTest</stages>
   <stages>healthCheck</stages>
@@ -24,7 +22,6 @@
     <tags>
       <tags tag="ai-shared"/>
     </tags>
-    <image name="python:3.12-slim"/>
   </jobs>
   <jobs name="healthCheck" stage="healthCheck">
     <script>
@@ -33,7 +30,6 @@
     <tags>
       <tags tag="ai-shared"/>
     </tags>
-    <image name="curlimages/curl:latest"/>
     <needs job="build" artifacts="true"/>
   </jobs>
   <jobs name="push" stage="push">
