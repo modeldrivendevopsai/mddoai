@@ -1,59 +1,298 @@
 # MDDOAI
-This project transforms software architecture models into usable GitLab CI pipeline YAML code.
 
-## Building
-### 1. Clone the repo
-Run this command:
+This project transforms Software Architecture models into usable CI/CD pipelines using model-driven techniques.
 
-```
-git clone https://gitlab.com/model-driven-devops-ai/core.git
-```
+Find the [old documentation here](before_opensource.md)
 
-to clone the repo.
+---
 
-### 2. Build the tool
-To build the tool first change directory to the `main` directory
+## What Does MDDOAI Do?
+
+MDDOAI automatically generates GitLab CI/CD pipeline configurations from software architecture models:
 
 ```
-cd ./main
+Input: Software Architecture Model (.swarch)
+         ↓
+MDDOAI Transformation
+         ↓
+Output: GitLab CI/CD Pipeline (.gitlab-ci.yml)
 ```
 
-Then run this **Gradle** command:
+---
 
-```
-gradlew installDist
+## Getting Started
+
+There are **two ways** to use MDDOAI:
+
+| Method | Best For | Setup Time |
+|--------|----------|------------|
+| **Docker** | Quick usage, CI/CD pipelines | 2 minutes |
+| **Build from Source** | Development, customization | 5 minutes |
+
+Choose your method below:
+
+- **Want to try it quickly?** → [Use Docker](#using-docker-images)
+- **Want to develop or customize?** → [Build from Source](#building-from-source)
+
+---
+
+## Using Docker Images
+
+**Fastest way to get started** - no build required!
+
+### Step 1: Pull the Image
+
+```bash
+# Production release (recommended)
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+
+# Or latest development version
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot
 ```
 
-## Running
-To use it run this command from the main directory:
+### Step 2: Prepare Your Input
 
+Create directories and place your model file:
+
+```bash
+mkdir -p input output
+# Place your .swarch file in input/ directory
 ```
+
+### Step 3: Run the Transformation
+
+```bash
+docker run --rm \
+  -v "$(pwd)/input:/app/input" \
+  -v "$(pwd)/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  swarch2gitlab "/app/input/your-model.swarch" "/app/output"
+```
+
+**Result:** Your generated `.gitlab-ci.yml` will be in the `output/` directory!
+
+### Docker Usage Notes
+
+- **`$(pwd)`** = current directory
+- **`-v`** mounts host folders to container paths
+- **`--rm`** automatically removes the container after execution
+
+**Alternative - Using absolute paths:**
+```bash
+docker run --rm \
+  -v "/full/path/to/input:/app/input" \
+  -v "/full/path/to/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  swarch2gitlab "/app/input/your-model.swarch" "/app/output"
+```
+
+**For CI/CD pipelines:**
+```bash
+docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+docker run --rm \
+  -v "$(pwd)/models:/app/input" \
+  -v "$(pwd)/generated:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  swarch2gitlab "/app/input/architecture.swarch" "/app/output"
+```
+
+---
+
+## Building from Source
+
+**For development and customization**
+
+### Prerequisites
+
+- **Java 21** or later
+- **Git** for cloning the repository
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/modeldrivendevopsai/mddoai.git
+cd mddoai
+```
+
+### Step 2: Build the Tool
+
+Navigate to the `main` directory:
+
+```bash
+cd main
+```
+
+Run the Gradle build command:
+
+```bash
+./gradlew installDist
+```
+
+
+**Expected output:** `BUILD SUCCESSFUL`
+
+This creates executable scripts in `build/install/com.mddoai/bin/`.
+
+### Step 3: Run the Tool
+```bash
 ./cli.bat <Type> <InputModelPath> <OutputFolder>
 ```
+---
 
-`<Type>` - this is the type of transformation. Currently only one is possible swarch2gitlab. This will take in the SW Arch model and generate a .gitlab-ci.yml file.
+## Transformation Types
 
-`<InputModelPath>` - This is the path to the input model.
+MDDOAI supports three transformation types:
 
-`<OutputFolder>` - This is the output folder where the generated code will output to.
+| Command | Input Format | Output | Use Case |
+|---------|-------------|--------|----------|
+| `swarch2gitlab` | `.swarch` | `.gitlab-ci.yml` |  End-to-end transformation |
+| `pim2gitlab` | `.pim` | `.gitlab-ci.yml` | Advanced - Custom PIM workflows |
+| `psm2gitlab` | `.gitlabpsm` | `.gitlab-ci.yml` | Advanced - Direct PSM to YAML |
 
-For example the command can look something like this:
+**Parameters:**
 
+- `<Type>` - Transformation type (see table above)
+- `<InputModelPath>` - Path to your input model file
+- `<OutputFolder>` - Directory where generated files will be saved
+
+---
+
+## Usage Examples
+
+### Example 1: Transform Architecture Model (Docker)
+
+```bash
+# Prepare
+mkdir -p input output
+cp my-app.swarch input/
+
+# Run transformation
+docker run --rm \
+  -v "$(pwd)/input:/app/input" \
+  -v "$(pwd)/output:/app/output" \
+  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  swarch2gitlab "/app/input/my-app.swarch" "/app/output"
+
+# Check result
+cat output/.gitlab-ci.yml
 ```
+
+### Example 2: Transform Architecture Model (Built from Source)
+
+```bash
+./cli.bat swarch2gitlab ./input/my-app.swarch ./output
+```
+
+
+### Example 3: Using Included Test Models
+
+Test with example models included in the repository:
+
+```bash
 ./cli.bat swarch2gitlab ./src/test/resources/testCases/e2e/input1.swarch ./test/generatedCode
 ```
-
+---
 ## Testing
-To run the E2E, integration and unit tests you can run these commands individually:
+Run tests to verify everything works correctly:
 
-```
-./gradlew e2eTest
-./gradlew integrationTest
-./gradlew test
+```bash
+cd main
+
+# Run all tests
+./gradlew test integrationTest e2eTest
+
+# Or run individually
+./gradlew e2eTest           # End-to-end tests
+./gradlew integrationTest   # Integration tests
+./gradlew test              # Unit tests
 ```
 
-## Dependency Management
-All project dependencies are managed through the build.gradle file using Gradle’s dependency management infrastructure.
+### Coverage Reports
+
+View test coverage:
+
+- [E2E Coverage](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
+- [Integration Coverage](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
+- [Unit Coverage](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
+
+---
+
+## Docker Image Versioning Strategy
+
+MDDOAI uses a three-tier Docker image tagging strategy.
+
+### Versioning Tags
+
+#### `1.x-snapshot`
+
+**Purpose:** Testing tag for all feature branches
+
+**Characteristics:**
+- Overwritten on every feature branch push
+- Not safe for production use
+- Useful for quick testing
+
+**Example workflow:**
+```bash
+# Create feature branch
+git checkout -b fix-parser-bug
+
+# Make changes and push
+git push origin fix-parser-bug
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.x-snapshot
+```
+
+#### `1.0-snapshot`
+
+**Purpose:** Latest code from the main branch
+
+**Characteristics:**
+- Overwritten on every main branch commit
+- Semi-stable
+- Recommended for development
+
+**Example workflow:**
+```bash
+# Merge PR to main
+git checkout main
+git merge fix-parser-bug
+git push origin main
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0-snapshot
+```
+
+#### `1.0.1`, `1.0.2`, `1.1.0`
+
+**Purpose:** Permanent production releases
+
+**Characteristics:**
+- Never overwritten
+- Never expires
+- Follows Semantic Versioning (MAJOR.MINOR.PATCH)
+- Ideal for production deployments
+
+**Example workflow:**
+```bash
+# Ready to release? Create and push tag
+git tag -a 1.0.1 -m "Release 1.0.1 - Fixed parser bug"
+git push origin 1.0.1
+# GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0.1
+```
+
+### Comparison Table
+
+| Tag | Stability | Overwritten? | Use Case |
+|-----|-----------|--------------|----------|
+| `1.x-snapshot` | Unstable | Yes (any branch) | Feature Testing |
+| `1.0-snapshot` | Semi-stable | Yes (main only) | Development |
+| `1.0.1` | Stable | Never | Production |
+
+See the image tags in the [MDDOAI Container Registry](https://github.com/modeldrivendevopsai/mddoai/pkgs/container/mddoai%2Fmddoai).
+
+---
+
+## Dependencies
+
+All project dependencies are managed through the build.gradle file using Gradle's dependency management infrastructure.
 
 ### Core Libraries
 
@@ -110,7 +349,18 @@ The project folder structure consists of these folders:
 
 - `pipeline_tests` - this contains bash scripts that the pipeline runs to do some testing, for example to test wheter a file exists or not.
 
-- `update_site` - this folder contains the reference to the feature from the feature folder and it is responsible for building the update site. 
+- `update_site` - this folder contains the reference to the feature from the feature folder and it is responsible for building the update site.
+
+## Coverage reports
+- [E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
+- [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
+- [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
+
+## Draw.io diagrams
+
+View - Use Draw.io to open the file "drawio diagrams.xml"
+
+Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready. The PR approver should always restore the merged branch. This URL should open draw.io directly - https://app.diagrams.net/#Hmodeldrivendevopsai%2Fmddoai%2Fdraw.io-diagrams%2Fdrawio%20diagrams.xml#%7B
 
 ## License
 
