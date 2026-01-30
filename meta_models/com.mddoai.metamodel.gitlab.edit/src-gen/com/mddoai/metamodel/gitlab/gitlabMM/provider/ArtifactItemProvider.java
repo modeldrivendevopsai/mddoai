@@ -58,6 +58,11 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 
 			addWhenPropertyDescriptor(object);
 			addPathsPropertyDescriptor(object);
+			addNamePropertyDescriptor(object);
+			addExpireInPropertyDescriptor(object);
+			addExpose_asPropertyDescriptor(object);
+			addUntrackedPropertyDescriptor(object);
+			addExcludePropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -91,6 +96,86 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_paths_feature",
 								"_UI_Artifact_type"),
 						GitlabMMPackage.Literals.ARTIFACT__PATHS, true, false, false, null, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Name feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addNamePropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Artifact_name_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_name_feature",
+								"_UI_Artifact_type"),
+						GitlabMMPackage.Literals.ARTIFACT__NAME, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Expire In feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExpireInPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Artifact_expireIn_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_expireIn_feature",
+								"_UI_Artifact_type"),
+						GitlabMMPackage.Literals.ARTIFACT__EXPIRE_IN, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Expose as feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExpose_asPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Artifact_expose_as_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_expose_as_feature",
+								"_UI_Artifact_type"),
+						GitlabMMPackage.Literals.ARTIFACT__EXPOSE_AS, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Untracked feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addUntrackedPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Artifact_untracked_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_untracked_feature",
+								"_UI_Artifact_type"),
+						GitlabMMPackage.Literals.ARTIFACT__UNTRACKED, true, false, false,
+						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Exclude feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExcludePropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Artifact_exclude_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_exclude_feature",
+								"_UI_Artifact_type"),
+						GitlabMMPackage.Literals.ARTIFACT__EXCLUDE, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -152,7 +237,7 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 	 */
 	@Override
 	public String getText(Object object) {
-		String label = ((Artifact) object).getWhen();
+		String label = ((Artifact) object).getName();
 		return label == null || label.length() == 0 ? getString("_UI_Artifact_type")
 				: getString("_UI_Artifact_type") + " " + label;
 	}
@@ -171,6 +256,11 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 		switch (notification.getFeatureID(Artifact.class)) {
 		case GitlabMMPackage.ARTIFACT__WHEN:
 		case GitlabMMPackage.ARTIFACT__PATHS:
+		case GitlabMMPackage.ARTIFACT__NAME:
+		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
+		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
+		case GitlabMMPackage.ARTIFACT__UNTRACKED:
+		case GitlabMMPackage.ARTIFACT__EXCLUDE:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		case GitlabMMPackage.ARTIFACT__REPORTS:

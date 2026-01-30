@@ -96,72 +96,394 @@ public class PimMMItemProviderAdapterFactory extends PimMMAdapterFactory
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Stage} instances.
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.ScriptJob} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected StageItemProvider stageItemProvider;
+	protected ScriptJobItemProvider scriptJobItemProvider;
 
 	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Stage}.
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.ScriptJob}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public Adapter createStageAdapter() {
-		if (stageItemProvider == null) {
-			stageItemProvider = new StageItemProvider(this);
+	public Adapter createScriptJobAdapter() {
+		if (scriptJobItemProvider == null) {
+			scriptJobItemProvider = new ScriptJobItemProvider(this);
 		}
 
-		return stageItemProvider;
+		return scriptJobItemProvider;
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Script} instances.
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.PipelineCallJob} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected ScriptItemProvider scriptItemProvider;
+	protected PipelineCallJobItemProvider pipelineCallJobItemProvider;
 
 	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Script}.
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.PipelineCallJob}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public Adapter createScriptAdapter() {
-		if (scriptItemProvider == null) {
-			scriptItemProvider = new ScriptItemProvider(this);
+	public Adapter createPipelineCallJobAdapter() {
+		if (pipelineCallJobItemProvider == null) {
+			pipelineCallJobItemProvider = new PipelineCallJobItemProvider(this);
 		}
 
-		return scriptItemProvider;
+		return pipelineCallJobItemProvider;
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Commands} instances.
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.CustomAgent} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected CommandsItemProvider commandsItemProvider;
+	protected CustomAgentItemProvider customAgentItemProvider;
 
 	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Commands}.
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.CustomAgent}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public Adapter createCommandsAdapter() {
-		if (commandsItemProvider == null) {
-			commandsItemProvider = new CommandsItemProvider(this);
+	public Adapter createCustomAgentAdapter() {
+		if (customAgentItemProvider == null) {
+			customAgentItemProvider = new CustomAgentItemProvider(this);
 		}
 
-		return commandsItemProvider;
+		return customAgentItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.LinuxAgent} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected LinuxAgentItemProvider linuxAgentItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.LinuxAgent}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createLinuxAgentAdapter() {
+		if (linuxAgentItemProvider == null) {
+			linuxAgentItemProvider = new LinuxAgentItemProvider(this);
+		}
+
+		return linuxAgentItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.WindowsAgent} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected WindowsAgentItemProvider windowsAgentItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.WindowsAgent}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createWindowsAgentAdapter() {
+		if (windowsAgentItemProvider == null) {
+			windowsAgentItemProvider = new WindowsAgentItemProvider(this);
+		}
+
+		return windowsAgentItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.MacOSAgent} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MacOSAgentItemProvider macOSAgentItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.MacOSAgent}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMacOSAgentAdapter() {
+		if (macOSAgentItemProvider == null) {
+			macOSAgentItemProvider = new MacOSAgentItemProvider(this);
+		}
+
+		return macOSAgentItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.DockerContainer} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected DockerContainerItemProvider dockerContainerItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.DockerContainer}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createDockerContainerAdapter() {
+		if (dockerContainerItemProvider == null) {
+			dockerContainerItemProvider = new DockerContainerItemProvider(this);
+		}
+
+		return dockerContainerItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.PushTrigger} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected PushTriggerItemProvider pushTriggerItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.PushTrigger}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createPushTriggerAdapter() {
+		if (pushTriggerItemProvider == null) {
+			pushTriggerItemProvider = new PushTriggerItemProvider(this);
+		}
+
+		return pushTriggerItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.PullRequestTrigger} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected PullRequestTriggerItemProvider pullRequestTriggerItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.PullRequestTrigger}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createPullRequestTriggerAdapter() {
+		if (pullRequestTriggerItemProvider == null) {
+			pullRequestTriggerItemProvider = new PullRequestTriggerItemProvider(this);
+		}
+
+		return pullRequestTriggerItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.ManualTrigger} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ManualTriggerItemProvider manualTriggerItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.ManualTrigger}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createManualTriggerAdapter() {
+		if (manualTriggerItemProvider == null) {
+			manualTriggerItemProvider = new ManualTriggerItemProvider(this);
+		}
+
+		return manualTriggerItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.ScheduledTrigger} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ScheduledTriggerItemProvider scheduledTriggerItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.ScheduledTrigger}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createScheduledTriggerAdapter() {
+		if (scheduledTriggerItemProvider == null) {
+			scheduledTriggerItemProvider = new ScheduledTriggerItemProvider(this);
+		}
+
+		return scheduledTriggerItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Matrix} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MatrixItemProvider matrixItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Matrix}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMatrixAdapter() {
+		if (matrixItemProvider == null) {
+			matrixItemProvider = new MatrixItemProvider(this);
+		}
+
+		return matrixItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.MatrixAxis} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MatrixAxisItemProvider matrixAxisItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.MatrixAxis}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMatrixAxisAdapter() {
+		if (matrixAxisItemProvider == null) {
+			matrixAxisItemProvider = new MatrixAxisItemProvider(this);
+		}
+
+		return matrixAxisItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.MatrixCombination} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MatrixCombinationItemProvider matrixCombinationItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.MatrixCombination}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMatrixCombinationAdapter() {
+		if (matrixCombinationItemProvider == null) {
+			matrixCombinationItemProvider = new MatrixCombinationItemProvider(this);
+		}
+
+		return matrixCombinationItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Input} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected InputItemProvider inputItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Input}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createInputAdapter() {
+		if (inputItemProvider == null) {
+			inputItemProvider = new InputItemProvider(this);
+		}
+
+		return inputItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Output} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected OutputItemProvider outputItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Output}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createOutputAdapter() {
+		if (outputItemProvider == null) {
+			outputItemProvider = new OutputItemProvider(this);
+		}
+
+		return outputItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.ConditionalStep} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ConditionalStepItemProvider conditionalStepItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.ConditionalStep}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createConditionalStepAdapter() {
+		if (conditionalStepItemProvider == null) {
+			conditionalStepItemProvider = new ConditionalStepItemProvider(this);
+		}
+
+		return conditionalStepItemProvider;
 	}
 
 	/**
@@ -185,6 +507,443 @@ public class PimMMItemProviderAdapterFactory extends PimMMAdapterFactory
 		}
 
 		return commandItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Plugin} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected PluginItemProvider pluginItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Plugin}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createPluginAdapter() {
+		if (pluginItemProvider == null) {
+			pluginItemProvider = new PluginItemProvider(this);
+		}
+
+		return pluginItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Cache} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected CacheItemProvider cacheItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Cache}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createCacheAdapter() {
+		if (cacheItemProvider == null) {
+			cacheItemProvider = new CacheItemProvider(this);
+		}
+
+		return cacheItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Artifact} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ArtifactItemProvider artifactItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Artifact}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createArtifactAdapter() {
+		if (artifactItemProvider == null) {
+			artifactItemProvider = new ArtifactItemProvider(this);
+		}
+
+		return artifactItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Checkout} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected CheckoutItemProvider checkoutItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Checkout}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createCheckoutAdapter() {
+		if (checkoutItemProvider == null) {
+			checkoutItemProvider = new CheckoutItemProvider(this);
+		}
+
+		return checkoutItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.VariableDeclaration} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected VariableDeclarationItemProvider variableDeclarationItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.VariableDeclaration}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createVariableDeclarationAdapter() {
+		if (variableDeclarationItemProvider == null) {
+			variableDeclarationItemProvider = new VariableDeclarationItemProvider(this);
+		}
+
+		return variableDeclarationItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link java.util.Map.Entry} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected AssignmentItemProvider assignmentItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link java.util.Map.Entry}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createAssignmentAdapter() {
+		if (assignmentItemProvider == null) {
+			assignmentItemProvider = new AssignmentItemProvider(this);
+		}
+
+		return assignmentItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Concat} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ConcatItemProvider concatItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Concat}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createConcatAdapter() {
+		if (concatItemProvider == null) {
+			concatItemProvider = new ConcatItemProvider(this);
+		}
+
+		return concatItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.StringLiteral} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected StringLiteralItemProvider stringLiteralItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.StringLiteral}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createStringLiteralAdapter() {
+		if (stringLiteralItemProvider == null) {
+			stringLiteralItemProvider = new StringLiteralItemProvider(this);
+		}
+
+		return stringLiteralItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.IntegerLiteral} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected IntegerLiteralItemProvider integerLiteralItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.IntegerLiteral}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createIntegerLiteralAdapter() {
+		if (integerLiteralItemProvider == null) {
+			integerLiteralItemProvider = new IntegerLiteralItemProvider(this);
+		}
+
+		return integerLiteralItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.DoubleLiteral} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected DoubleLiteralItemProvider doubleLiteralItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.DoubleLiteral}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createDoubleLiteralAdapter() {
+		if (doubleLiteralItemProvider == null) {
+			doubleLiteralItemProvider = new DoubleLiteralItemProvider(this);
+		}
+
+		return doubleLiteralItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.BooleanLiteral} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected BooleanLiteralItemProvider booleanLiteralItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.BooleanLiteral}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createBooleanLiteralAdapter() {
+		if (booleanLiteralItemProvider == null) {
+			booleanLiteralItemProvider = new BooleanLiteralItemProvider(this);
+		}
+
+		return booleanLiteralItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.VariableReference} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected VariableReferenceItemProvider variableReferenceItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.VariableReference}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createVariableReferenceAdapter() {
+		if (variableReferenceItemProvider == null) {
+			variableReferenceItemProvider = new VariableReferenceItemProvider(this);
+		}
+
+		return variableReferenceItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.EqualityOp} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected EqualityOpItemProvider equalityOpItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.EqualityOp}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createEqualityOpAdapter() {
+		if (equalityOpItemProvider == null) {
+			equalityOpItemProvider = new EqualityOpItemProvider(this);
+		}
+
+		return equalityOpItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.ComparisonOp} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ComparisonOpItemProvider comparisonOpItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.ComparisonOp}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createComparisonOpAdapter() {
+		if (comparisonOpItemProvider == null) {
+			comparisonOpItemProvider = new ComparisonOpItemProvider(this);
+		}
+
+		return comparisonOpItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.DotOp} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected DotOpItemProvider dotOpItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.DotOp}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createDotOpAdapter() {
+		if (dotOpItemProvider == null) {
+			dotOpItemProvider = new DotOpItemProvider(this);
+		}
+
+		return dotOpItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.And} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected AndItemProvider andItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.And}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createAndAdapter() {
+		if (andItemProvider == null) {
+			andItemProvider = new AndItemProvider(this);
+		}
+
+		return andItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Or} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected OrItemProvider orItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Or}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createOrAdapter() {
+		if (orItemProvider == null) {
+			orItemProvider = new OrItemProvider(this);
+		}
+
+		return orItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.UnaryOp} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected UnaryOpItemProvider unaryOpItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.UnaryOp}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createUnaryOpAdapter() {
+		if (unaryOpItemProvider == null) {
+			unaryOpItemProvider = new UnaryOpItemProvider(this);
+		}
+
+		return unaryOpItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.pim.pimMM.Negation} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected NegationItemProvider negationItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.pim.pimMM.Negation}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createNegationAdapter() {
+		if (negationItemProvider == null) {
+			negationItemProvider = new NegationItemProvider(this);
+		}
+
+		return negationItemProvider;
 	}
 
 	/**
@@ -294,14 +1053,80 @@ public class PimMMItemProviderAdapterFactory extends PimMMAdapterFactory
 	public void dispose() {
 		if (pipelineItemProvider != null)
 			pipelineItemProvider.dispose();
-		if (stageItemProvider != null)
-			stageItemProvider.dispose();
-		if (scriptItemProvider != null)
-			scriptItemProvider.dispose();
-		if (commandsItemProvider != null)
-			commandsItemProvider.dispose();
+		if (scriptJobItemProvider != null)
+			scriptJobItemProvider.dispose();
+		if (pipelineCallJobItemProvider != null)
+			pipelineCallJobItemProvider.dispose();
+		if (customAgentItemProvider != null)
+			customAgentItemProvider.dispose();
+		if (linuxAgentItemProvider != null)
+			linuxAgentItemProvider.dispose();
+		if (windowsAgentItemProvider != null)
+			windowsAgentItemProvider.dispose();
+		if (macOSAgentItemProvider != null)
+			macOSAgentItemProvider.dispose();
+		if (dockerContainerItemProvider != null)
+			dockerContainerItemProvider.dispose();
+		if (pushTriggerItemProvider != null)
+			pushTriggerItemProvider.dispose();
+		if (pullRequestTriggerItemProvider != null)
+			pullRequestTriggerItemProvider.dispose();
+		if (manualTriggerItemProvider != null)
+			manualTriggerItemProvider.dispose();
+		if (scheduledTriggerItemProvider != null)
+			scheduledTriggerItemProvider.dispose();
+		if (matrixItemProvider != null)
+			matrixItemProvider.dispose();
+		if (matrixAxisItemProvider != null)
+			matrixAxisItemProvider.dispose();
+		if (matrixCombinationItemProvider != null)
+			matrixCombinationItemProvider.dispose();
+		if (inputItemProvider != null)
+			inputItemProvider.dispose();
+		if (outputItemProvider != null)
+			outputItemProvider.dispose();
+		if (conditionalStepItemProvider != null)
+			conditionalStepItemProvider.dispose();
 		if (commandItemProvider != null)
 			commandItemProvider.dispose();
+		if (pluginItemProvider != null)
+			pluginItemProvider.dispose();
+		if (cacheItemProvider != null)
+			cacheItemProvider.dispose();
+		if (artifactItemProvider != null)
+			artifactItemProvider.dispose();
+		if (checkoutItemProvider != null)
+			checkoutItemProvider.dispose();
+		if (variableDeclarationItemProvider != null)
+			variableDeclarationItemProvider.dispose();
+		if (assignmentItemProvider != null)
+			assignmentItemProvider.dispose();
+		if (concatItemProvider != null)
+			concatItemProvider.dispose();
+		if (stringLiteralItemProvider != null)
+			stringLiteralItemProvider.dispose();
+		if (integerLiteralItemProvider != null)
+			integerLiteralItemProvider.dispose();
+		if (doubleLiteralItemProvider != null)
+			doubleLiteralItemProvider.dispose();
+		if (booleanLiteralItemProvider != null)
+			booleanLiteralItemProvider.dispose();
+		if (variableReferenceItemProvider != null)
+			variableReferenceItemProvider.dispose();
+		if (equalityOpItemProvider != null)
+			equalityOpItemProvider.dispose();
+		if (comparisonOpItemProvider != null)
+			comparisonOpItemProvider.dispose();
+		if (dotOpItemProvider != null)
+			dotOpItemProvider.dispose();
+		if (andItemProvider != null)
+			andItemProvider.dispose();
+		if (orItemProvider != null)
+			orItemProvider.dispose();
+		if (unaryOpItemProvider != null)
+			unaryOpItemProvider.dispose();
+		if (negationItemProvider != null)
+			negationItemProvider.dispose();
 	}
 
 }

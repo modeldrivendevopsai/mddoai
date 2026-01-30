@@ -43,7 +43,7 @@ class TransformerExecutorPIM2GitLabTest {
 
 			assertTrue(EcoreUtil.equals(outputPipeline, exptectedOutput));
 
-			new File("./test/generatedModels/output1.gitlabmm").delete();
+//			new File("./test/generatedModels/output1.gitlabmm").delete();
 		} catch (IOException e) {
 			System.err.println("Transformation failed:");
 			e.printStackTrace();

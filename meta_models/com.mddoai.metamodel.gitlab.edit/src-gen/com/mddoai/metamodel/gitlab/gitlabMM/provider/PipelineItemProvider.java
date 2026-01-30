@@ -92,6 +92,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__JOBS);
 			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__VARIABLES);
 			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__WORKFLOW);
+			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__DEFAULT);
 		}
 		return childrenFeatures;
 	}
@@ -159,6 +160,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		case GitlabMMPackage.PIPELINE__JOBS:
 		case GitlabMMPackage.PIPELINE__VARIABLES:
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
+		case GitlabMMPackage.PIPELINE__DEFAULT:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -184,6 +186,9 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__WORKFLOW,
 				GitlabMMFactory.eINSTANCE.createWorkflow()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__DEFAULT,
+				GitlabMMFactory.eINSTANCE.createDefault()));
 	}
 
 	/**

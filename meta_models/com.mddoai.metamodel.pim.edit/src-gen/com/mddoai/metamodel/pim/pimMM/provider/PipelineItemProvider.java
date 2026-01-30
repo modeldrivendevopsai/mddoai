@@ -12,17 +12,10 @@ import java.util.List;
 import org.eclipse.emf.common.notify.AdapterFactory;
 import org.eclipse.emf.common.notify.Notification;
 
-import org.eclipse.emf.common.util.ResourceLocator;
-
 import org.eclipse.emf.ecore.EStructuralFeature;
 
-import org.eclipse.emf.edit.provider.IEditingDomainItemProvider;
-import org.eclipse.emf.edit.provider.IItemLabelProvider;
+import org.eclipse.emf.edit.provider.ComposeableAdapterFactory;
 import org.eclipse.emf.edit.provider.IItemPropertyDescriptor;
-import org.eclipse.emf.edit.provider.IItemPropertySource;
-import org.eclipse.emf.edit.provider.IStructuredItemContentProvider;
-import org.eclipse.emf.edit.provider.ITreeItemContentProvider;
-import org.eclipse.emf.edit.provider.ItemProviderAdapter;
 import org.eclipse.emf.edit.provider.ViewerNotification;
 
 /**
@@ -31,8 +24,7 @@ import org.eclipse.emf.edit.provider.ViewerNotification;
  * <!-- end-user-doc -->
  * @generated
  */
-public class PipelineItemProvider extends ItemProviderAdapter implements IEditingDomainItemProvider,
-		IStructuredItemContentProvider, ITreeItemContentProvider, IItemLabelProvider, IItemPropertySource {
+public class PipelineItemProvider extends PipelineBlockItemProvider {
 	/**
 	 * This constructs an instance from a factory and a notifier.
 	 * <!-- begin-user-doc -->
@@ -54,8 +46,24 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		if (itemPropertyDescriptors == null) {
 			super.getPropertyDescriptors(object);
 
+			addJobStreamsPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
+	}
+
+	/**
+	 * This adds a property descriptor for the Job Streams feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addJobStreamsPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Pipeline_jobStreams_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Pipeline_jobStreams_feature",
+								"_UI_Pipeline_type"),
+						PimMMPackage.Literals.PIPELINE__JOB_STREAMS, true, false, true, null, null, null));
 	}
 
 	/**
@@ -70,7 +78,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
-			childrenFeatures.add(PimMMPackage.Literals.PIPELINE__STAGES);
+			childrenFeatures.add(PimMMPackage.Literals.PIPELINE__TRIGGERS);
 		}
 		return childrenFeatures;
 	}
@@ -117,7 +125,9 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	 */
 	@Override
 	public String getText(Object object) {
-		return getString("_UI_Pipeline_type");
+		String label = ((Pipeline) object).getName();
+		return label == null || label.length() == 0 ? getString("_UI_Pipeline_type")
+				: getString("_UI_Pipeline_type") + " " + label;
 	}
 
 	/**
@@ -132,7 +142,7 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		updateChildren(notification);
 
 		switch (notification.getFeatureID(Pipeline.class)) {
-		case PimMMPackage.PIPELINE__STAGES:
+		case PimMMPackage.PIPELINE__TRIGGERS:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -150,19 +160,39 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
-		newChildDescriptors.add(
-				createChildParameter(PimMMPackage.Literals.PIPELINE__STAGES, PimMMFactory.eINSTANCE.createStage()));
+		newChildDescriptors.add(createChildParameter(PimMMPackage.Literals.PIPELINE__TRIGGERS,
+				PimMMFactory.eINSTANCE.createPushTrigger()));
+
+		newChildDescriptors.add(createChildParameter(PimMMPackage.Literals.PIPELINE__TRIGGERS,
+				PimMMFactory.eINSTANCE.createPullRequestTrigger()));
+
+		newChildDescriptors.add(createChildParameter(PimMMPackage.Literals.PIPELINE__TRIGGERS,
+				PimMMFactory.eINSTANCE.createManualTrigger()));
+
+		newChildDescriptors.add(createChildParameter(PimMMPackage.Literals.PIPELINE__TRIGGERS,
+				PimMMFactory.eINSTANCE.createScheduledTrigger()));
 	}
 
 	/**
-	 * Return the resource locator for this item provider's resources.
+	 * This returns the label text for {@link org.eclipse.emf.edit.command.CreateChildCommand}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public ResourceLocator getResourceLocator() {
-		return PimMMEditPlugin.INSTANCE;
+	public String getCreateChildText(Object owner, Object feature, Object child, Collection<?> selection) {
+		Object childFeature = feature;
+		Object childObject = child;
+
+		boolean qualify = childFeature == PimMMPackage.Literals.PIPELINE_BLOCK__ENVIRONMENT_VARIABLES
+				|| childFeature == PimMMPackage.Literals.PIPELINE_BLOCK__WORKING_DIRECTORY
+				|| childFeature == PimMMPackage.Literals.PIPELINE_BLOCK__SHELL;
+
+		if (qualify) {
+			return getString("_UI_CreateChild_text2",
+					new Object[] { getTypeText(childObject), getFeatureText(childFeature), getTypeText(owner) });
+		}
+		return super.getCreateChildText(owner, feature, child, selection);
 	}
 
 }

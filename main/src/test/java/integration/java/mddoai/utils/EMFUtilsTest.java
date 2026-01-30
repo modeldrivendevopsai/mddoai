@@ -23,7 +23,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.pim.pimMM.PimMMFactory;
 import com.mddoai.metamodel.pim.pimMM.PimMMPackage;
 import com.mddoai.metamodel.pim.pimMM.Pipeline;
-import com.mddoai.metamodel.pim.pimMM.Stage;
+import com.mddoai.metamodel.pim.pimMM.ScriptJob;
 import com.mddoai.metamodel.swarch.SwarchPackage;
 
 import main.java.mddoai.utils.EMFUtils;
@@ -108,12 +108,12 @@ public class EMFUtilsTest {
         
         Pipeline pipeline = PimMMFactory.eINSTANCE.createPipeline();
         
-        Stage stage1 = PimMMFactory.eINSTANCE.createStage();
+        ScriptJob stage1 = PimMMFactory.eINSTANCE.createScriptJob();
         stage1.setName("Stage1");
-        Stage stage2 = PimMMFactory.eINSTANCE.createStage();
+        ScriptJob stage2 = PimMMFactory.eINSTANCE.createScriptJob();
         stage2.setName("Stage2");
-        pipeline.getStages().add(stage1);
-        pipeline.getStages().add(stage2);
+        pipeline.getJobStreams().add(stage1);
+        pipeline.getJobStreams().add(stage2);
         
         EMFUtils.init();
         
@@ -125,9 +125,9 @@ public class EMFUtilsTest {
         Pipeline deserializedPipeline = (Pipeline) EMFUtils.deserializeModel(TEST_PIM_MODEL_PATH, newResourceSet);
         
         assertNotNull(deserializedPipeline);
-        assertEquals(2, deserializedPipeline.getStages().size());
-        assertEquals("Stage1", deserializedPipeline.getStages().get(0).getName());
-        assertEquals("Stage2", deserializedPipeline.getStages().get(1).getName());
+        assertEquals(2, deserializedPipeline.getJobStreams().size());
+        assertEquals("Stage1", deserializedPipeline.getJobStreams().get(0).getName());
+        assertEquals("Stage2", deserializedPipeline.getJobStreams().get(1).getName());
     }
     
     @Test

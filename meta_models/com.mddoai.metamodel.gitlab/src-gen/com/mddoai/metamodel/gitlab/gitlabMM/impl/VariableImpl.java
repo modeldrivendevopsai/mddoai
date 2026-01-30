@@ -22,6 +22,8 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getValue <em>Value</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getDescription <em>Description</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#isExpand <em>Expand</em>}</li>
  * </ul>
  *
  * @generated
@@ -66,6 +68,46 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 	 * @ordered
 	 */
 	protected String value = VALUE_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getDescription() <em>Description</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getDescription()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final String DESCRIPTION_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getDescription() <em>Description</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getDescription()
+	 * @generated
+	 * @ordered
+	 */
+	protected String description = DESCRIPTION_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #isExpand() <em>Expand</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isExpand()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final boolean EXPAND_EDEFAULT = false;
+
+	/**
+	 * The cached value of the '{@link #isExpand() <em>Expand</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #isExpand()
+	 * @generated
+	 * @ordered
+	 */
+	protected boolean expand = EXPAND_EDEFAULT;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -138,12 +180,63 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 	 * @generated
 	 */
 	@Override
+	public String getDescription() {
+		return description;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setDescription(String newDescription) {
+		String oldDescription = description;
+		description = newDescription;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.VARIABLE__DESCRIPTION, oldDescription,
+					description));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public boolean isExpand() {
+		return expand;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setExpand(boolean newExpand) {
+		boolean oldExpand = expand;
+		expand = newExpand;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.VARIABLE__EXPAND, oldExpand, expand));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public Object eGet(int featureID, boolean resolve, boolean coreType) {
 		switch (featureID) {
 		case GitlabMMPackage.VARIABLE__NAME:
 			return getName();
 		case GitlabMMPackage.VARIABLE__VALUE:
 			return getValue();
+		case GitlabMMPackage.VARIABLE__DESCRIPTION:
+			return getDescription();
+		case GitlabMMPackage.VARIABLE__EXPAND:
+			return isExpand();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -161,6 +254,12 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 			return;
 		case GitlabMMPackage.VARIABLE__VALUE:
 			setValue((String) newValue);
+			return;
+		case GitlabMMPackage.VARIABLE__DESCRIPTION:
+			setDescription((String) newValue);
+			return;
+		case GitlabMMPackage.VARIABLE__EXPAND:
+			setExpand((Boolean) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -180,6 +279,12 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 		case GitlabMMPackage.VARIABLE__VALUE:
 			setValue(VALUE_EDEFAULT);
 			return;
+		case GitlabMMPackage.VARIABLE__DESCRIPTION:
+			setDescription(DESCRIPTION_EDEFAULT);
+			return;
+		case GitlabMMPackage.VARIABLE__EXPAND:
+			setExpand(EXPAND_EDEFAULT);
+			return;
 		}
 		super.eUnset(featureID);
 	}
@@ -196,6 +301,10 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 			return NAME_EDEFAULT == null ? name != null : !NAME_EDEFAULT.equals(name);
 		case GitlabMMPackage.VARIABLE__VALUE:
 			return VALUE_EDEFAULT == null ? value != null : !VALUE_EDEFAULT.equals(value);
+		case GitlabMMPackage.VARIABLE__DESCRIPTION:
+			return DESCRIPTION_EDEFAULT == null ? description != null : !DESCRIPTION_EDEFAULT.equals(description);
+		case GitlabMMPackage.VARIABLE__EXPAND:
+			return expand != EXPAND_EDEFAULT;
 		}
 		return super.eIsSet(featureID);
 	}
@@ -215,6 +324,10 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 		result.append(name);
 		result.append(", value: ");
 		result.append(value);
+		result.append(", description: ");
+		result.append(description);
+		result.append(", expand: ");
+		result.append(expand);
 		result.append(')');
 		return result.toString();
 	}

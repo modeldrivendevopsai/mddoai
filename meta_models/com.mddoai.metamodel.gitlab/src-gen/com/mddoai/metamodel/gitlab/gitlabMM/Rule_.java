@@ -2,6 +2,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM;
 
+import org.eclipse.emf.common.util.EList;
+
 import org.eclipse.emf.ecore.EObject;
 
 /**
@@ -15,6 +17,10 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getIf_ <em>If </em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getWhen <em>When</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getChanges <em>Changes</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getExists <em>Exists</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#isAllowFailure <em>Allow Failure</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getVariables <em>Variables</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRule_()
@@ -65,5 +71,73 @@ public interface Rule_ extends EObject {
 	 * @generated
 	 */
 	void setWhen(String value);
+
+	/**
+	 * Returns the value of the '<em><b>Changes</b></em>' attribute list.
+	 * The list contents are of type {@link java.lang.String}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Changes</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRule__Changes()
+	 * @model
+	 * @generated
+	 */
+	EList<String> getChanges();
+
+	/**
+	 * Returns the value of the '<em><b>Exists</b></em>' attribute list.
+	 * The list contents are of type {@link java.lang.String}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Exists</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRule__Exists()
+	 * @model
+	 * @generated
+	 */
+	EList<String> getExists();
+
+	/**
+	 * Returns the value of the '<em><b>Allow Failure</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Allow Failure</em>' attribute.
+	 * @see #setAllowFailure(boolean)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRule__AllowFailure()
+	 * @model
+	 * @generated
+	 */
+	boolean isAllowFailure();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#isAllowFailure <em>Allow Failure</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Allow Failure</em>' attribute.
+	 * @see #isAllowFailure()
+	 * @generated
+	 */
+	void setAllowFailure(boolean value);
+
+	/**
+	 * Returns the value of the '<em><b>Variables</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Variables</em>' containment reference.
+	 * @see #setVariables(Variables)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRule__Variables()
+	 * @model containment="true"
+	 * @generated
+	 */
+	Variables getVariables();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getVariables <em>Variables</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Variables</em>' containment reference.
+	 * @see #getVariables()
+	 * @generated
+	 */
+	void setVariables(Variables value);
 
 } // Rule_

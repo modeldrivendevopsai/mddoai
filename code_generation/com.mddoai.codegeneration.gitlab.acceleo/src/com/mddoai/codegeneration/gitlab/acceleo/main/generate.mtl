@@ -18,7 +18,7 @@
 [generateVariables(aPipeline.variables)/]
 [if (aPipeline.jobs->notEmpty())]
 [for (j: Job | aPipeline.jobs)]
-[generateJob(j)/] 
+[generateJob(j)/]
 [/for]
 [/if]
 [/file]
@@ -57,10 +57,11 @@ variables:
 [job.name/]:
   stage: [job.stage/]
   [if (job.image <> null)]
-  image: [job.image/]
+  image: [job.image.name/]
   [/if]
-  [generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateDependencies(job.dependencies)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
+  [generateServices(job.services)/][generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateNeeds(job)/][generateJobVariables(job.variables)/][generateAllowFailure(job.allowFailure)/][generateTimeout(job.timeout)/][generateRetry(job.retry)/][generateParallel(job.parallel)/][generateRules(job.rules)/][generateCache(job.cache)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
 [/template]
+
 [comment][generateTags(job.tags)/][/comment]
 [template public generateScript(script: Script)]
 [if (script <> null and script.commands->notEmpty())]
@@ -107,6 +108,21 @@ dependencies:
 [/if]
 [/template]
 
+[template public generateNeeds(job: Job)]
+[if (job.needs->notEmpty())]
+needs:
+[for (need : Need | job.needs)]
+  - job: "[need.job/]"
+[if (need.artifacts <> null and need.artifacts = false)]
+    artifacts: false
+[/if]
+[if (need.optional <> null and need.optional = true)]
+    optional: true
+[/if]
+[/for]
+[/if]
+[/template]
+
 [template public generateArtifacts(a : Artifact)]
 [if (a <> null)]
 artifacts:
@@ -129,3 +145,84 @@ artifacts:
 reports:
   junit: [report.junit/]
 [/template]
+
+[template public generateJobVariables(variables: Variables)]
+[if (variables <> null and variables.variables->notEmpty())]
+  variables:
+[for (variable : Variable | variables.variables)]
+    [variable.name/]: [variable.value/]
+[/for]
+[/if]
+[/template]
+
+[template public generateServices(services: OrderedSet(Service))]
+[if (services->notEmpty())]
+  services:
+[for (service : Service | services)]
+    - name: [service.name/]
+[if (service.alias <> null)]
+      alias: [service.alias/]
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateAllowFailure(allowFailure: Boolean)]
+[if (allowFailure <> null and allowFailure = true)]
+  allow_failure: true
+[/if]
+[/template]
+
+[template public generateTimeout(timeout: String)]
+[if (timeout <> null)]
+  timeout: [timeout/]
+[/if]
+[/template]
+
+[template public generateRetry(retry: Retry)]
+[if (retry <> null)]
+  retry:
+    max: [retry.max/]
+[/if]
+[/template]
+
+[template public generateParallel(parallel: Parallel)]
+[if (parallel <> null and parallel.matrix <> null)]
+  parallel:
+    matrix:
+[for (axis : Axis | parallel.matrix.axes)]
+      - [axis.name/]:
+[for (value : String | axis.values)]
+          - "[value/]"
+[/for]
+[/for]
+[/if]
+[/template]
+
+[template public generateRules(rules: OrderedSet(Rule_))]
+[if (rules->notEmpty())]
+  rules:
+[for (rule : Rule_ | rules)]
+    - if: [rule.if_/]
+[if (rule.when <> null)]
+      when: [rule.when/]
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateCache(cache: Cache)]
+[if (cache <> null)]
+  cache:
+[if (cache.key <> null)]
+    key: [cache.key.name/]
+[/if]
+[if (cache.paths->notEmpty())]
+    paths:
+[for (path : String | cache.paths)]
+      - [path/]
+[/for]
+[/if]
+[/if]
+[/template]
+

@@ -15,6 +15,7 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/jobs"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/variables"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/workflow"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Pipeline/default"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Job">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/name"/>
@@ -22,19 +23,40 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/artifacts"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/script"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/beforeScript"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/image"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/tags"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/only"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/dependencies"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/when"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/image"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/allowFailure"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/timeout"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/interruptible"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Job/resourceGroup"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/afterScript"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/cache"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/rules"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/needs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/environment"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/retry"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Job/parallel"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Artifact">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/when"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Artifact/reports"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EReference gitlabMM.ecore#//Artifact/paths"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/expireIn"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/expose_as"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/untracked"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Artifact/exclude"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Report">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Report/junit"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Report/coverage_report"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Report/dotenv"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Report/cobertura"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Comand">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Comand/comand"/>
@@ -69,6 +91,8 @@
     <genClasses ecoreClass="gitlabMM.ecore#//Variable">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Variable/name"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Variable/value"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Variable/description"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Variable/expand"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Path">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Path/path"/>
@@ -76,9 +100,94 @@
     <genClasses ecoreClass="gitlabMM.ecore#//Rule_">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule_/if_"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule_/when"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule_/changes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule_/exists"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Rule_/allowFailure"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Rule_/variables"/>
     </genClasses>
     <genClasses ecoreClass="gitlabMM.ecore#//Workflow">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Workflow/rules"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Image">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Image/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Image/entrypoint"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Image/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Image/kubernetes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Image/pull_policy"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Docker">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Docker/platform"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Docker/user"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Kubernetes">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Kubernetes/user"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Service">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Service/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Service/alias"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Service/entrypoint"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Service/commands"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Service/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Service/kubernetes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Service/pull_policy"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Cache">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Cache/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Cache/paths"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Cache/untracked"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Cache/unprotect"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Cache/when"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Key">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Key/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Key/files"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Key/files_commits"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Key/prefix"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Need">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/job"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/artifacts"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/project"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/ref"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/pipeline"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Need/optional"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Environment">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Environment/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Environment/url"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Environment/on_stop"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Environment/action"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Environment/auto_stop_in"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Environment/kubernetes"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//AfterScript">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//AfterScript/commands"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Default">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/image"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/tags"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/cache"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/beforeScript"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/afterScript"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Default/timeout"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Default/interruptible"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Default/retry"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Retry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Retry/max"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Retry/when"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Axis">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Axis/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Axis/values"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Matrix">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Matrix/axes"/>
+    </genClasses>
+    <genClasses ecoreClass="gitlabMM.ecore#//Parallel">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gitlabMM.ecore#//Parallel/count"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference gitlabMM.ecore#//Parallel/matrix"/>
     </genClasses>
   </genPackages>
 </genmodel:GenModel>

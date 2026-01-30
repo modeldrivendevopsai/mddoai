@@ -46,8 +46,8 @@ public class ModleLoaderTest {
 			Pipeline model = ModelLoader.loadModel(modelPath, resourceSet, Pipeline.class);
 			
 			assertNotNull(model);
-			assertEquals(2, model.getStages().size());
-			assertEquals("build", model.getStages().get(0).getName());
+			assertEquals(4, model.getJobStreams().size());
+			assertEquals("build", model.getJobStreams().get(0).getName());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

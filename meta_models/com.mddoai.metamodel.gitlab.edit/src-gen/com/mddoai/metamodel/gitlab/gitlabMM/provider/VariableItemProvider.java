@@ -55,6 +55,8 @@ public class VariableItemProvider extends ItemProviderAdapter implements IEditin
 
 			addNamePropertyDescriptor(object);
 			addValuePropertyDescriptor(object);
+			addDescriptionPropertyDescriptor(object);
+			addExpandPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -89,6 +91,38 @@ public class VariableItemProvider extends ItemProviderAdapter implements IEditin
 								"_UI_Variable_type"),
 						GitlabMMPackage.Literals.VARIABLE__VALUE, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Description feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addDescriptionPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Variable_description_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Variable_description_feature",
+								"_UI_Variable_type"),
+						GitlabMMPackage.Literals.VARIABLE__DESCRIPTION, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Expand feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExpandPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Variable_expand_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Variable_expand_feature",
+								"_UI_Variable_type"),
+						GitlabMMPackage.Literals.VARIABLE__EXPAND, true, false, false,
+						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -139,6 +173,8 @@ public class VariableItemProvider extends ItemProviderAdapter implements IEditin
 		switch (notification.getFeatureID(Variable.class)) {
 		case GitlabMMPackage.VARIABLE__NAME:
 		case GitlabMMPackage.VARIABLE__VALUE:
+		case GitlabMMPackage.VARIABLE__DESCRIPTION:
+		case GitlabMMPackage.VARIABLE__EXPAND:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		}

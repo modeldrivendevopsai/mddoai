@@ -2,6 +2,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.provider;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMFactory;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
 
@@ -12,6 +13,8 @@ import org.eclipse.emf.common.notify.AdapterFactory;
 import org.eclipse.emf.common.notify.Notification;
 
 import org.eclipse.emf.common.util.ResourceLocator;
+
+import org.eclipse.emf.ecore.EStructuralFeature;
 
 import org.eclipse.emf.edit.provider.ComposeableAdapterFactory;
 import org.eclipse.emf.edit.provider.IEditingDomainItemProvider;
@@ -55,6 +58,9 @@ public class Rule_ItemProvider extends ItemProviderAdapter implements IEditingDo
 
 			addIf_PropertyDescriptor(object);
 			addWhenPropertyDescriptor(object);
+			addChangesPropertyDescriptor(object);
+			addExistsPropertyDescriptor(object);
+			addAllowFailurePropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -87,6 +93,82 @@ public class Rule_ItemProvider extends ItemProviderAdapter implements IEditingDo
 						getString("_UI_PropertyDescriptor_description", "_UI_Rule__when_feature", "_UI_Rule__type"),
 						GitlabMMPackage.Literals.RULE___WHEN, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Changes feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addChangesPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule__changes_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule__changes_feature", "_UI_Rule__type"),
+						GitlabMMPackage.Literals.RULE___CHANGES, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Exists feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExistsPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule__exists_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule__exists_feature", "_UI_Rule__type"),
+						GitlabMMPackage.Literals.RULE___EXISTS, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Allow Failure feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addAllowFailurePropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Rule__allowFailure_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Rule__allowFailure_feature",
+								"_UI_Rule__type"),
+						GitlabMMPackage.Literals.RULE___ALLOW_FAILURE, true, false, false,
+						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This specifies how to implement {@link #getChildren} and is used to deduce an appropriate feature for an
+	 * {@link org.eclipse.emf.edit.command.AddCommand}, {@link org.eclipse.emf.edit.command.RemoveCommand} or
+	 * {@link org.eclipse.emf.edit.command.MoveCommand} in {@link #createCommand}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
+		if (childrenFeatures == null) {
+			super.getChildrenFeatures(object);
+			childrenFeatures.add(GitlabMMPackage.Literals.RULE___VARIABLES);
+		}
+		return childrenFeatures;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	protected EStructuralFeature getChildFeature(Object object, Object child) {
+		// Check the type of the specified child object and return the proper feature to use for
+		// adding (see {@link AddCommand}) it as a child.
+
+		return super.getChildFeature(object, child);
 	}
 
 	/**
@@ -137,7 +219,13 @@ public class Rule_ItemProvider extends ItemProviderAdapter implements IEditingDo
 		switch (notification.getFeatureID(Rule_.class)) {
 		case GitlabMMPackage.RULE___IF_:
 		case GitlabMMPackage.RULE___WHEN:
+		case GitlabMMPackage.RULE___CHANGES:
+		case GitlabMMPackage.RULE___EXISTS:
+		case GitlabMMPackage.RULE___ALLOW_FAILURE:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
+			return;
+		case GitlabMMPackage.RULE___VARIABLES:
+			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
 		super.notifyChanged(notification);
@@ -153,6 +241,9 @@ public class Rule_ItemProvider extends ItemProviderAdapter implements IEditingDo
 	@Override
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.RULE___VARIABLES,
+				GitlabMMFactory.eINSTANCE.createVariables()));
 	}
 
 	/**

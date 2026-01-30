@@ -2,6 +2,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.Default;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
@@ -37,6 +38,7 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getJobs <em>Jobs</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getWorkflow <em>Workflow</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getDefault <em>Default</em>}</li>
  * </ul>
  *
  * @generated
@@ -81,6 +83,16 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @ordered
 	 */
 	protected Workflow workflow;
+
+	/**
+	 * The cached value of the '{@link #getDefault() <em>Default</em>}' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getDefault()
+	 * @generated
+	 * @ordered
+	 */
+	protected Default default_;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -237,6 +249,58 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @generated
 	 */
 	@Override
+	public Default getDefault() {
+		return default_;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetDefault(Default newDefault, NotificationChain msgs) {
+		Default oldDefault = default_;
+		default_ = newDefault;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.PIPELINE__DEFAULT, oldDefault, newDefault);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setDefault(Default newDefault) {
+		if (newDefault != default_) {
+			NotificationChain msgs = null;
+			if (default_ != null)
+				msgs = ((InternalEObject) default_).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULT, null, msgs);
+			if (newDefault != null)
+				msgs = ((InternalEObject) newDefault).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULT, null, msgs);
+			msgs = basicSetDefault(newDefault, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PIPELINE__DEFAULT, newDefault,
+					newDefault));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
 		case GitlabMMPackage.PIPELINE__JOBS:
@@ -245,6 +309,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			return basicSetVariables(null, msgs);
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return basicSetWorkflow(null, msgs);
+		case GitlabMMPackage.PIPELINE__DEFAULT:
+			return basicSetDefault(null, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -265,6 +331,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			return getVariables();
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return getWorkflow();
+		case GitlabMMPackage.PIPELINE__DEFAULT:
+			return getDefault();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -292,6 +360,9 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			setWorkflow((Workflow) newValue);
 			return;
+		case GitlabMMPackage.PIPELINE__DEFAULT:
+			setDefault((Default) newValue);
+			return;
 		}
 		super.eSet(featureID, newValue);
 	}
@@ -316,6 +387,9 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			setWorkflow((Workflow) null);
 			return;
+		case GitlabMMPackage.PIPELINE__DEFAULT:
+			setDefault((Default) null);
+			return;
 		}
 		super.eUnset(featureID);
 	}
@@ -336,6 +410,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			return variables != null;
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return workflow != null;
+		case GitlabMMPackage.PIPELINE__DEFAULT:
+			return default_ != null;
 		}
 		return super.eIsSet(featureID);
 	}

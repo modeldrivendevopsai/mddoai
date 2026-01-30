@@ -54,6 +54,9 @@ public class ReportItemProvider extends ItemProviderAdapter implements IEditingD
 			super.getPropertyDescriptors(object);
 
 			addJunitPropertyDescriptor(object);
+			addCoverage_reportPropertyDescriptor(object);
+			addDotenvPropertyDescriptor(object);
+			addCoberturaPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -70,6 +73,53 @@ public class ReportItemProvider extends ItemProviderAdapter implements IEditingD
 						getResourceLocator(), getString("_UI_Report_junit_feature"),
 						getString("_UI_PropertyDescriptor_description", "_UI_Report_junit_feature", "_UI_Report_type"),
 						GitlabMMPackage.Literals.REPORT__JUNIT, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Coverage report feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addCoverage_reportPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Report_coverage_report_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Report_coverage_report_feature",
+								"_UI_Report_type"),
+						GitlabMMPackage.Literals.REPORT__COVERAGE_REPORT, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Dotenv feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addDotenvPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Report_dotenv_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Report_dotenv_feature", "_UI_Report_type"),
+						GitlabMMPackage.Literals.REPORT__DOTENV, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Cobertura feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addCoberturaPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Report_cobertura_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Report_cobertura_feature",
+								"_UI_Report_type"),
+						GitlabMMPackage.Literals.REPORT__COBERTURA, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
@@ -120,6 +170,9 @@ public class ReportItemProvider extends ItemProviderAdapter implements IEditingD
 
 		switch (notification.getFeatureID(Report.class)) {
 		case GitlabMMPackage.REPORT__JUNIT:
+		case GitlabMMPackage.REPORT__COVERAGE_REPORT:
+		case GitlabMMPackage.REPORT__DOTENV:
+		case GitlabMMPackage.REPORT__COBERTURA:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		}

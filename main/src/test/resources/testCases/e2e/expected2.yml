@@ -6,11 +6,6 @@
 # For more information, visit: https://mddoai.com
 #######################################################################
 
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
-    - if: $CI_COMMIT_BRANCH
-
 stages:
   - build
   - test
