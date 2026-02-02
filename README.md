@@ -44,10 +44,10 @@ Choose your method below:
 
 ```bash
 # Production release (recommended)
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1
 
 # Or latest development version
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0-snapshot
 ```
 
 ### Step 2: Prepare Your Input
@@ -65,7 +65,7 @@ mkdir -p input output
 docker run --rm \
   -v "$(pwd)/input:/app/input" \
   -v "$(pwd)/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/your-model.swarch" "/app/output"
 ```
 
@@ -82,17 +82,17 @@ docker run --rm \
 docker run --rm \
   -v "/full/path/to/input:/app/input" \
   -v "/full/path/to/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/your-model.swarch" "/app/output"
 ```
 
 **For CI/CD pipelines:**
 ```bash
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1
 docker run --rm \
   -v "$(pwd)/models:/app/input" \
   -v "$(pwd)/generated:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/architecture.swarch" "/app/output"
 ```
 
@@ -128,6 +128,11 @@ Run the Gradle build command:
 ./gradlew installDist
 ```
 
+**Note for Windows users:** 
+- In PowerShell: Use `./gradlew` (as shown above).
+- In CMD: Use `.\gradlew` instead.
+- On Linux/macOS: Use `./gradlew` (as shown above).
+
 
 **Expected output:** `BUILD SUCCESSFUL`
 
@@ -137,6 +142,11 @@ This creates executable scripts in `build/install/com.mddoai/bin/`.
 ```bash
 ./cli.bat <Type> <InputModelPath> <OutputFolder>
 ```
+
+**Note for Windows users:** 
+- In PowerShell: Use `./cli.bat` (as shown above).
+- In CMD: Use `.\cli.bat` instead.
+- On Linux/macOS: Use `./cli.sh` (if available) or adapt accordingly.
 ---
 
 ## Transformation Types
@@ -159,6 +169,8 @@ MDDOAI supports three transformation types:
 
 ## Usage Examples
 
+**Note:** All commands use `./` for Unix-like systems and PowerShell. On Windows CMD, replace `./` with `.\` (e.g., `.\cli.bat` instead of `./cli.bat`).
+
 ### Example 1: Transform Architecture Model (Docker)
 
 ```bash
@@ -170,7 +182,7 @@ cp my-app.swarch input/
 docker run --rm \
   -v "$(pwd)/input:/app/input" \
   -v "$(pwd)/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/my-app.swarch" "/app/output"
 
 # Check result
@@ -206,6 +218,10 @@ cd main
 ./gradlew integrationTest   # Integration tests
 ./gradlew test              # Unit tests
 ```
+
+**Note for Windows users:** 
+- In PowerShell: Use `./gradlew` (as shown above).
+- In CMD: Use `.\gradlew` instead.
 
 ### Coverage Reports
 
