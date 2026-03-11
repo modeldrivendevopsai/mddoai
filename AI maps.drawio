@@ -100,8 +100,8 @@
         <mxCell id="NdLV79dXn-VGi25_OTUK-1544" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Code Review" vertex="1">
           <mxGeometry height="30" width="90" x="2030" y="369" as="geometry" />
         </mxCell>
-        <mxCell id="NdLV79dXn-VGi25_OTUK-1550" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Claude" vertex="1">
-          <mxGeometry height="60" width="120" x="1800" as="geometry" />
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1550" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Conversational AI 2.0" vertex="1">
+          <mxGeometry height="60" width="120" x="1850" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1551" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Veo 3" vertex="1">
           <mxGeometry height="70" width="70" x="1330" y="-180" as="geometry" />
