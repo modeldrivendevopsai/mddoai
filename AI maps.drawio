@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.1">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="Page-1">
-    <mxGraphModel dx="864" dy="528" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1240" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -14,18 +14,21 @@
         <mxCell id="NdLV79dXn-VGi25_OTUK-1532" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;" value="Anthropic" vertex="1">
           <mxGeometry height="170" width="370" x="1800" y="250" as="geometry" />
         </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1536" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;" value="Tilde" vertex="1">
+          <mxGeometry height="170" width="190" x="750" y="1220" as="geometry" />
+        </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1537" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;" value="Mistral" vertex="1">
+          <mxGeometry height="170" width="190" x="1020" y="1220" as="geometry" />
+        </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1538" parent="NdLV79dXn-VGi25_OTUK-1529" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" value="Policy, regulation, process" vertex="1">
+          <mxGeometry height="50" width="60" x="1169" y="364" as="geometry" />
+        </mxCell>
         <mxCell id="1" parent="0" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
-          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=6;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" vertex="1">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" vertex="1">
             <mxGeometry height="90" width="90" x="860" y="640" as="geometry" />
           </mxCell>
         </UserObject>
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1547" edge="1" parent="1" source="zvods7Q_8VXGQD6KORxb-1542" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#736CA8;fontColor=#1A1A1A;curved=1;fontSize=11;" target="zvods7Q_8VXGQD6KORxb-1543">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1542" parent="1" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;" value="Tilde" vertex="1">
-          <mxGeometry height="30" width="136.5" x="923.5" y="1350" as="geometry" />
-        </mxCell>
         <mxCell id="zvods7Q_8VXGQD6KORxb-1543" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="TildeLLM" vertex="1">
           <mxGeometry height="70" width="70" x="720" y="1180" as="geometry" />
         </mxCell>
@@ -33,20 +36,20 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <UserObject label="European Commission’s Apply AI Strategy" link="https://digital-strategy.ec.europa.eu/en/policies/apply-ai" linkTarget="_blank" id="zvods7Q_8VXGQD6KORxb-1548">
-          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=6;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" vertex="1">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" vertex="1">
             <mxGeometry height="80" width="120" x="620" y="670" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1515" edge="1" parent="1" source="zvods7Q_8VXGQD6KORxb-1549" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;fontSize=11;" target="zvods7Q_8VXGQD6KORxb-1548">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1549" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=6;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" value="RAISE" vertex="1">
+        <mxCell id="zvods7Q_8VXGQD6KORxb-1549" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" value="RAISE" vertex="1">
           <mxGeometry height="50" width="60" x="680" y="930" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1516" edge="1" parent="1" source="zvods7Q_8VXGQD6KORxb-1551" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=1;entryDx=0;entryDy=0;curved=1;fontSize=11;" target="zvods7Q_8VXGQD6KORxb-1548">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1551" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=6;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" value="AI Act" vertex="1">
+        <mxCell id="zvods7Q_8VXGQD6KORxb-1551" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" value="AI Act" vertex="1">
           <mxGeometry height="60" width="70" x="470" y="870" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1517" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="OpenClaw" vertex="1">
