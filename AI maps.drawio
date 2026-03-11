@@ -1,9 +1,9 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.1">
-  <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="Page-1">
-    <mxGraphModel dx="1783" dy="1916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.1" pages="2">
+  <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
+    <mxGraphModel dx="1783" dy="2743" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
+        <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=0;" value="Regions" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1546" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;European Union&lt;/span&gt;" vertex="1">
           <mxGeometry height="1030" width="1030" x="380" y="590" as="geometry" />
         </mxCell>
@@ -28,6 +28,9 @@
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1548" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Meta&amp;nbsp;" vertex="1">
           <mxGeometry height="220" width="530" x="1640" y="-650" as="geometry" />
+        </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1553" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Microsoft" vertex="1">
+          <mxGeometry height="220" width="530" x="1630" y="-950" as="geometry" />
         </mxCell>
         <mxCell id="1" parent="0" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
@@ -105,6 +108,27 @@
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1551" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Veo 3" vertex="1">
           <mxGeometry height="70" width="70" x="1330" y="-180" as="geometry" />
+        </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1554" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Copilot Cowork" vertex="1">
+          <mxGeometry height="60" width="120" x="1820" y="-850" as="geometry" />
+        </mxCell>
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1555" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Outlook, Excel" vertex="1">
+          <mxGeometry height="30" width="90" x="1930" y="-850" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="yRk8kg3b6mvS0BKQBN_B" name="Start-up maps">
+    <mxGraphModel dx="3227" dy="2552" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ni2DqFewgc7jvjfvqCDW-1" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;Latvia&lt;/span&gt;" vertex="1">
+          <mxGeometry height="1030" width="1030" x="-80" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ni2DqFewgc7jvjfvqCDW-2" parent="0" value="Regions" />
+        <mxCell id="Hp7F5w23jgB2q5RF2-HP-1" parent="ni2DqFewgc7jvjfvqCDW-2" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;TBDC&lt;/h1&gt;&lt;p&gt;Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="610" y="-520" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
