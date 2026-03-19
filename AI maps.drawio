@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.3" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="1501" dy="2571" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1056" dy="2299" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -49,6 +49,9 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1550" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Amazon" vertex="1">
           <mxGeometry height="220" width="530" x="1620" y="-1600" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1556" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Devin" vertex="1">
+          <mxGeometry height="220" width="430" x="2520" y="1048" as="geometry" />
         </mxCell>
         <mxCell id="1" parent="0" style="locked=0;" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
@@ -232,6 +235,12 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1555" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF0000;fontStyle=1" value="No Trial, pay upfront" vertex="1">
           <mxGeometry height="30" width="80" x="2075" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1558" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Devin Review" vertex="1">
+          <mxGeometry height="70" width="120" x="2750" y="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1559" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#97D077;fontStyle=1" value="Free" vertex="1">
+          <mxGeometry height="30" width="60" x="2820" y="1130" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
