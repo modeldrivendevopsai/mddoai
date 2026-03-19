@@ -35,7 +35,7 @@
         <mxCell id="hdK8f44e5-gqTikMMB0n-1525" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="GitHub" vertex="1">
           <mxGeometry height="220" width="530" x="1100" y="-950" as="geometry" />
         </mxCell>
-        <mxCell id="hdK8f44e5-gqTikMMB0n-1531" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="CodeRabbit" vertex="1">
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1531" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="CodeRabbit.ai" vertex="1">
           <mxGeometry height="220" width="260" x="310" y="-660" as="geometry" />
         </mxCell>
         <mxCell id="1" parent="0" value="Elements" />
@@ -190,6 +190,9 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1539" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFCCCC;fontStyle=1" value="Trial period" vertex="1">
           <mxGeometry height="30" width="60" x="370" y="-610" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1540" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF0000;fontStyle=1" value="No Trial, pay upfront" vertex="1">
+          <mxGeometry height="30" width="80" x="1510" y="-835" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
