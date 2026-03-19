@@ -4,7 +4,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -17,5 +17,5 @@ import org.eclipse.emf.common.util.EList;
 public interface WorkflowValidator {
 	boolean validate();
 
-	boolean validateRules(EList<Rule_> value);
+	boolean validateRules(EList<GitlabRule> value);
 }

@@ -10,12 +10,12 @@ import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
 import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
 import com.mddoai.metamodel.gitlab.gitlabMM.Dependencies;
 import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Need;
 import com.mddoai.metamodel.gitlab.gitlabMM.Only;
 import com.mddoai.metamodel.gitlab.gitlabMM.Parallel;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
@@ -64,7 +64,7 @@ public interface JobValidator {
 
 	boolean validateCache(Cache value);
 
-	boolean validateRules(EList<Rule_> value);
+	boolean validateRules(EList<GitlabRule> value);
 
 	boolean validateNeeds(EList<Need> value);
 

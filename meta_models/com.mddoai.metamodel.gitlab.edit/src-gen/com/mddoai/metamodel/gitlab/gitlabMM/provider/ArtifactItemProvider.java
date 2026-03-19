@@ -60,7 +60,7 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 			addPathsPropertyDescriptor(object);
 			addNamePropertyDescriptor(object);
 			addExpireInPropertyDescriptor(object);
-			addExpose_asPropertyDescriptor(object);
+			addExposeAsPropertyDescriptor(object);
 			addUntrackedPropertyDescriptor(object);
 			addExcludePropertyDescriptor(object);
 		}
@@ -131,16 +131,16 @@ public class ArtifactItemProvider extends ItemProviderAdapter implements IEditin
 	}
 
 	/**
-	 * This adds a property descriptor for the Expose as feature.
+	 * This adds a property descriptor for the Expose As feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addExpose_asPropertyDescriptor(Object object) {
+	protected void addExposeAsPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Artifact_expose_as_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_expose_as_feature",
+						getResourceLocator(), getString("_UI_Artifact_exposeAs_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Artifact_exposeAs_feature",
 								"_UI_Artifact_type"),
 						GitlabMMPackage.Literals.ARTIFACT__EXPOSE_AS, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));

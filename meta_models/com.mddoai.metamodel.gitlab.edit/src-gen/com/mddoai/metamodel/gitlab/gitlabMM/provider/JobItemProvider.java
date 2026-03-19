@@ -345,8 +345,8 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 		newChildDescriptors.add(
 				createChildParameter(GitlabMMPackage.Literals.JOB__CACHE, GitlabMMFactory.eINSTANCE.createCache()));
 
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.JOB__RULES, GitlabMMFactory.eINSTANCE.createRule_()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__RULES,
+				GitlabMMFactory.eINSTANCE.createGitlabRule()));
 
 		newChildDescriptors
 				.add(createChildParameter(GitlabMMPackage.Literals.JOB__NEEDS, GitlabMMFactory.eINSTANCE.createNeed()));

@@ -133,8 +133,8 @@ lazy rule createCommand {
     from
         cmdString : String
     to
-        cmd : GitLabMM!Comand (
-            comand <- cmdString
+        cmd : GitLabMM!Command (
+            command <- cmdString
         )
 }
 
@@ -277,8 +277,8 @@ lazy rule createParentPipelineRule {
     from
         dummy : String
     to
-        rule_ : GitLabMM!Rule_ (
-            if_ <- '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+        gitlabRule : GitLabMM!GitlabRule (
+            gitlabIf <- '$CI_PIPELINE_SOURCE == "parent_pipeline"'
         )
 }
 
@@ -287,8 +287,8 @@ lazy rule createBranchRule {
     from
         dummy : String
     to
-        rule_ : GitLabMM!Rule_ (
-            if_ <- '$CI_COMMIT_BRANCH'
+        gitlabRule : GitLabMM!GitlabRule (
+            gitlabIf <- '$CI_COMMIT_BRANCH'
         )
 }
 
@@ -296,8 +296,8 @@ lazy rule createTriggerRule {
     from
         trigger : PIM!Trigger
     to
-        rule_ : GitLabMM!Rule_ (
-            if_ <- if trigger.oclIsTypeOf(PIM!PushTrigger) then
+        gitlabRule : GitLabMM!GitlabRule (
+            gitlabIf <- if trigger.oclIsTypeOf(PIM!PushTrigger) then
                       if trigger.branchGlobs->notEmpty() then
                           '$CI_COMMIT_BRANCH == "' + trigger.branchGlobs->first() + '"'
                       else
@@ -325,8 +325,8 @@ lazy rule createRule {
     from
         condition : PIM!Expression
     to
-        rule_ : GitLabMM!Rule_ (
-            if_ <- condition.toGitLabString(),
+        gitlabRule : GitLabMM!GitlabRule (
+            gitlabIf <- condition.toGitLabString(),
             when <- 'on_success'
         )
 }

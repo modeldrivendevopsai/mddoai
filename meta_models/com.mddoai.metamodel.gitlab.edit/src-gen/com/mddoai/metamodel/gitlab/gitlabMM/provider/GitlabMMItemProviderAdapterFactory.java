@@ -165,26 +165,26 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Comand} instances.
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Command} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected ComandItemProvider comandItemProvider;
+	protected CommandItemProvider commandItemProvider;
 
 	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Comand}.
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Command}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public Adapter createComandAdapter() {
-		if (comandItemProvider == null) {
-			comandItemProvider = new ComandItemProvider(this);
+	public Adapter createCommandAdapter() {
+		if (commandItemProvider == null) {
+			commandItemProvider = new CommandItemProvider(this);
 		}
 
-		return comandItemProvider;
+		return commandItemProvider;
 	}
 
 	/**
@@ -441,26 +441,26 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_} instances.
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected Rule_ItemProvider rule_ItemProvider;
+	protected GitlabRuleItemProvider gitlabRuleItemProvider;
 
 	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_}.
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
 	@Override
-	public Adapter createRule_Adapter() {
-		if (rule_ItemProvider == null) {
-			rule_ItemProvider = new Rule_ItemProvider(this);
+	public Adapter createGitlabRuleAdapter() {
+		if (gitlabRuleItemProvider == null) {
+			gitlabRuleItemProvider = new GitlabRuleItemProvider(this);
 		}
 
-		return rule_ItemProvider;
+		return gitlabRuleItemProvider;
 	}
 
 	/**
@@ -921,8 +921,8 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 			artifactItemProvider.dispose();
 		if (reportItemProvider != null)
 			reportItemProvider.dispose();
-		if (comandItemProvider != null)
-			comandItemProvider.dispose();
+		if (commandItemProvider != null)
+			commandItemProvider.dispose();
 		if (beforeScriptItemProvider != null)
 			beforeScriptItemProvider.dispose();
 		if (scriptItemProvider != null)
@@ -945,8 +945,8 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 			variableItemProvider.dispose();
 		if (pathItemProvider != null)
 			pathItemProvider.dispose();
-		if (rule_ItemProvider != null)
-			rule_ItemProvider.dispose();
+		if (gitlabRuleItemProvider != null)
+			gitlabRuleItemProvider.dispose();
 		if (workflowItemProvider != null)
 			workflowItemProvider.dispose();
 		if (imageItemProvider != null)

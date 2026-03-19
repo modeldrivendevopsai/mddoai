@@ -7,8 +7,8 @@ import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
-
 import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
+
 import java.util.Collection;
 
 import org.eclipse.emf.common.notify.Notification;

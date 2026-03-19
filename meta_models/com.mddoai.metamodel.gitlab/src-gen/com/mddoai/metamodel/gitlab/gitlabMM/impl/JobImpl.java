@@ -9,28 +9,31 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
 import com.mddoai.metamodel.gitlab.gitlabMM.Dependencies;
 import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Need;
 import com.mddoai.metamodel.gitlab.gitlabMM.Only;
 import com.mddoai.metamodel.gitlab.gitlabMM.Parallel;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
-
 import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
+
 import java.util.Collection;
+
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
 
 import org.eclipse.emf.common.util.EList;
+
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
+
 import org.eclipse.emf.ecore.util.EObjectContainmentEList;
 import org.eclipse.emf.ecore.util.InternalEList;
 
@@ -308,7 +311,7 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<Rule_> rules;
+	protected EList<GitlabRule> rules;
 
 	/**
 	 * The cached value of the '{@link #getNeeds() <em>Needs</em>}' containment reference list.
@@ -596,6 +599,183 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @generated
 	 */
 	@Override
+	public Tags getTags() {
+		return tags;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetTags(Tags newTags, NotificationChain msgs) {
+		Tags oldTags = tags;
+		tags = newTags;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__TAGS,
+					oldTags, newTags);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setTags(Tags newTags) {
+		if (newTags != tags) {
+			NotificationChain msgs = null;
+			if (tags != null)
+				msgs = ((InternalEObject) tags).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__TAGS,
+						null, msgs);
+			if (newTags != null)
+				msgs = ((InternalEObject) newTags).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__TAGS,
+						null, msgs);
+			msgs = basicSetTags(newTags, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__TAGS, newTags, newTags));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Only getOnly() {
+		return only;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetOnly(Only newOnly, NotificationChain msgs) {
+		Only oldOnly = only;
+		only = newOnly;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ONLY,
+					oldOnly, newOnly);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setOnly(Only newOnly) {
+		if (newOnly != only) {
+			NotificationChain msgs = null;
+			if (only != null)
+				msgs = ((InternalEObject) only).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ONLY,
+						null, msgs);
+			if (newOnly != null)
+				msgs = ((InternalEObject) newOnly).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ONLY,
+						null, msgs);
+			msgs = basicSetOnly(newOnly, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ONLY, newOnly, newOnly));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Dependencies getDependencies() {
+		return dependencies;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public NotificationChain basicSetDependencies(Dependencies newDependencies, NotificationChain msgs) {
+		Dependencies oldDependencies = dependencies;
+		dependencies = newDependencies;
+		if (eNotificationRequired()) {
+			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
+					GitlabMMPackage.JOB__DEPENDENCIES, oldDependencies, newDependencies);
+			if (msgs == null)
+				msgs = notification;
+			else
+				msgs.add(notification);
+		}
+		return msgs;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setDependencies(Dependencies newDependencies) {
+		if (newDependencies != dependencies) {
+			NotificationChain msgs = null;
+			if (dependencies != null)
+				msgs = ((InternalEObject) dependencies).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__DEPENDENCIES, null, msgs);
+			if (newDependencies != null)
+				msgs = ((InternalEObject) newDependencies).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__DEPENDENCIES, null, msgs);
+			msgs = basicSetDependencies(newDependencies, msgs);
+			if (msgs != null)
+				msgs.dispatch();
+		} else if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__DEPENDENCIES, newDependencies,
+					newDependencies));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String getWhen() {
+		return when;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setWhen(String newWhen) {
+		String oldWhen = when;
+		when = newWhen;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__WHEN, oldWhen, when));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public Image getImage() {
 		return image;
 	}
@@ -845,9 +1025,9 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @generated
 	 */
 	@Override
-	public EList<Rule_> getRules() {
+	public EList<GitlabRule> getRules() {
 		if (rules == null) {
-			rules = new EObjectContainmentEList<Rule_>(Rule_.class, this, GitlabMMPackage.JOB__RULES);
+			rules = new EObjectContainmentEList<GitlabRule>(GitlabRule.class, this, GitlabMMPackage.JOB__RULES);
 		}
 		return rules;
 	}
@@ -1091,183 +1271,6 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 	 * @generated
 	 */
 	@Override
-	public Tags getTags() {
-		return tags;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetTags(Tags newTags, NotificationChain msgs) {
-		Tags oldTags = tags;
-		tags = newTags;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__TAGS,
-					oldTags, newTags);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setTags(Tags newTags) {
-		if (newTags != tags) {
-			NotificationChain msgs = null;
-			if (tags != null)
-				msgs = ((InternalEObject) tags).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__TAGS,
-						null, msgs);
-			if (newTags != null)
-				msgs = ((InternalEObject) newTags).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__TAGS,
-						null, msgs);
-			msgs = basicSetTags(newTags, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__TAGS, newTags, newTags));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Only getOnly() {
-		return only;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetOnly(Only newOnly, NotificationChain msgs) {
-		Only oldOnly = only;
-		only = newOnly;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ONLY,
-					oldOnly, newOnly);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setOnly(Only newOnly) {
-		if (newOnly != only) {
-			NotificationChain msgs = null;
-			if (only != null)
-				msgs = ((InternalEObject) only).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ONLY,
-						null, msgs);
-			if (newOnly != null)
-				msgs = ((InternalEObject) newOnly).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__ONLY,
-						null, msgs);
-			msgs = basicSetOnly(newOnly, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__ONLY, newOnly, newOnly));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Dependencies getDependencies() {
-		return dependencies;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetDependencies(Dependencies newDependencies, NotificationChain msgs) {
-		Dependencies oldDependencies = dependencies;
-		dependencies = newDependencies;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.JOB__DEPENDENCIES, oldDependencies, newDependencies);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setDependencies(Dependencies newDependencies) {
-		if (newDependencies != dependencies) {
-			NotificationChain msgs = null;
-			if (dependencies != null)
-				msgs = ((InternalEObject) dependencies).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__DEPENDENCIES, null, msgs);
-			if (newDependencies != null)
-				msgs = ((InternalEObject) newDependencies).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.JOB__DEPENDENCIES, null, msgs);
-			msgs = basicSetDependencies(newDependencies, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__DEPENDENCIES, newDependencies,
-					newDependencies));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public String getWhen() {
-		return when;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setWhen(String newWhen) {
-		String oldWhen = when;
-		when = newWhen;
-		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.JOB__WHEN, oldWhen, when));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
 		case GitlabMMPackage.JOB__ARTIFACTS:
@@ -1423,7 +1426,7 @@ public class JobImpl extends MinimalEObjectImpl.Container implements Job {
 			return;
 		case GitlabMMPackage.JOB__RULES:
 			getRules().clear();
-			getRules().addAll((Collection<? extends Rule_>) newValue);
+			getRules().addAll((Collection<? extends GitlabRule>) newValue);
 			return;
 		case GitlabMMPackage.JOB__NEEDS:
 			getNeeds().clear();
