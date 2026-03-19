@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.3" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="1240" dy="2411" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1501" dy="2571" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -219,13 +219,19 @@
           <mxGeometry height="30" width="100" x="485" y="-350" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1551" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="BugBot" vertex="1">
-          <mxGeometry height="60" width="120" x="1875" y="580" as="geometry" />
+          <mxGeometry height="70" width="120" x="1875" y="580" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1552" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Code Review" vertex="1">
           <mxGeometry height="30" width="90" x="1985" y="595" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1553" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFD966;fontStyle=1" value="Freemium" vertex="1">
-          <mxGeometry height="30" width="60" x="1878.25" y="560" as="geometry" />
+          <mxGeometry height="30" width="60" x="2075" y="595" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1554" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Cloud agent" vertex="1">
+          <mxGeometry height="30" width="100" x="1985" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1555" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF0000;fontStyle=1" value="No Trial, pay upfront" vertex="1">
+          <mxGeometry height="30" width="80" x="2075" y="630" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
