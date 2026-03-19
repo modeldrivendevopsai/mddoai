@@ -35,6 +35,9 @@
         <mxCell id="hdK8f44e5-gqTikMMB0n-1525" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="GitHub" vertex="1">
           <mxGeometry height="220" width="530" x="1100" y="-950" as="geometry" />
         </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1531" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="CodeRabbit" vertex="1">
+          <mxGeometry height="220" width="260" x="310" y="-660" as="geometry" />
+        </mxCell>
         <mxCell id="1" parent="0" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
           <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#2F5B7C;align=center;strokeColor=#2F5B7C;strokeWidth=1;fillColor=#FFFFFF;fontStyle=1;gradientColor=none;" vertex="1">
@@ -166,6 +169,12 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1530" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" value="Opinion, comment, notes, etc." vertex="1">
           <mxGeometry height="80" width="120" x="1059" y="279.47" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1532" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="CodeRabbit" vertex="1">
+          <mxGeometry height="60" width="120" x="390" y="-580" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1533" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="light CodeReview" vertex="1">
+          <mxGeometry height="30" width="100" x="500" y="-590" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
