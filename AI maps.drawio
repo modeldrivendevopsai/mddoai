@@ -1,11 +1,57 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.1" pages="2">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.3" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="1783" dy="2743" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1501" dy="2571" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=0;" value="Regions" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1546" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;European Union&lt;/span&gt;" vertex="1">
           <mxGeometry height="1030" width="1030" x="380" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1515" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="GitHub" vertex="1">
+          <mxGeometry height="220" width="530" x="1100" y="-950" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1522" edge="1" parent="zvods7Q_8VXGQD6KORxb-1545" source="xYg7E7CSrnQBJk1ENrXg-1516" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;curved=1;dashed=1;dashPattern=8 8;" target="xYg7E7CSrnQBJk1ENrXg-1517">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1516" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="GitHub Copilot" vertex="1">
+          <mxGeometry height="60" width="120" x="1300" y="-880" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1517" parent="zvods7Q_8VXGQD6KORxb-1545" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Groc" vertex="1">
+          <mxGeometry height="70" width="70" x="1310" y="-590" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1518" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="local Background agent" vertex="1">
+          <mxGeometry height="30" width="100" x="1410" y="-900" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1519" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Cloud agent" vertex="1">
+          <mxGeometry height="30" width="100" x="1410" y="-865" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1520" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="CLI in Docker" vertex="1">
+          <mxGeometry height="30" width="100" x="1210" y="-840" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1521" parent="zvods7Q_8VXGQD6KORxb-1545" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Assistant in VS Code" vertex="1">
+          <mxGeometry height="30" width="100" x="1410" y="-827" as="geometry" />
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1524" edge="1" parent="zvods7Q_8VXGQD6KORxb-1545" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;dashed=1;dashPattern=8 8;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1170" y="500" as="sourcePoint" />
+            <mxPoint x="1410" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1525" connectable="0" parent="xYg7E7CSrnQBJk1ENrXg-1524" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="USE" vertex="1">
+          <mxGeometry relative="1" x="0.0969" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1526" edge="1" parent="zvods7Q_8VXGQD6KORxb-1545" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1169" y="460" as="sourcePoint" />
+            <mxPoint x="1409" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1527" connectable="0" parent="xYg7E7CSrnQBJk1ENrXg-1526" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="DEVELOP" vertex="1">
+          <mxGeometry relative="1" x="0.0969" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" value="Organizations" />
         <mxCell id="NdLV79dXn-VGi25_OTUK-1530" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="NVidia" vertex="1">
@@ -65,7 +111,7 @@
           <mxGeometry height="60" width="120" x="1770" y="925" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1519" parent="1" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Organization" vertex="1">
-          <mxGeometry height="30" width="136.5" x="1226.75" y="450" as="geometry" />
+          <mxGeometry height="30" width="136.5" x="1360" y="370" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1520" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Model" vertex="1">
           <mxGeometry height="70" width="70" x="1260" y="360" as="geometry" />
