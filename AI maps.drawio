@@ -7,32 +7,7 @@
         <mxCell id="zvods7Q_8VXGQD6KORxb-1546" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;European Union&lt;/span&gt;" vertex="1">
           <mxGeometry height="1030" width="1030" x="380" y="590" as="geometry" />
         </mxCell>
-        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1524" edge="1" parent="zvods7Q_8VXGQD6KORxb-1545" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;dashed=1;dashPattern=8 8;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="1170" y="500" as="sourcePoint" />
-            <mxPoint x="1410" y="500" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1525" connectable="0" parent="xYg7E7CSrnQBJk1ENrXg-1524" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="USE" vertex="1">
-          <mxGeometry relative="1" x="0.0969" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1526" edge="1" parent="zvods7Q_8VXGQD6KORxb-1545" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="1169" y="460" as="sourcePoint" />
-            <mxPoint x="1409" y="460" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="xYg7E7CSrnQBJk1ENrXg-1527" connectable="0" parent="xYg7E7CSrnQBJk1ENrXg-1526" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="DEVELOP" vertex="1">
-          <mxGeometry relative="1" x="0.0969" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="hdK8f44e5-gqTikMMB0n-1515" parent="zvods7Q_8VXGQD6KORxb-1545" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" value="Opinion, comment, notes, etc." vertex="1">
-          <mxGeometry height="80" width="120" x="1049" y="270" as="geometry" />
-        </mxCell>
-        <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" value="Organizations" />
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" value="Organizations" visible="0" />
         <mxCell id="NdLV79dXn-VGi25_OTUK-1530" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="NVidia" vertex="1">
           <mxGeometry height="220" width="430" x="1770" y="600" as="geometry" />
         </mxCell>
@@ -166,6 +141,31 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1524" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;position2=0.92;" value="The Free version just keeps timing out" vertex="1">
           <mxGeometry height="80" width="120" x="1210" y="-930" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1526" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;dashed=1;dashPattern=8 8;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1180" y="509.47" as="sourcePoint" />
+            <mxPoint x="1420" y="509.47" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1527" connectable="0" parent="hdK8f44e5-gqTikMMB0n-1526" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="USE" vertex="1">
+          <mxGeometry relative="1" x="0.0969" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1528" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1179" y="469.47" as="sourcePoint" />
+            <mxPoint x="1419" y="469.47" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1529" connectable="0" parent="hdK8f44e5-gqTikMMB0n-1528" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="DEVELOP" vertex="1">
+          <mxGeometry relative="1" x="0.0969" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1530" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" value="Opinion, comment, notes, etc." vertex="1">
+          <mxGeometry height="80" width="120" x="1059" y="279.47" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
