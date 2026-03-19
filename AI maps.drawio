@@ -3,11 +3,11 @@
     <mxGraphModel dx="1501" dy="2571" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
-        <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=0;" value="Regions" />
+        <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1546" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;European Union&lt;/span&gt;" vertex="1">
           <mxGeometry height="1030" width="1030" x="380" y="590" as="geometry" />
         </mxCell>
-        <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" value="Organizations" visible="0" />
+        <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" style="locked=1;" value="Organizations" />
         <mxCell id="NdLV79dXn-VGi25_OTUK-1530" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="NVidia" vertex="1">
           <mxGeometry height="220" width="430" x="1770" y="600" as="geometry" />
         </mxCell>
