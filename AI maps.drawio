@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.3" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="413" dy="1906" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1240" dy="2411" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -187,6 +187,9 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1538" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF0000;fontStyle=1" value="No Trial, pay upfront" vertex="1">
           <mxGeometry height="30" width="60" x="990" y="243" as="geometry" />
+        </mxCell>
+        <mxCell id="hdK8f44e5-gqTikMMB0n-1539" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFCCCC;fontStyle=1" value="Trial period" vertex="1">
+          <mxGeometry height="30" width="60" x="370" y="-610" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
