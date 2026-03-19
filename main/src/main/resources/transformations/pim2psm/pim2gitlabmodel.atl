@@ -104,11 +104,23 @@ lazy rule createJob {
                       else
                         OclUndefined
                       endif,
-			beforeScript <- if source.id='unitTest' then
-			                   thisModule.createBeforeScript()
-			                else
-			                   OclUndefined
-			                endif,
+			beforeScript <- if source.id = 'unitTest' then
+                   if not source.agent.oclIsUndefined() then
+                      if source.agent.oclIsTypeOf(PIM!LinuxAgent) then
+                         if source.agent.container.image.toGitLabString().indexOf('python') >= 0 then
+                            thisModule.createBeforeScript()
+                         else
+                            OclUndefined
+                         endif
+                      else
+                         OclUndefined
+                      endif
+                   else
+                      OclUndefined
+                   endif
+                else
+                   OclUndefined
+                endif,
 			 artifacts <- if thisModule.hasArtifacts(source) then
 	                         thisModule.createArtifacts(source)
 	                      else
