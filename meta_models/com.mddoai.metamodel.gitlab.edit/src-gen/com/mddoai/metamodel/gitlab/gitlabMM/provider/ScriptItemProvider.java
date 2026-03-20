@@ -151,7 +151,7 @@ public class ScriptItemProvider extends ItemProviderAdapter implements IEditingD
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.SCRIPT__COMMANDS,
-				GitlabMMFactory.eINSTANCE.createComand()));
+				GitlabMMFactory.eINSTANCE.createCommand()));
 	}
 
 	/**

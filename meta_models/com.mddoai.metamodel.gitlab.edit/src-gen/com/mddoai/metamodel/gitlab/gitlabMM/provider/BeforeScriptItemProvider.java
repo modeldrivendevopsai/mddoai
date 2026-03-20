@@ -151,7 +151,7 @@ public class BeforeScriptItemProvider extends ItemProviderAdapter implements IEd
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.BEFORE_SCRIPT__COMMANDS,
-				GitlabMMFactory.eINSTANCE.createComand()));
+				GitlabMMFactory.eINSTANCE.createCommand()));
 	}
 
 	/**

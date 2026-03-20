@@ -31,7 +31,7 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
     Attribute resourceGroup : EString
     Reference afterScript : AfterScript
     Reference cache : Cache
-    Reference rules : Rule_<<0..*>>
+    Reference rules : GitlabRule<<0..*>>
     Reference needs : Need<<0..*>>
     Reference services : Service<<0..*>>
     Reference environment : Environment
@@ -45,24 +45,24 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
     Reference paths : Path<<0..*>>
     Attribute name : EString
     Attribute expireIn : EString
-    Attribute expose_as : EString
+    Attribute exposeAs : EString
     Attribute untracked : EBoolean
     Attribute exclude : EString<<0..*>>
 
   Class Report
     Attribute junit : EString<<1..1>>
-    Attribute coverage_report : EString
+    Attribute coverageReport : EString
     Attribute dotenv : EString
     Attribute cobertura : EString
 
-  Class Comand
-    Attribute comand : EString<<1..1>>
+  Class Command
+    Attribute command : EString<<1..1>>
 
   Class BeforeScript
-    Reference commands : Comand<<1..*>>
+    Reference commands : Command<<1..*>>
 
   Class Script
-    Reference commands : Comand<<1..*>>
+    Reference commands : Command<<1..*>>
 
   Class Tags
     Reference tags : Tag<<1..*>>
@@ -94,8 +94,8 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
   Class Path
     Attribute path : EString<<1..1>>
 
-  Class Rule_
-    Attribute if_ : EString
+  Class GitlabRule
+    Attribute gitlabIf : EString
     Attribute when : EString
     Attribute changes : EString<<0..*>>
     Attribute exists : EString<<0..*>>
@@ -103,14 +103,14 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
     Reference variables : Variables
 
   Class Workflow
-    Reference rules : Rule_<<0..*>>
+    Reference rules : GitlabRule<<0..*>>
 
   Class Image
     Attribute name : EString<<1..1>>
     Attribute entrypoint : EString<<0..*>>
     Reference docker : Docker
     Reference kubernetes : Kubernetes
-    Attribute pull_policy : EString<<0..*>>
+    Attribute pullPolicy : EString<<0..*>>
 
   Class Docker
     Attribute platform : EString
@@ -123,10 +123,10 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
     Attribute name : EString<<1..1>>
     Attribute alias : EString
     Attribute entrypoint : EString<<0..*>>
-    Reference commands : Comand<<0..*>>
+    Reference commands : Command<<0..*>>
     Reference docker : Docker
     Reference kubernetes : Kubernetes
-    Attribute pull_policy : EString<<0..*>>
+    Attribute pullPolicy : EString<<0..*>>
 
   Class Cache
     Reference key : Key
@@ -138,7 +138,7 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
   Class Key
     Attribute name : EString
     Attribute files : EString<<0..*>>
-    Attribute files_commits : EString<<0..*>>
+    Attribute filesCommits : EString<<0..*>>
     Attribute prefix : EString
 
   Class Need
@@ -152,13 +152,13 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
   Class Environment
     Attribute name : EString<<1..1>>
     Attribute url : EString
-    Attribute on_stop : EString
+    Attribute onStop : EString
     Attribute action : EString
-    Attribute auto_stop_in : EString
+    Attribute autoStopIn : EString
     Reference kubernetes : Kubernetes
 
   Class AfterScript
-    Reference commands : Comand<<0..*>>
+    Reference commands : Command<<0..*>>
 
   Class Default
     Reference image : Image

@@ -26,5 +26,5 @@ public interface ImageValidator {
 
 	boolean validateKubernetes(Kubernetes value);
 
-	boolean validatePull_policy(EList<String> value);
+	boolean validatePullPolicy(EList<String> value);
 }

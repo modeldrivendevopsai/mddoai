@@ -55,7 +55,7 @@ public class KeyItemProvider extends ItemProviderAdapter implements IEditingDoma
 
 			addNamePropertyDescriptor(object);
 			addFilesPropertyDescriptor(object);
-			addFiles_commitsPropertyDescriptor(object);
+			addFilesCommitsPropertyDescriptor(object);
 			addPrefixPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
@@ -92,17 +92,16 @@ public class KeyItemProvider extends ItemProviderAdapter implements IEditingDoma
 	}
 
 	/**
-	 * This adds a property descriptor for the Files commits feature.
+	 * This adds a property descriptor for the Files Commits feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addFiles_commitsPropertyDescriptor(Object object) {
+	protected void addFilesCommitsPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Key_files_commits_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Key_files_commits_feature",
-								"_UI_Key_type"),
+						getResourceLocator(), getString("_UI_Key_filesCommits_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Key_filesCommits_feature", "_UI_Key_type"),
 						GitlabMMPackage.Literals.KEY__FILES_COMMITS, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}

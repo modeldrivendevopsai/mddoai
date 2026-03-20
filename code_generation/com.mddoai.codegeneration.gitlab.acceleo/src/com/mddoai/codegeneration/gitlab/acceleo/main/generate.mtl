@@ -28,8 +28,8 @@
 [if (workflow <> null)] 
 workflow:
   rules:
-[for (r: Rule_ | workflow.rules)]
-    - if: [r.if_/]
+[for (r: GitlabRule | workflow.rules)]
+    - if: [r.gitlabIf/]
 [if (r.when <> null)]
       when: [r.when/]
 [/if]
@@ -66,8 +66,8 @@ variables:
 [template public generateScript(script: Script)]
 [if (script <> null and script.commands->notEmpty())]
 script:
-[for (command: Comand | script.commands)]
-  - [command.comand/]
+[for (command: Command | script.commands)]
+  - [command.command/]
 [/for]
 [/if]
 [/template]
@@ -75,8 +75,8 @@ script:
 [template public generateBeforeScript(script: BeforeScript)]
 [if (script <> null and script.commands->notEmpty())]
 before_script:
-[for (command: Comand | script.commands)]
-  - [command.comand/]
+[for (command: Command | script.commands)]
+  - [command.command/]
 [/for]
 [/if]
 [/template]
@@ -199,11 +199,11 @@ reports:
 [/if]
 [/template]
 
-[template public generateRules(rules: OrderedSet(Rule_))]
+[template public generateRules(rules: OrderedSet(GitlabRule))]
 [if (rules->notEmpty())]
   rules:
-[for (rule : Rule_ | rules)]
-    - if: [rule.if_/]
+[for (rule : GitlabRule | rules)]
+    - if: [rule.gitlabIf/]
 [if (rule.when <> null)]
       when: [rule.when/]
 [/if]

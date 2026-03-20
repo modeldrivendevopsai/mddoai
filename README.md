@@ -125,8 +125,16 @@ cd main
 Run the Gradle build command:
 
 ```bash
+./gradlew clean installDist
+```
+
+If you are doing repeated local builds without major changes, you can use:
+
+```bash
 ./gradlew installDist
 ```
+
+Use `clean` especially for the first run, after switching branches, or after changes to models/transformations that can leave stale build artifacts.
 
 **Note for Windows users:** 
 - In PowerShell: Use `./gradlew` (as shown above).

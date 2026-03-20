@@ -8,7 +8,7 @@
   <stages>push</stages>
   <jobs name="build" stage="build">
     <script>
-      <commands comand="docker build -t ${IMAGE_TAG} ."/>
+      <commands command="docker build -t ${IMAGE_TAG} ."/>
     </script>
     <tags>
       <tags tag="ai-shared"/>
@@ -16,10 +16,10 @@
   </jobs>
   <jobs name="unitTest" stage="unitTest">
     <script>
-      <commands comand="python3 test/run_unit_tests.py"/>
+      <commands command="python3 test/run_unit_tests.py"/>
     </script>
     <beforeScript>
-      <commands comand="python3 -m pip install --break-system-packages -r requirements.txt"/>
+      <commands command="python3 -m pip install --break-system-packages -r requirements.txt"/>
     </beforeScript>
     <tags>
       <tags tag="ai-shared"/>
@@ -28,7 +28,7 @@
   </jobs>
   <jobs name="healthCheck" stage="healthCheck">
     <script>
-      <commands comand="./scripts/health_check.sh"/>
+      <commands command="./scripts/health_check.sh"/>
     </script>
     <tags>
       <tags tag="ai-shared"/>
@@ -38,8 +38,8 @@
   </jobs>
   <jobs name="push" stage="push">
     <script>
-      <commands comand="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
-      <commands comand="docker push ${IMAGE_TAG}"/>
+      <commands command="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
+      <commands command="docker push ${IMAGE_TAG}"/>
     </script>
     <tags>
       <tags tag="ai-shared"/>
@@ -51,7 +51,7 @@
     <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
   </variables>
   <workflow>
-    <rules if_="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
-    <rules if_="$CI_COMMIT_BRANCH"/>
+    <rules gitlabIf="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
+    <rules gitlabIf="$CI_COMMIT_BRANCH"/>
   </workflow>
 </gitlabMM:Pipeline>

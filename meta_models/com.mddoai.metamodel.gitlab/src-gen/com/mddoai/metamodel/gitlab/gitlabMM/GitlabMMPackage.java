@@ -420,7 +420,7 @@ public interface GitlabMMPackage extends EPackage {
 	int ARTIFACT__EXPIRE_IN = 4;
 
 	/**
-	 * The feature id for the '<em><b>Expose as</b></em>' attribute.
+	 * The feature id for the '<em><b>Expose As</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -484,7 +484,7 @@ public interface GitlabMMPackage extends EPackage {
 	int REPORT__JUNIT = 0;
 
 	/**
-	 * The feature id for the '<em><b>Coverage report</b></em>' attribute.
+	 * The feature id for the '<em><b>Coverage Report</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -529,41 +529,41 @@ public interface GitlabMMPackage extends EPackage {
 	int REPORT_OPERATION_COUNT = 0;
 
 	/**
-	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ComandImpl <em>Comand</em>}' class.
+	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.CommandImpl <em>Command</em>}' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.ComandImpl
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getComand()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.CommandImpl
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getCommand()
 	 * @generated
 	 */
-	int COMAND = 4;
+	int COMMAND = 4;
 
 	/**
-	 * The feature id for the '<em><b>Comand</b></em>' attribute.
+	 * The feature id for the '<em><b>Command</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int COMAND__COMAND = 0;
+	int COMMAND__COMMAND = 0;
 
 	/**
-	 * The number of structural features of the '<em>Comand</em>' class.
+	 * The number of structural features of the '<em>Command</em>' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int COMAND_FEATURE_COUNT = 1;
+	int COMMAND_FEATURE_COUNT = 1;
 
 	/**
-	 * The number of operations of the '<em>Comand</em>' class.
+	 * The number of operations of the '<em>Command</em>' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int COMAND_OPERATION_COUNT = 0;
+	int COMMAND_OPERATION_COUNT = 0;
 
 	/**
 	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.BeforeScriptImpl <em>Before Script</em>}' class.
@@ -1000,23 +1000,23 @@ public interface GitlabMMPackage extends EPackage {
 	int PATH_OPERATION_COUNT = 0;
 
 	/**
-	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.Rule_Impl <em>Rule </em>}' class.
+	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabRuleImpl <em>Gitlab Rule</em>}' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.Rule_Impl
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabRuleImpl
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getGitlabRule()
 	 * @generated
 	 */
-	int RULE_ = 16;
+	int GITLAB_RULE = 16;
 
 	/**
-	 * The feature id for the '<em><b>If </b></em>' attribute.
+	 * The feature id for the '<em><b>Gitlab If</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___IF_ = 0;
+	int GITLAB_RULE__GITLAB_IF = 0;
 
 	/**
 	 * The feature id for the '<em><b>When</b></em>' attribute.
@@ -1025,7 +1025,7 @@ public interface GitlabMMPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___WHEN = 1;
+	int GITLAB_RULE__WHEN = 1;
 
 	/**
 	 * The feature id for the '<em><b>Changes</b></em>' attribute list.
@@ -1034,7 +1034,7 @@ public interface GitlabMMPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___CHANGES = 2;
+	int GITLAB_RULE__CHANGES = 2;
 
 	/**
 	 * The feature id for the '<em><b>Exists</b></em>' attribute list.
@@ -1043,7 +1043,7 @@ public interface GitlabMMPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___EXISTS = 3;
+	int GITLAB_RULE__EXISTS = 3;
 
 	/**
 	 * The feature id for the '<em><b>Allow Failure</b></em>' attribute.
@@ -1052,7 +1052,7 @@ public interface GitlabMMPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___ALLOW_FAILURE = 4;
+	int GITLAB_RULE__ALLOW_FAILURE = 4;
 
 	/**
 	 * The feature id for the '<em><b>Variables</b></em>' containment reference.
@@ -1061,25 +1061,25 @@ public interface GitlabMMPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int RULE___VARIABLES = 5;
+	int GITLAB_RULE__VARIABLES = 5;
 
 	/**
-	 * The number of structural features of the '<em>Rule </em>' class.
+	 * The number of structural features of the '<em>Gitlab Rule</em>' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int RULE__FEATURE_COUNT = 6;
+	int GITLAB_RULE_FEATURE_COUNT = 6;
 
 	/**
-	 * The number of operations of the '<em>Rule </em>' class.
+	 * The number of operations of the '<em>Gitlab Rule</em>' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int RULE__OPERATION_COUNT = 0;
+	int GITLAB_RULE_OPERATION_COUNT = 0;
 
 	/**
 	 * The meta object id for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.WorkflowImpl <em>Workflow</em>}' class.
@@ -1165,7 +1165,7 @@ public interface GitlabMMPackage extends EPackage {
 	int IMAGE__KUBERNETES = 3;
 
 	/**
-	 * The feature id for the '<em><b>Pull policy</b></em>' attribute list.
+	 * The feature id for the '<em><b>Pull Policy</b></em>' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -1339,7 +1339,7 @@ public interface GitlabMMPackage extends EPackage {
 	int SERVICE__KUBERNETES = 5;
 
 	/**
-	 * The feature id for the '<em><b>Pull policy</b></em>' attribute list.
+	 * The feature id for the '<em><b>Pull Policy</b></em>' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -1467,7 +1467,7 @@ public interface GitlabMMPackage extends EPackage {
 	int KEY__FILES = 1;
 
 	/**
-	 * The feature id for the '<em><b>Files commits</b></em>' attribute list.
+	 * The feature id for the '<em><b>Files Commits</b></em>' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -1613,7 +1613,7 @@ public interface GitlabMMPackage extends EPackage {
 	int ENVIRONMENT__URL = 1;
 
 	/**
-	 * The feature id for the '<em><b>On stop</b></em>' attribute.
+	 * The feature id for the '<em><b>On Stop</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -1631,7 +1631,7 @@ public interface GitlabMMPackage extends EPackage {
 	int ENVIRONMENT__ACTION = 3;
 
 	/**
-	 * The feature id for the '<em><b>Auto stop in</b></em>' attribute.
+	 * The feature id for the '<em><b>Auto Stop In</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -2118,6 +2118,50 @@ public interface GitlabMMPackage extends EPackage {
 	EReference getJob_BeforeScript();
 
 	/**
+	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getTags <em>Tags</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the containment reference '<em>Tags</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getTags()
+	 * @see #getJob()
+	 * @generated
+	 */
+	EReference getJob_Tags();
+
+	/**
+	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getOnly <em>Only</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the containment reference '<em>Only</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getOnly()
+	 * @see #getJob()
+	 * @generated
+	 */
+	EReference getJob_Only();
+
+	/**
+	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getDependencies <em>Dependencies</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the containment reference '<em>Dependencies</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getDependencies()
+	 * @see #getJob()
+	 * @generated
+	 */
+	EReference getJob_Dependencies();
+
+	/**
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getWhen <em>When</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the attribute '<em>When</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getWhen()
+	 * @see #getJob()
+	 * @generated
+	 */
+	EAttribute getJob_When();
+
+	/**
 	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getImage <em>Image</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -2272,50 +2316,6 @@ public interface GitlabMMPackage extends EPackage {
 	EReference getJob_Parallel();
 
 	/**
-	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getTags <em>Tags</em>}'.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the meta object for the containment reference '<em>Tags</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getTags()
-	 * @see #getJob()
-	 * @generated
-	 */
-	EReference getJob_Tags();
-
-	/**
-	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getOnly <em>Only</em>}'.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the meta object for the containment reference '<em>Only</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getOnly()
-	 * @see #getJob()
-	 * @generated
-	 */
-	EReference getJob_Only();
-
-	/**
-	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getDependencies <em>Dependencies</em>}'.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the meta object for the containment reference '<em>Dependencies</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getDependencies()
-	 * @see #getJob()
-	 * @generated
-	 */
-	EReference getJob_Dependencies();
-
-	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Job#getWhen <em>When</em>}'.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>When</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Job#getWhen()
-	 * @see #getJob()
-	 * @generated
-	 */
-	EAttribute getJob_When();
-
-	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact <em>Artifact</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -2381,15 +2381,15 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getArtifact_ExpireIn();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExpose_as <em>Expose as</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExposeAs <em>Expose As</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Expose as</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExpose_as()
+	 * @return the meta object for the attribute '<em>Expose As</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExposeAs()
 	 * @see #getArtifact()
 	 * @generated
 	 */
-	EAttribute getArtifact_Expose_as();
+	EAttribute getArtifact_ExposeAs();
 
 	/**
 	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#isUntracked <em>Untracked</em>}'.
@@ -2435,15 +2435,15 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getReport_Junit();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverage_report <em>Coverage report</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverageReport <em>Coverage Report</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Coverage report</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverage_report()
+	 * @return the meta object for the attribute '<em>Coverage Report</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverageReport()
 	 * @see #getReport()
 	 * @generated
 	 */
-	EAttribute getReport_Coverage_report();
+	EAttribute getReport_CoverageReport();
 
 	/**
 	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getDotenv <em>Dotenv</em>}'.
@@ -2468,25 +2468,25 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getReport_Cobertura();
 
 	/**
-	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Comand <em>Comand</em>}'.
+	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Command <em>Command</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for class '<em>Comand</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Comand
+	 * @return the meta object for class '<em>Command</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Command
 	 * @generated
 	 */
-	EClass getComand();
+	EClass getCommand();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Comand#getComand <em>Comand</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Command#getCommand <em>Command</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Comand</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Comand#getComand()
-	 * @see #getComand()
+	 * @return the meta object for the attribute '<em>Command</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Command#getCommand()
+	 * @see #getCommand()
 	 * @generated
 	 */
-	EAttribute getComand_Comand();
+	EAttribute getCommand_Command();
 
 	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript <em>Before Script</em>}'.
@@ -2753,80 +2753,80 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getPath_Path();
 
 	/**
-	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_ <em>Rule </em>}'.
+	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule <em>Gitlab Rule</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for class '<em>Rule </em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_
+	 * @return the meta object for class '<em>Gitlab Rule</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule
 	 * @generated
 	 */
-	EClass getRule_();
+	EClass getGitlabRule();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getIf_ <em>If </em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getGitlabIf <em>Gitlab If</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>If </em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getIf_()
-	 * @see #getRule_()
+	 * @return the meta object for the attribute '<em>Gitlab If</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getGitlabIf()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EAttribute getRule__If_();
+	EAttribute getGitlabRule_GitlabIf();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getWhen <em>When</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getWhen <em>When</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the meta object for the attribute '<em>When</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getWhen()
-	 * @see #getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getWhen()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EAttribute getRule__When();
+	EAttribute getGitlabRule_When();
 
 	/**
-	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getChanges <em>Changes</em>}'.
+	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getChanges <em>Changes</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the meta object for the attribute list '<em>Changes</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getChanges()
-	 * @see #getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getChanges()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EAttribute getRule__Changes();
+	EAttribute getGitlabRule_Changes();
 
 	/**
-	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getExists <em>Exists</em>}'.
+	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getExists <em>Exists</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the meta object for the attribute list '<em>Exists</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getExists()
-	 * @see #getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getExists()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EAttribute getRule__Exists();
+	EAttribute getGitlabRule_Exists();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#isAllowFailure <em>Allow Failure</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#isAllowFailure <em>Allow Failure</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the meta object for the attribute '<em>Allow Failure</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#isAllowFailure()
-	 * @see #getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#isAllowFailure()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EAttribute getRule__AllowFailure();
+	EAttribute getGitlabRule_AllowFailure();
 
 	/**
-	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getVariables <em>Variables</em>}'.
+	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getVariables <em>Variables</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the meta object for the containment reference '<em>Variables</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_#getVariables()
-	 * @see #getRule_()
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule#getVariables()
+	 * @see #getGitlabRule()
 	 * @generated
 	 */
-	EReference getRule__Variables();
+	EReference getGitlabRule_Variables();
 
 	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Workflow <em>Workflow</em>}'.
@@ -2904,15 +2904,15 @@ public interface GitlabMMPackage extends EPackage {
 	EReference getImage_Kubernetes();
 
 	/**
-	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPull_policy <em>Pull policy</em>}'.
+	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy <em>Pull Policy</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute list '<em>Pull policy</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Image#getPull_policy()
+	 * @return the meta object for the attribute list '<em>Pull Policy</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy()
 	 * @see #getImage()
 	 * @generated
 	 */
-	EAttribute getImage_Pull_policy();
+	EAttribute getImage_PullPolicy();
 
 	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Docker <em>Docker</em>}'.
@@ -3044,15 +3044,15 @@ public interface GitlabMMPackage extends EPackage {
 	EReference getService_Kubernetes();
 
 	/**
-	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPull_policy <em>Pull policy</em>}'.
+	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPullPolicy <em>Pull Policy</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute list '<em>Pull policy</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Service#getPull_policy()
+	 * @return the meta object for the attribute list '<em>Pull Policy</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Service#getPullPolicy()
 	 * @see #getService()
 	 * @generated
 	 */
-	EAttribute getService_Pull_policy();
+	EAttribute getService_PullPolicy();
 
 	/**
 	 * Returns the meta object for class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache <em>Cache</em>}'.
@@ -3152,15 +3152,15 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getKey_Files();
 
 	/**
-	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getFiles_commits <em>Files commits</em>}'.
+	 * Returns the meta object for the attribute list '{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getFilesCommits <em>Files Commits</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute list '<em>Files commits</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Key#getFiles_commits()
+	 * @return the meta object for the attribute list '<em>Files Commits</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Key#getFilesCommits()
 	 * @see #getKey()
 	 * @generated
 	 */
-	EAttribute getKey_Files_commits();
+	EAttribute getKey_FilesCommits();
 
 	/**
 	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getPrefix <em>Prefix</em>}'.
@@ -3282,15 +3282,15 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getEnvironment_Url();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOn_stop <em>On stop</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOnStop <em>On Stop</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>On stop</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOn_stop()
+	 * @return the meta object for the attribute '<em>On Stop</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOnStop()
 	 * @see #getEnvironment()
 	 * @generated
 	 */
-	EAttribute getEnvironment_On_stop();
+	EAttribute getEnvironment_OnStop();
 
 	/**
 	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAction <em>Action</em>}'.
@@ -3304,15 +3304,15 @@ public interface GitlabMMPackage extends EPackage {
 	EAttribute getEnvironment_Action();
 
 	/**
-	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAuto_stop_in <em>Auto stop in</em>}'.
+	 * Returns the meta object for the attribute '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAutoStopIn <em>Auto Stop In</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Auto stop in</em>'.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAuto_stop_in()
+	 * @return the meta object for the attribute '<em>Auto Stop In</em>'.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAutoStopIn()
 	 * @see #getEnvironment()
 	 * @generated
 	 */
-	EAttribute getEnvironment_Auto_stop_in();
+	EAttribute getEnvironment_AutoStopIn();
 
 	/**
 	 * Returns the meta object for the containment reference '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getKubernetes <em>Kubernetes</em>}'.
@@ -3696,6 +3696,38 @@ public interface GitlabMMPackage extends EPackage {
 		EReference JOB__BEFORE_SCRIPT = eINSTANCE.getJob_BeforeScript();
 
 		/**
+		 * The meta object literal for the '<em><b>Tags</b></em>' containment reference feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EReference JOB__TAGS = eINSTANCE.getJob_Tags();
+
+		/**
+		 * The meta object literal for the '<em><b>Only</b></em>' containment reference feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EReference JOB__ONLY = eINSTANCE.getJob_Only();
+
+		/**
+		 * The meta object literal for the '<em><b>Dependencies</b></em>' containment reference feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EReference JOB__DEPENDENCIES = eINSTANCE.getJob_Dependencies();
+
+		/**
+		 * The meta object literal for the '<em><b>When</b></em>' attribute feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EAttribute JOB__WHEN = eINSTANCE.getJob_When();
+
+		/**
 		 * The meta object literal for the '<em><b>Image</b></em>' containment reference feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
@@ -3808,38 +3840,6 @@ public interface GitlabMMPackage extends EPackage {
 		EReference JOB__PARALLEL = eINSTANCE.getJob_Parallel();
 
 		/**
-		 * The meta object literal for the '<em><b>Tags</b></em>' containment reference feature.
-		 * <!-- begin-user-doc -->
-		 * <!-- end-user-doc -->
-		 * @generated
-		 */
-		EReference JOB__TAGS = eINSTANCE.getJob_Tags();
-
-		/**
-		 * The meta object literal for the '<em><b>Only</b></em>' containment reference feature.
-		 * <!-- begin-user-doc -->
-		 * <!-- end-user-doc -->
-		 * @generated
-		 */
-		EReference JOB__ONLY = eINSTANCE.getJob_Only();
-
-		/**
-		 * The meta object literal for the '<em><b>Dependencies</b></em>' containment reference feature.
-		 * <!-- begin-user-doc -->
-		 * <!-- end-user-doc -->
-		 * @generated
-		 */
-		EReference JOB__DEPENDENCIES = eINSTANCE.getJob_Dependencies();
-
-		/**
-		 * The meta object literal for the '<em><b>When</b></em>' attribute feature.
-		 * <!-- begin-user-doc -->
-		 * <!-- end-user-doc -->
-		 * @generated
-		 */
-		EAttribute JOB__WHEN = eINSTANCE.getJob_When();
-
-		/**
 		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl <em>Artifact</em>}' class.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
@@ -3890,12 +3890,12 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute ARTIFACT__EXPIRE_IN = eINSTANCE.getArtifact_ExpireIn();
 
 		/**
-		 * The meta object literal for the '<em><b>Expose as</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Expose As</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute ARTIFACT__EXPOSE_AS = eINSTANCE.getArtifact_Expose_as();
+		EAttribute ARTIFACT__EXPOSE_AS = eINSTANCE.getArtifact_ExposeAs();
 
 		/**
 		 * The meta object literal for the '<em><b>Untracked</b></em>' attribute feature.
@@ -3932,12 +3932,12 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute REPORT__JUNIT = eINSTANCE.getReport_Junit();
 
 		/**
-		 * The meta object literal for the '<em><b>Coverage report</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Coverage Report</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute REPORT__COVERAGE_REPORT = eINSTANCE.getReport_Coverage_report();
+		EAttribute REPORT__COVERAGE_REPORT = eINSTANCE.getReport_CoverageReport();
 
 		/**
 		 * The meta object literal for the '<em><b>Dotenv</b></em>' attribute feature.
@@ -3956,22 +3956,22 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute REPORT__COBERTURA = eINSTANCE.getReport_Cobertura();
 
 		/**
-		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ComandImpl <em>Comand</em>}' class.
+		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.CommandImpl <em>Command</em>}' class.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
-		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.ComandImpl
-		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getComand()
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.CommandImpl
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getCommand()
 		 * @generated
 		 */
-		EClass COMAND = eINSTANCE.getComand();
+		EClass COMMAND = eINSTANCE.getCommand();
 
 		/**
-		 * The meta object literal for the '<em><b>Comand</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Command</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute COMAND__COMAND = eINSTANCE.getComand_Comand();
+		EAttribute COMMAND__COMMAND = eINSTANCE.getCommand_Command();
 
 		/**
 		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.BeforeScriptImpl <em>Before Script</em>}' class.
@@ -4196,22 +4196,22 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute PATH__PATH = eINSTANCE.getPath_Path();
 
 		/**
-		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.Rule_Impl <em>Rule </em>}' class.
+		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabRuleImpl <em>Gitlab Rule</em>}' class.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
-		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.Rule_Impl
-		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getRule_()
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabRuleImpl
+		 * @see com.mddoai.metamodel.gitlab.gitlabMM.impl.GitlabMMPackageImpl#getGitlabRule()
 		 * @generated
 		 */
-		EClass RULE_ = eINSTANCE.getRule_();
+		EClass GITLAB_RULE = eINSTANCE.getGitlabRule();
 
 		/**
-		 * The meta object literal for the '<em><b>If </b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Gitlab If</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute RULE___IF_ = eINSTANCE.getRule__If_();
+		EAttribute GITLAB_RULE__GITLAB_IF = eINSTANCE.getGitlabRule_GitlabIf();
 
 		/**
 		 * The meta object literal for the '<em><b>When</b></em>' attribute feature.
@@ -4219,7 +4219,7 @@ public interface GitlabMMPackage extends EPackage {
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute RULE___WHEN = eINSTANCE.getRule__When();
+		EAttribute GITLAB_RULE__WHEN = eINSTANCE.getGitlabRule_When();
 
 		/**
 		 * The meta object literal for the '<em><b>Changes</b></em>' attribute list feature.
@@ -4227,7 +4227,7 @@ public interface GitlabMMPackage extends EPackage {
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute RULE___CHANGES = eINSTANCE.getRule__Changes();
+		EAttribute GITLAB_RULE__CHANGES = eINSTANCE.getGitlabRule_Changes();
 
 		/**
 		 * The meta object literal for the '<em><b>Exists</b></em>' attribute list feature.
@@ -4235,7 +4235,7 @@ public interface GitlabMMPackage extends EPackage {
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute RULE___EXISTS = eINSTANCE.getRule__Exists();
+		EAttribute GITLAB_RULE__EXISTS = eINSTANCE.getGitlabRule_Exists();
 
 		/**
 		 * The meta object literal for the '<em><b>Allow Failure</b></em>' attribute feature.
@@ -4243,7 +4243,7 @@ public interface GitlabMMPackage extends EPackage {
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute RULE___ALLOW_FAILURE = eINSTANCE.getRule__AllowFailure();
+		EAttribute GITLAB_RULE__ALLOW_FAILURE = eINSTANCE.getGitlabRule_AllowFailure();
 
 		/**
 		 * The meta object literal for the '<em><b>Variables</b></em>' containment reference feature.
@@ -4251,7 +4251,7 @@ public interface GitlabMMPackage extends EPackage {
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EReference RULE___VARIABLES = eINSTANCE.getRule__Variables();
+		EReference GITLAB_RULE__VARIABLES = eINSTANCE.getGitlabRule_Variables();
 
 		/**
 		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.WorkflowImpl <em>Workflow</em>}' class.
@@ -4314,12 +4314,12 @@ public interface GitlabMMPackage extends EPackage {
 		EReference IMAGE__KUBERNETES = eINSTANCE.getImage_Kubernetes();
 
 		/**
-		 * The meta object literal for the '<em><b>Pull policy</b></em>' attribute list feature.
+		 * The meta object literal for the '<em><b>Pull Policy</b></em>' attribute list feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute IMAGE__PULL_POLICY = eINSTANCE.getImage_Pull_policy();
+		EAttribute IMAGE__PULL_POLICY = eINSTANCE.getImage_PullPolicy();
 
 		/**
 		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DockerImpl <em>Docker</em>}' class.
@@ -4424,12 +4424,12 @@ public interface GitlabMMPackage extends EPackage {
 		EReference SERVICE__KUBERNETES = eINSTANCE.getService_Kubernetes();
 
 		/**
-		 * The meta object literal for the '<em><b>Pull policy</b></em>' attribute list feature.
+		 * The meta object literal for the '<em><b>Pull Policy</b></em>' attribute list feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute SERVICE__PULL_POLICY = eINSTANCE.getService_Pull_policy();
+		EAttribute SERVICE__PULL_POLICY = eINSTANCE.getService_PullPolicy();
 
 		/**
 		 * The meta object literal for the '{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.CacheImpl <em>Cache</em>}' class.
@@ -4508,12 +4508,12 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute KEY__FILES = eINSTANCE.getKey_Files();
 
 		/**
-		 * The meta object literal for the '<em><b>Files commits</b></em>' attribute list feature.
+		 * The meta object literal for the '<em><b>Files Commits</b></em>' attribute list feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute KEY__FILES_COMMITS = eINSTANCE.getKey_Files_commits();
+		EAttribute KEY__FILES_COMMITS = eINSTANCE.getKey_FilesCommits();
 
 		/**
 		 * The meta object literal for the '<em><b>Prefix</b></em>' attribute feature.
@@ -4608,12 +4608,12 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute ENVIRONMENT__URL = eINSTANCE.getEnvironment_Url();
 
 		/**
-		 * The meta object literal for the '<em><b>On stop</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>On Stop</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute ENVIRONMENT__ON_STOP = eINSTANCE.getEnvironment_On_stop();
+		EAttribute ENVIRONMENT__ON_STOP = eINSTANCE.getEnvironment_OnStop();
 
 		/**
 		 * The meta object literal for the '<em><b>Action</b></em>' attribute feature.
@@ -4624,12 +4624,12 @@ public interface GitlabMMPackage extends EPackage {
 		EAttribute ENVIRONMENT__ACTION = eINSTANCE.getEnvironment_Action();
 
 		/**
-		 * The meta object literal for the '<em><b>Auto stop in</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Auto Stop In</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute ENVIRONMENT__AUTO_STOP_IN = eINSTANCE.getEnvironment_Auto_stop_in();
+		EAttribute ENVIRONMENT__AUTO_STOP_IN = eINSTANCE.getEnvironment_AutoStopIn();
 
 		/**
 		 * The meta object literal for the '<em><b>Kubernetes</b></em>' containment reference feature.

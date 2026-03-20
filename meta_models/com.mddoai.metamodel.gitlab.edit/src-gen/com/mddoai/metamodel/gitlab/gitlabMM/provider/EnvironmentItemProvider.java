@@ -58,9 +58,9 @@ public class EnvironmentItemProvider extends ItemProviderAdapter implements IEdi
 
 			addNamePropertyDescriptor(object);
 			addUrlPropertyDescriptor(object);
-			addOn_stopPropertyDescriptor(object);
+			addOnStopPropertyDescriptor(object);
 			addActionPropertyDescriptor(object);
-			addAuto_stop_inPropertyDescriptor(object);
+			addAutoStopInPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -98,16 +98,16 @@ public class EnvironmentItemProvider extends ItemProviderAdapter implements IEdi
 	}
 
 	/**
-	 * This adds a property descriptor for the On stop feature.
+	 * This adds a property descriptor for the On Stop feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addOn_stopPropertyDescriptor(Object object) {
+	protected void addOnStopPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Environment_on_stop_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Environment_on_stop_feature",
+						getResourceLocator(), getString("_UI_Environment_onStop_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Environment_onStop_feature",
 								"_UI_Environment_type"),
 						GitlabMMPackage.Literals.ENVIRONMENT__ON_STOP, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
@@ -130,16 +130,16 @@ public class EnvironmentItemProvider extends ItemProviderAdapter implements IEdi
 	}
 
 	/**
-	 * This adds a property descriptor for the Auto stop in feature.
+	 * This adds a property descriptor for the Auto Stop In feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addAuto_stop_inPropertyDescriptor(Object object) {
+	protected void addAutoStopInPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Environment_auto_stop_in_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Environment_auto_stop_in_feature",
+						getResourceLocator(), getString("_UI_Environment_autoStopIn_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Environment_autoStopIn_feature",
 								"_UI_Environment_type"),
 						GitlabMMPackage.Literals.ENVIRONMENT__AUTO_STOP_IN, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));

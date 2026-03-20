@@ -64,8 +64,8 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 			return createArtifact();
 		case GitlabMMPackage.REPORT:
 			return createReport();
-		case GitlabMMPackage.COMAND:
-			return createComand();
+		case GitlabMMPackage.COMMAND:
+			return createCommand();
 		case GitlabMMPackage.BEFORE_SCRIPT:
 			return createBeforeScript();
 		case GitlabMMPackage.SCRIPT:
@@ -88,8 +88,8 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 			return createVariable();
 		case GitlabMMPackage.PATH:
 			return createPath();
-		case GitlabMMPackage.RULE_:
-			return createRule_();
+		case GitlabMMPackage.GITLAB_RULE:
+			return createGitlabRule();
 		case GitlabMMPackage.WORKFLOW:
 			return createWorkflow();
 		case GitlabMMPackage.IMAGE:
@@ -175,9 +175,9 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
-	public Comand createComand() {
-		ComandImpl comand = new ComandImpl();
-		return comand;
+	public Command createCommand() {
+		CommandImpl command = new CommandImpl();
+		return command;
 	}
 
 	/**
@@ -307,9 +307,9 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
-	public Rule_ createRule_() {
-		Rule_Impl rule_ = new Rule_Impl();
-		return rule_;
+	public GitlabRule createGitlabRule() {
+		GitlabRuleImpl gitlabRule = new GitlabRuleImpl();
+		return gitlabRule;
 	}
 
 	/**

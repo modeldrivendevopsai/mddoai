@@ -25,7 +25,7 @@ import org.eclipse.emf.ecore.EObject;
 public interface BeforeScript extends EObject {
 	/**
 	 * Returns the value of the '<em><b>Commands</b></em>' containment reference list.
-	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Comand}.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Command}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Commands</em>' containment reference list.
@@ -33,6 +33,6 @@ public interface BeforeScript extends EObject {
 	 * @model containment="true" required="true"
 	 * @generated
 	 */
-	EList<Comand> getCommands();
+	EList<Command> getCommands();
 
 } // BeforeScript

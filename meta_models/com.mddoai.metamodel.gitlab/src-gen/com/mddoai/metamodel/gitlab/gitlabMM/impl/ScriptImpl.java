@@ -2,7 +2,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Comand;
+import com.mddoai.metamodel.gitlab.gitlabMM.Command;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
 
@@ -42,7 +42,7 @@ public class ScriptImpl extends MinimalEObjectImpl.Container implements Script {
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<Comand> commands;
+	protected EList<Command> commands;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -69,9 +69,9 @@ public class ScriptImpl extends MinimalEObjectImpl.Container implements Script {
 	 * @generated
 	 */
 	@Override
-	public EList<Comand> getCommands() {
+	public EList<Command> getCommands() {
 		if (commands == null) {
-			commands = new EObjectContainmentEList<Comand>(Comand.class, this, GitlabMMPackage.SCRIPT__COMMANDS);
+			commands = new EObjectContainmentEList<Command>(Command.class, this, GitlabMMPackage.SCRIPT__COMMANDS);
 		}
 		return commands;
 	}
@@ -115,7 +115,7 @@ public class ScriptImpl extends MinimalEObjectImpl.Container implements Script {
 		switch (featureID) {
 		case GitlabMMPackage.SCRIPT__COMMANDS:
 			getCommands().clear();
-			getCommands().addAll((Collection<? extends Comand>) newValue);
+			getCommands().addAll((Collection<? extends Command>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);

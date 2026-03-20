@@ -4,7 +4,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Comand;
+import com.mddoai.metamodel.gitlab.gitlabMM.Command;
 import com.mddoai.metamodel.gitlab.gitlabMM.Docker;
 import com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes;
 
@@ -25,11 +25,11 @@ public interface ServiceValidator {
 
 	boolean validateEntrypoint(EList<String> value);
 
-	boolean validateCommands(EList<Comand> value);
+	boolean validateCommands(EList<Command> value);
 
 	boolean validateDocker(Docker value);
 
 	boolean validateKubernetes(Kubernetes value);
 
-	boolean validatePull_policy(EList<String> value);
+	boolean validatePullPolicy(EList<String> value);
 }

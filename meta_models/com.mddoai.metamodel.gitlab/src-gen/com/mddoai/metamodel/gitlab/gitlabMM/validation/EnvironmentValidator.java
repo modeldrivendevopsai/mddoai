@@ -19,11 +19,11 @@ public interface EnvironmentValidator {
 
 	boolean validateUrl(String value);
 
-	boolean validateOn_stop(String value);
+	boolean validateOnStop(String value);
 
 	boolean validateAction(String value);
 
-	boolean validateAuto_stop_in(String value);
+	boolean validateAutoStopIn(String value);
 
 	boolean validateKubernetes(Kubernetes value);
 }

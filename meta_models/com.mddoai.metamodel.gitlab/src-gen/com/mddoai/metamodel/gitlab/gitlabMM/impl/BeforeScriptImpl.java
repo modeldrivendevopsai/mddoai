@@ -3,7 +3,7 @@
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
-import com.mddoai.metamodel.gitlab.gitlabMM.Comand;
+import com.mddoai.metamodel.gitlab.gitlabMM.Command;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 
 import java.util.Collection;
@@ -42,7 +42,7 @@ public class BeforeScriptImpl extends MinimalEObjectImpl.Container implements Be
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<Comand> commands;
+	protected EList<Command> commands;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -69,9 +69,10 @@ public class BeforeScriptImpl extends MinimalEObjectImpl.Container implements Be
 	 * @generated
 	 */
 	@Override
-	public EList<Comand> getCommands() {
+	public EList<Command> getCommands() {
 		if (commands == null) {
-			commands = new EObjectContainmentEList<Comand>(Comand.class, this, GitlabMMPackage.BEFORE_SCRIPT__COMMANDS);
+			commands = new EObjectContainmentEList<Command>(Command.class, this,
+					GitlabMMPackage.BEFORE_SCRIPT__COMMANDS);
 		}
 		return commands;
 	}
@@ -115,7 +116,7 @@ public class BeforeScriptImpl extends MinimalEObjectImpl.Container implements Be
 		switch (featureID) {
 		case GitlabMMPackage.BEFORE_SCRIPT__COMMANDS:
 			getCommands().clear();
-			getCommands().addAll((Collection<? extends Comand>) newValue);
+			getCommands().addAll((Collection<? extends Command>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
