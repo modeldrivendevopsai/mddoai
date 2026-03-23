@@ -18,49 +18,12 @@ import main.java.mddoai.utils.EMFUtils;
 public class Main {
     public static void main(String[] args) {
         try {
-            if (args.length < 3) {
-                System.err.println(
-                        "Not enough arguments. Usage: <transformation_type> <input_model_path> <output_folder>");
-                System.exit(1);
-            }
+            InputValidator.validate(args);
 
             EMFUtils.init();
             String transformationType = args[0];
             String inputModelPath = args[1];
             String outputFolder = args[2];
-
-            if (transformationType == null || transformationType.trim().isEmpty()) {
-                System.err.println("Transformation type cannot be null or empty");
-                System.exit(1);
-            }
-
-            if (inputModelPath == null || inputModelPath.trim().isEmpty()) {
-                System.err.println("Input model path cannot be null or empty");
-                System.exit(1);
-            }
-
-            if (outputFolder == null || outputFolder.trim().isEmpty()) {
-                System.err.println("Output folder cannot be null or empty");
-                System.exit(1);
-            }
-
-            File inputFile = new File(inputModelPath);
-            if (!inputFile.exists() || !inputFile.isFile()) {
-                System.err.println("Input model file does not exist: " + inputModelPath);
-                System.exit(1);
-            }
-
-            File outputDir = new File(outputFolder);
-            if (!outputDir.exists()) {
-                boolean created = outputDir.mkdirs();
-                if (!created) {
-                    System.err.println("Failed to create output directory: " + outputFolder);
-                    System.exit(1);
-                }
-            } else if (!outputDir.isDirectory()) {
-                System.err.println("Output path exists but is not a directory: " + outputFolder);
-                System.exit(1);
-            }
 
             switch (transformationType.toLowerCase()) {
                 case "swarch2gitlab":
@@ -95,8 +58,7 @@ public class Main {
                             System.exit(1);
                         }
 
-                        System.out.println(
-                                "Software Architecture Input model transformed to Platform Independent Model...");
+                        System.out.println("Software Architecture Input model transformed to Platform Independent Model...");
 
                         outputModelFilePath = "./test/generatedModels/PipelineGit.gitlabmm";
                         EObject gitlabModel = TransformerExecutor.execute("pim2gitlab", pimModel, outputModelFilePath);
@@ -106,8 +68,7 @@ public class Main {
                             System.exit(1);
                         }
 
-                        System.out.println(
-                                "Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
+                        System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
 
                         GeneratorExecutor.execute(gitlabModel, "gitlab", outputFolder);
 
@@ -150,16 +111,14 @@ public class Main {
                         }
 
                         String outputModelFilePath = "./test/generatedModels/PipelineGit.gitlabmm";
-                        EObject gitlabModel = TransformerExecutor.execute("pim2gitlab", inputModel,
-                                outputModelFilePath);
+                        EObject gitlabModel = TransformerExecutor.execute("pim2gitlab", inputModel, outputModelFilePath);
 
                         if (gitlabModel == null) {
                             System.err.println("Transformation from PIM to GitLab model failed");
                             System.exit(1);
                         }
 
-                        System.out.println(
-                                "Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
+                        System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
 
                         GeneratorExecutor.execute(gitlabModel, "gitlab", outputFolder);
 
