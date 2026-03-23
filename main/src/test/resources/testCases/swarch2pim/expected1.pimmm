@@ -22,7 +22,7 @@
       </container>
     </agent>
     <steps xsi:type="pimMM:Command">
-      <program xsi:type="pimMM:StringLiteral" value=" ./scripts/health_check.sh"/>
+      <program xsi:type="pimMM:StringLiteral" value="./scripts/health_check.sh"/>
     </steps>
   </pimMM:ScriptJob>
   <pimMM:ScriptJob name="push" id="push" previous="healthCheck">
