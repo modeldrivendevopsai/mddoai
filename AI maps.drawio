@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4" pages="2">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.5" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="1056" dy="2210" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="951" dy="2155" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -255,7 +255,10 @@
           <mxGeometry height="30" width="90" x="1611" y="1930" as="geometry" />
         </mxCell>
         <mxCell id="x0gX8Fsqvf6yubnjidub-1519" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFD966;fontStyle=1" value="Freemium" vertex="1">
-          <mxGeometry height="30" width="60" x="1530" y="1990" as="geometry" />
+          <mxGeometry height="30" width="60" x="1490" y="1820" as="geometry" />
+        </mxCell>
+        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1515" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" value="It&#39;s basic and random. Impossible to improve specific details." vertex="1">
+          <mxGeometry height="80" width="120" x="1520" y="1770" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
