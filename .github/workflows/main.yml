@@ -170,7 +170,7 @@ jobs:
       - name: Run CLI via Docker image
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}/main/src/test/resources/testCases/e2e:/input:ro \
+            -v ${{ github.workspace }}/main/src/test/resources/testCases/e2e:/input \
             -v ${{ github.workspace }}/main/test/generatedCode:/output \
             ${{ needs.determine_version.outputs.image_tag }} \
             swarch2gitlab /input/input1.swarch /output
