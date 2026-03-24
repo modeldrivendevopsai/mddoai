@@ -45,7 +45,7 @@
           <mxGeometry height="220" width="530" x="1660" y="510" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1549" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Google" vertex="1">
-          <mxGeometry height="220" width="530" x="1630" y="-1280" as="geometry" />
+          <mxGeometry height="290" width="530" x="1630" y="-1350" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1550" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Amazon" vertex="1">
           <mxGeometry height="220" width="530" x="1620" y="-1600" as="geometry" />
@@ -259,6 +259,15 @@
         </mxCell>
         <mxCell id="V1ywKLKqY_l1fc6zAiqA-1515" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" value="It&#39;s basic and random. Impossible to improve specific details." vertex="1">
           <mxGeometry height="80" width="120" x="1520" y="1770" as="geometry" />
+        </mxCell>
+        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1516" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Model Garden" vertex="1">
+          <mxGeometry height="60" width="120" x="1950" y="-1200" as="geometry" />
+        </mxCell>
+        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1517" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Deploy 3rd party models" vertex="1">
+          <mxGeometry height="30" width="90" x="2060" y="-1200" as="geometry" />
+        </mxCell>
+        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1518" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Deploy 3rd party models" vertex="1">
+          <mxGeometry height="30" width="90" x="2060" y="-1160" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
