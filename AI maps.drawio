@@ -266,8 +266,8 @@
         <mxCell id="V1ywKLKqY_l1fc6zAiqA-1517" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Deploy 3rd party models" vertex="1">
           <mxGeometry height="30" width="90" x="2060" y="-1200" as="geometry" />
         </mxCell>
-        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1518" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Deploy 3rd party models" vertex="1">
-          <mxGeometry height="30" width="90" x="2060" y="-1160" as="geometry" />
+        <mxCell id="V1ywKLKqY_l1fc6zAiqA-1518" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Connect to 3rd party model serving" vertex="1">
+          <mxGeometry height="50" width="90" x="2060" y="-1160" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
