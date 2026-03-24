@@ -35,8 +35,8 @@
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.codegen.ecore_2.44.0.v20251025-0946.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.emf.codegen_2.27.0.v20250910-1205.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/com.google.guava_33.5.0.jre.jar"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.parser_3.7.15.202402190857.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.apache.ant_1.10.15.v20240901-1000/lib/ant-antlr.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.eclipse.acceleo.parser_3.7.15.202402190857.jar"/>
     </path>
 
     <path id="com.mddoai.codegeneration.gitlab.acceleo.classpath">

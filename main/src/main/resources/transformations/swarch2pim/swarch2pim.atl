@@ -11,6 +11,7 @@ rule SWArch2PIMPipeline {
   to
     target : PIMMM!Pipeline (
       name <- source.name,
+	  agent <- source.getDefaultAgent(),
       jobStreams <- source.defineAllJobs(),
 	  environmentVariables <- source.createPipelineVariables()
     )
@@ -59,18 +60,23 @@ lazy rule createScriptJob {
     )
 }
 
+
+helper context SWArchMM!SoftwareArchitecture def: getDefaultAgent() : PIMMM!Agent =
+  if self.build_system = 'gradle' then
+    thisModule.createLinuxAgent('gradle:jdk21')
+  else
+    OclUndefined
+  endif;
+
 -- Determine which agent/image to use for each stage
 helper context SWArchMM!SoftwareArchitecture def: getAgentForStage(stage : String) : PIMMM!Agent =
   if stage = 'unitTest' then
     if self.language = 'python' then
       thisModule.createLinuxAgent('python:3.12-slim')
-    else if self.language = 'java' then
-      thisModule.createLinuxAgent('openjdk:17-slim')
     else if self.language = 'node' or self.language = 'javascript' then
       thisModule.createLinuxAgent('node:18-alpine')
     else
       OclUndefined  -- Use default runner
-    endif
     endif
     endif
   else if stage = 'healthCheck' then
@@ -103,26 +109,33 @@ lazy rule createDockerContainer {
 -- Helper: Map a SWArch stage to Commands
 helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : Sequence(PIMMM!Command) =
   if stage = 'unitTest' then
-    if self.unit_test = 'true' then
-      Sequence { thisModule.createCommand(self.build_system + ' test') }
+    if self.build_system = 'gradle' then
+      Sequence { thisModule.createCommand('gradle test') }
+    else if self.unit_test = 'true' then
+      Sequence { thisModule.createCommand('python3 -m pytest') }
     else
       Sequence { thisModule.createCommand('python3 ' + self.unit_test) }
     endif
+    endif
   else if stage = 'build' then
     if self.build_system = 'gradle' then
-      Sequence { thisModule.createCommand(self.build_system + ' clean -x test') }
+      Sequence { thisModule.createCommand('gradle clean build -x test') }
     else
       Sequence { thisModule.createCommand(self.build_system + ' build -t ${IMAGE_TAG} .') }
     endif
   else if stage = 'healthCheck' then
-    Sequence { thisModule.createCommand(' ' + self.health_check) }
+    Sequence { thisModule.createCommand(self.health_check) }
   else if stage = 'push' then
     Sequence {
       thisModule.createCommand(self.build_system + ' login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}'),
       thisModule.createCommand(self.build_system + ' push ${IMAGE_TAG}')
     }
   else if stage = 'lintCheck' then
-    Sequence { thisModule.createCommand(self.build_system + ' check') }
+    if self.build_system = 'gradle' then
+      Sequence { thisModule.createCommand('gradle check') }
+    else
+      Sequence { thisModule.createCommand(self.build_system + ' check') }
+    endif
   else
     Sequence {}
   endif

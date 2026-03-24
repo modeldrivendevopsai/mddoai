@@ -22,14 +22,16 @@
     <tags>
       <tags tag="ai-shared"/>
     </tags>
+    <image name="python:3.12-slim"/>
   </jobs>
   <jobs name="healthCheck" stage="healthCheck">
     <script>
-      <commands command="./scripts/health_check.sh"/>
+      <commands command=" ./scripts/health_check.sh"/>
     </script>
     <tags>
       <tags tag="ai-shared"/>
     </tags>
+    <image name="curlimages/curl:latest"/>
     <needs job="build" artifacts="true"/>
   </jobs>
   <jobs name="push" stage="push">
@@ -43,7 +45,7 @@
     <needs job="healthCheck" artifacts="true"/>
   </jobs>
   <variables>
-    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/chatbot-app-image"/>
+    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
     <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
   </variables>
   <workflow>

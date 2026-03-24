@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/com.mddoai.feature_1.0.0.202603191039.jar" id="com.mddoai.feature" version="1.0.0.202603191039"/>
+   <feature url="features/com.mddoai.feature_1.0.0.202603231403.jar" id="com.mddoai.feature" version="1.0.0.202603231403"/>
    <category-def name="MDDOAI" label="MDDOAI"/>
 </site>

@@ -38,7 +38,7 @@ healthCheck:
   stage: healthCheck
   image: curlimages/curl:latest
   script:
-    -  ./scripts/health_check.sh
+    - ./scripts/health_check.sh
   needs:
     - job: "build"
   

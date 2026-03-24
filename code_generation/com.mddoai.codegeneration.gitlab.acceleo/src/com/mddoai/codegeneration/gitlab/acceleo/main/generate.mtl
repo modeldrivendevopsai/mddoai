@@ -14,7 +14,8 @@
 #######################################################################
 
 [generateWorkflow(aPipeline.workflow)/]
-[generateStages(aPipeline.stages)/]
+[if (aPipeline.default <> null)][generateDefault(aPipeline.default)/]
+[/if][generateStages(aPipeline.stages)/]
 [generateVariables(aPipeline.variables)/]
 [if (aPipeline.jobs->notEmpty())]
 [for (j: Job | aPipeline.jobs)]
@@ -25,7 +26,7 @@
 [/template]
 
 [template public generateWorkflow(workflow : Workflow)]
-[if (workflow <> null)] 
+[if (workflow <> null)]
 workflow:
   rules:
 [for (r: GitlabRule | workflow.rules)]
@@ -34,6 +35,21 @@ workflow:
       when: [r.when/]
 [/if]
 [/for]
+[/if]
+[/template]
+
+[template public generateDefault(d : Default)]
+[if (d <> null)]
+default:
+[if (d.image <> null)]
+  image: [d.image.name/]
+[/if]
+[if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+  before_script:
+[for (command: Command | d.beforeScript.commands)]
+    - [command.command/]
+[/for]
+[/if]
 [/if]
 [/template]
 
