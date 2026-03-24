@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.3" pages="2">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="864" dy="2182" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1056" dy="2210" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -241,6 +241,21 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1560" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;position2=1;base=20;" value="Should be Free for opensource but rejected MDDOAI" vertex="1">
           <mxGeometry height="100" width="100" x="270" y="-410" as="geometry" />
+        </mxCell>
+        <mxCell id="x0gX8Fsqvf6yubnjidub-1515" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Pika.art" vertex="1">
+          <mxGeometry height="60" width="120" x="1480" y="1850" as="geometry" />
+        </mxCell>
+        <mxCell id="x0gX8Fsqvf6yubnjidub-1516" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Short video generation" vertex="1">
+          <mxGeometry height="30" width="90" x="1611" y="1850" as="geometry" />
+        </mxCell>
+        <mxCell id="x0gX8Fsqvf6yubnjidub-1517" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="image-to-video" vertex="1">
+          <mxGeometry height="30" width="90" x="1611" y="1890" as="geometry" />
+        </mxCell>
+        <mxCell id="x0gX8Fsqvf6yubnjidub-1518" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Video enhancement" vertex="1">
+          <mxGeometry height="30" width="90" x="1611" y="1930" as="geometry" />
+        </mxCell>
+        <mxCell id="x0gX8Fsqvf6yubnjidub-1519" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFD966;fontStyle=1" value="Freemium" vertex="1">
+          <mxGeometry height="30" width="60" x="1530" y="1990" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
