@@ -169,13 +169,16 @@ jobs:
 
       - name: Run CLI via Docker image
         run: |
+          # Create the directory first so the GitHub runner owns it natively
+          mkdir -p ${{ github.workspace }}/main/test/generatedCode
+          
           docker run --rm \
             -v ${{ github.workspace }}/main/src/test/resources/testCases/e2e:/input \
             -v ${{ github.workspace }}/main/test/generatedCode:/output \
             ${{ needs.determine_version.outputs.image_tag }} \
             swarch2gitlab /input/input1.swarch /output
-          
-          # Reclaim ownership of the files from Docker's root user
+
+          # Reclaim ownership of the files generated inside by Docker
           sudo chown -R $USER:$USER ${{ github.workspace }}/main/test/generatedCode
 
       - name: Show generated files (Debug)
