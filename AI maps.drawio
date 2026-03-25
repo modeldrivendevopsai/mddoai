@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.5" pages="2">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="951" dy="2155" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="2037" dy="2898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -52,6 +52,9 @@
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1556" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Devin" vertex="1">
           <mxGeometry height="220" width="430" x="2520" y="1048" as="geometry" />
+        </mxCell>
+        <mxCell id="ume72ZhqyeO3kmkx0Eg7-1515" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="Moonshot AI" vertex="1">
+          <mxGeometry height="220" width="530" x="2630" y="520" as="geometry" />
         </mxCell>
         <mxCell id="1" parent="0" style="locked=0;" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
@@ -219,19 +222,19 @@
           <mxGeometry height="30" width="100" x="485" y="-350" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1551" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="BugBot" vertex="1">
-          <mxGeometry height="70" width="120" x="1875" y="580" as="geometry" />
+          <mxGeometry height="70" width="120" x="1880" y="610" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1552" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Code Review" vertex="1">
-          <mxGeometry height="30" width="90" x="1985" y="595" as="geometry" />
+          <mxGeometry height="30" width="90" x="1990" y="625" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1553" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFD966;fontStyle=1" value="Freemium" vertex="1">
-          <mxGeometry height="30" width="60" x="2075" y="595" as="geometry" />
+          <mxGeometry height="30" width="60" x="2080" y="625" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1554" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Cloud agent" vertex="1">
-          <mxGeometry height="30" width="100" x="1985" y="630" as="geometry" />
+          <mxGeometry height="30" width="100" x="1990" y="660" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1555" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF0000;fontStyle=1" value="No Trial, pay upfront" vertex="1">
-          <mxGeometry height="30" width="80" x="2075" y="630" as="geometry" />
+          <mxGeometry height="30" width="80" x="2080" y="660" as="geometry" />
         </mxCell>
         <mxCell id="hdK8f44e5-gqTikMMB0n-1558" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Devin Review" vertex="1">
           <mxGeometry height="70" width="120" x="2750" y="1130" as="geometry" />
@@ -268,6 +271,23 @@
         </mxCell>
         <mxCell id="V1ywKLKqY_l1fc6zAiqA-1518" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Connect to 3rd party model serving" vertex="1">
           <mxGeometry height="50" width="90" x="2060" y="-1160" as="geometry" />
+        </mxCell>
+        <mxCell id="ume72ZhqyeO3kmkx0Eg7-1517" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Composer 2" vertex="1">
+          <mxGeometry height="70" width="70" x="2090" y="525" as="geometry" />
+        </mxCell>
+        <mxCell id="ume72ZhqyeO3kmkx0Eg7-1518" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Kimi K2.5&lt;br&gt;(opensource)" vertex="1">
+          <mxGeometry height="70" width="70" x="2650" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="ume72ZhqyeO3kmkx0Eg7-1519" edge="1" parent="1" source="ume72ZhqyeO3kmkx0Eg7-1517" style="endArrow=classic;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=1;dashed=1;dashPattern=8 8;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.945;exitY=0.615;exitDx=0;exitDy=0;exitPerimeter=0;" target="ume72ZhqyeO3kmkx0Eg7-1518" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="2380" y="580" as="sourcePoint" />
+            <mxPoint x="2620" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ume72ZhqyeO3kmkx0Eg7-1520" connectable="0" parent="ume72ZhqyeO3kmkx0Eg7-1519" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="USE" vertex="1">
+          <mxGeometry relative="1" x="0.0969" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
