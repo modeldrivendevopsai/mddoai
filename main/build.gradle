@@ -249,3 +249,21 @@ tasks.register('unitJacocoTestReport', JacocoReport) {
         csv.required.set(false)
     }
 }
+
+jacocoTestCoverageVerification {
+    executionData fileTree(dir: "$buildDir/jacoco", include: ["*.exec"])
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+        files(sourceSets.main.output).collect {
+            fileTree(dir: it, exclude: ['**/Main.class'])
+        }
+    )
+    
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80  // This is the 80% threshold!
+            }
+        }
+    }
+}
