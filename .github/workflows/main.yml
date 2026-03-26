@@ -224,7 +224,7 @@ jobs:
           path: main/build/jacoco/
 
       - run: chmod +x ./gradlew
-      - run: ./gradlew unitJacocoTestReport integrationJacocoTestReport e2eJacocoTestReport
+      - run: ./gradlew unitJacocoTestReport integrationJacocoTestReport e2eJacocoTestReport jacocoTestReport
 
       - run: ls -R build/reports/jacoco/
 
