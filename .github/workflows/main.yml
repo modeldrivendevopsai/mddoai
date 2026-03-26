@@ -155,25 +155,42 @@ jobs:
   cli_check:
     name: CLI Check (E2E)
     runs-on: ubuntu-latest
-    container: gradle:8.14.3-jdk21-alpine
-    needs: gradle_build
-    defaults:
-      run:
-        working-directory: main
+    needs: [docker_build, determine_version]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
-          name: gradle-build
-          path: main/build/
-      - run: chmod +x ./cli
-      - run: ./cli swarch2gitlab ./src/test/resources/testCases/e2e/input1.swarch ./test/generatedCode
-      - run: chmod +x ../pipeline_tests/fileExistsTest.sh && ../pipeline_tests/fileExistsTest.sh
+          name: docker-image
+          path: main/
+
+      - name: Load Docker image
+        run: docker load -i main/image.tar
+
+      - name: Run CLI via Docker image
+        run: |
+          # Create the directory first so the GitHub runner owns it natively
+          mkdir -p ${{ github.workspace }}/main/test/generatedCode
+          
+          docker run --rm \
+            -v ${{ github.workspace }}/main/src/test/resources/testCases/e2e:/input \
+            -v ${{ github.workspace }}/main/test/generatedCode:/output \
+            ${{ needs.determine_version.outputs.image_tag }} \
+            swarch2gitlab /input/input1.swarch /output
+
+          # Reclaim ownership of the files generated inside by Docker
+          sudo chown -R $USER:$USER ${{ github.workspace }}/main/test/generatedCode
+
+      - name: Show generated files (Debug)
+        run: ls -la ${{ github.workspace }}/main/test/generatedCode
+
+      - name: Run file existence check
+        run: chmod +x pipeline_tests/fileExistsTest.sh && ./pipeline_tests/fileExistsTest.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: cli-test-output
           path: main/test/
-
   coverage_report:
     name: Coverage Report
     runs-on: ubuntu-latest
@@ -207,7 +224,7 @@ jobs:
           path: main/build/jacoco/
 
       - run: chmod +x ./gradlew
-      - run: ./gradlew unitJacocoTestReport integrationJacocoTestReport e2eJacocoTestReport
+      - run: ./gradlew unitJacocoTestReport integrationJacocoTestReport e2eJacocoTestReport jacocoTestReport
 
       - run: ls -R build/reports/jacoco/
 
@@ -253,8 +270,7 @@ jobs:
   push_image:
     name: Push Docker Image
     runs-on: ubuntu-latest
-    needs:
-      [docker_build,determine_version,unit_tests,integration_tests,e2e_tests,cli_check]
+    needs: [docker_build, determine_version, unit_tests, integration_tests, e2e_tests, cli_check, coverage_report]
     if: github.event_name == 'push'
     permissions:
       contents: read

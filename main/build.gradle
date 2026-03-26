@@ -1,8 +1,8 @@
 plugins {
-	id 'application'
- 	id 'distribution'
- 	id 'jacoco'
-	id 'org.barfuin.gradle.jacocolog' version "3.1.0"
+    id 'application'
+    id 'distribution'
+    id 'jacoco'
+    id 'org.barfuin.gradle.jacocolog' version "3.1.0"
 }
 
 apply plugin: 'java'
@@ -39,7 +39,6 @@ dependencies {
     // https://mvnrepository.com/artifact/lpg.runtime.java/lpg.runtime.java
     implementation group: 'lpg.runtime.java', name: 'lpg.runtime.java', version: '2.0.17.v201004271640'
 
-
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore', version: '2.41.0'
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.common', version: '2.31.0'
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore.xmi', version: '2.39.0'
@@ -48,20 +47,6 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
     implementation 'com.google.guava:guava:32.1.3-jre'
-
-
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe.utils
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe.utils', version: '1.11.0'
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.ecore.xmi
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore.xmi', version: '2.36.0'
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.ecore
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore', version: '2.35.0'
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.codegen
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.codegen', version: '2.23.0'
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.common
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.common', version: '2.29.0'
-    // // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.edit
-    // implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.edit', version: '2.21.0'
 
     // https://mvnrepository.com/artifact/org.eclipse.epsilon/org.eclipse.epsilon.eml.engine
     implementation group: 'org.eclipse.epsilon', name: 'org.eclipse.epsilon.eml.engine', version: '2.0.0'
@@ -73,14 +58,13 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
     testImplementation 'junit:junit:4.13.2'
-	testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
-	testRuntimeOnly 'org.junit.platform:junit-platform-engine:1.12.2'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-engine:1.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'
 }
 
-
 sourceSets {
-   	main {
+    main {
         java {
             srcDirs = ['src/main/java']
         }
@@ -108,7 +92,6 @@ jar {
     }
 }
 
-
 startScripts {
     classpath = files('$APP_HOME/lib/*')
 }
@@ -123,7 +106,6 @@ configurations {
 
     e2eTestImplementation.extendsFrom testImplementation
     e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
-    
 }
 
 def standardTestLogging = {
@@ -133,9 +115,9 @@ def standardTestLogging = {
 }
 
 task integrationTest(type: Test) {
-	finalizedBy 'integrationJacocoTestReport'
-	
-	jacoco {
+    finalizedBy 'integrationJacocoTestReport'
+    
+    jacoco {
         destinationFile = file("$buildDir/jacoco/integrationTest.exec")
     }
 
@@ -148,12 +130,12 @@ task integrationTest(type: Test) {
 }
 
 task e2eTest(type: Test) {
-	finalizedBy 'e2eJacocoTestReport'
-	
-	jacoco {
+    finalizedBy 'e2eJacocoTestReport'
+    
+    jacoco {
         destinationFile = file("$buildDir/jacoco/e2eTest.exec")
     }
-	
+    
     description = "Runs the end-to-end tests."
     testClassesDirs = sourceSets.e2eTest.output.classesDirs
     classpath = sourceSets.e2eTest.runtimeClasspath
@@ -163,9 +145,9 @@ task e2eTest(type: Test) {
 }
 
 test {
-	finalizedBy 'unitJacocoTestReport'
-	
-	jacoco {
+    finalizedBy 'unitJacocoTestReport'
+    
+    jacoco {
         destinationFile = file("$buildDir/jacoco/test.exec")
     }
 
@@ -176,17 +158,13 @@ test {
 }
 
 jacocoTestReport {
-	sourceSets sourceSets.main
-	
-	executionData fileTree(dir: "$buildDir/jacoco", include: ["*.exec"])
-	
-	afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/Main.class'])
-        })
-    }
+    dependsOn tasks.test, tasks.integrationTest, tasks.e2eTest
     
-   	reports {
+    executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["*.exec"]))
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(sourceSets.main.output))
+    
+    reports {
         xml.required.set(true)
         html.required.set(true)
         csv.required.set(false)
@@ -197,13 +175,8 @@ tasks.register('e2eJacocoTestReport', JacocoReport) {
     dependsOn tasks.e2eTest
 
     executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["e2eTest.exec"]))
-
     sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
-    classDirectories.setFrom(
-        files(sourceSets.main.output).collect {
-            fileTree(dir: it, exclude: ['**/Main.class'])
-        }
-    )
+    classDirectories.setFrom(files(sourceSets.main.output))
 
     reports {
         xml.required.set(true)
@@ -216,13 +189,8 @@ tasks.register('integrationJacocoTestReport', JacocoReport) {
     dependsOn tasks.integrationTest
 
     executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["integrationTest.exec"]))
-
     sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
-    classDirectories.setFrom(
-        files(sourceSets.main.output).collect {
-            fileTree(dir: it, exclude: ['**/Main.class'])
-        }
-    )
+    classDirectories.setFrom(files(sourceSets.main.output))
 
     reports {
         xml.required.set(true)
@@ -235,17 +203,28 @@ tasks.register('unitJacocoTestReport', JacocoReport) {
     dependsOn tasks.test
 
     executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["test.exec"]))
-
     sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
-    classDirectories.setFrom(
-        files(sourceSets.main.output).collect {
-            fileTree(dir: it, exclude: ['**/Main.class'])
-        }
-    )
+    classDirectories.setFrom(files(sourceSets.main.output))
 
     reports {
         xml.required.set(true)
         html.required.set(true)
         csv.required.set(false)
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn tasks.test, tasks.integrationTest, tasks.e2eTest
+
+    executionData.setFrom(fileTree(dir: "$buildDir/jacoco", include: ["*.exec"]))
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(sourceSets.main.output))
+    
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.50  
+            }
+        }
     }
 }
