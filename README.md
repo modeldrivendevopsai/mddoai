@@ -379,6 +379,7 @@ The project folder structure consists of these folders:
 - [E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
 - [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
+- [Overall](https://modeldrivendevopsai.github.io/mddoai/test/html/index.html)
 
 ## Draw.io diagrams
 
