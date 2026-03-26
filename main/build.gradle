@@ -195,13 +195,6 @@ jacocoTestReport {
         csv.required.set(false)
     }
 }
-    
-   	reports {
-        xml.required.set(true)
-        html.required.set(true)
-        csv.required.set(false)
-    }
-}
 
 tasks.register('e2eJacocoTestReport', JacocoReport) {
     dependsOn tasks.e2eTest
@@ -261,6 +254,8 @@ tasks.register('unitJacocoTestReport', JacocoReport) {
 }
 
 jacocoTestCoverageVerification {
+dependsOn tasks.test, tasks.integrationTest, tasks.e2eTest
+
     executionData fileTree(dir: "$buildDir/jacoco", include: ["*.exec"])
     sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
     classDirectories.setFrom(
