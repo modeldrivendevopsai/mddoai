@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="ASCII"?>
-<gitlabMM:Pipeline xmi:version="2.0"
-  xmlns:xmi="http://www.omg.org/XMI"
-  xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
   <stages>build</stages>
   <stages>unitTest</stages>
   <stages>healthCheck</stages>
@@ -54,4 +52,8 @@
     <rules gitlabIf="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
     <rules gitlabIf="$CI_COMMIT_BRANCH"/>
   </workflow>
+  <default>
+    <image name="docker:latest"/>
+    <services name="docker:dind"/>
+  </default>
 </gitlabMM:Pipeline>

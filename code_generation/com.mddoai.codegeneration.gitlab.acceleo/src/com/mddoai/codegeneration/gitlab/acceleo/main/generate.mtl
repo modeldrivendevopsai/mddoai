@@ -44,7 +44,7 @@ default:
 [if (d.image <> null)]
   image: [d.image.name/]
 [/if]
-[if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+[generateServices(d.services)/][if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
   before_script:
 [for (command: Command | d.beforeScript.commands)]
     - [command.command/]

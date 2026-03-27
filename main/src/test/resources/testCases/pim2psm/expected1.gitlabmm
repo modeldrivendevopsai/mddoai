@@ -26,7 +26,7 @@
   </jobs>
   <jobs name="healthCheck" stage="healthCheck">
     <script>
-      <commands command=" ./scripts/health_check.sh"/>
+      <commands command="./scripts/health_check.sh"/>
     </script>
     <tags>
       <tags tag="ai-shared"/>
@@ -52,4 +52,8 @@
     <rules gitlabIf="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
     <rules gitlabIf="$CI_COMMIT_BRANCH"/>
   </workflow>
+  <default>
+    <image name="docker:latest"/>
+    <services name="docker:dind"/>
+  </default>
 </gitlabMM:Pipeline>

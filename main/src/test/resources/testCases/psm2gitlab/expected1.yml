@@ -11,6 +11,11 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
     - if: $CI_COMMIT_BRANCH
 
+default:
+  image: docker:latest
+  services:
+    - name: docker:dind
+
 stages:
   - build
   - unitTest

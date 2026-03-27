@@ -64,8 +64,11 @@ lazy rule createScriptJob {
 helper context SWArchMM!SoftwareArchitecture def: getDefaultAgent() : PIMMM!Agent =
   if self.build_system = 'gradle' then
     thisModule.createLinuxAgent('gradle:jdk21')
+  else if self.build_system = 'docker' then
+    thisModule.createLinuxAgent('docker:latest')
   else
     OclUndefined
+  endif
   endif;
 
 -- Determine which agent/image to use for each stage

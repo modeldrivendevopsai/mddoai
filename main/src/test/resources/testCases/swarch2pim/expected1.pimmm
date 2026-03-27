@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="ASCII"?>
 <xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
   <pimMM:Pipeline name="framework-chatbot" jobStreams="build unitTest healthCheck push">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="docker:latest"/>
+      </container>
+    </agent>
     <environmentVariables>
       <key name="IMAGE_NAME"/>
       <value xsi:type="pimMM:StringLiteral" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
