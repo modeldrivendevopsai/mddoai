@@ -213,6 +213,23 @@ tasks.register('unitJacocoTestReport', JacocoReport) {
     }
 }
 
+tasks.register('buildMddoaiJar', Zip) {
+    group = 'build'
+    description = 'Assembles libs/mddoai.jar from the 4 Eclipse plugin projects. Run after Eclipse compiles.'
+
+    archiveFileName = 'mddoai.jar'
+    destinationDirectory = file('libs')
+
+    // Compiled classes — the only thing the CLI actually needs
+    from('../code_generation/com.mddoai.codegeneration.gitlab.acceleo/bin') { include '**/*.class' }
+    from('../meta_models/com.mddoai.metamodel.gitlab/bin')                  { include '**/*.class' }
+    from('../meta_models/com.mddoai.metamodel.pim/bin')                     { include '**/*.class' }
+    from('../meta_models/com.mddoai.metamodel.swarch/bin')                  { include '**/*.class' }
+
+    // Acceleo template — loaded by classpath at runtime (.emtl lives in src/ after .classpath fix)
+    from('../code_generation/com.mddoai.codegeneration.gitlab.acceleo/src') { include '**/*.emtl' }
+}
+
 jacocoTestCoverageVerification {
     dependsOn tasks.test, tasks.integrationTest, tasks.e2eTest
 
