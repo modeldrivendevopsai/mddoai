@@ -307,6 +307,12 @@
         <mxCell id="UWrS1Z3fuX8EMU6BDN9q-1524" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="3-minute music gen" vertex="1">
           <mxGeometry height="30" width="90" x="1600" y="-1290" as="geometry" />
         </mxCell>
+        <mxCell id="UWrS1Z3fuX8EMU6BDN9q-1525" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Google AI Studio" vertex="1">
+          <mxGeometry height="60" width="120" x="1790" y="-1160" as="geometry" />
+        </mxCell>
+        <mxCell id="UWrS1Z3fuX8EMU6BDN9q-1527" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="Coding fullstack Cloud&amp;nbsp;agent" vertex="1">
+          <mxGeometry height="30" width="160" x="1710" y="-1180" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
