@@ -25,7 +25,7 @@ rule SWArch2PIMPipeline {
 	if (not thisModule.pullJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
 	  thisModule.buildJob.previous <- Sequence{thisModule.pullJob};
 	}
-	if (not thisModule.pushJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
+	if (not thisModule.pushJob.oclIsUndefined() and thisModule.healthCheckJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
 	  thisModule.pushJob.previous <- Sequence{thisModule.buildJob};
 	}
 	if (not thisModule.deployJob.oclIsUndefined() and not thisModule.pushJob.oclIsUndefined()) {
