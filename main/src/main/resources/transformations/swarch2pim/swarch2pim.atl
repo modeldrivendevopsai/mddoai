@@ -138,8 +138,14 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   else if stage = 'build' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle clean build -x test') }
+    else if self.type = 'implementation' then
+      Sequence {
+        thisModule.createCommand('docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}'),
+        thisModule.createCommand(self.build_system + ' build -t ${IMAGE_TAG} .')
+      }
     else
       Sequence { thisModule.createCommand(self.build_system + ' build -t ${IMAGE_TAG} .') }
+    endif
     endif
   else if stage = 'healthCheck' then
     Sequence { thisModule.createCommand(self.health_check) }
