@@ -157,7 +157,7 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   else if stage = 'pull' then
     if self.build_system = 'docker' then
       Sequence {
-      thisModule.createCommand(self.build_system + ' login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN_EXTERNAL} ${CI_REGISTRY}'),
+      thisModule.createCommand(self.build_system + ' login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}'),
       thisModule.createCommand(self.build_system + ' pull ${CORE_IMAGE_TAG}')
     }
     else
