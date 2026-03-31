@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6" pages="2">
   <diagram id="6a731a19-8d31-9384-78a2-239565b7b9f0" name="AI maps">
-    <mxGraphModel dx="1188" dy="2380" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="2194" dy="2994" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="zvods7Q_8VXGQD6KORxb-1545" parent="0" style="locked=1;" value="Regions" />
@@ -9,6 +9,9 @@
         </mxCell>
         <mxCell id="SNAfCb3SKZ_ZiIsG0T6H-1515" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;US&lt;/span&gt;" vertex="1">
           <mxGeometry height="3260" width="3260" x="1510" y="-1630" as="geometry" />
+        </mxCell>
+        <mxCell id="PbRPHE13Jt6AHCvQwfEt-1516" parent="zvods7Q_8VXGQD6KORxb-1545" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;color: rgb(47, 91, 124); font-size: 30px; font-weight: 700;&quot;&gt;Asia&lt;/span&gt;" vertex="1">
+          <mxGeometry height="3260" width="3260" x="4923" y="-1640" as="geometry" />
         </mxCell>
         <mxCell id="NdLV79dXn-VGi25_OTUK-1529" parent="0" style="locked=1;" value="Organizations" />
         <mxCell id="NdLV79dXn-VGi25_OTUK-1530" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="NVidia" vertex="1">
@@ -64,6 +67,9 @@
         </mxCell>
         <mxCell id="SNAfCb3SKZ_ZiIsG0T6H-1517" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="compresr" vertex="1">
           <mxGeometry height="170" width="250" x="2490" y="-1600" as="geometry" />
+        </mxCell>
+        <mxCell id="PbRPHE13Jt6AHCvQwfEt-1517" parent="NdLV79dXn-VGi25_OTUK-1529" style="rounded=1;fillColor=#64BBE2;strokeColor=none;strokeWidth=3;shadow=0;html=1;fontColor=#FFFFFF;fontSize=11;verticalAlign=top;" value="ByteDance" vertex="1">
+          <mxGeometry height="220" width="530" x="5210" y="-1510" as="geometry" />
         </mxCell>
         <mxCell id="1" parent="0" style="locked=0;" value="Elements" />
         <UserObject label=" Frontier AI&lt;br&gt;Initiative" link="file:///E:/U/Expert_Forum_Frontier_AI__Call_Expression_Interest_qcva4NzO5DpC7drma7M6oW9Ma4_124661.pdf" linkTarget="_blank" id="1515">
@@ -339,6 +345,9 @@
         </mxCell>
         <mxCell id="PbRPHE13Jt6AHCvQwfEt-1515" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Sonnet" vertex="1">
           <mxGeometry height="70" width="70" x="1710" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="PbRPHE13Jt6AHCvQwfEt-1518" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="CUDA Agent" vertex="1">
+          <mxGeometry height="60" width="120" x="5390" y="-1420" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
