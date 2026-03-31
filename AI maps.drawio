@@ -331,6 +331,12 @@
         <mxCell id="SNAfCb3SKZ_ZiIsG0T6H-1521" parent="1" style="ellipse;whiteSpace=wrap;html=1;shadow=0;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;align=center;strokeWidth=3;fillColor=#736ca8;strokeColor=none;" value="Latte" vertex="1">
           <mxGeometry height="70" width="70" x="2630" y="-1480" as="geometry" />
         </mxCell>
+        <mxCell id="SNAfCb3SKZ_ZiIsG0T6H-1522" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Canary" vertex="1">
+          <mxGeometry height="60" width="120" x="2890" y="-1545" as="geometry" />
+        </mxCell>
+        <mxCell id="SNAfCb3SKZ_ZiIsG0T6H-1523" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82b366;fillColor=#d5e8d4;" value="AI testing agent on PR" vertex="1">
+          <mxGeometry height="30" width="140" x="3000" y="-1545" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
