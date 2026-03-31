@@ -19,6 +19,18 @@ rule SWArch2PIMPipeline {
     thisModule.buildJob <- target.jobStreams->select(j | j.id = 'build')->first();
     thisModule.healthCheckJob <- target.jobStreams->select(j | j.id = 'healthCheck')->first();
     thisModule.pushJob <- target.jobStreams->select(j | j.id = 'push')->first();
+    thisModule.pullJob <- target.jobStreams->select(j | j.id = 'pull')->first();
+	thisModule.deployJob <- target.jobStreams->select(j | j.id = 'deploy')->first();
+	
+	if (not thisModule.pullJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
+	  thisModule.buildJob.previous <- Sequence{thisModule.pullJob};
+	}
+	if (not thisModule.pushJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
+	  thisModule.pushJob.previous <- Sequence{thisModule.buildJob};
+	}
+	if (not thisModule.deployJob.oclIsUndefined() and not thisModule.pushJob.oclIsUndefined()) {
+	  thisModule.deployJob.previous <- Sequence{thisModule.pushJob};
+	}
     
     if (not thisModule.healthCheckJob.oclIsUndefined() and not thisModule.buildJob.oclIsUndefined()) {
       thisModule.healthCheckJob.previous <- Sequence{thisModule.buildJob};
@@ -36,8 +48,11 @@ helper def: getMandatoryJobs(type : String) : Sequence(String) =
     Sequence {'build', 'push'}
   else if type = 'jar' then
     Sequence {'build'}
+  else if type = 'implementation' then
+    Sequence {'pull', 'build', 'push', 'deploy'}
   else
     Sequence {}
+  endif
   endif
   endif;
 
@@ -139,8 +154,26 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
     else
       Sequence { thisModule.createCommand(self.build_system + ' check') }
     endif
+  else if stage = 'pull' then
+    if self.build_system = 'docker' then
+      Sequence {
+      thisModule.createCommand(self.build_system + ' login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN_EXTERNAL} ${CI_REGISTRY}'),
+      thisModule.createCommand(self.build_system + ' pull ${CORE_IMAGE_TAG}')
+    }
+    else
+      OclUndefined
+    endif
+	
+  else if stage = 'deploy' then
+  Sequence {
+    thisModule.createCommand('terraform init -backend-config="password=${CI_JOB_TOKEN}" -backend-config="address=${ADDRESS}" -backend-config="lock_address=${LOCK_UNLOCK}" -backend-config="unlock_address=${LOCK_UNLOCK}"'),
+    thisModule.createCommand('terraform apply -auto-approve -var="vm_ip=${VM_IP}" -var="vm_port=${VM_PORT}" -var="vm_password=${VM_PASS}" -var="OPENAI_API_KEY=${OPENAI_API_KEY}" -var="docker_username=${CI_REGISTRY_USER}" -var="docker_token=${CI_JOB_TOKEN}" -var="chat_log_folder=${CI_PROJECT_NAME}" -var="docker_registry=${CI_REGISTRY}" -var="image_name=${IMAGE_TAG}"')
+  }
+
   else
     Sequence {}
+  endif
+  endif
   endif
   endif
   endif
@@ -170,7 +203,7 @@ lazy rule createCommand {
 
 -- Helper: Create jobs for all stages
 helper context SWArchMM!SoftwareArchitecture def: defineAllJobs() : Sequence(PIMMM!Job) =
-  let stages : Sequence(String) = Sequence{'build','unitTest','lintCheck','healthCheck','push'}->
+  let stages : Sequence(String) = Sequence{'pull','build','unitTest','lintCheck','healthCheck','push','deploy'}->
         select(s | thisModule.getMandatoryJobs(self.type)->includes(s)
                   or (s='unitTest' and not self.unit_test.oclIsUndefined() and self.unit_test<>'')
                   or (s='healthCheck' and not self.health_check.oclIsUndefined() and self.health_check<>'')
@@ -185,8 +218,21 @@ helper context SWArchMM!SoftwareArchitecture def: createPipelineVariables() : Se
       thisModule.createAssignment('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/' + self.name + '-image'),
       thisModule.createAssignment('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}')
     }
+  
+  else if self.type = 'implementation' then
+  Sequence {
+    thisModule.createAssignment('CORE_IMAGE_TAG', '${CORE_IMAGE_NAME}:${CORE_IMAGE_VERSION}'),
+    thisModule.createAssignment('IMAGE_NAME', '${CI_REGISTRY_IMAGE}/' + self.name + '-image'),
+    thisModule.createAssignment('IMAGE_TAG', '${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}'),
+    thisModule.createAssignment('NAME', self.name),
+    thisModule.createAssignment('ADDRESS', '${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/terraform/state/${NAME}'),
+    thisModule.createAssignment('LOCK_UNLOCK', '${ADDRESS}/lock'),
+    thisModule.createAssignment('CHAT_LOG_FOLDER', '${CI_PROJECT_NAME}')
+  }
+  
   else
     Sequence {}
+  endif
   endif;
   
   
