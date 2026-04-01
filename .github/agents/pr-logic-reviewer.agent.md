@@ -6,6 +6,13 @@ argument-hint: "pr=<number>"
 user-invocable: true
 ---
 
+## Prerequisites
+
+- **GitHub CLI (`gh`) must be installed** — [https://cli.github.com](https://cli.github.com)
+- **`gh` must be authenticated** — run `gh auth login` and follow the prompts if you haven't already
+- **You must be inside the repository directory** when invoking this agent
+- Verify your setup with: `gh auth status`
+
 ## Critical Rules
 
 - ALWAYS fetch the PR diff using `gh pr diff <number>`
