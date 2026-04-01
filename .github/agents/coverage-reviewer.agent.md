@@ -38,26 +38,20 @@ Warn the user this step may take a few minutes, then run:
 cd main && ./gradlew test integrationTest e2eTest --continue
 ```
 
-Then generate the coverage report. Use whichever task exists:
+Then generate the coverage report:
 ```
-cd main && ./gradlew jacocoMergedReport
-```
-or, if that task does not exist:
-```
-cd main && ./gradlew jacocoTestReport
+cd main && ./gradlew jacocoAggregatedReport
 ```
 
-If both fail, search for any `.exec` files under `main/build/` and report that coverage
-data exists but no report task was found.
+If that fails, fall back to individual reports:
+```
+cd main && ./gradlew e2eJacocoTestReport integrationJacocoTestReport unitJacocoTestReport
+```
 
 ### Step 2 — Locate the Coverage Report
 
-Search for the JaCoCo XML report:
-```
-find main/build/reports/jacoco -name "*.xml"
-```
-
-Prefer the merged report if multiple exist. Read the XML file and extract per-class data:
+Use the `search` tool to find the JaCoCo XML report under `main/build/reports/jacoco/`.
+Look for files matching `*.xml`. Prefer the merged report if multiple exist. Read the XML file and extract per-class data:
 - `<class name="...">` → the fully qualified class name
 - `<counter type="LINE" missed="X" covered="Y"/>` → line coverage
 - `<counter type="BRANCH" missed="X" covered="Y"/>` → branch coverage
