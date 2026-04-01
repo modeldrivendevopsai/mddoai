@@ -18,7 +18,7 @@ stages:
   - push
 
 variables:
-  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/chatbot-app-image
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
   IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
 
 build:

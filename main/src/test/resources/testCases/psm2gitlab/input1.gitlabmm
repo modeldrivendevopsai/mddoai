@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="ASCII"?>
-<gitlabMM:Pipeline xmi:version="2.0"
-  xmlns:xmi="http://www.omg.org/XMI"
-  xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
   <stages>build</stages>
   <stages>unitTest</stages>
   <stages>healthCheck</stages>
@@ -47,7 +45,7 @@
     <needs job="healthCheck" artifacts="true"/>
   </jobs>
   <variables>
-    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/chatbot-app-image"/>
+    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
     <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
   </variables>
   <workflow>

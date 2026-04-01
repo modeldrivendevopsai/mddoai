@@ -381,6 +381,12 @@ The project folder structure consists of these folders:
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
 - [Overall](https://modeldrivendevopsai.github.io/mddoai/test/html/index.html)
 
+## AI Agents
+
+This project uses GitHub Copilot agents for PR review, code quality checks, test case generation, and transformation debugging. See [docs/agents.md](docs/agents.md) for usage, invocation commands, and design rationale.
+
+---
+
 ## Draw.io diagrams
 
 View - Use Draw.io to open the file "drawio diagrams.xml"
