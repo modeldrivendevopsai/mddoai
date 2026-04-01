@@ -20,8 +20,10 @@ Designed to run in the **background** in VSCode.
 
 ## Setup
 
-1. Parse the argument. If `path=<value>` is provided, scope the review to that path.
-   Default scope: `main/src/main/java/`.
+1. If `path=<value>` is provided, scope the review to that path.
+   Otherwise default to `main/src/main/java/`.
+2. Only review hand-written Java source files. Skip anything under `build/`, `generated/`,
+   or any file that starts with a comment saying it was auto-generated.
 
 2. Read `main/build.gradle` to check whether `checkstyle` or `pmd` plugins are applied.
 

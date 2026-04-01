@@ -1,7 +1,9 @@
 # GitHub Copilot Agents
 
 This project uses [GitHub Copilot](https://github.com/features/copilot) agents to assist with development workflows.
-Agents are defined as markdown files in [`.github/agents/`](../.github/agents/) and are invoked from the GitHub Copilot Chat panel in VSCode using the `@agent` or `/agent-name` syntax.
+Agents are defined as markdown files in [`.github/agents/`](../.github/agents/).
+
+**How to invoke:** Open Copilot Chat in VSCode (`Ctrl+Alt+I`), click the **agent picker** at the bottom of the chat input, select the agent, then type any arguments directly in the chat and send.
 
 ---
 
@@ -18,9 +20,9 @@ Reviews the logic of a pull request — fetching the diff directly from GitHub a
 - Authenticated: run `gh auth login` if not already done
 - Verify with: `gh auth status`
 
-**Invoke:**
+**Invoke:** Select **PR Logic Reviewer** from the agent picker, then type:
 ```
-/pr-logic-reviewer pr=<number>
+pr=<number>
 ```
 
 **What it checks:**
@@ -41,11 +43,10 @@ Reviews the logic of a pull request — fetching the diff directly from GitHub a
 
 Reviews Java source files for formatting and style violations. Uses Checkstyle or PMD via Gradle if configured; otherwise performs manual pattern analysis.
 
-**Invoke:**
+**Invoke:** Select **Lint Reviewer** from the agent picker and send with no arguments — it defaults to `main/src/main/java/`. Optionally narrow the scope:
 ```
-/lint-reviewer path=main/src/main/java/mddoai/transformers
+path=main/src/main/java/mddoai/transformers
 ```
-Omit `path` to review the entire `main/src/main/java/` directory.
 
 **What it checks:**
 - Naming conventions (PascalCase classes, camelCase methods, UPPER_SNAKE_CASE constants)
@@ -65,13 +66,13 @@ Omit `path` to review the entire `main/src/main/java/` directory.
 
 Runs the full Gradle test suite, generates a JaCoCo coverage report, and identifies classes with insufficient coverage.
 
-> **Note:** This agent executes the test suite, which may take several minutes. It is best run in the background.
+> **Note:** This agent executes the test suite, which may take several minutes.
 
-**Invoke:**
+**Invoke:** Select **Coverage Reviewer** from the agent picker and send with no arguments — it analyses all classes. Optionally narrow the gap report:
 ```
-/coverage-reviewer path=main/src/main/java/mddoai/transformers
+path=main/src/main/java/mddoai/transformers
 ```
-Omit `path` to analyse all classes. The test suite always runs in full regardless of scope.
+The test suite always runs in full regardless of scope.
 
 **What it checks:**
 - Runs `test`, `integrationTest`, and `e2eTest` Gradle tasks
@@ -89,11 +90,10 @@ Omit `path` to analyse all classes. The test suite always runs in full regardles
 
 Reviews Java source files for object-oriented design quality — SOLID principle violations and common code smells. This agent reads files only; it does not run any commands.
 
-**Invoke:**
+**Invoke:** Select **OOP Reviewer** from the agent picker and send with no arguments — it defaults to `main/src/main/java/`. Optionally narrow the scope:
 ```
-/oop-reviewer path=main/src/main/java/mddoai/transformers
+path=main/src/main/java/mddoai/transformers
 ```
-Omit `path` to review the entire `main/src/main/java/` directory.
 
 **What it checks:**
 
@@ -119,43 +119,39 @@ Omit `path` to review the entire `main/src/main/java/` directory.
 
 After changing an ATL rule, Acceleo template, or metamodel, the `expected1.*` test fixture files become stale. Instead of manually re-running each transformation and copying outputs, this agent does the full refresh in one command.
 
-**Invoke:**
-```
-/test-fixtures-updater
-/test-fixtures-updater stage=pim2psm
-```
-Omit `stage` (or use `stage=all`) to refresh all four stages at once.
+**Invoke:** Select **Test Fixtures Updater** from the agent picker and send with no arguments.
 
 **What it does:**
-1. Ensures the build is installed (`gradlew installDist` if needed)
-2. Runs the real CLI transformation for each stage against its `input1` fixture
-3. Shows what changed before overwriting anything
-4. Overwrites only the `expected1.*` files that differ from the new output
-5. Runs `integrationTest` and `e2eTest` to confirm the updates pass
+1. Runs `swarch2gitlab` on `swarch2pim/input1.swarch` — one CLI call produces all intermediates
+2. Copies each output to both its expected file and the downstream stage's input file
+3. Runs `integrationTest` and `e2eTest` to confirm everything passes
 
 **What it never touches:**
-- `expected2.*` files — these are intentionally wrong (used with `assertFalse`) and must stay manually crafted
-- Any `input*` file
-- `input3` files have no expected output at all — nothing to update there
+- `expected2.*` files — intentionally wrong (used with `assertFalse`), must stay manually crafted
 
-| Stage | Input used | File overwritten |
-|-------|-----------|-----------------|
-| `swarch2pim` | `testCases/swarch2pim/input1.swarch` | `testCases/swarch2pim/expected1.pimmm` |
-| `pim2psm` | `testCases/pim2psm/input1.pimmm` | `testCases/pim2psm/expected1.gitlabmm` |
-| `psm2gitlab` | `testCases/psm2gitlab/input1.gitlabmm` | `testCases/psm2gitlab/expected1.yml` |
-| `e2e` | `testCases/e2e/input1.swarch` | `testCases/e2e/expected1.yml` |
+| Generated file | Copied to |
+|---------------|-----------|
+| `PipelinePIM.pimmm` | `swarch2pim/expected1.pimmm` + `pim2psm/input1.pimmm` |
+| `PipelineGit.gitlabmm` | `pim2psm/expected1.gitlabmm` + `psm2gitlab/input1.gitlabmm` |
+| `.gitlab-ci.yml` | `psm2gitlab/expected1.yml` + `e2e/expected1.yml` |
 
 ---
 
-## Running Agents in the Background (VSCode)
+### PR Description Generator
 
-Coverage Reviewer runs the full Gradle test suite and takes several minutes — run it in the background.
-All other agents are fast enough to run inline.
+**File:** [`.github/agents/pr-description-generator.agent.md`](../.github/agents/pr-description-generator.agent.md)
 
-To run an agent in the background in VSCode Copilot Chat:
-1. Open GitHub Copilot Chat in VSCode
-2. Type the invocation command (e.g., `@workspace /coverage-reviewer`)
-3. Copilot will run the agent as a background task
+Reads the current branch diff against `main` and produces a ready-to-paste PR description. Run this **before** opening a PR on GitHub — no PR number needed.
+
+**Invoke:** Select **PR Description Generator** from the agent picker and send with no arguments.
+
+**What it does:**
+- Runs `git diff main...HEAD` to get all changes on the current branch
+- Maps changed files to transformation stages using project domain language (ATL, PIM, PSM, swarch, gitlabmm)
+- Generates a `## Summary` block with typed bullets: `Bug fix`, `New feature`, `Improvement`, `Refactor`, `Tests`, `Docs`, `CI`, `Agents`
+- Appends the branch name and commit count for reference
+
+**Output:** A paste-ready description block — no preamble, just the formatted text to copy into the GitHub PR form.
 
 ---
 
@@ -172,5 +168,3 @@ The three code quality agents (lint, coverage, OOP) are **separate** rather than
 | Maintenance | Update one agent without touching the others | Any change risks affecting unrelated checks |
 
 The tradeoff against a single agent: three invocations instead of one, and no cross-referencing between findings. For this project — where checks are meaningfully independent and are often needed individually — three focused agents produce better results than one broad one.
-
-If the project later adds more checks (e.g., dependency auditing, API contract validation), each new concern should get its own agent rather than being folded into an existing one.
