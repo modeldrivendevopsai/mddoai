@@ -230,3 +230,11 @@ jacocoTestCoverageVerification {
         }
     }
 }
+
+tasks.named('test', Test) {
+    // Allows System-Lambda to test System.exit()
+    systemProperty 'java.security.manager', 'allow'
+    
+    // Allows Mockito to mock static methods in Java 21+
+    jvmArgs '-XX:+EnableDynamicAgentLoading'
+}
