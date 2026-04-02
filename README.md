@@ -24,10 +24,10 @@ Output: GitLab CI/CD Pipeline (.gitlab-ci.yml)
 
 There are **two ways** to use MDDOAI:
 
-| Method | Best For | Setup Time |
-|--------|----------|------------|
-| **Docker** | Quick usage, CI/CD pipelines | 2 minutes |
-| **Build from Source** | Development, customization | 5 minutes |
+| Method                | Best For                     | Setup Time |
+| --------------------- | ---------------------------- | ---------- |
+| **Docker**            | Quick usage, CI/CD pipelines | 2 minutes  |
+| **Build from Source** | Development, customization   | 5 minutes  |
 
 Choose your method below:
 
@@ -78,6 +78,7 @@ docker run --rm \
 - **`--rm`** automatically removes the container after execution
 
 **Alternative - Using absolute paths:**
+
 ```bash
 docker run --rm \
   -v "/full/path/to/input:/app/input" \
@@ -87,6 +88,7 @@ docker run --rm \
 ```
 
 **For CI/CD pipelines:**
+
 ```bash
 docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1
 docker run --rm \
@@ -158,31 +160,33 @@ Then rebuild the CLI:
 - In CMD: Use `.\gradlew` instead.
 - On Linux/macOS: Use `./gradlew` (as shown above).
 
-
 **Expected output:** `BUILD SUCCESSFUL`
 
 This creates executable scripts in `build/install/com.mddoai/bin/`.
 
 ### Step 3: Run the Tool
+
 ```bash
 ./cli.bat <Type> <InputModelPath> <OutputFolder>
 ```
 
-**Note for Windows users:** 
+**Note for Windows users:**
+
 - In PowerShell: Use `./cli.bat` (as shown above).
 - In CMD: Use `.\cli.bat` instead.
 - On Linux/macOS: Use `./cli.sh` (if available) or adapt accordingly.
+
 ---
 
 ## Transformation Types
 
 MDDOAI supports three transformation types:
 
-| Command | Input Format | Output | Use Case |
-|---------|-------------|--------|----------|
-| `swarch2gitlab` | `.swarch` | `.gitlab-ci.yml` |  End-to-end transformation |
-| `pim2gitlab` | `.pim` | `.gitlab-ci.yml` | Advanced - Custom PIM workflows |
-| `psm2gitlab` | `.gitlabpsm` | `.gitlab-ci.yml` | Advanced - Direct PSM to YAML |
+| Command         | Input Format | Output           | Use Case                        |
+| --------------- | ------------ | ---------------- | ------------------------------- |
+| `swarch2gitlab` | `.swarch`    | `.gitlab-ci.yml` | End-to-end transformation       |
+| `pim2gitlab`    | `.pim`       | `.gitlab-ci.yml` | Advanced - Custom PIM workflows |
+| `psm2gitlab`    | `.gitlabpsm` | `.gitlab-ci.yml` | Advanced - Direct PSM to YAML   |
 
 **Parameters:**
 
@@ -220,7 +224,6 @@ cat output/.gitlab-ci.yml
 ./cli.bat swarch2gitlab ./input/my-app.swarch ./output
 ```
 
-
 ### Example 3: Using Included Test Models
 
 Test with example models included in the repository:
@@ -228,8 +231,11 @@ Test with example models included in the repository:
 ```bash
 ./cli.bat swarch2gitlab ./src/test/resources/testCases/e2e/input1.swarch ./test/generatedCode
 ```
+
 ---
+
 ## Testing
+
 Run tests to verify everything works correctly:
 
 ```bash
@@ -244,7 +250,8 @@ cd main
 ./gradlew test              # Unit tests
 ```
 
-**Note for Windows users:** 
+**Note for Windows users:**
+
 - In PowerShell: Use `./gradlew` (as shown above).
 - In CMD: Use `.\gradlew` instead.
 
@@ -269,11 +276,13 @@ MDDOAI uses a three-tier Docker image tagging strategy.
 **Purpose:** Testing tag for all feature branches
 
 **Characteristics:**
+
 - Overwritten on every feature branch push
 - Not safe for production use
 - Useful for quick testing
 
 **Example workflow:**
+
 ```bash
 # Create feature branch
 git checkout -b fix-parser-bug
@@ -288,11 +297,13 @@ git push origin fix-parser-bug
 **Purpose:** Latest code from the main branch
 
 **Characteristics:**
+
 - Overwritten on every main branch commit
 - Semi-stable
 - Recommended for development
 
 **Example workflow:**
+
 ```bash
 # Merge PR to main
 git checkout main
@@ -306,6 +317,7 @@ git push origin main
 **Purpose:** Permanent production releases
 
 **Characteristics:**
+
 - Never overwritten
 - Never expires
 - Follows Semantic Versioning (MAJOR.MINOR.PATCH)
@@ -316,6 +328,7 @@ git push origin main
 Go to Actions → Release → Run workflow. The workflow automatically computes the next version, generates AI release notes, tags the commit, and publishes the GitHub Release. The CI/CD pipeline then builds and pushes the Docker image tagged with the new version.
 
 **Example workflow (manual):**
+
 ```bash
 # Ready to release? Create and push tag
 git tag 1.0.1
@@ -325,11 +338,11 @@ git push origin 1.0.1
 
 ### Comparison Table
 
-| Tag | Stability | Overwritten? | Use Case |
-|-----|-----------|--------------|----------|
-| `1.x-snapshot` | Unstable | Yes (any branch) | Feature Testing |
-| `1.0-snapshot` | Semi-stable | Yes (main only) | Development |
-| `1.0.1` | Stable | Never | Production |
+| Tag            | Stability   | Overwritten?     | Use Case        |
+| -------------- | ----------- | ---------------- | --------------- |
+| `1.x-snapshot` | Unstable    | Yes (any branch) | Feature Testing |
+| `1.0-snapshot` | Semi-stable | Yes (main only)  | Development     |
+| `1.0.1`        | Stable      | Never            | Production      |
 
 See the image tags in the [MDDOAI Container Registry](https://github.com/modeldrivendevopsai/mddoai/pkgs/container/mddoai%2Fmddoai).
 
@@ -349,7 +362,7 @@ All project dependencies are managed through the build.gradle file using Gradle'
 
 - Eclipse Core Runtime – OSGi-based plugin framework for model loading and service resolution
 
- - EMF (Eclipse Modeling Framework) – Model definition, XMI serialization, code generation
+- EMF (Eclipse Modeling Framework) – Model definition, XMI serialization, code generation
 
 - OCL (Object Constraint Language) – Constraint handling for model validation
 
@@ -376,19 +389,19 @@ All project dependencies are managed through the build.gradle file using Gradle'
 To add or update dependencies, modify the dependencies block in the Gradle build script located in `main/build.gradle`.
 
 ## Project Structure
+
 The project folder structure consists of these folders:
 
 - `code_generation` - this folder contains the necessary Acceleo files to generate code from models.
 
 - `designs` - this folder contains all Eclipse Sirius viewpoint projects that are used to visualize models and edit them.
 
-- `feature` - this folder contains all  the necessary packages in one feature project
+- `feature` - this folder contains all the necessary packages in one feature project
 
 - `install_necessary_packages` - contains all the .zip files that need to be installed via the install new software view before using the tools in the project.
 
 - `main` - this folder contains the MDDOAI itself. Under this folder there also is:
-
-	- `transformations` - a folder responsible to translate from one model to another.
+  - `transformations` - a folder responsible to translate from one model to another.
 
 - `meta_models` - this folder contains meta-models used by this project that are modeled using the EMF (Eclipse Modelling Framework).
 
@@ -397,6 +410,7 @@ The project folder structure consists of these folders:
 - `update_site` - this folder contains the reference to the feature from the feature folder and it is responsible for building the update site.
 
 ## Coverage reports
+
 - [E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
 - [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
@@ -408,9 +422,14 @@ Releases are automated via the [Release workflow](.github/workflows/release.yml)
 
 1. Go to **Actions → Release → Run workflow**
 2. Select bump type (`minor` by default)
-3. Click **Run workflow**
+3. Optional: enable **dry run** to preview without publishing
+4. Click **Run workflow**
 
-The workflow auto-increments the version, generates AI release notes from merged PRs (using GitHub's release-notes API), pushes the semver tag, creates the GitHub Release, then calls the CI/CD pipeline directly to build, test, and publish the Docker image. No extra secrets or setup required.
+The workflow is enforced to run only from `main`. GitHub still shows a branch selector in the UI, but non-main runs fail immediately.
+
+When **dry run** is enabled, the workflow computes the next version and generates release notes, then writes a summary of what would be created. It does not push a tag, does not create a GitHub Release, and does not call the CI/CD publish workflow.
+
+When **dry run** is disabled, the workflow auto-increments the version, generates AI release notes from merged PRs (using GitHub's release-notes API), pushes the semver tag, creates the GitHub Release, then calls the CI/CD pipeline directly to build, test, and publish the Docker image. No extra secrets or setup required.
 
 ## AI Agents
 

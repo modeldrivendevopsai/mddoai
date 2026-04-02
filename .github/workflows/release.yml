@@ -8,16 +8,16 @@ on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: 'Version bump type'
+        description: "Version bump type"
         required: false
-        default: 'minor'
+        default: "minor"
         type: choice
         options:
           - minor
           - patch
           - major
       dry_run:
-        description: 'Dry run — preview version and release notes without tagging or publishing'
+        description: "Dry run — preview version and release notes without tagging or publishing"
         required: false
         default: false
         type: boolean
@@ -26,10 +26,24 @@ permissions:
   contents: write
   pull-requests: read
   packages: write
+  pages: write
+  id-token: write
 
 jobs:
+  ensure_main_branch:
+    name: Enforce main branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if not main
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Release workflow can only run from branch 'main'. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
   release:
     name: Create Release
+    needs: ensure_main_branch
     runs-on: ubuntu-latest
     outputs:
       next_version: ${{ steps.version.outputs.next_version }}
@@ -101,6 +115,8 @@ jobs:
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "## DRY RUN — nothing was tagged or published" >> $GITHUB_STEP_SUMMARY
+            echo "Would create tag: \`${{ steps.version.outputs.next_version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Would create GitHub Release title: \`Release ${{ steps.version.outputs.next_version }}\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "## Release ${{ steps.version.outputs.next_version }} created" >> $GITHUB_STEP_SUMMARY
           fi
