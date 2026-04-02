@@ -138,8 +138,24 @@ If you are doing repeated local builds without major changes, you can use:
 
 Use `clean` especially for the first run, after switching branches, or after changes to models/transformations that can leave stale build artifacts.
 
-**Note for Windows users:**
+#### Rebuilding `libs/mddoai.jar` (after Eclipse model/template changes)
 
+`libs/mddoai.jar` bundles compiled classes from the 4 Eclipse plugin projects and is required by the CLI. If you modify metamodels, Acceleo templates, or code generation files in Eclipse, you need to rebuild this JAR before running `installDist`.
+
+**Prerequisites:** Eclipse must have compiled the plugin projects first (i.e. the `bin/` directories in each plugin project must be up to date).
+
+```bash
+cd main
+./gradlew buildMddoaiJar
+```
+
+Then rebuild the CLI:
+
+```bash
+./gradlew installDist
+```
+
+**Note for Windows users:**
 - In PowerShell: Use `./gradlew` (as shown above).
 - In CMD: Use `.\gradlew` instead.
 - On Linux/macOS: Use `./gradlew` (as shown above).
