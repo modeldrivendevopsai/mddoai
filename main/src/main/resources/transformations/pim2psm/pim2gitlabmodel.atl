@@ -182,6 +182,15 @@ lazy rule createTag {
         )
 }
 
+lazy rule createServiceFromName {
+    from
+        serviceName : String
+    to
+        service : GitLabMM!Service (
+            name <- serviceName
+        )
+}
+
 -- Only run on main branch
 lazy rule createOnly {
 	from
@@ -456,7 +465,16 @@ lazy rule createDefault {
     to
         default : GitLabMM!Default (
             image <- thisModule.createImage(source.agent),
-            beforeScript <- thisModule.createBeforeScript(source.pipeline)
+            services <- if thisModule.isDockerProject(source.pipeline) then
+                           Sequence{thisModule.createServiceFromName('docker:dind')}
+                        else
+                           Sequence{}
+                        endif,
+            beforeScript <- if thisModule.isGradleProject(source.pipeline) then
+                               thisModule.createBeforeScript(source.pipeline)
+                            else
+                               OclUndefined
+                            endif
         )
 }
 
@@ -470,10 +488,16 @@ helper def : getWhenForJob(job : PIM!Job) : String =
 helper def : isGradleProject(pipeline : PIM!Pipeline) : Boolean =
     pipeline.jobStreams->exists(j |
         j.oclIsTypeOf(PIM!ScriptJob) and
-        j.steps->exists(s | 
+        j.steps->exists(s |
             s.oclIsTypeOf(PIM!Command) and
             s.program.toGitLabString().indexOf('gradle') >= 0));
 
+helper def : isDockerProject(pipeline : PIM!Pipeline) : Boolean =
+    pipeline.jobStreams->exists(j |
+        j.oclIsTypeOf(PIM!ScriptJob) and
+        j.steps->exists(s |
+            s.oclIsTypeOf(PIM!Command) and
+            s.program.toGitLabString().indexOf('docker') >= 0));
 
 helper def : getStageForJob(job : PIM!Job, pipeline : PIM!Pipeline) : String =
     if thisModule.isGradleProject(pipeline) then
