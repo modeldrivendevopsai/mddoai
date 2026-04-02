@@ -5,6 +5,12 @@ on:
     branches: ["**"]
     tags: ["*"]
   pull_request:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Explicit version to use (passed by the Release workflow)'
+        required: false
+        type: string
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}/mddoai
@@ -20,7 +26,9 @@ jobs:
       - name: Calculate image tag
         id: tag
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
           elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
             VERSION="1.0-snapshot"
@@ -271,7 +279,7 @@ jobs:
     name: Push Docker Image
     runs-on: ubuntu-latest
     needs: [docker_build, determine_version, unit_tests, integration_tests, e2e_tests, cli_check, coverage_report]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_call'
     permissions:
       contents: read
       packages: write

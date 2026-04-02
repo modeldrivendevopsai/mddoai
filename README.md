@@ -294,10 +294,14 @@ git push origin main
 - Follows Semantic Versioning (MAJOR.MINOR.PATCH)
 - Ideal for production deployments
 
-**Example workflow:**
+**Example workflow (automated — recommended):**
+
+Go to Actions → Release → Run workflow. The workflow automatically computes the next version, generates AI release notes, tags the commit, and publishes the GitHub Release. The CI/CD pipeline then builds and pushes the Docker image tagged with the new version.
+
+**Example workflow (manual):**
 ```bash
 # Ready to release? Create and push tag
-git tag -a 1.0.1 -m "Release 1.0.1 - Fixed parser bug"
+git tag 1.0.1
 git push origin 1.0.1
 # GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0.1
 ```
@@ -380,6 +384,16 @@ The project folder structure consists of these folders:
 - [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
 - [Overall](https://modeldrivendevopsai.github.io/mddoai/test/html/index.html)
+
+## Release
+
+Releases are automated via the [Release workflow](.github/workflows/release.yml):
+
+1. Go to **Actions → Release → Run workflow**
+2. Select bump type (`minor` by default)
+3. Click **Run workflow**
+
+The workflow auto-increments the version, generates AI release notes from merged PRs (using GitHub's release-notes API), pushes the semver tag, creates the GitHub Release, then calls the CI/CD pipeline directly to build, test, and publish the Docker image. No extra secrets or setup required.
 
 ## AI Agents
 

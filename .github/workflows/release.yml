@@ -1,0 +1,120 @@
+name: Release
+
+# One-click release: bumps version, generates AI release notes, creates a GitHub Release,
+# then calls the main CI/CD workflow to build, test, and publish the Docker image.
+# No PAT or extra secrets required.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: false
+        default: 'minor'
+        type: choice
+        options:
+          - minor
+          - patch
+          - major
+      dry_run:
+        description: 'Dry run — preview version and release notes without tagging or publishing'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: read
+  packages: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.version.outputs.next_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        run: |
+          LATEST=$(git tag --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$LATEST" ]; then
+            LATEST="0.0.0"
+          fi
+          echo "Latest release tag: ${LATEST}"
+          MAJOR=$(echo "$LATEST" | cut -d. -f1)
+          MINOR=$(echo "$LATEST" | cut -d. -f2)
+          PATCH=$(echo "$LATEST" | cut -d. -f3)
+          case "${{ inputs.bump_type }}" in
+            major) NEXT="$((MAJOR + 1)).0.0" ;;
+            minor) NEXT="${MAJOR}.$((MINOR + 1)).0" ;;
+            patch) NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
+          esac
+          echo "Next version: ${NEXT}"
+          echo "next_version=${NEXT}" >> $GITHUB_OUTPUT
+          echo "latest_tag=${LATEST}" >> $GITHUB_OUTPUT
+
+      - name: Generate AI release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GitHub's generate-notes API uses ML to group and summarise merged PRs
+          # and commits since the previous release tag.
+          NOTES=$(gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="${{ steps.version.outputs.next_version }}" \
+            -f previous_tag_name="${{ steps.version.outputs.latest_tag }}" \
+            --jq '.body' 2>/dev/null || echo "No changes recorded since last release.")
+          {
+            echo 'notes<<EOF'
+            echo "$NOTES"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: inputs.dry_run == false
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.next_version }}
+          git push origin ${{ steps.version.outputs.next_version }}
+
+      - name: Create GitHub Release
+        if: inputs.dry_run == false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.version.outputs.next_version }} \
+            --title "Release ${{ steps.version.outputs.next_version }}" \
+            --notes "${{ steps.notes.outputs.notes }}" \
+            --latest
+
+      - name: Write job summary
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "## DRY RUN — nothing was tagged or published" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Release ${{ steps.version.outputs.next_version }} created" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.version.outputs.next_version }}\` (bump: ${{ inputs.bump_type }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release notes" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.notes.outputs.notes }}" >> $GITHUB_STEP_SUMMARY
+
+  call_ci:
+    name: Build, Test & Publish
+    needs: release
+    if: inputs.dry_run == false
+    uses: ./.github/workflows/main.yml
+    with:
+      version: ${{ needs.release.outputs.next_version }}
+    secrets: inherit
