@@ -129,3 +129,4 @@ class MainTest {
         int result = Main.run(new String[]{"PSM2GITLAB", "dummyInput", "dummyOutput"});
         assertEquals(1, result, "Expected to return 1 due to missing EMF environment in unit test");
     }
+}
