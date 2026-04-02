@@ -1,4 +1,4 @@
-package main.java;
+package test.java.unit.java;
 
 import com.github.stefanbirkner.systemlambda.SystemLambda;
 import org.junit.jupiter.api.*;

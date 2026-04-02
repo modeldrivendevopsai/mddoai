@@ -1,4 +1,4 @@
-package main.java;
+package test.java.unit.java;
 
 import com.github.stefanbirkner.systemlambda.SystemLambda;
 import org.junit.jupiter.api.*;
@@ -110,54 +110,22 @@ class MainTest {
     //  returns a well-defined int rather than throwing uncaught exceptions)
     // -------------------------------------------------------------------------
 
-   @Test
-    @DisplayName("run() with 'SWARCH2GITLAB' (uppercase) should not throw — returns int")
-    void run_swarch2gitlabUppercase_returnsInt() {
-        try {
-            // This trap prevents System.exit(1) from killing the test runner JVM
-            catchSystemExit(() -> {
-                Main.run(new String[]{
-                    "SWARCH2GITLAB",
-                    validInputFilePath,
-                    validOutputFolderPath
-                });
-            });
-        } catch (Throwable t) {
-            // We catch Throwable to handle literally anything: exceptions, errors, 
-            // or complaints if System.exit wasn't called. The JVM survives.
-            assertTrue(true); 
-        }
+    @Test
+    public void run_swarch2gitlabUppercase_returnsInt() {
+        // Because the full EMF environment isn't loaded in a unit test, 
+        // Main.run() will naturally fail and return exit code 1.
+        int result = Main.run(new String[]{"SWARCH2GITLAB", "dummyInput", "dummyOutput"});
+        assertEquals(1, result, "Expected to return 1 due to missing EMF environment in unit test");
     }
 
     @Test
-    @DisplayName("run() with 'PIM2GITLAB' (uppercase) should not throw — returns int")
-    void run_pim2gitlabUppercase_returnsInt() {
-        try {
-            catchSystemExit(() -> {
-                Main.run(new String[]{
-                    "PIM2GITLAB",
-                    validInputFilePath,
-                    validOutputFolderPath
-                });
-            });
-        } catch (Throwable t) {
-            assertTrue(true);
-        }
+    public void run_pim2gitlabUppercase_returnsInt() {
+        int result = Main.run(new String[]{"PIM2GITLAB", "dummyInput", "dummyOutput"});
+        assertEquals(1, result, "Expected to return 1 due to missing EMF environment in unit test");
     }
 
     @Test
-    @DisplayName("run() with 'PSM2GITLAB' (uppercase) should not throw — returns int")
-    void run_psm2gitlabUppercase_returnsInt() {
-        try {
-            catchSystemExit(() -> {
-                Main.run(new String[]{
-                    "PSM2GITLAB",
-                    validInputFilePath,
-                    validOutputFolderPath
-                });
-            });
-        } catch (Throwable t) {
-            assertTrue(true);
-        }
+    public void run_psm2gitlabUppercase_returnsInt() {
+        int result = Main.run(new String[]{"PSM2GITLAB", "dummyInput", "dummyOutput"});
+        assertEquals(1, result, "Expected to return 1 due to missing EMF environment in unit test");
     }
-}
