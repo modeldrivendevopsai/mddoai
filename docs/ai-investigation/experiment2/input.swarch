@@ -1,40 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Experiment 2 — Go Microservice
-  Complexity: Medium
-
-  What this tests:
-    Go has zero representation in either ATL file. Every language-specific branch
-    must be added from scratch, following existing patterns.
-
-    - swarch2pim: getAgentForStage('unitTest') — language='go' hits the final OclUndefined
-      else, so no container image is assigned. A go image (e.g. golang:1.21-alpine)
-      must be added following the python/node pattern.
-
-    - swarch2pim: getCommands('unitTest') — build_system is 'docker', unit_test is not
-      'true', so the current else branch produces 'python3 go test ./...' (wrong).
-      A language=go branch returning the unit_test value directly must be added.
-
-    - swarch2pim: getCommands('lintCheck') — produces 'docker check' (build_system + check).
-      Go uses a separate linter tool; the lint_check attribute already holds the full command,
-      so a language=go branch should use self.lint_check directly, analogous to health_check.
-
-    - pim2psm: createBeforeScript — currently outputs python pip install unconditionally
-      for non-Gradle projects. A Go project needs 'go mod download' (dependency fetch).
-      A new branch must be added that detects Go and generates the correct before-script.
-
-    - pim2psm: isGradleProject — detection uses 'gradle' substring in commands. The Go
-      equivalent must detect Go commands from the PIM job steps to drive the beforeScript
-      branching added above.
-
-  What is already handled and should NOT change:
-    - getMandatoryJobs: type=framework → build + push (correct)
-    - getAgentForStage('healthCheck'): curlimages/curl:latest (correct)
-    - getCommands('build'): 'docker build -t ${IMAGE_TAG} .' (correct — Go apps are containerised)
-    - getCommands('push'): docker login + push (correct)
-    - createPipelineVariables: type=framework → IMAGE_NAME / IMAGE_TAG (correct)
-    - All workflow / stage / need mapping in pim2psm (no changes needed)
--->
 <swarch:SoftwareArchitecture xmi:version="2.0"
   xmlns:xmi="http://www.omg.org/XMI"
   xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch"
