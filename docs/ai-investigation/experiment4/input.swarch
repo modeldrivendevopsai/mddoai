@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Experiment 4 — SWArch Metamodel Extension + ATL Generation
+  Complexity: Very High
+
+  THE CORE PROBLEM:
+    The current SWArch metamodel cannot express deployment triggers, retry
+    policies, or manual approval gates. Those concepts exist in the PIM
+    metamodel (PushTrigger, ManualTrigger, Job.maxAttempts) and in the GitLab
+    PSM (GitlabRule, Retry, when:manual) — but swarch2pim never generates them
+    because SWArch has no fields to drive that generation.
+
+    This SWArch model below uses THREE new attributes that do not exist yet
+    in the SWArch metamodel. The task is:
+
+      1. Propose the minimal extension to the SWArch metamodel
+         (new attributes on SoftwareArchitecture, following the existing
+         naming and type conventions in description.txt)
+
+      2. Extend swarch2pim.atl to read those new attributes and generate
+         the corresponding PIM elements:
+           - deploy_trigger="push:main"  →  PushTrigger with branchGlobs='main'
+             on the Pipeline's triggers reference
+           - health_check_retries="3"   →  maxAttempts=3 on the healthCheck ScriptJob
+           - manual_approval="true"     →  ManualTrigger (or job ifCondition) on push job
+
+      3. Verify which pim2gitlabmodel.atl rules already handle those PIM elements
+         correctly (they exist but are dead code today) and which need extending.
+
+  WHY THOSE THREE NEW ATTRIBUTES:
+    - deploy_trigger: a string encoding "event:branch", e.g. "push:main"
+      Follows the pattern of existing string attributes (unit_test, health_check).
+      When non-empty, swarch2pim should create a PushTrigger in the PIM.
+
+    - health_check_retries: a string (not integer, to match EString convention
+      used throughout SWArch). When non-empty and numeric, sets maxAttempts on
+      the healthCheck job. The PIM Job.maxAttempts is EIntegerObject.
+
+    - manual_approval: "true"/"false" string (consistent with how other flags
+      are encoded in SWArch as strings, not booleans).
+      When "true" and type=framework, marks the push job as requiring manual trigger.
+
+  WHAT THE AI MUST DISCOVER IN pim2gitlabmodel.atl (dead code audit):
+    - createTriggerRule: already handles PushTrigger → '$CI_COMMIT_BRANCH == "main"'
+      This will WORK if swarch2pim correctly creates a PushTrigger. No change needed.
+
+    - createWorkflow: already appends trigger rules when pipeline.triggers is non-empty.
+      This will WORK automatically. No change needed.
+
+    - createRetry: already maps maxAttempts-1 to GitLabMM!Retry.max.
+      The wiring in createJob already calls thisModule.createRetry when maxAttempts > 1.
+      This will WORK if swarch2pim sets maxAttempts. No change needed.
+
+    - ManualTrigger on a job: this is where pim2psm MAY need extension.
+      A pipeline-level ManualTrigger maps to 'when: manual' in workflow rules (handled).
+      A job-level manual gate in GitLab CI maps to 'when: manual' on the job itself.
+      The LLM must decide: does the PIM Job.ifCondition or a ManualTrigger in the
+      pipeline triggers list better model a job-level manual gate? And does pim2psm
+      need a new branch to emit 'when: manual' on the push job specifically?
+
+  THE TEST:
+    A weak AI will fail to notice the attributes are new and will just write ATL
+    that uses them as if they already exist in the metamodel.
+
+    A strong AI will:
+      a) Identify the metamodel gap first
+      b) Propose the new attributes (EString type, optional cardinality)
+      c) Write swarch2pim ATL that guards on non-empty/non-null values
+         (following the pattern: not self.health_check.oclIsUndefined() and self.health_check <> '')
+      d) Confirm which pim2psm rules already work and which need changes
+      e) Explain the manual_approval mapping decision with ATL reasoning
+-->
+<swarch:SoftwareArchitecture xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch"
+  name="production-payment-api"
+  type="framework"
+  build_system="docker"
+  language="python"
+  unit_test="pytest -v --cov=src --cov-report=xml"
+  health_check="./scripts/health_check.sh"
+  lint_check="pylint src/"
+  deploy_trigger="push:main"
+  health_check_retries="3"
+  manual_approval="true"/>
