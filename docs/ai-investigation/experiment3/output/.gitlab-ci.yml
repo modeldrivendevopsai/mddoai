@@ -1,0 +1,45 @@
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  image: maven:3.9-eclipse-temurin-21
+
+stages:
+  - build
+  - test
+
+
+build:
+  stage: build
+  script:
+    - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - target/*.jar
+  
+unitTest:
+  stage: test
+  script:
+    - mvn test
+  artifacts:
+    paths:
+      - target/surefire-reports/*.xml
+    when: always
+    reports:
+      junit: target/surefire-reports/*.xml
+  
+lintCheck:
+  stage: test
+  script:
+    - mvn checkstyle:check
+  

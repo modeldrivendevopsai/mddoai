@@ -64,8 +64,11 @@ lazy rule createScriptJob {
 helper context SWArchMM!SoftwareArchitecture def: getDefaultAgent() : PIMMM!Agent =
   if self.build_system = 'gradle' then
     thisModule.createLinuxAgent('gradle:jdk21')
+  else if self.build_system = 'maven' then
+    thisModule.createLinuxAgent('maven:3.9-eclipse-temurin-21')
   else
     OclUndefined
+  endif
   endif;
 
 -- Determine which agent/image to use for each stage
@@ -114,6 +117,8 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   if stage = 'unitTest' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle test') }
+    else if self.build_system = 'maven' then
+      Sequence { thisModule.createCommand('mvn test') }
     else if self.language = 'node' or self.language = 'javascript' then
       Sequence { thisModule.createCommand(self.unit_test) }
     else if self.language = 'go' then
@@ -126,11 +131,15 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
     endif
     endif
     endif
+    endif
   else if stage = 'build' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle clean build -x test') }
+    else if self.build_system = 'maven' then
+      Sequence { thisModule.createCommand('mvn clean package -DskipTests') }
     else
       Sequence { thisModule.createCommand(self.build_system + ' build -t ${IMAGE_TAG} .') }
+    endif
     endif
   else if stage = 'healthCheck' then
     Sequence { thisModule.createCommand(self.health_check) }
@@ -142,12 +151,15 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   else if stage = 'lintCheck' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle check') }
+    else if self.build_system = 'maven' then
+      Sequence { thisModule.createCommand('mvn checkstyle:check') }
     else if self.language = 'node' or self.language = 'javascript' then
       Sequence { thisModule.createCommand(self.lint_check) }
     else if self.language = 'go' then
       Sequence { thisModule.createCommand(self.lint_check) }
     else
       Sequence { thisModule.createCommand(self.build_system + ' check') }
+    endif
     endif
     endif
     endif
