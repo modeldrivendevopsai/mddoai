@@ -160,8 +160,11 @@ lazy rule createBeforeScript {
                }
             else if thisModule.isNodeProject(pipeline) then
                Sequence{thisModule.createCommand('npm install')}
+            else if thisModule.isGoProject(pipeline) then
+               Sequence{thisModule.createCommand('go mod download')}
             else
                Sequence{thisModule.createCommand('python3 -m pip install --break-system-packages -r requirements.txt')}
+            endif
             endif
             endif
         )
@@ -480,9 +483,16 @@ helper def : isNodeProject(pipeline : PIM!Pipeline) : Boolean =
 helper def : isGradleProject(pipeline : PIM!Pipeline) : Boolean =
     pipeline.jobStreams->exists(j |
         j.oclIsTypeOf(PIM!ScriptJob) and
-        j.steps->exists(s | 
+        j.steps->exists(s |
             s.oclIsTypeOf(PIM!Command) and
             s.program.toGitLabString().indexOf('gradle') >= 0));
+
+helper def : isGoProject(pipeline : PIM!Pipeline) : Boolean =
+    pipeline.jobStreams->exists(j |
+        j.oclIsTypeOf(PIM!ScriptJob) and
+        j.steps->exists(s |
+            s.oclIsTypeOf(PIM!Command) and
+            s.program.toGitLabString().indexOf('go test') >= 0));
 
 
 helper def : getStageForJob(job : PIM!Job, pipeline : PIM!Pipeline) : String =
