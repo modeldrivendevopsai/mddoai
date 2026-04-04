@@ -111,10 +111,13 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   if stage = 'unitTest' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle test') }
+    else if self.language = 'node' or self.language = 'javascript' then
+      Sequence { thisModule.createCommand(self.unit_test) }
     else if self.unit_test = 'true' then
       Sequence { thisModule.createCommand('python3 -m pytest') }
     else
       Sequence { thisModule.createCommand('python3 ' + self.unit_test) }
+    endif
     endif
     endif
   else if stage = 'build' then
@@ -133,8 +136,11 @@ helper context SWArchMM!SoftwareArchitecture def: getCommands(stage : String) : 
   else if stage = 'lintCheck' then
     if self.build_system = 'gradle' then
       Sequence { thisModule.createCommand('gradle check') }
+    else if self.language = 'node' or self.language = 'javascript' then
+      Sequence { thisModule.createCommand(self.lint_check) }
     else
       Sequence { thisModule.createCommand(self.build_system + ' check') }
+    endif
     endif
   else
     Sequence {}

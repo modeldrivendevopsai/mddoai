@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Experiment 3 — Java / Maven JAR
+  Complexity: Medium-High
+
+  What this tests:
+    Maven is a new build_system — neither docker nor gradle. The entire
+    build_system branching logic in both ATL files must be extended.
+    Additionally, type=jar changes which jobs are mandatory.
+
+    - swarch2pim: getMandatoryJobs — type='jar' produces only Sequence{'build'}.
+      No push job. No IMAGE_NAME / IMAGE_TAG variables. The LLM must confirm
+      this is already correct and explain why.
+
+    - swarch2pim: getDefaultAgent — build_system='maven' hits the else (not gradle),
+      returning OclUndefined. A Maven pipeline needs a pipeline-level agent
+      (e.g. maven:3.9-eclipse-temurin-21) analogous to gradle:jdk21.
+
+    - swarch2pim: getCommands('build') — build_system='maven' hits the docker else branch,
+      producing 'maven build -t ${IMAGE_TAG} .' (wrong — that is a docker flag on a Maven command).
+      A maven build branch is needed: 'mvn clean package -DskipTests'.
+
+    - swarch2pim: getCommands('unitTest') — build_system is not 'gradle', unit_test='true'
+      hits the 'python3 -m pytest' branch (wrong). A maven branch must produce 'mvn test'.
+
+    - swarch2pim: getCommands('lintCheck') — build_system='maven' hits the docker else:
+      'maven check' (not valid Maven). A maven lintCheck branch is needed: 'mvn checkstyle:check'.
+
+    - pim2psm: isGradleProject — returns false (no 'gradle' in commands). This is correct.
+      But createBeforeScript will then emit 'python3 -m pip install ...' (wrong for Maven).
+      Maven resolves dependencies automatically during build — no explicit install step is
+      needed. The LLM must decide whether to emit an empty beforeScript or omit it entirely,
+      and explain the reasoning in ATL terms.
+
+    - pim2psm: getStageForJob — isGradleProject is false, so jobs keep their own ids as
+      stage names. The LLM must confirm whether this needs a 'isMavenProject' equivalent
+      to collapse unitTest/lintCheck into a 'test' stage (as Gradle does).
+
+    - pim2psm: createArtifacts — hasArtifacts checks isGradleProject, so it returns false
+      for Maven. Maven also produces artifacts (target/*.jar). The LLM must decide whether
+      to extend hasArtifacts and createArtifacts for Maven builds.
+
+  What is already handled and should NOT change:
+    - getAgentForStage('healthCheck'): curlimages/curl:latest (correct — curl-based check)
+    - createPipelineVariables: type='jar' returns empty sequence (correct — no docker image)
+    - All workflow / stage / need / tag mapping in pim2psm (no changes needed)
+-->
+<swarch:SoftwareArchitecture xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch"
+  name="spring-boot-api"
+  type="jar"
+  build_system="maven"
+  language="java"
+  unit_test="true"
+  health_check=""
+  lint_check="true"/>

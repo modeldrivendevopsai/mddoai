@@ -158,8 +158,11 @@ lazy rule createBeforeScript {
                    thisModule.createCommand('GRADLE_USER_HOME="$(pwd)/.gradle"'),
                    thisModule.createCommand('export GRADLE_USER_HOME')
                }
+            else if thisModule.isNodeProject(pipeline) then
+               Sequence{thisModule.createCommand('npm install')}
             else
                Sequence{thisModule.createCommand('python3 -m pip install --break-system-packages -r requirements.txt')}
+            endif
             endif
         )
 }
@@ -466,6 +469,13 @@ helper def : getWhenForJob(job : PIM!Job) : String =
     if job.name='unitTest' then 'always'
     else OclUndefined
     endif;
+
+helper def : isNodeProject(pipeline : PIM!Pipeline) : Boolean =
+    pipeline.jobStreams->exists(j |
+        j.oclIsTypeOf(PIM!ScriptJob) and
+        j.steps->exists(s |
+            s.oclIsTypeOf(PIM!Command) and
+            s.program.toGitLabString().indexOf('npm') >= 0));
 
 helper def : isGradleProject(pipeline : PIM!Pipeline) : Boolean =
     pipeline.jobStreams->exists(j |
