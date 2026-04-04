@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Experiment 1 — Node.js Express API
-  Complexity: Low
-
-  What this tests:
-    - swarch2pim: getCommands('unitTest') has no node branch — currently falls through
-      to the Python else clause, producing a wrong command
-    - swarch2pim: getCommands('lintCheck') has no node branch — currently uses
-      build_system + ' check', which produces 'docker check'
-    - pim2psm: createBeforeScript is hardcoded for Python pip install —
-      no node/npm dependency install branch exists
-
-  What is already handled and should NOT change:
-    - getAgentForStage('unitTest') already returns node:18-alpine for language=node
-    - getMandatoryJobs: type=framework already produces build + push
-    - All docker build/push/login commands: build_system=docker is already handled
-    - getDefaultAgent: build_system=docker returns OclUndefined (correct — no pipeline agent)
-    - createPipelineVariables: type=framework already generates IMAGE_NAME / IMAGE_TAG
--->
 <swarch:SoftwareArchitecture xmi:version="2.0"
   xmlns:xmi="http://www.omg.org/XMI"
   xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch"
