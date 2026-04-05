@@ -17,12 +17,12 @@ public class PsmToGitlabHandler {
 
             if (inputModel == null) {
                 System.err.println("Failed to load Gitlab model: " + inputModelPath);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             if (inputModel.eClass().getEPackage() != GitlabMMPackage.eINSTANCE) {
                 System.err.println("Input model should be a GitLab metamodel instance.");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             GeneratorExecutor.execute(inputModel, "gitlab", outputFolder);
@@ -30,14 +30,14 @@ public class PsmToGitlabHandler {
             File[] files = new File(outputFolder).listFiles();
             if (files == null || files.length == 0) {
                 System.err.println("No files were generated in output folder: " + outputFolder);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("GitLab YAML Code has been generated...");
         } catch (Exception e) {
             System.err.println("Error during transformation process: " + e.getMessage());
             e.printStackTrace();
-            System.exit(1);
+            throw new ExitException(1);
         }
     }
 }

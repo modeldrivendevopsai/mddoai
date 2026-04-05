@@ -5,15 +5,14 @@ import main.java.mddoai.utils.EMFUtils;
 public class Main {
     
     public static void main(String[] args) {
-        // The JVM only exits here, which our tests will safely ignore!
-        int exitCode = run(args);
-        if (exitCode != 0) {
-            System.exit(exitCode);
+        try {
+            run(args);
+        } catch (ExitException e) {
+            System.exit(e.getCode());
         }
     }
 
-    // We put all the testable logic here, returning standard exit codes
-    public static int run(String[] args) {
+    public static void run(String[] args) {
         try {
             InputValidator.validate(args);
 
@@ -38,14 +37,15 @@ public class Main {
                 default:
                     System.err.println("Incorrect transformation type was provided: " + transformationType);
                     System.err.println("Supported transformation types: swarch2gitlab, pim2gitlab, psm2gitlab");
-                    return 1; // Return failure code instead of exiting
+                    throw new ExitException(1);
             }
-            return 0; // Return success code
 
+        } catch (ExitException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("Unexpected error: " + e.getMessage());
             e.printStackTrace();
-            return 1; // Return failure code instead of exiting
+            throw new ExitException(1);
         }
     }
 }

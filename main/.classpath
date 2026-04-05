@@ -1,26 +1,816 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.acceleo.ide.ui.ACCELEO_RUNTIME/RUNTIME"/>
-	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk-24">
+	<classpathentry kind="src" output="build/resources/test" path="src/test/resources">
 		<attributes>
-			<attribute name="module" value="true"/>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="resource" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" kind="src" path="/com.mddoai.metamodel.pim"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/com.mddoai.metamodel.gitlab"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/com.mddoai.codegeneration.gitlab.acceleo"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/com.mddoai.metamodel.swarch"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.m2m.atl.engine.emfvm_4.11.0.v202409291026.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.m2m.atl.core_4.11.0.v202409291026.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.m2m.atl.core.emf_4.11.0.v202409291026.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.m2m.atl.common_4.11.0.v202409291026.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.m2m.atl.engine_4.11.0.v202409291026.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.acceleo.profiler_3.7.14.202311201319.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.acceleo.common_3.7.14.202311201319.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.acceleo.engine_3.7.14.202311201319.jar"/>
-	<classpathentry kind="lib" path="libs/org.eclipse.acceleo.model_3.7.14.202311201319.jar"/>
+	<classpathentry kind="src" output="build/classes/java/test" path="src/test/java/unit">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/integrationTest" path="src/test/java/integration">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/e2eTest" path="src/test/java/e2e">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/resources/main" path="src/main/resources">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="resource" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/main" path="src/main/java">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/resources/integrationTest" path="src/integrationTest/resources">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="resource" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/integrationTest" path="src/integrationTest/java">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/resources/e2eTest" path="src/e2eTest/resources">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="resource" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/e2eTest" path="src/e2eTest/java">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/test" path="build/generated/sources/annotationProcessor/java/test">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/main" path="build/generated/sources/annotationProcessor/java/main">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/integrationTest" path="build/generated/sources/annotationProcessor/java/integrationTest">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="build/classes/java/e2eTest" path="build/generated/sources/annotationProcessor/java/e2eTest">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="optional" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.m2m.atl.engine.emfvm_4.11.0.v202409291026.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.m2m.atl.engine.emfvm_4.11.0.v202409291026.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.erl.engine/2.0.0/aceacfa0997cac922eb5cd1507eb884d3ec5cd45/org.eclipse.epsilon.erl.engine-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.erl.engine/2.0.0/7bcc29eafbb38c9867b9e2a54c0ea9cbda985334/org.eclipse.epsilon.erl.engine-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.erl.engine"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/ecj/3.45.0/b8700f7acd0931d0f9b0b8822f47dcbb205272ce/ecj-3.45.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/ecj/3.45.0/3121f5bbd5b3d6ae8c8750d0c2fe3db77ab2e6c5/ecj-3.45.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.jdt"/>
+			<attribute name="artifactId" value="ecj"/>
+			<attribute name="version" value="3.45.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.common/2.44.0/b0bd1150df77f513934515dd3bf9e13ce230a5f/org.eclipse.emf.common-2.44.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.common/2.44.0/40338c5ac0d7399b632ee02b4cd9fa9f2a6c8a18/org.eclipse.emf.common-2.44.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.common"/>
+			<attribute name="version" value="2.44.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.1/1dcf1de382a0bf95a3d8b0849546c88bac1292c9/failureaccess-1.0.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.1/1d064e61aad6c51cc77f9b59dc2cccc78e792f5a/failureaccess-1.0.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.guava"/>
+			<attribute name="artifactId" value="failureaccess"/>
+			<attribute name="version" value="1.0.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.eol.engine/2.0.0/95fef102a85b027c73938ca6d681165febccd732/org.eclipse.epsilon.eol.engine-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.eol.engine/2.0.0/1916453881db0b2563a136f392c52225bfcf0f6/org.eclipse.epsilon.eol.engine-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.eol.engine"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.m2m.atl.engine_4.11.0.v202409291026.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.m2m.atl.engine_4.11.0.v202409291026.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/7ce5e983fd0e6c78346f4c9cbfa39d83049dda2/cglib-2.2.1-v20090111.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/65030c30094de36e3fddbc22442d47cbf547741f/cglib-2.2.1-v20090111-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.sonatype.sisu.inject"/>
+			<attribute name="artifactId" value="cglib"/>
+			<attribute name="version" value="2.2.1-v20090111"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.filesystem/1.11.400/b5fbf4563858e95d83717dd397674ddf8786a4e3/org.eclipse.core.filesystem-1.11.400.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.filesystem/1.11.400/6ac9507118fdf0ebd43a48b2c2d048906ab28706/org.eclipse.core.filesystem-1.11.400-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.filesystem"/>
+			<attribute name="version" value="1.11.400"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.acceleo.common_3.7.14.202311201319.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.acceleo.common_3.7.14.202311201319.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.m2m.atl.core_4.11.0.v202409291026.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.m2m.atl.core_4.11.0.v202409291026.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.xsd/2.17.0/4dc12e137148e7ee8563244f56c96531f7b57ff3/org.eclipse.xsd-2.17.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.xsd/2.17.0/8c694a2a8a1d470f2cf5e4a54d9742816a9066a9/org.eclipse.xsd-2.17.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.xsd"/>
+			<attribute name="version" value="2.17.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.34.200/191091a9e664983a294c32fb0a588467217a6b7b/org.eclipse.core.runtime-3.34.200.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.34.200/92f42b02e72df8ff542136a916af6a8eac8e5032/org.eclipse.core.runtime-3.34.200-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.runtime"/>
+			<attribute name="version" value="3.34.200"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/32.1.3-jre/f306708742ce2bf0fb0901216183bc14073feae/guava-32.1.3-jre.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/32.1.3-jre/9fa794e2f2d4e62ff849327ed06a679ecdcd4187/guava-32.1.3-jre-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.guava"/>
+			<attribute name="artifactId" value="guava"/>
+			<attribute name="version" value="32.1.3-jre"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.emc.plainxml/2.0.0/216cda33db91efa569b76c77b4b6aa1963bbf31e/org.eclipse.epsilon.emc.plainxml-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.emc.plainxml/2.0.0/5de8fb326ddac464d17193876eb4189bd6349639/org.eclipse.epsilon.emc.plainxml-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.emc.plainxml"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.errorprone/error_prone_annotations/2.21.1/6d9b10773b5237df178a7b3c1b4208df7d0e7f94/error_prone_annotations-2.21.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.errorprone/error_prone_annotations/2.21.1/68e62df0cf0c3927fa98f6d795543ecbeb919521/error_prone_annotations-2.21.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.errorprone"/>
+			<attribute name="artifactId" value="error_prone_annotations"/>
+			<attribute name="version" value="2.21.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.debug/3.25.100/364a0c89246f248680a8e3bb341650c413b790d2/org.eclipse.jdt.debug-3.25.100.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.debug/3.25.100/1c348393cd52b2b2e5be752ca35983c38da198e1/org.eclipse.jdt.debug-3.25.100-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.jdt"/>
+			<attribute name="artifactId" value="org.eclipse.jdt.debug"/>
+			<attribute name="version" value="3.25.100"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.contenttype/3.9.800/4151ef1a441039404e6e3d2b805c00c288cd822b/org.eclipse.core.contenttype-3.9.800.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.contenttype/3.9.800/a554b253af17bdb2122a3c94ba0fb1e6b7fef367/org.eclipse.core.contenttype-3.9.800-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.contenttype"/>
+			<attribute name="version" value="3.9.800"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.ecl.engine/2.0.0/1bd7f5e31aea3ac7c4d3d66071b970a03cace2a1/org.eclipse.epsilon.ecl.engine-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.ecl.engine/2.0.0/f6f723baf80af48ce1accf1b2364f25b8e3f4fc7/org.eclipse.epsilon.ecl.engine-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.ecl.engine"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.acceleo/org.eclipse.ocl.common/1.2.0.v20140610-0641/72e3419df3416aa2099f029f093867454cac9948/org.eclipse.ocl.common-1.2.0.v20140610-0641.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.acceleo"/>
+			<attribute name="artifactId" value="org.eclipse.ocl.common"/>
+			<attribute name="version" value="1.2.0.v20140610-0641"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.2/4bfc12adfe4842bf07b657f0369c4cb522955686/commons-logging-1.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.2/ecf26c7507d67782a3bbd148d170b31dfad001aa/commons-logging-1.2-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="commons-logging"/>
+			<attribute name="artifactId" value="commons-logging"/>
+			<attribute name="version" value="1.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.app/1.7.600/851769e1cd1efda62d55ddd01d419af64f05a19/org.eclipse.equinox.app-1.7.600.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.app/1.7.600/1eeb6009662fb669a010da1d39143f52e8941fff/org.eclipse.equinox.app-1.7.600-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.equinox.app"/>
+			<attribute name="version" value="1.7.600"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.launching.macosx/3.6.400/ea99689bc89053e0d44aa9f2cab3a8cb13d4bc60/org.eclipse.jdt.launching.macosx-3.6.400.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.launching.macosx/3.6.400/d4d7896ba3927fd41d2b34fa28a33396803e1791/org.eclipse.jdt.launching.macosx-3.6.400-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.jdt"/>
+			<attribute name="artifactId" value="org.eclipse.jdt.launching.macosx"/>
+			<attribute name="version" value="3.6.400"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.antlr/antlr/3.1.1/605c1fc028d7321866db8f9de336621221a8cd46/antlr-3.1.1.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.antlr"/>
+			<attribute name="artifactId" value="antlr"/>
+			<attribute name="version" value="3.1.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.ocl/org.eclipse.ocl/3.4.2.v20140725-2242/59bb7962b081b6979643fc33a8b38109213fd0f4/org.eclipse.ocl-3.4.2.v20140725-2242.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.ocl"/>
+			<attribute name="artifactId" value="org.eclipse.ocl"/>
+			<attribute name="version" value="3.4.2.v20140725-2242"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.jobs/3.15.700/b9bca244ec975304f467de46f6e14ae75948156f/org.eclipse.core.jobs-3.15.700.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.jobs/3.15.700/95f3a9e7001e758c0e50976391e44b1044297cec/org.eclipse.core.jobs-3.15.700-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.jobs"/>
+			<attribute name="version" value="3.15.700"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.12.600/d62997e162e9ee21e957ee4d88048b83c8b34f9/org.eclipse.equinox.registry-3.12.600.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.12.600/5ad4bf8870b20ed9fc0ccfec2c19c61bf5a42391/org.eclipse.equinox.registry-3.12.600-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.equinox.registry"/>
+			<attribute name="version" value="3.12.600"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.j2objc/j2objc-annotations/2.8/c85270e307e7b822f1086b93689124b89768e273/j2objc-annotations-2.8.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.j2objc/j2objc-annotations/2.8/74fb66e276fc42784d884d51f841e35232bc90de/j2objc-annotations-2.8-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.j2objc"/>
+			<attribute name="artifactId" value="j2objc-annotations"/>
+			<attribute name="version" value="2.8"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.xmi/2.39.0/7b6dbc4376977872a594103194da9058c4f05cb7/org.eclipse.emf.ecore.xmi-2.39.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.xmi/2.39.0/7fd6c8cc6cdb2bf77156c4475ec76e0173fda786/org.eclipse.emf.ecore.xmi-2.39.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.ecore.xmi"/>
+			<attribute name="version" value="2.39.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/aopalliance/aopalliance/1.0/235ba8b489512805ac13a8f9ea77a1ca5ebe3e8/aopalliance-1.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/aopalliance/aopalliance/1.0/4a4b6d692e17846a9f3da036438a7ac491d3c814/aopalliance-1.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="aopalliance"/>
+			<attribute name="artifactId" value="aopalliance"/>
+			<attribute name="version" value="1.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.osgi/osgi.annotation/8.0.1/593d823753aa6e128129da357d7891758e66aa1d/osgi.annotation-8.0.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.osgi/osgi.annotation/8.0.1/2620bd311119e32e936f6d8dcddfc4593a2f6ff/osgi.annotation-8.0.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.osgi"/>
+			<attribute name="artifactId" value="osgi.annotation"/>
+			<attribute name="version" value="8.0.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.expressions/3.9.500/72fb9ae9a02fb24d6d78799aa1d80f223ee048a6/org.eclipse.core.expressions-3.9.500.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.expressions/3.9.500/581192e09b4f8f781f43e996b916a92a594040c8/org.eclipse.core.expressions-3.9.500-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.expressions"/>
+			<attribute name="version" value="3.9.500"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.text/3.14.600/2bfb9338fbf1adcf637d704754b89f0fe1289a8/org.eclipse.text-3.14.600.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.text/3.14.600/86b4cde06f4ceef2a06520a5dbcdbff213a20310/org.eclipse.text-3.14.600-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.text"/>
+			<attribute name="version" value="3.14.600"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.preferences/3.12.100/31ec4b200952d71e06ef4546dceb8fed08fefd34/org.eclipse.equinox.preferences-3.12.100.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.preferences/3.12.100/3f9eb90fc3a062d4b428ea2f11dc3b34353cc446/org.eclipse.equinox.preferences-3.12.100-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.equinox.preferences"/>
+			<attribute name="version" value="3.12.100"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.debug.core/3.23.200/80cf7561ee7cb549149b42d7cf6bdc60994522e9/org.eclipse.debug.core-3.23.200.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.debug.core/3.23.200/c6f4bf605e2db2e596643f4b09b4a6ce5ad26619/org.eclipse.debug.core-3.23.200-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.debug.core"/>
+			<attribute name="version" value="3.23.200"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-cli/commons-cli/1.4/c51c00206bb913cd8612b24abd9fa98ae89719b1/commons-cli-1.4.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-cli/commons-cli/1.4/40dfd9fdef125e19136135e68d54af6d9b0cfbb8/commons-cli-1.4-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="commons-cli"/>
+			<attribute name="artifactId" value="commons-cli"/>
+			<attribute name="version" value="1.4"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.osgi/3.24.100/a456f2c0b5a8c2773f09dbf2bf5404f32b3bcf2c/org.eclipse.osgi-3.24.100.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.osgi/3.24.100/590ab37588f0f8b315e514613d097d85fe1d9ec9/org.eclipse.osgi-3.24.100-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.osgi"/>
+			<attribute name="version" value="3.24.100"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna-platform/5.18.1/dd817f391efc492041c9ae91127527c13750a789/jna-platform-5.18.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna-platform/5.18.1/8703afbea368aec85813cee7708bd475bf2a3752/jna-platform-5.18.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="net.java.dev.jna"/>
+			<attribute name="artifactId" value="jna-platform"/>
+			<attribute name="version" value="5.18.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/b421526c5f297295adef1c886e5246c39d4ac629/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.guava"/>
+			<attribute name="artifactId" value="listenablefuture"/>
+			<attribute name="version" value="9999.0-empty-to-avoid-conflict-with-guava"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/mddoai.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="mddoai.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.14.0/a4c6e1f6c196339473cd2e1b037f0eb97c62755b/commons-io-2.14.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.14.0/7a5c8a697e57ca924db3b437776e11c1aba951b9/commons-io-2.14.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="commons-io"/>
+			<attribute name="artifactId" value="commons-io"/>
+			<attribute name="version" value="2.14.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.change/2.14.0/919d756fed4322b1dac8ea37e54f186ee8a6d6bd/org.eclipse.emf.ecore.change-2.14.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.change/2.14.0/b3aaa6854d19586062ddc4230428594dbee20486/org.eclipse.emf.ecore.change-2.14.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.ecore.change"/>
+			<attribute name="version" value="2.14.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/3.0/9d84f15fe35e2c716a02979fb62f50a29f38aefa/guice-3.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/3.0/d117c4481f64955cb1862ed38cb568add2f5fe05/guice-3.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.inject"/>
+			<attribute name="artifactId" value="guice"/>
+			<attribute name="version" value="3.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.osgi/org.osgi.service.prefs/1.1.2/44351fdfb119ee920394c1a27c938288c93c03c8/org.osgi.service.prefs-1.1.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.osgi/org.osgi.service.prefs/1.1.2/533cc195a4ef0d967343d50c315a4a75b0406b16/org.osgi.service.prefs-1.1.2-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.osgi"/>
+			<attribute name="artifactId" value="org.osgi.service.prefs"/>
+			<attribute name="version" value="1.1.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.common/2.0.0/da3c9816a1db3d718c87969f56c46052ec29eecf/org.eclipse.epsilon.common-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.common/2.0.0/afd3fd01d0d290caec7fce926296eacc742035c7/org.eclipse.epsilon.common-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.common"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.commands/3.12.500/a8ef3b8fc16a231344c60b39678fce43a9bf5a4d/org.eclipse.core.commands-3.12.500.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.commands/3.12.500/11a728d0cc1995cee3ec4708795946cbecab4f8f/org.eclipse.core.commands-3.12.500-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.commands"/>
+			<attribute name="version" value="3.12.500"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.20.300/78950bfc64c3e2c21a54227d585cbf39fb2283b5/org.eclipse.equinox.common-3.20.300.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.20.300/c93a0270e4af5b9717b582f4638d113f43a022cc/org.eclipse.equinox.common-3.20.300-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.equinox.common"/>
+			<attribute name="version" value="3.20.300"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.antlr/stringtemplate/3.2/6fe2e3bb57daebd1555494818909f9664376dd6c/stringtemplate-3.2.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.antlr"/>
+			<attribute name="artifactId" value="stringtemplate"/>
+			<attribute name="version" value="3.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.edit/2.21.0/ab3451bfb27c4ad7d14be0e81a1a4587573197af/org.eclipse.emf.edit-2.21.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.edit/2.21.0/59a5b0bc6d427ecc908e5d012777bdbb9cc99aa9/org.eclipse.emf.edit-2.21.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.edit"/>
+			<attribute name="version" value="2.21.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/lpg.runtime.java/lpg.runtime.java/2.0.17.v201004271640/c66750310f593f7a6f66c864705a7f7faea0a052/lpg.runtime.java-2.0.17.v201004271640.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="lpg.runtime.java"/>
+			<attribute name="artifactId" value="lpg.runtime.java"/>
+			<attribute name="version" value="2.0.17.v201004271640"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.launching/3.24.100/90623aa4ebf0aa2d3d8d8e370c703504ec4b9b58/org.eclipse.jdt.launching-3.24.100.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.launching/3.24.100/5759e7ee928ab9f491cd246ba0aea6ed22f72378/org.eclipse.jdt.launching-3.24.100-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.jdt"/>
+			<attribute name="artifactId" value="org.eclipse.jdt.launching"/>
+			<attribute name="version" value="3.24.100"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.acceleo.profiler_3.7.14.202311201319.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.acceleo.profiler_3.7.14.202311201319.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.etl.engine/2.0.0/7c7783cba15b3bc04f4f5d50af11b021cb39ad85/org.eclipse.epsilon.etl.engine-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.etl.engine/2.0.0/bba2a0b6f21629fd5ff363172f6848a40f4ab409/org.eclipse.epsilon.etl.engine-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.etl.engine"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/5.18.1/b27ba04287cc4abe769642fe8318d39fc89bf937/jna-5.18.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/5.18.1/4bd8a21c9bfd90ed0b4d8780308b67e0ace998a3/jna-5.18.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="net.java.dev.jna"/>
+			<attribute name="artifactId" value="jna"/>
+			<attribute name="version" value="5.18.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.23.200/ed6c510cf8755f32963c6401767e6d86c9641ad0/org.eclipse.core.resources-3.23.200.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.23.200/7bd66094b9665096da2f1c637ae657a53294150c/org.eclipse.core.resources-3.23.200-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.resources"/>
+			<attribute name="version" value="3.23.200"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/javax.inject/javax.inject/1/6975da39a7040257bd51d21a231b76c915872d38/javax.inject-1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/javax.inject/javax.inject/1/a00123f261762a7c5e0ec916a2c7c8298d29c400/javax.inject-1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="javax.inject"/>
+			<attribute name="artifactId" value="javax.inject"/>
+			<attribute name="version" value="1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/antlr/antlr/2.7.7/83cd2cd674a217ade95a4bb83a8a14f351f48bd0/antlr-2.7.7.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="antlr"/>
+			<attribute name="artifactId" value="antlr"/>
+			<attribute name="version" value="2.7.7"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.eml.engine/2.0.0/fe214667791b4fb447e83af85171e6653da2fa70/org.eclipse.epsilon.eml.engine-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.eml.engine/2.0.0/88aa00e13c595c197676e11d755235277a91d394/org.eclipse.epsilon.eml.engine-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.eml.engine"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.acceleo.model_3.7.14.202311201319.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.acceleo.model_3.7.14.202311201319.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.codegen/2.23.0/2ca94cc82dd8fecce3fb94b91ec48b7f6a124c53/org.eclipse.emf.codegen-2.23.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.codegen/2.23.0/6ba923a3375e4e667c1b25c1c7ac8d8e27cfd582/org.eclipse.emf.codegen-2.23.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.codegen"/>
+			<attribute name="version" value="2.23.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.ocl/org.eclipse.ocl.ecore/3.3.0.v20130520-1222/d484596b65f0ae7827e564f424ea167d485f3b5e/org.eclipse.ocl.ecore-3.3.0.v20130520-1222.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.ocl"/>
+			<attribute name="artifactId" value="org.eclipse.ocl.ecore"/>
+			<attribute name="version" value="3.3.0.v20130520-1222"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.core/3.45.0/8979ea803a31a47da488957cbd1519fdadfc394b/org.eclipse.jdt.core-3.45.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.jdt/org.eclipse.jdt.core/3.45.0/120d1d94a8efc4821c173a33167ce75080aee0e3/org.eclipse.jdt.core-3.45.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.jdt"/>
+			<attribute name="artifactId" value="org.eclipse.jdt.core"/>
+			<attribute name="version" value="3.45.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.m2m.atl.core.emf_4.11.0.v202409291026.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.m2m.atl.core.emf_4.11.0.v202409291026.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/asm/asm/3.1/c157def142714c544bdea2e6144645702adf7097/asm-3.1.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/asm/asm/3.1/2eaa4de56203f433f287a6df5885ef9ad3c5bcae/asm-3.1-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="asm"/>
+			<attribute name="artifactId" value="asm"/>
+			<attribute name="version" value="3.1"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.emc.emf/2.0.0/f4df238e0e6495bf37e298dbefdd7154324810dd/org.eclipse.epsilon.emc.emf-2.0.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.epsilon/org.eclipse.epsilon.emc.emf/2.0.0/4fed471508e1e4c17e4bb25b949dc8fb13bd942e/org.eclipse.epsilon.emc.emf-2.0.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.epsilon"/>
+			<attribute name="artifactId" value="org.eclipse.epsilon.emc.emf"/>
+			<attribute name="version" value="2.0.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.code.findbugs/jsr305/3.0.2/25ea2e8b0c338a877313bd4672d3fe056ea78f0d/jsr305-3.0.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/com.google.code.findbugs/jsr305/3.0.2/b19b5927c2c25b6c70f093767041e641ae0b1b35/jsr305-3.0.2-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="com.google.code.findbugs"/>
+			<attribute name="artifactId" value="jsr305"/>
+			<attribute name="version" value="3.0.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore/2.41.0/e02c9d506e5a633bfe0160891874b5b9ea180e4d/org.eclipse.emf.ecore-2.41.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore/2.41.0/ef3993564f3cdbd3682a22eb22d59f5a291d0087/org.eclipse.emf.ecore-2.41.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.emf"/>
+			<attribute name="artifactId" value="org.eclipse.emf.ecore"/>
+			<attribute name="version" value="2.41.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.variables/3.6.700/7370355d598fd69e4b113710a40f4f953193970c/org.eclipse.core.variables-3.6.700.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.variables/3.6.700/b8b68149b630ff05f0a20247147610c604585119/org.eclipse.core.variables-3.6.700-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.eclipse.platform"/>
+			<attribute name="artifactId" value="org.eclipse.core.variables"/>
+			<attribute name="version" value="3.6.700"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.checkerframework/checker-qual/3.37.0/ba74746d38026581c12166e164bb3c15e90cc4ea/checker-qual-3.37.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.checkerframework/checker-qual/3.37.0/9990309889a76e4c6556c18140ce8559b854bae3/checker-qual-3.37.0-sources.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.checkerframework"/>
+			<attribute name="artifactId" value="checker-qual"/>
+			<attribute name="version" value="3.37.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.m2m.atl.common_4.11.0.v202409291026.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.m2m.atl.common_4.11.0.v202409291026.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/Projects/mddoai/main/libs/org.eclipse.acceleo.engine_3.7.14.202311201319.jar">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="unknown"/>
+			<attribute name="artifactId" value="org.eclipse.acceleo.engine_3.7.14.202311201319.jar"/>
+			<attribute name="version" value="unknown"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.vintage/junit-vintage-engine/5.12.2/4596ac784cd3ea72057092bc1e535c74a8facc31/junit-vintage-engine-5.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.vintage/junit-vintage-engine/5.12.2/4afdd5f1779a87eeaf400d21ba5383dd16435e25/junit-vintage-engine-5.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.vintage"/>
+			<attribute name="artifactId" value="junit-vintage-engine"/>
+			<attribute name="version" value="5.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher/1.12.2/79d49ad13017c67a8bf76e10ba5ac8937d811772/junit-platform-launcher-1.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher/1.12.2/9615c174aaef00ac0ea45ed0a09815e05b2f8242/junit-platform-launcher-1.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.platform"/>
+			<attribute name="artifactId" value="junit-platform-launcher"/>
+			<attribute name="version" value="1.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-commons/1.12.2/b89e88a89ee009937374a4c96912e007b34c8e35/junit-platform-commons-1.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-commons/1.12.2/3ed275ba1154f18e77d841ae1ce83a592579a267/junit-platform-commons-1.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.platform"/>
+			<attribute name="artifactId" value="junit-platform-commons"/>
+			<attribute name="version" value="1.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.mockito/mockito-core/5.11.0/e4069fa4f4ff2c94322cfec5f2e45341c6c70aff/mockito-core-5.11.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.mockito/mockito-core/5.11.0/e8cd357b9da47e69c96aadd398ff44dc1b44bb2e/mockito-core-5.11.0-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.mockito"/>
+			<attribute name="artifactId" value="mockito-core"/>
+			<attribute name="version" value="5.11.0"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.12/be4984cb6fd1ef1d11f218a648889dfda44b8a15/byte-buddy-agent-1.14.12.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.12/c9f6bb63cb973888eb2b2f139c6bfe5f3cc46ea3/byte-buddy-agent-1.14.12-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="net.bytebuddy"/>
+			<attribute name="artifactId" value="byte-buddy-agent"/>
+			<attribute name="version" value="1.14.12"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.14.12/6e37f743dc15a8d7a4feb3eb0025cbc612d5b9e1/byte-buddy-1.14.12.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.14.12/887a4881279830607a6179560b17a44d62fc1997/byte-buddy-1.14.12-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="net.bytebuddy"/>
+			<attribute name="artifactId" value="byte-buddy"/>
+			<attribute name="version" value="1.14.12"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-engine/1.12.2/8519ece93f91b8115705d36be2c36d49808935cd/junit-platform-engine-1.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-engine/1.12.2/ca2b7ff5842903db239d851da45cf926b94134c6/junit-platform-engine-1.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.platform"/>
+			<attribute name="artifactId" value="junit-platform-engine"/>
+			<attribute name="version" value="1.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-api/5.12.2/6de3a3256c5d90f4a439edcb6c2e8dc5180907b0/junit-jupiter-api-5.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-api/5.12.2/e6db7ccf02f4e2a30358a78383311fbc92b238c1/junit-jupiter-api-5.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.jupiter"/>
+			<attribute name="artifactId" value="junit-jupiter-api"/>
+			<attribute name="version" value="5.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/1dc37250fbc78e23a65a67fbbaf71d2e9cbc3c0b/hamcrest-core-1.3-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.hamcrest"/>
+			<attribute name="artifactId" value="hamcrest-core"/>
+			<attribute name="version" value="1.3"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-params/5.12.2/ff1434a66d1fb84c2c709cde2e2d56d5c8f4fad3/junit-jupiter-params-5.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-params/5.12.2/73f77dc960d70fcd16937198bfdda1b930bed147/junit-jupiter-params-5.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.jupiter"/>
+			<attribute name="artifactId" value="junit-jupiter-params"/>
+			<attribute name="version" value="5.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.apiguardian/apiguardian-api/1.1.2/a231e0d844d2721b0fa1b238006d15c6ded6842a/apiguardian-api-1.1.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.apiguardian/apiguardian-api/1.1.2/e0787a997746ac32639e0bf3cb27af8dce8a3428/apiguardian-api-1.1.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.apiguardian"/>
+			<attribute name="artifactId" value="apiguardian-api"/>
+			<attribute name="version" value="1.1.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-engine/5.12.2/b8df7575b8cd3a94dbe27b481d1cd52c57864559/junit-jupiter-engine-5.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter-engine/5.12.2/7d90bea4dd1ef8483f7d58b4b74ff00dc56e4cd8/junit-jupiter-engine-5.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.jupiter"/>
+			<attribute name="artifactId" value="junit-jupiter-engine"/>
+			<attribute name="version" value="5.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12/junit-4.13.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/33987872a811fe4d4001ed494b07854822257f42/junit-4.13.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="junit"/>
+			<attribute name="artifactId" value="junit"/>
+			<attribute name="version" value="4.13.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.objenesis/objenesis/3.3/1049c09f1de4331e8193e579448d0916d75b7631/objenesis-3.3.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.objenesis/objenesis/3.3/5fef34eeee6816b0ba2170755a8a9db7744990c3/objenesis-3.3-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.objenesis"/>
+			<attribute name="artifactId" value="objenesis"/>
+			<attribute name="version" value="3.3"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter/5.12.2/64d3ec64ae06517bc14b7faaaec7c996b0d05bea/junit-jupiter-5.12.2.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter/5.12.2/9c1abe3ede704e951fa5329365daa7a4cb444ed5/junit-jupiter-5.12.2-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.junit.jupiter"/>
+			<attribute name="artifactId" value="junit-jupiter"/>
+			<attribute name="version" value="5.12.2"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.opentest4j/opentest4j/1.3.0/152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e/opentest4j-1.3.0.jar" sourcepath="C:/Users/aksha/.gradle/caches/modules-2/files-2.1/org.opentest4j/opentest4j/1.3.0/afb8ff23cffb021c56f333953aebfe6e8818568e/opentest4j-1.3.0-sources.jar">
+		<attributes>
+			<attribute name="test" value="true"/>
+			<attribute name="gradle.buildServer" value="true"/>
+			<attribute name="groupId" value="org.opentest4j"/>
+			<attribute name="artifactId" value="opentest4j"/>
+			<attribute name="version" value="1.3.0"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

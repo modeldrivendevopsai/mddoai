@@ -18,12 +18,12 @@ public class PimToGitlabHandler {
 
             if (inputModel == null) {
                 System.err.println("Failed to load PIM model: " + inputModelPath);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             if (inputModel.eClass().getEPackage() != PimMMPackage.eINSTANCE) {
                 System.err.println("Input model should be an PIM metamodel instance.");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             File intermediateDir = new File("./test/generatedModels");
@@ -31,7 +31,7 @@ public class PimToGitlabHandler {
                 boolean created = intermediateDir.mkdirs();
                 if (!created) {
                     System.err.println("Failed to create intermediate directory: ./test/generatedModels");
-                    System.exit(1);
+                    throw new ExitException(1);
                 }
             }
 
@@ -40,7 +40,7 @@ public class PimToGitlabHandler {
 
             if (gitlabModel == null) {
                 System.err.println("Transformation from PIM to GitLab model failed");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
@@ -50,14 +50,14 @@ public class PimToGitlabHandler {
             File[] files = new File(outputFolder).listFiles();
             if (files == null || files.length == 0) {
                 System.err.println("No files were generated in output folder: " + outputFolder);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("GitLab YAML Code has been generated...");
         } catch (Exception e) {
             System.err.println("Error during transformation process: " + e.getMessage());
             e.printStackTrace();
-            System.exit(1);
+            throw new ExitException(1);
         }
     }
 }

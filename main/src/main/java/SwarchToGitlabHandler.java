@@ -18,12 +18,12 @@ public class SwarchToGitlabHandler {
 
             if (inputModel == null) {
                 System.err.println("Failed to load input model: " + inputModelPath);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             if (inputModel.eClass().getEPackage() != SwarchPackage.eINSTANCE) {
                 System.err.println("Input model should be an SW Arch metamodel instance.");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             File intermediateDir = new File("./test/generatedModels");
@@ -31,7 +31,7 @@ public class SwarchToGitlabHandler {
                 boolean created = intermediateDir.mkdirs();
                 if (!created) {
                     System.err.println("Failed to create intermediate directory: ./test/generatedModels");
-                    System.exit(1);
+                    throw new ExitException(1);
                 }
             }
 
@@ -40,7 +40,7 @@ public class SwarchToGitlabHandler {
 
             if (pimModel == null) {
                 System.err.println("Transformation from Software Architecture to PIM failed");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("Software Architecture Input model transformed to Platform Independent Model...");
@@ -50,7 +50,7 @@ public class SwarchToGitlabHandler {
 
             if (gitlabModel == null) {
                 System.err.println("Transformation from PIM to GitLab model failed");
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
@@ -60,14 +60,14 @@ public class SwarchToGitlabHandler {
             File[] files = new File(outputFolder).listFiles();
             if (files == null || files.length == 0) {
                 System.err.println("No files were generated in output folder: " + outputFolder);
-                System.exit(1);
+                throw new ExitException(1);
             }
 
             System.out.println("GitLab YAML Code has been generated...");
         } catch (Exception e) {
             System.err.println("Error during transformation process: " + e.getMessage());
             e.printStackTrace();
-            System.exit(1);
+            throw new ExitException(1);
         }
     }
 }
