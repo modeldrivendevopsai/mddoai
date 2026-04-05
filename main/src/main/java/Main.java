@@ -1,6 +1,6 @@
-package main.java;
+package mddoai;
 
-import main.java.mddoai.utils.EMFUtils;
+import mddoai.utils.EMFUtils;
 
 public class Main {
     
