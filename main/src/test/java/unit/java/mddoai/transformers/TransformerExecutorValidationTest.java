@@ -19,7 +19,6 @@ public class TransformerExecutorValidationTest {
     @BeforeEach
     void setUp() {
         EMFUtils.init();
-        new ResourceSetImpl();
         validModel = PimMMFactory.eINSTANCE.createPipeline();
     }
 

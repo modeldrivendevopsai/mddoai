@@ -52,7 +52,7 @@ public class HandlerIntegrationTest {
     @Test
     void testPsmToGitlabHandler_throwsExitException_whenInputModelPathIsInvalid() {
         EMFUtils.init();
-        assertThrows(Exception.class, () ->
+        assertThrows(IllegalArgumentException.class, () ->
             PsmToGitlabHandler.handle("./nonexistent/path/model.gitlabmm", OUTPUT_FOLDER));
     }
 
@@ -77,7 +77,7 @@ public class HandlerIntegrationTest {
     @Test
     void testPimToGitlabHandler_throwsExitException_whenInputModelPathIsInvalid() {
         EMFUtils.init();
-        assertThrows(Exception.class, () ->
+        assertThrows(IllegalArgumentException.class, () ->
             PimToGitlabHandler.handle("./nonexistent/path/model.pimmm", OUTPUT_FOLDER));
     }
 
@@ -102,7 +102,7 @@ public class HandlerIntegrationTest {
     @Test
     void testSwarchToGitlabHandler_throwsExitException_whenInputModelPathIsInvalid() {
         EMFUtils.init();
-        assertThrows(Exception.class, () ->
+        assertThrows(IllegalArgumentException.class, () ->
             SwarchToGitlabHandler.handle("./nonexistent/path/model.swarch", OUTPUT_FOLDER));
     }
 }
