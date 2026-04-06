@@ -12,30 +12,25 @@ import main.java.ExitException;
 public class GeneratorExecutor {
 	public static void execute(EObject model, String generatorType, String outputFolder) {
 		if (model == null) {
-			System.err.println("Code generation failed: Input model cannot be null");
-			return;
+			throw new ExitException(1, "Code generation failed: Input model cannot be null");
 		}
 
 		if (generatorType == null || generatorType.trim().isEmpty()) {
-			System.err.println("Code generation failed: Generator type cannot be null or empty");
-			return;
+			throw new ExitException(1, "Code generation failed: Generator type cannot be null or empty");
 		}
 
 		if (outputFolder == null || outputFolder.trim().isEmpty()) {
-			System.err.println("Code generation failed: Output folder cannot be null or empty");
-			return;
+			throw new ExitException(1, "Code generation failed: Output folder cannot be null or empty");
 		}
 
 		File folder = new File(outputFolder);
 		if (!folder.exists()) {
 			boolean created = folder.mkdirs();
 			if (!created) {
-				System.err.println("Code generation failed: Could not create output folder " + outputFolder);
-				return;
+				throw new ExitException(1, "Code generation failed: Could not create output folder " + outputFolder);
 			}
 		} else if (!folder.isDirectory()) {
-			System.err.println("Code generation failed: Output path exists but is not a directory " + outputFolder);
-			return;
+			throw new ExitException(1, "Code generation failed: Output path exists but is not a directory " + outputFolder);
 		}
 
 		try {
@@ -45,22 +40,19 @@ public class GeneratorExecutor {
 			try {
 				generator = GeneratorFactory.create(generatorType, resourceSet);
 				if (generator == null) {
-					System.err.println("Code generation failed: Could not create generator for type: " + generatorType);
-					return;
+					throw new ExitException(1, "Code generation failed: Could not create generator for type: " + generatorType);
 				}
 			} catch (IllegalArgumentException e) {
-				System.err.println("Code generation failed: " + e.getMessage());
-				return;
+				throw new ExitException(1, "Code generation failed: " + e.getMessage());
 			}
 
 			generator.generate(model, outputFolder);
 
+		} catch (ExitException e) {
+			throw e;
 		} catch (IOException e) {
-			System.err.println("Code generation failed: " + e.getMessage());
-			e.printStackTrace();
+			throw new ExitException(1, "Code generation failed: " + e.getMessage());
 		} catch (Exception e) {
-			System.err.println("Code generation failed: " + e.getMessage());
-			e.printStackTrace();
 			throw new ExitException(2, "Code generation failed: " + e.getMessage());
 		}
 	}

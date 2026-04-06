@@ -1,6 +1,6 @@
 package test.java.unit.java.mddoai.generators;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.mddoai.metamodel.pim.pimMM.PimMMFactory;
 
+import main.java.ExitException;
 import main.java.mddoai.generators.GeneratorExecutor;
 import main.java.mddoai.utils.EMFUtils;
 
@@ -30,42 +31,44 @@ public class GeneratorExecutorValidationTest {
     }
 
     @Test
-    void testExecute_doesNotThrow_whenModelIsNull() {
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(null, "gitlab", tempDir.toString()));
+    void testExecute_throwsExitException_whenModelIsNull() {
+        assertThrows(ExitException.class, () -> GeneratorExecutor.execute(null, "gitlab", tempDir.toString()));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenGeneratorTypeIsNull() {
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, null, tempDir.toString()));
+    void testExecute_throwsExitException_whenGeneratorTypeIsNull() {
+        assertThrows(ExitException.class, () -> GeneratorExecutor.execute(validModel, null, tempDir.toString()));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenGeneratorTypeIsEmpty() {
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, "", tempDir.toString()));
+    void testExecute_throwsExitException_whenGeneratorTypeIsEmpty() {
+        assertThrows(ExitException.class, () -> GeneratorExecutor.execute(validModel, "", tempDir.toString()));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenOutputFolderIsNull() {
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, "gitlab", null));
+    void testExecute_throwsExitException_whenOutputFolderIsNull() {
+        assertThrows(ExitException.class, () -> GeneratorExecutor.execute(validModel, "gitlab", null));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenOutputFolderIsEmpty() {
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, "gitlab", ""));
+    void testExecute_throwsExitException_whenOutputFolderIsEmpty() {
+        assertThrows(ExitException.class, () -> GeneratorExecutor.execute(validModel, "gitlab", ""));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenOutputPathIsExistingFile() throws IOException {
-        // Pass a path that exists but is a FILE (not a directory) — exercises !folder.isDirectory() branch
+    void testExecute_throwsExitException_whenOutputPathIsExistingFile() throws IOException {
+        // Output path exists but is a file, not a directory — exercises !folder.isDirectory() branch
         File existingFile = tempDir.resolve("notadir.txt").toFile();
         existingFile.createNewFile();
 
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, "gitlab", existingFile.getAbsolutePath()));
+        assertThrows(ExitException.class, () ->
+            GeneratorExecutor.execute(validModel, "gitlab", existingFile.getAbsolutePath()));
     }
 
     @Test
-    void testExecute_doesNotThrow_whenGeneratorTypeIsUnknown() {
+    void testExecute_throwsExitException_whenGeneratorTypeIsUnknown() {
         // Exercises the IllegalArgumentException catch branch from GeneratorFactory.create()
-        assertDoesNotThrow(() -> GeneratorExecutor.execute(validModel, "unknown_type", tempDir.toString()));
+        assertThrows(ExitException.class, () ->
+            GeneratorExecutor.execute(validModel, "unknown_type", tempDir.toString()));
     }
 }
