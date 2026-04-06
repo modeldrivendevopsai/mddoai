@@ -11,53 +11,43 @@ import main.java.mddoai.transformers.TransformerExecutor;
 
 public class PimToGitlabHandler {
 
-    public static void handle(String inputModelPath, String outputFolder) {
+    public static void handle(String inputModelPath, String outputFolder) throws Exception {
         ResourceSet resourceSet = new ResourceSetImpl();
-        try {
-            EObject inputModel = ModelLoader.loadModel(inputModelPath, resourceSet, EObject.class);
 
-            if (inputModel == null) {
-                System.err.println("Failed to load PIM model: " + inputModelPath);
-                System.exit(1);
-            }
+        EObject inputModel = ModelLoader.loadModel(inputModelPath, resourceSet, EObject.class);
 
-            if (inputModel.eClass().getEPackage() != PimMMPackage.eINSTANCE) {
-                System.err.println("Input model should be an PIM metamodel instance.");
-                System.exit(1);
-            }
-
-            File intermediateDir = new File("./test/generatedModels");
-            if (!intermediateDir.exists()) {
-                boolean created = intermediateDir.mkdirs();
-                if (!created) {
-                    System.err.println("Failed to create intermediate directory: ./test/generatedModels");
-                    System.exit(1);
-                }
-            }
-
-            String outputModelFilePath = "./test/generatedModels/PipelineGit.gitlabmm";
-            EObject gitlabModel = TransformerExecutor.execute("pim2gitlab", inputModel, outputModelFilePath);
-
-            if (gitlabModel == null) {
-                System.err.println("Transformation from PIM to GitLab model failed");
-                System.exit(1);
-            }
-
-            System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
-
-            GeneratorExecutor.execute(gitlabModel, "gitlab", outputFolder);
-
-            File[] files = new File(outputFolder).listFiles();
-            if (files == null || files.length == 0) {
-                System.err.println("No files were generated in output folder: " + outputFolder);
-                System.exit(1);
-            }
-
-            System.out.println("GitLab YAML Code has been generated...");
-        } catch (Exception e) {
-            System.err.println("Error during transformation process: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
+        if (inputModel == null) {
+            throw new ExitException(1, "Failed to load PIM model: " + inputModelPath);
         }
+
+        if (inputModel.eClass().getEPackage() != PimMMPackage.eINSTANCE) {
+            throw new ExitException(1, "Input model should be a PIM metamodel instance.");
+        }
+
+        File intermediateDir = new File("./test/generatedModels");
+        if (!intermediateDir.exists()) {
+            boolean created = intermediateDir.mkdirs();
+            if (!created) {
+                throw new ExitException(1, "Failed to create intermediate directory: ./test/generatedModels");
+            }
+        }
+
+        String outputModelFilePath = "./test/generatedModels/PipelineGit.gitlabmm";
+        EObject gitlabModel = TransformerExecutor.execute("pim2gitlab", inputModel, outputModelFilePath);
+
+        if (gitlabModel == null) {
+            throw new ExitException(1, "Transformation from PIM to GitLab model failed");
+        }
+
+        System.out.println("Platform Independent Model transformed to Platform Specific Model (GitLab Model)...");
+
+        GeneratorExecutor.execute(gitlabModel, "gitlab", outputFolder);
+
+        File[] files = new File(outputFolder).listFiles();
+        if (files == null || files.length == 0) {
+            throw new ExitException(1, "No files were generated in output folder: " + outputFolder);
+        }
+
+        System.out.println("GitLab YAML Code has been generated...");
     }
 }

@@ -10,34 +10,26 @@ import main.java.mddoai.loaders.ModelLoader;
 
 public class PsmToGitlabHandler {
 
-    public static void handle(String inputModelPath, String outputFolder) {
+    public static void handle(String inputModelPath, String outputFolder) throws Exception {
         ResourceSet resourceSet = new ResourceSetImpl();
-        try {
-            EObject inputModel = ModelLoader.loadModel(inputModelPath, resourceSet, EObject.class);
 
-            if (inputModel == null) {
-                System.err.println("Failed to load Gitlab model: " + inputModelPath);
-                System.exit(1);
-            }
+        EObject inputModel = ModelLoader.loadModel(inputModelPath, resourceSet, EObject.class);
 
-            if (inputModel.eClass().getEPackage() != GitlabMMPackage.eINSTANCE) {
-                System.err.println("Input model should be a GitLab metamodel instance.");
-                System.exit(1);
-            }
-
-            GeneratorExecutor.execute(inputModel, "gitlab", outputFolder);
-
-            File[] files = new File(outputFolder).listFiles();
-            if (files == null || files.length == 0) {
-                System.err.println("No files were generated in output folder: " + outputFolder);
-                System.exit(1);
-            }
-
-            System.out.println("GitLab YAML Code has been generated...");
-        } catch (Exception e) {
-            System.err.println("Error during transformation process: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
+        if (inputModel == null) {
+            throw new ExitException(1, "Failed to load GitLab model: " + inputModelPath);
         }
+
+        if (inputModel.eClass().getEPackage() != GitlabMMPackage.eINSTANCE) {
+            throw new ExitException(1, "Input model should be a GitLab metamodel instance.");
+        }
+
+        GeneratorExecutor.execute(inputModel, "gitlab", outputFolder);
+
+        File[] files = new File(outputFolder).listFiles();
+        if (files == null || files.length == 0) {
+            throw new ExitException(1, "No files were generated in output folder: " + outputFolder);
+        }
+
+        System.out.println("GitLab YAML Code has been generated...");
     }
 }
