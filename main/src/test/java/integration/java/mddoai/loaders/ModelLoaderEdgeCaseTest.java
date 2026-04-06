@@ -31,40 +31,43 @@ public class ModelLoaderEdgeCaseTest {
     }
 
     @Test
-    void testLoadModel_throwsException_whenModelPathIsNull() {
-        assertThrows(Exception.class, () -> ModelLoader.loadModel(null, resourceSet, EObject.class));
+    void testLoadModel_throwsIllegalArgumentException_whenModelPathIsNull() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ModelLoader.loadModel(null, resourceSet, EObject.class));
     }
 
     @Test
-    void testLoadModel_throwsException_whenModelPathIsEmpty() {
-        assertThrows(Exception.class, () -> ModelLoader.loadModel("", resourceSet, EObject.class));
+    void testLoadModel_throwsIllegalArgumentException_whenModelPathIsEmpty() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ModelLoader.loadModel("", resourceSet, EObject.class));
     }
 
     @Test
-    void testLoadModel_throwsException_whenModelPathIsBlank() {
-        assertThrows(Exception.class, () -> ModelLoader.loadModel("   ", resourceSet, EObject.class));
+    void testLoadModel_throwsIllegalArgumentException_whenModelPathIsBlank() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ModelLoader.loadModel("   ", resourceSet, EObject.class));
     }
 
     @Test
-    void testLoadModel_throwsException_whenExpectedTypeIsNull() {
-        assertThrows(Exception.class, () -> ModelLoader.loadModel(EXISTING_MODEL_PATH, resourceSet, null));
+    void testLoadModel_throwsIllegalArgumentException_whenExpectedTypeIsNull() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ModelLoader.loadModel(EXISTING_MODEL_PATH, resourceSet, null));
     }
 
     @Test
-    void testLoadModel_throwsException_whenFileIsEmpty() throws Exception {
+    void testLoadModel_throwsIllegalArgumentException_whenFileIsEmpty() throws Exception {
         File emptyFile = tempDir.resolve("empty.pimmm").toFile();
         emptyFile.createNewFile();
 
-        assertThrows(Exception.class, () ->
+        assertThrows(IllegalArgumentException.class, () ->
             ModelLoader.loadModel(emptyFile.getAbsolutePath(), resourceSet, EObject.class));
     }
 
     @Test
-    void testLoadModel_throwsException_whenPathIsDirectory() {
-        // A directory path passes exists() but fails isFile(), triggering IllegalArgumentException
+    void testLoadModel_throwsIllegalArgumentException_whenPathIsDirectory() {
         String dirPath = tempDir.toAbsolutePath().toString();
 
-        assertThrows(Exception.class, () ->
+        assertThrows(IllegalArgumentException.class, () ->
             ModelLoader.loadModel(dirPath, resourceSet, EObject.class));
     }
 }

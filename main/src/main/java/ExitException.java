@@ -8,8 +8,12 @@ public class ExitException extends RuntimeException {
         this.code = code;
     }
 
+    public ExitException(int code, String message) {
+        super(message);
+        this.code = code;
+    }
+
     public int getCode() {
         return code;
     }
 }
-
