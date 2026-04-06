@@ -15,13 +15,13 @@ public interface NeedValidator {
 
 	boolean validateJob(String value);
 
-	boolean validateArtifacts(boolean value);
+	boolean validateArtifacts(Boolean value);
+
+	boolean validateOptional(Boolean value);
 
 	boolean validateProject(String value);
 
 	boolean validateRef(String value);
 
 	boolean validatePipeline(String value);
-
-	boolean validateOptional(boolean value);
 }

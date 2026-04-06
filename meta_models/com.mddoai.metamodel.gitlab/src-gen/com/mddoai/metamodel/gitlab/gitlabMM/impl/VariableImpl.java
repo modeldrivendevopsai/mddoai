@@ -23,7 +23,7 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getValue <em>Value</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getDescription <em>Description</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#isExpand <em>Expand</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.VariableImpl#getExpand <em>Expand</em>}</li>
  * </ul>
  *
  * @generated
@@ -90,24 +90,24 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 	protected String description = DESCRIPTION_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #isExpand() <em>Expand</em>}' attribute.
+	 * The default value of the '{@link #getExpand() <em>Expand</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isExpand()
+	 * @see #getExpand()
 	 * @generated
 	 * @ordered
 	 */
-	protected static final boolean EXPAND_EDEFAULT = false;
+	protected static final Boolean EXPAND_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #isExpand() <em>Expand</em>}' attribute.
+	 * The cached value of the '{@link #getExpand() <em>Expand</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isExpand()
+	 * @see #getExpand()
 	 * @generated
 	 * @ordered
 	 */
-	protected boolean expand = EXPAND_EDEFAULT;
+	protected Boolean expand = EXPAND_EDEFAULT;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -204,7 +204,7 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 	 * @generated
 	 */
 	@Override
-	public boolean isExpand() {
+	public Boolean getExpand() {
 		return expand;
 	}
 
@@ -214,8 +214,8 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 	 * @generated
 	 */
 	@Override
-	public void setExpand(boolean newExpand) {
-		boolean oldExpand = expand;
+	public void setExpand(Boolean newExpand) {
+		Boolean oldExpand = expand;
 		expand = newExpand;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.VARIABLE__EXPAND, oldExpand, expand));
@@ -236,7 +236,7 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 		case GitlabMMPackage.VARIABLE__DESCRIPTION:
 			return getDescription();
 		case GitlabMMPackage.VARIABLE__EXPAND:
-			return isExpand();
+			return getExpand();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -304,7 +304,7 @@ public class VariableImpl extends MinimalEObjectImpl.Container implements Variab
 		case GitlabMMPackage.VARIABLE__DESCRIPTION:
 			return DESCRIPTION_EDEFAULT == null ? description != null : !DESCRIPTION_EDEFAULT.equals(description);
 		case GitlabMMPackage.VARIABLE__EXPAND:
-			return expand != EXPAND_EDEFAULT;
+			return EXPAND_EDEFAULT == null ? expand != null : !EXPAND_EDEFAULT.equals(expand);
 		}
 		return super.eIsSet(featureID);
 	}

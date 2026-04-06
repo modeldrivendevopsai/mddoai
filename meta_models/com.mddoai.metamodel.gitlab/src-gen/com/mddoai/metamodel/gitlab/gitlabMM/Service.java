@@ -18,10 +18,9 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getAlias <em>Alias</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getEntrypoint <em>Entrypoint</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getCommands <em>Commands</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getDocker <em>Docker</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getKubernetes <em>Kubernetes</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPullPolicy <em>Pull Policy</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getDocker <em>Docker</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService()
@@ -86,28 +85,53 @@ public interface Service extends EObject {
 	EList<String> getEntrypoint();
 
 	/**
-	 * Returns the value of the '<em><b>Commands</b></em>' reference list.
-	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Command}.
+	 * Returns the value of the '<em><b>Variables</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Commands</em>' reference list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_Commands()
+	 * @return the value of the '<em>Variables</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_Variables()
+	 * @model containment="true"
+	 * @generated
+	 */
+	EList<Variable> getVariables();
+
+	/**
+	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute.
+	 * The literals are from the enumeration {@link com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Pull Policy</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy
+	 * @see #setPullPolicy(PullPolicy)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_PullPolicy()
 	 * @model
 	 * @generated
 	 */
-	EList<Command> getCommands();
+	PullPolicy getPullPolicy();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPullPolicy <em>Pull Policy</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Pull Policy</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy
+	 * @see #getPullPolicy()
+	 * @generated
+	 */
+	void setPullPolicy(PullPolicy value);
 
 	/**
 	 * Returns the value of the '<em><b>Docker</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Docker</em>' containment reference.
-	 * @see #setDocker(Docker)
+	 * @see #setDocker(DockerOptions)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_Docker()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Docker getDocker();
+	DockerOptions getDocker();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getDocker <em>Docker</em>}' containment reference.
@@ -117,40 +141,6 @@ public interface Service extends EObject {
 	 * @see #getDocker()
 	 * @generated
 	 */
-	void setDocker(Docker value);
-
-	/**
-	 * Returns the value of the '<em><b>Kubernetes</b></em>' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Kubernetes</em>' containment reference.
-	 * @see #setKubernetes(Kubernetes)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_Kubernetes()
-	 * @model containment="true"
-	 * @generated
-	 */
-	Kubernetes getKubernetes();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getKubernetes <em>Kubernetes</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Kubernetes</em>' containment reference.
-	 * @see #getKubernetes()
-	 * @generated
-	 */
-	void setKubernetes(Kubernetes value);
-
-	/**
-	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute list.
-	 * The list contents are of type {@link java.lang.String}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Pull Policy</em>' attribute list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_PullPolicy()
-	 * @model
-	 * @generated
-	 */
-	EList<String> getPullPolicy();
+	void setDocker(DockerOptions value);
 
 } // Service

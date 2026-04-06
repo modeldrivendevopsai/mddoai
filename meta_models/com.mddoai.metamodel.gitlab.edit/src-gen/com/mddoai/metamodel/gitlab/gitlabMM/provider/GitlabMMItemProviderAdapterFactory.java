@@ -96,374 +96,6 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Job} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected JobItemProvider jobItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Job}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createJobAdapter() {
-		if (jobItemProvider == null) {
-			jobItemProvider = new JobItemProvider(this);
-		}
-
-		return jobItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected ArtifactItemProvider artifactItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createArtifactAdapter() {
-		if (artifactItemProvider == null) {
-			artifactItemProvider = new ArtifactItemProvider(this);
-		}
-
-		return artifactItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Report} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected ReportItemProvider reportItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Report}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createReportAdapter() {
-		if (reportItemProvider == null) {
-			reportItemProvider = new ReportItemProvider(this);
-		}
-
-		return reportItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Command} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected CommandItemProvider commandItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Command}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createCommandAdapter() {
-		if (commandItemProvider == null) {
-			commandItemProvider = new CommandItemProvider(this);
-		}
-
-		return commandItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected BeforeScriptItemProvider beforeScriptItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createBeforeScriptAdapter() {
-		if (beforeScriptItemProvider == null) {
-			beforeScriptItemProvider = new BeforeScriptItemProvider(this);
-		}
-
-		return beforeScriptItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Script} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected ScriptItemProvider scriptItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Script}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createScriptAdapter() {
-		if (scriptItemProvider == null) {
-			scriptItemProvider = new ScriptItemProvider(this);
-		}
-
-		return scriptItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Tags} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected TagsItemProvider tagsItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Tags}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createTagsAdapter() {
-		if (tagsItemProvider == null) {
-			tagsItemProvider = new TagsItemProvider(this);
-		}
-
-		return tagsItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Tag} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected TagItemProvider tagItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Tag}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createTagAdapter() {
-		if (tagItemProvider == null) {
-			tagItemProvider = new TagItemProvider(this);
-		}
-
-		return tagItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Only} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected OnlyItemProvider onlyItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Only}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createOnlyAdapter() {
-		if (onlyItemProvider == null) {
-			onlyItemProvider = new OnlyItemProvider(this);
-		}
-
-		return onlyItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.OnlyBranches} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected OnlyBranchesItemProvider onlyBranchesItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.OnlyBranches}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createOnlyBranchesAdapter() {
-		if (onlyBranchesItemProvider == null) {
-			onlyBranchesItemProvider = new OnlyBranchesItemProvider(this);
-		}
-
-		return onlyBranchesItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Dependencies} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected DependenciesItemProvider dependenciesItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Dependencies}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createDependenciesAdapter() {
-		if (dependenciesItemProvider == null) {
-			dependenciesItemProvider = new DependenciesItemProvider(this);
-		}
-
-		return dependenciesItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Dependency} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected DependencyItemProvider dependencyItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Dependency}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createDependencyAdapter() {
-		if (dependencyItemProvider == null) {
-			dependencyItemProvider = new DependencyItemProvider(this);
-		}
-
-		return dependencyItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Variables} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected VariablesItemProvider variablesItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Variables}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createVariablesAdapter() {
-		if (variablesItemProvider == null) {
-			variablesItemProvider = new VariablesItemProvider(this);
-		}
-
-		return variablesItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected VariableItemProvider variableItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createVariableAdapter() {
-		if (variableItemProvider == null) {
-			variableItemProvider = new VariableItemProvider(this);
-		}
-
-		return variableItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Path} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected PathItemProvider pathItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Path}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createPathAdapter() {
-		if (pathItemProvider == null) {
-			pathItemProvider = new PathItemProvider(this);
-		}
-
-		return pathItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected GitlabRuleItemProvider gitlabRuleItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createGitlabRuleAdapter() {
-		if (gitlabRuleItemProvider == null) {
-			gitlabRuleItemProvider = new GitlabRuleItemProvider(this);
-		}
-
-		return gitlabRuleItemProvider;
-	}
-
-	/**
 	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Workflow} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -484,213 +116,6 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 		}
 
 		return workflowItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Image} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected ImageItemProvider imageItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Image}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createImageAdapter() {
-		if (imageItemProvider == null) {
-			imageItemProvider = new ImageItemProvider(this);
-		}
-
-		return imageItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Docker} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected DockerItemProvider dockerItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Docker}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createDockerAdapter() {
-		if (dockerItemProvider == null) {
-			dockerItemProvider = new DockerItemProvider(this);
-		}
-
-		return dockerItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected KubernetesItemProvider kubernetesItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createKubernetesAdapter() {
-		if (kubernetesItemProvider == null) {
-			kubernetesItemProvider = new KubernetesItemProvider(this);
-		}
-
-		return kubernetesItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Service} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected ServiceItemProvider serviceItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Service}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createServiceAdapter() {
-		if (serviceItemProvider == null) {
-			serviceItemProvider = new ServiceItemProvider(this);
-		}
-
-		return serviceItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Cache} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected CacheItemProvider cacheItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Cache}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createCacheAdapter() {
-		if (cacheItemProvider == null) {
-			cacheItemProvider = new CacheItemProvider(this);
-		}
-
-		return cacheItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Key} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected KeyItemProvider keyItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Key}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createKeyAdapter() {
-		if (keyItemProvider == null) {
-			keyItemProvider = new KeyItemProvider(this);
-		}
-
-		return keyItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Need} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected NeedItemProvider needItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Need}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createNeedAdapter() {
-		if (needItemProvider == null) {
-			needItemProvider = new NeedItemProvider(this);
-		}
-
-		return needItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Environment} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected EnvironmentItemProvider environmentItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Environment}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createEnvironmentAdapter() {
-		if (environmentItemProvider == null) {
-			environmentItemProvider = new EnvironmentItemProvider(this);
-		}
-
-		return environmentItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.AfterScript} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected AfterScriptItemProvider afterScriptItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.AfterScript}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createAfterScriptAdapter() {
-		if (afterScriptItemProvider == null) {
-			afterScriptItemProvider = new AfterScriptItemProvider(this);
-		}
-
-		return afterScriptItemProvider;
 	}
 
 	/**
@@ -717,6 +142,305 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected VariableItemProvider variableItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createVariableAdapter() {
+		if (variableItemProvider == null) {
+			variableItemProvider = new VariableItemProvider(this);
+		}
+
+		return variableItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Job} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected JobItemProvider jobItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Job}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createJobAdapter() {
+		if (jobItemProvider == null) {
+			jobItemProvider = new JobItemProvider(this);
+		}
+
+		return jobItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Image} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ImageItemProvider imageItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Image}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createImageAdapter() {
+		if (imageItemProvider == null) {
+			imageItemProvider = new ImageItemProvider(this);
+		}
+
+		return imageItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.DockerOptions} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected DockerOptionsItemProvider dockerOptionsItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.DockerOptions}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createDockerOptionsAdapter() {
+		if (dockerOptionsItemProvider == null) {
+			dockerOptionsItemProvider = new DockerOptionsItemProvider(this);
+		}
+
+		return dockerOptionsItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.KubernetesOptions} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected KubernetesOptionsItemProvider kubernetesOptionsItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.KubernetesOptions}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createKubernetesOptionsAdapter() {
+		if (kubernetesOptionsItemProvider == null) {
+			kubernetesOptionsItemProvider = new KubernetesOptionsItemProvider(this);
+		}
+
+		return kubernetesOptionsItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Service} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ServiceItemProvider serviceItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Service}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createServiceAdapter() {
+		if (serviceItemProvider == null) {
+			serviceItemProvider = new ServiceItemProvider(this);
+		}
+
+		return serviceItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Artifacts} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ArtifactsItemProvider artifactsItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Artifacts}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createArtifactsAdapter() {
+		if (artifactsItemProvider == null) {
+			artifactsItemProvider = new ArtifactsItemProvider(this);
+		}
+
+		return artifactsItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.ArtifactReports} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected ArtifactReportsItemProvider artifactReportsItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.ArtifactReports}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createArtifactReportsAdapter() {
+		if (artifactReportsItemProvider == null) {
+			artifactReportsItemProvider = new ArtifactReportsItemProvider(this);
+		}
+
+		return artifactReportsItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.CoverageReport} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected CoverageReportItemProvider coverageReportItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.CoverageReport}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createCoverageReportAdapter() {
+		if (coverageReportItemProvider == null) {
+			coverageReportItemProvider = new CoverageReportItemProvider(this);
+		}
+
+		return coverageReportItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Cache} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected CacheItemProvider cacheItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Cache}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createCacheAdapter() {
+		if (cacheItemProvider == null) {
+			cacheItemProvider = new CacheItemProvider(this);
+		}
+
+		return cacheItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.CacheKey} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected CacheKeyItemProvider cacheKeyItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.CacheKey}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createCacheKeyAdapter() {
+		if (cacheKeyItemProvider == null) {
+			cacheKeyItemProvider = new CacheKeyItemProvider(this);
+		}
+
+		return cacheKeyItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Need} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected NeedItemProvider needItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Need}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createNeedAdapter() {
+		if (needItemProvider == null) {
+			needItemProvider = new NeedItemProvider(this);
+		}
+
+		return needItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected RuleItemProvider ruleItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createRuleAdapter() {
+		if (ruleItemProvider == null) {
+			ruleItemProvider = new RuleItemProvider(this);
+		}
+
+		return ruleItemProvider;
+	}
+
+	/**
 	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Retry} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -740,52 +464,6 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	}
 
 	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Axis} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected AxisItemProvider axisItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Axis}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createAxisAdapter() {
-		if (axisItemProvider == null) {
-			axisItemProvider = new AxisItemProvider(this);
-		}
-
-		return axisItemProvider;
-	}
-
-	/**
-	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix} instances.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected MatrixItemProvider matrixItemProvider;
-
-	/**
-	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Matrix}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Adapter createMatrixAdapter() {
-		if (matrixItemProvider == null) {
-			matrixItemProvider = new MatrixItemProvider(this);
-		}
-
-		return matrixItemProvider;
-	}
-
-	/**
 	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Parallel} instances.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -806,6 +484,52 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 		}
 
 		return parallelItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.MatrixEntry} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected MatrixEntryItemProvider matrixEntryItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.MatrixEntry}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createMatrixEntryAdapter() {
+		if (matrixEntryItemProvider == null) {
+			matrixEntryItemProvider = new MatrixEntryItemProvider(this);
+		}
+
+		return matrixEntryItemProvider;
+	}
+
+	/**
+	 * This keeps track of the one adapter used for all {@link com.mddoai.metamodel.gitlab.gitlabMM.Environment} instances.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected EnvironmentItemProvider environmentItemProvider;
+
+	/**
+	 * This creates an adapter for a {@link com.mddoai.metamodel.gitlab.gitlabMM.Environment}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Adapter createEnvironmentAdapter() {
+		if (environmentItemProvider == null) {
+			environmentItemProvider = new EnvironmentItemProvider(this);
+		}
+
+		return environmentItemProvider;
 	}
 
 	/**
@@ -915,68 +639,44 @@ public class GitlabMMItemProviderAdapterFactory extends GitlabMMAdapterFactory
 	public void dispose() {
 		if (pipelineItemProvider != null)
 			pipelineItemProvider.dispose();
-		if (jobItemProvider != null)
-			jobItemProvider.dispose();
-		if (artifactItemProvider != null)
-			artifactItemProvider.dispose();
-		if (reportItemProvider != null)
-			reportItemProvider.dispose();
-		if (commandItemProvider != null)
-			commandItemProvider.dispose();
-		if (beforeScriptItemProvider != null)
-			beforeScriptItemProvider.dispose();
-		if (scriptItemProvider != null)
-			scriptItemProvider.dispose();
-		if (tagsItemProvider != null)
-			tagsItemProvider.dispose();
-		if (tagItemProvider != null)
-			tagItemProvider.dispose();
-		if (onlyItemProvider != null)
-			onlyItemProvider.dispose();
-		if (onlyBranchesItemProvider != null)
-			onlyBranchesItemProvider.dispose();
-		if (dependenciesItemProvider != null)
-			dependenciesItemProvider.dispose();
-		if (dependencyItemProvider != null)
-			dependencyItemProvider.dispose();
-		if (variablesItemProvider != null)
-			variablesItemProvider.dispose();
-		if (variableItemProvider != null)
-			variableItemProvider.dispose();
-		if (pathItemProvider != null)
-			pathItemProvider.dispose();
-		if (gitlabRuleItemProvider != null)
-			gitlabRuleItemProvider.dispose();
 		if (workflowItemProvider != null)
 			workflowItemProvider.dispose();
-		if (imageItemProvider != null)
-			imageItemProvider.dispose();
-		if (dockerItemProvider != null)
-			dockerItemProvider.dispose();
-		if (kubernetesItemProvider != null)
-			kubernetesItemProvider.dispose();
-		if (serviceItemProvider != null)
-			serviceItemProvider.dispose();
-		if (cacheItemProvider != null)
-			cacheItemProvider.dispose();
-		if (keyItemProvider != null)
-			keyItemProvider.dispose();
-		if (needItemProvider != null)
-			needItemProvider.dispose();
-		if (environmentItemProvider != null)
-			environmentItemProvider.dispose();
-		if (afterScriptItemProvider != null)
-			afterScriptItemProvider.dispose();
 		if (defaultItemProvider != null)
 			defaultItemProvider.dispose();
+		if (variableItemProvider != null)
+			variableItemProvider.dispose();
+		if (jobItemProvider != null)
+			jobItemProvider.dispose();
+		if (imageItemProvider != null)
+			imageItemProvider.dispose();
+		if (dockerOptionsItemProvider != null)
+			dockerOptionsItemProvider.dispose();
+		if (kubernetesOptionsItemProvider != null)
+			kubernetesOptionsItemProvider.dispose();
+		if (serviceItemProvider != null)
+			serviceItemProvider.dispose();
+		if (artifactsItemProvider != null)
+			artifactsItemProvider.dispose();
+		if (artifactReportsItemProvider != null)
+			artifactReportsItemProvider.dispose();
+		if (coverageReportItemProvider != null)
+			coverageReportItemProvider.dispose();
+		if (cacheItemProvider != null)
+			cacheItemProvider.dispose();
+		if (cacheKeyItemProvider != null)
+			cacheKeyItemProvider.dispose();
+		if (needItemProvider != null)
+			needItemProvider.dispose();
+		if (ruleItemProvider != null)
+			ruleItemProvider.dispose();
 		if (retryItemProvider != null)
 			retryItemProvider.dispose();
-		if (axisItemProvider != null)
-			axisItemProvider.dispose();
-		if (matrixItemProvider != null)
-			matrixItemProvider.dispose();
 		if (parallelItemProvider != null)
 			parallelItemProvider.dispose();
+		if (matrixEntryItemProvider != null)
+			matrixEntryItemProvider.dispose();
+		if (environmentItemProvider != null)
+			environmentItemProvider.dispose();
 	}
 
 }

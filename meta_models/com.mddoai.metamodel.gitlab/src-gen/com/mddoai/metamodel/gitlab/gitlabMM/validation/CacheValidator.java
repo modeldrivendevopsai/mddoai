@@ -4,7 +4,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Key;
+import com.mddoai.metamodel.gitlab.gitlabMM.CacheKey;
+import com.mddoai.metamodel.gitlab.gitlabMM.CacheWhenType;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -17,13 +18,11 @@ import org.eclipse.emf.common.util.EList;
 public interface CacheValidator {
 	boolean validate();
 
-	boolean validateKey(Key value);
+	boolean validateKey(CacheKey value);
 
 	boolean validatePaths(EList<String> value);
 
-	boolean validateUntracked(boolean value);
+	boolean validateUntracked(Boolean value);
 
-	boolean validateUnprotect(boolean value);
-
-	boolean validateWhen(String value);
+	boolean validateWhen(CacheWhenType value);
 }

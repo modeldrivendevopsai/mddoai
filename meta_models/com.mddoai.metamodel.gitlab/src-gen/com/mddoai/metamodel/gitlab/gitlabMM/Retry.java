@@ -31,7 +31,7 @@ public interface Retry extends EObject {
 	 * @return the value of the '<em>Max</em>' attribute.
 	 * @see #setMax(int)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRetry_Max()
-	 * @model
+	 * @model required="true"
 	 * @generated
 	 */
 	int getMax();
@@ -48,14 +48,16 @@ public interface Retry extends EObject {
 
 	/**
 	 * Returns the value of the '<em><b>When</b></em>' attribute list.
-	 * The list contents are of type {@link java.lang.String}.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.RetryWhenType}.
+	 * The literals are from the enumeration {@link com.mddoai.metamodel.gitlab.gitlabMM.RetryWhenType}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>When</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.RetryWhenType
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getRetry_When()
 	 * @model
 	 * @generated
 	 */
-	EList<String> getWhen();
+	EList<RetryWhenType> getWhen();
 
 } // Retry

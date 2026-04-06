@@ -19,5 +19,5 @@ public interface VariableValidator {
 
 	boolean validateDescription(String value);
 
-	boolean validateExpand(boolean value);
+	boolean validateExpand(Boolean value);
 }

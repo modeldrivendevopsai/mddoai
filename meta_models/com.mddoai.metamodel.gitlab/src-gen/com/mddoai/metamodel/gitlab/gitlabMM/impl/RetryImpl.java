@@ -4,6 +4,7 @@ package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
+import com.mddoai.metamodel.gitlab.gitlabMM.RetryWhenType;
 
 import java.util.Collection;
 
@@ -61,7 +62,7 @@ public class RetryImpl extends MinimalEObjectImpl.Container implements Retry {
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<String> when;
+	protected EList<RetryWhenType> when;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -111,9 +112,9 @@ public class RetryImpl extends MinimalEObjectImpl.Container implements Retry {
 	 * @generated
 	 */
 	@Override
-	public EList<String> getWhen() {
+	public EList<RetryWhenType> getWhen() {
 		if (when == null) {
-			when = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.RETRY__WHEN);
+			when = new EDataTypeUniqueEList<RetryWhenType>(RetryWhenType.class, this, GitlabMMPackage.RETRY__WHEN);
 		}
 		return when;
 	}
@@ -148,7 +149,7 @@ public class RetryImpl extends MinimalEObjectImpl.Container implements Retry {
 			return;
 		case GitlabMMPackage.RETRY__WHEN:
 			getWhen().clear();
-			getWhen().addAll((Collection<? extends String>) newValue);
+			getWhen().addAll((Collection<? extends RetryWhenType>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);

@@ -4,6 +4,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
+import com.mddoai.metamodel.gitlab.gitlabMM.RetryWhenType;
+
 import org.eclipse.emf.common.util.EList;
 
 /**
@@ -17,5 +19,5 @@ public interface RetryValidator {
 
 	boolean validateMax(int value);
 
-	boolean validateWhen(EList<String> value);
+	boolean validateWhen(EList<RetryWhenType> value);
 }

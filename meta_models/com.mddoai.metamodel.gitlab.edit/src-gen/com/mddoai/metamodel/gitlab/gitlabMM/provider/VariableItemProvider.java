@@ -122,7 +122,7 @@ public class VariableItemProvider extends ItemProviderAdapter implements IEditin
 						getString("_UI_PropertyDescriptor_description", "_UI_Variable_expand_feature",
 								"_UI_Variable_type"),
 						GitlabMMPackage.Literals.VARIABLE__EXPAND, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**

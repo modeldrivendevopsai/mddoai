@@ -4,8 +4,9 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Docker;
-import com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes;
+import com.mddoai.metamodel.gitlab.gitlabMM.DockerOptions;
+import com.mddoai.metamodel.gitlab.gitlabMM.KubernetesOptions;
+import com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -22,9 +23,9 @@ public interface ImageValidator {
 
 	boolean validateEntrypoint(EList<String> value);
 
-	boolean validateDocker(Docker value);
+	boolean validatePullPolicy(PullPolicy value);
 
-	boolean validateKubernetes(Kubernetes value);
+	boolean validateDocker(DockerOptions value);
 
-	boolean validatePullPolicy(EList<String> value);
+	boolean validateKubernetes(KubernetesOptions value);
 }

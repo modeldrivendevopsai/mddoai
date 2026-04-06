@@ -58,8 +58,9 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 
 			addNamePropertyDescriptor(object);
 			addStagePropertyDescriptor(object);
-			addWhenPropertyDescriptor(object);
 			addImagePropertyDescriptor(object);
+			addExceptPropertyDescriptor(object);
+			addWhenPropertyDescriptor(object);
 			addAllowFailurePropertyDescriptor(object);
 			addTimeoutPropertyDescriptor(object);
 			addInterruptiblePropertyDescriptor(object);
@@ -99,6 +100,35 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 	}
 
 	/**
+	 * This adds a property descriptor for the Image feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addImagePropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Job_image_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Job_image_feature", "_UI_Job_type"),
+						GitlabMMPackage.Literals.JOB__IMAGE, true, false, false, null, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Except feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addExceptPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Job_except_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Job_except_feature", "_UI_Job_type"),
+						GitlabMMPackage.Literals.JOB__EXCEPT, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
 	 * This adds a property descriptor for the When feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -114,20 +144,6 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 	}
 
 	/**
-	 * This adds a property descriptor for the Image feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addImagePropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Job_image_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Job_image_feature", "_UI_Job_type"),
-						GitlabMMPackage.Literals.JOB__IMAGE, true, false, false, null, null, null));
-	}
-
-	/**
 	 * This adds a property descriptor for the Allow Failure feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -139,7 +155,7 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 						getResourceLocator(), getString("_UI_Job_allowFailure_feature"),
 						getString("_UI_PropertyDescriptor_description", "_UI_Job_allowFailure_feature", "_UI_Job_type"),
 						GitlabMMPackage.Literals.JOB__ALLOW_FAILURE, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -170,7 +186,7 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 						getString("_UI_PropertyDescriptor_description", "_UI_Job_interruptible_feature",
 								"_UI_Job_type"),
 						GitlabMMPackage.Literals.JOB__INTERRUPTIBLE, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -201,21 +217,21 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__ARTIFACTS);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__SCRIPT);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__BEFORE_SCRIPT);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__AFTER_SCRIPT);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__SERVICES);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__VARIABLES);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__ARTIFACTS);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__CACHE);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__NEEDS);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__RULES);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__TAGS);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__ONLY);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__DEPENDENCIES);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__AFTER_SCRIPT);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__CACHE);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__RULES);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__NEEDS);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__SERVICES);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__ENVIRONMENT);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__RETRY);
-			childrenFeatures.add(GitlabMMPackage.Literals.JOB__VARIABLES);
 			childrenFeatures.add(GitlabMMPackage.Literals.JOB__PARALLEL);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__ENVIRONMENT);
+			childrenFeatures.add(GitlabMMPackage.Literals.JOB__DEPENDENCIES);
 		}
 		return childrenFeatures;
 	}
@@ -281,29 +297,30 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 		switch (notification.getFeatureID(Job.class)) {
 		case GitlabMMPackage.JOB__NAME:
 		case GitlabMMPackage.JOB__STAGE:
-		case GitlabMMPackage.JOB__WHEN:
 		case GitlabMMPackage.JOB__IMAGE:
+		case GitlabMMPackage.JOB__EXCEPT:
+		case GitlabMMPackage.JOB__WHEN:
 		case GitlabMMPackage.JOB__ALLOW_FAILURE:
 		case GitlabMMPackage.JOB__TIMEOUT:
 		case GitlabMMPackage.JOB__INTERRUPTIBLE:
 		case GitlabMMPackage.JOB__RESOURCE_GROUP:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
-		case GitlabMMPackage.JOB__ARTIFACTS:
 		case GitlabMMPackage.JOB__SCRIPT:
 		case GitlabMMPackage.JOB__BEFORE_SCRIPT:
+		case GitlabMMPackage.JOB__AFTER_SCRIPT:
+		case GitlabMMPackage.JOB__SERVICES:
+		case GitlabMMPackage.JOB__VARIABLES:
+		case GitlabMMPackage.JOB__ARTIFACTS:
+		case GitlabMMPackage.JOB__CACHE:
+		case GitlabMMPackage.JOB__NEEDS:
+		case GitlabMMPackage.JOB__RULES:
 		case GitlabMMPackage.JOB__TAGS:
 		case GitlabMMPackage.JOB__ONLY:
-		case GitlabMMPackage.JOB__DEPENDENCIES:
-		case GitlabMMPackage.JOB__AFTER_SCRIPT:
-		case GitlabMMPackage.JOB__CACHE:
-		case GitlabMMPackage.JOB__RULES:
-		case GitlabMMPackage.JOB__NEEDS:
-		case GitlabMMPackage.JOB__SERVICES:
-		case GitlabMMPackage.JOB__ENVIRONMENT:
 		case GitlabMMPackage.JOB__RETRY:
-		case GitlabMMPackage.JOB__VARIABLES:
 		case GitlabMMPackage.JOB__PARALLEL:
+		case GitlabMMPackage.JOB__ENVIRONMENT:
+		case GitlabMMPackage.JOB__DEPENDENCIES:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -321,50 +338,44 @@ public class JobItemProvider extends ItemProviderAdapter implements IEditingDoma
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__ARTIFACTS,
-				GitlabMMFactory.eINSTANCE.createArtifact()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__SCRIPT, ""));
 
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.JOB__SCRIPT, GitlabMMFactory.eINSTANCE.createScript()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__BEFORE_SCRIPT, ""));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__BEFORE_SCRIPT,
-				GitlabMMFactory.eINSTANCE.createBeforeScript()));
-
-		newChildDescriptors
-				.add(createChildParameter(GitlabMMPackage.Literals.JOB__TAGS, GitlabMMFactory.eINSTANCE.createTags()));
-
-		newChildDescriptors
-				.add(createChildParameter(GitlabMMPackage.Literals.JOB__ONLY, GitlabMMFactory.eINSTANCE.createOnly()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__DEPENDENCIES,
-				GitlabMMFactory.eINSTANCE.createDependencies()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__AFTER_SCRIPT,
-				GitlabMMFactory.eINSTANCE.createAfterScript()));
-
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.JOB__CACHE, GitlabMMFactory.eINSTANCE.createCache()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__RULES,
-				GitlabMMFactory.eINSTANCE.createGitlabRule()));
-
-		newChildDescriptors
-				.add(createChildParameter(GitlabMMPackage.Literals.JOB__NEEDS, GitlabMMFactory.eINSTANCE.createNeed()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__AFTER_SCRIPT, ""));
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__SERVICES,
 				GitlabMMFactory.eINSTANCE.createService()));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__ENVIRONMENT,
-				GitlabMMFactory.eINSTANCE.createEnvironment()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__VARIABLES,
+				GitlabMMFactory.eINSTANCE.createVariable()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__ARTIFACTS,
+				GitlabMMFactory.eINSTANCE.createArtifacts()));
+
+		newChildDescriptors.add(
+				createChildParameter(GitlabMMPackage.Literals.JOB__CACHE, GitlabMMFactory.eINSTANCE.createCache()));
+
+		newChildDescriptors
+				.add(createChildParameter(GitlabMMPackage.Literals.JOB__NEEDS, GitlabMMFactory.eINSTANCE.createNeed()));
+
+		newChildDescriptors
+				.add(createChildParameter(GitlabMMPackage.Literals.JOB__RULES, GitlabMMFactory.eINSTANCE.createRule()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__TAGS, ""));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__ONLY, ""));
 
 		newChildDescriptors.add(
 				createChildParameter(GitlabMMPackage.Literals.JOB__RETRY, GitlabMMFactory.eINSTANCE.createRetry()));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__VARIABLES,
-				GitlabMMFactory.eINSTANCE.createVariables()));
-
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__PARALLEL,
 				GitlabMMFactory.eINSTANCE.createParallel()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__ENVIRONMENT,
+				GitlabMMFactory.eINSTANCE.createEnvironment()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.JOB__DEPENDENCIES, ""));
 	}
 
 	/**

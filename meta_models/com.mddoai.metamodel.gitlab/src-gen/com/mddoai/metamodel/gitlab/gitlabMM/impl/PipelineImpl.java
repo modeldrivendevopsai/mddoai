@@ -6,7 +6,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Default;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
-import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
+import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
 import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 
 import java.util.Collection;
@@ -35,10 +35,10 @@ import org.eclipse.emf.ecore.util.InternalEList;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getStages <em>Stages</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getJobs <em>Jobs</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getWorkflow <em>Workflow</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getDefault <em>Default</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getDefaults <em>Defaults</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.PipelineImpl#getJobs <em>Jobs</em>}</li>
  * </ul>
  *
  * @generated
@@ -55,26 +55,6 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	protected EList<String> stages;
 
 	/**
-	 * The cached value of the '{@link #getJobs() <em>Jobs</em>}' containment reference list.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getJobs()
-	 * @generated
-	 * @ordered
-	 */
-	protected EList<Job> jobs;
-
-	/**
-	 * The cached value of the '{@link #getVariables() <em>Variables</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getVariables()
-	 * @generated
-	 * @ordered
-	 */
-	protected Variables variables;
-
-	/**
 	 * The cached value of the '{@link #getWorkflow() <em>Workflow</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -85,14 +65,34 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	protected Workflow workflow;
 
 	/**
-	 * The cached value of the '{@link #getDefault() <em>Default</em>}' containment reference.
+	 * The cached value of the '{@link #getDefaults() <em>Defaults</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getDefault()
+	 * @see #getDefaults()
 	 * @generated
 	 * @ordered
 	 */
-	protected Default default_;
+	protected Default defaults;
+
+	/**
+	 * The cached value of the '{@link #getVariables() <em>Variables</em>}' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getVariables()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<Variable> variables;
+
+	/**
+	 * The cached value of the '{@link #getJobs() <em>Jobs</em>}' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getJobs()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<Job> jobs;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -124,71 +124,6 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			stages = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.PIPELINE__STAGES);
 		}
 		return stages;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EList<Job> getJobs() {
-		if (jobs == null) {
-			jobs = new EObjectContainmentEList<Job>(Job.class, this, GitlabMMPackage.PIPELINE__JOBS);
-		}
-		return jobs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Variables getVariables() {
-		return variables;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetVariables(Variables newVariables, NotificationChain msgs) {
-		Variables oldVariables = variables;
-		variables = newVariables;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.PIPELINE__VARIABLES, oldVariables, newVariables);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setVariables(Variables newVariables) {
-		if (newVariables != variables) {
-			NotificationChain msgs = null;
-			if (variables != null)
-				msgs = ((InternalEObject) variables).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__VARIABLES, null, msgs);
-			if (newVariables != null)
-				msgs = ((InternalEObject) newVariables).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__VARIABLES, null, msgs);
-			msgs = basicSetVariables(newVariables, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PIPELINE__VARIABLES, newVariables,
-					newVariables));
 	}
 
 	/**
@@ -249,8 +184,8 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @generated
 	 */
 	@Override
-	public Default getDefault() {
-		return default_;
+	public Default getDefaults() {
+		return defaults;
 	}
 
 	/**
@@ -258,12 +193,12 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public NotificationChain basicSetDefault(Default newDefault, NotificationChain msgs) {
-		Default oldDefault = default_;
-		default_ = newDefault;
+	public NotificationChain basicSetDefaults(Default newDefaults, NotificationChain msgs) {
+		Default oldDefaults = defaults;
+		defaults = newDefaults;
 		if (eNotificationRequired()) {
 			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.PIPELINE__DEFAULT, oldDefault, newDefault);
+					GitlabMMPackage.PIPELINE__DEFAULTS, oldDefaults, newDefaults);
 			if (msgs == null)
 				msgs = notification;
 			else
@@ -278,21 +213,48 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	 * @generated
 	 */
 	@Override
-	public void setDefault(Default newDefault) {
-		if (newDefault != default_) {
+	public void setDefaults(Default newDefaults) {
+		if (newDefaults != defaults) {
 			NotificationChain msgs = null;
-			if (default_ != null)
-				msgs = ((InternalEObject) default_).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULT, null, msgs);
-			if (newDefault != null)
-				msgs = ((InternalEObject) newDefault).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULT, null, msgs);
-			msgs = basicSetDefault(newDefault, msgs);
+			if (defaults != null)
+				msgs = ((InternalEObject) defaults).eInverseRemove(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULTS, null, msgs);
+			if (newDefaults != null)
+				msgs = ((InternalEObject) newDefaults).eInverseAdd(this,
+						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PIPELINE__DEFAULTS, null, msgs);
+			msgs = basicSetDefaults(newDefaults, msgs);
 			if (msgs != null)
 				msgs.dispatch();
 		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PIPELINE__DEFAULT, newDefault,
-					newDefault));
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PIPELINE__DEFAULTS, newDefaults,
+					newDefaults));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<Variable> getVariables() {
+		if (variables == null) {
+			variables = new EObjectContainmentEList<Variable>(Variable.class, this,
+					GitlabMMPackage.PIPELINE__VARIABLES);
+		}
+		return variables;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<Job> getJobs() {
+		if (jobs == null) {
+			jobs = new EObjectContainmentEList<Job>(Job.class, this, GitlabMMPackage.PIPELINE__JOBS);
+		}
+		return jobs;
 	}
 
 	/**
@@ -303,14 +265,14 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
-		case GitlabMMPackage.PIPELINE__JOBS:
-			return ((InternalEList<?>) getJobs()).basicRemove(otherEnd, msgs);
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-			return basicSetVariables(null, msgs);
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return basicSetWorkflow(null, msgs);
-		case GitlabMMPackage.PIPELINE__DEFAULT:
-			return basicSetDefault(null, msgs);
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+			return basicSetDefaults(null, msgs);
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+			return ((InternalEList<?>) getVariables()).basicRemove(otherEnd, msgs);
+		case GitlabMMPackage.PIPELINE__JOBS:
+			return ((InternalEList<?>) getJobs()).basicRemove(otherEnd, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -325,14 +287,14 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		switch (featureID) {
 		case GitlabMMPackage.PIPELINE__STAGES:
 			return getStages();
-		case GitlabMMPackage.PIPELINE__JOBS:
-			return getJobs();
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-			return getVariables();
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return getWorkflow();
-		case GitlabMMPackage.PIPELINE__DEFAULT:
-			return getDefault();
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+			return getDefaults();
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+			return getVariables();
+		case GitlabMMPackage.PIPELINE__JOBS:
+			return getJobs();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -350,18 +312,19 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 			getStages().clear();
 			getStages().addAll((Collection<? extends String>) newValue);
 			return;
-		case GitlabMMPackage.PIPELINE__JOBS:
-			getJobs().clear();
-			getJobs().addAll((Collection<? extends Job>) newValue);
-			return;
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-			setVariables((Variables) newValue);
-			return;
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			setWorkflow((Workflow) newValue);
 			return;
-		case GitlabMMPackage.PIPELINE__DEFAULT:
-			setDefault((Default) newValue);
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+			setDefaults((Default) newValue);
+			return;
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+			getVariables().clear();
+			getVariables().addAll((Collection<? extends Variable>) newValue);
+			return;
+		case GitlabMMPackage.PIPELINE__JOBS:
+			getJobs().clear();
+			getJobs().addAll((Collection<? extends Job>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -378,17 +341,17 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		case GitlabMMPackage.PIPELINE__STAGES:
 			getStages().clear();
 			return;
-		case GitlabMMPackage.PIPELINE__JOBS:
-			getJobs().clear();
-			return;
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-			setVariables((Variables) null);
-			return;
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			setWorkflow((Workflow) null);
 			return;
-		case GitlabMMPackage.PIPELINE__DEFAULT:
-			setDefault((Default) null);
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+			setDefaults((Default) null);
+			return;
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+			getVariables().clear();
+			return;
+		case GitlabMMPackage.PIPELINE__JOBS:
+			getJobs().clear();
 			return;
 		}
 		super.eUnset(featureID);
@@ -404,14 +367,14 @@ public class PipelineImpl extends MinimalEObjectImpl.Container implements Pipeli
 		switch (featureID) {
 		case GitlabMMPackage.PIPELINE__STAGES:
 			return stages != null && !stages.isEmpty();
-		case GitlabMMPackage.PIPELINE__JOBS:
-			return jobs != null && !jobs.isEmpty();
-		case GitlabMMPackage.PIPELINE__VARIABLES:
-			return variables != null;
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
 			return workflow != null;
-		case GitlabMMPackage.PIPELINE__DEFAULT:
-			return default_ != null;
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+			return defaults != null;
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+			return variables != null && !variables.isEmpty();
+		case GitlabMMPackage.PIPELINE__JOBS:
+			return jobs != null && !jobs.isEmpty();
 		}
 		return super.eIsSet(featureID);
 	}

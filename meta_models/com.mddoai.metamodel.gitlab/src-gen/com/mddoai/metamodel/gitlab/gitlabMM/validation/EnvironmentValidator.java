@@ -4,7 +4,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes;
+import com.mddoai.metamodel.gitlab.gitlabMM.EnvironmentAction;
+import com.mddoai.metamodel.gitlab.gitlabMM.KubernetesOptions;
 
 /**
  * A sample validator interface for {@link com.mddoai.metamodel.gitlab.gitlabMM.Environment}.
@@ -21,9 +22,9 @@ public interface EnvironmentValidator {
 
 	boolean validateOnStop(String value);
 
-	boolean validateAction(String value);
+	boolean validateAction(EnvironmentAction value);
 
 	boolean validateAutoStopIn(String value);
 
-	boolean validateKubernetes(Kubernetes value);
+	boolean validateKubernetes(KubernetesOptions value);
 }

@@ -55,10 +55,10 @@ public class NeedItemProvider extends ItemProviderAdapter implements IEditingDom
 
 			addJobPropertyDescriptor(object);
 			addArtifactsPropertyDescriptor(object);
+			addOptionalPropertyDescriptor(object);
 			addProjectPropertyDescriptor(object);
 			addRefPropertyDescriptor(object);
 			addPipelinePropertyDescriptor(object);
-			addOptionalPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -90,7 +90,22 @@ public class NeedItemProvider extends ItemProviderAdapter implements IEditingDom
 						getResourceLocator(), getString("_UI_Need_artifacts_feature"),
 						getString("_UI_PropertyDescriptor_description", "_UI_Need_artifacts_feature", "_UI_Need_type"),
 						GitlabMMPackage.Literals.NEED__ARTIFACTS, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
+	}
+
+	/**
+	 * This adds a property descriptor for the Optional feature.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	protected void addOptionalPropertyDescriptor(Object object) {
+		itemPropertyDescriptors
+				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
+						getResourceLocator(), getString("_UI_Need_optional_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Need_optional_feature", "_UI_Need_type"),
+						GitlabMMPackage.Literals.NEED__OPTIONAL, true, false, false,
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -136,21 +151,6 @@ public class NeedItemProvider extends ItemProviderAdapter implements IEditingDom
 						getString("_UI_PropertyDescriptor_description", "_UI_Need_pipeline_feature", "_UI_Need_type"),
 						GitlabMMPackage.Literals.NEED__PIPELINE, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This adds a property descriptor for the Optional feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addOptionalPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Need_optional_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Need_optional_feature", "_UI_Need_type"),
-						GitlabMMPackage.Literals.NEED__OPTIONAL, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -201,10 +201,10 @@ public class NeedItemProvider extends ItemProviderAdapter implements IEditingDom
 		switch (notification.getFeatureID(Need.class)) {
 		case GitlabMMPackage.NEED__JOB:
 		case GitlabMMPackage.NEED__ARTIFACTS:
+		case GitlabMMPackage.NEED__OPTIONAL:
 		case GitlabMMPackage.NEED__PROJECT:
 		case GitlabMMPackage.NEED__REF:
 		case GitlabMMPackage.NEED__PIPELINE:
-		case GitlabMMPackage.NEED__OPTIONAL:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		}

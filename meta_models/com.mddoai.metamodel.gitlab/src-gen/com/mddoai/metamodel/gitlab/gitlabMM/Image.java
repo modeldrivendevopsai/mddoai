@@ -17,9 +17,9 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getEntrypoint <em>Entrypoint</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy <em>Pull Policy</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getDocker <em>Docker</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getKubernetes <em>Kubernetes</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy <em>Pull Policy</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage()
@@ -62,16 +62,41 @@ public interface Image extends EObject {
 	EList<String> getEntrypoint();
 
 	/**
+	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute.
+	 * The literals are from the enumeration {@link com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Pull Policy</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy
+	 * @see #setPullPolicy(PullPolicy)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_PullPolicy()
+	 * @model
+	 * @generated
+	 */
+	PullPolicy getPullPolicy();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy <em>Pull Policy</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Pull Policy</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy
+	 * @see #getPullPolicy()
+	 * @generated
+	 */
+	void setPullPolicy(PullPolicy value);
+
+	/**
 	 * Returns the value of the '<em><b>Docker</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Docker</em>' containment reference.
-	 * @see #setDocker(Docker)
+	 * @see #setDocker(DockerOptions)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_Docker()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Docker getDocker();
+	DockerOptions getDocker();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getDocker <em>Docker</em>}' containment reference.
@@ -81,19 +106,19 @@ public interface Image extends EObject {
 	 * @see #getDocker()
 	 * @generated
 	 */
-	void setDocker(Docker value);
+	void setDocker(DockerOptions value);
 
 	/**
 	 * Returns the value of the '<em><b>Kubernetes</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Kubernetes</em>' containment reference.
-	 * @see #setKubernetes(Kubernetes)
+	 * @see #setKubernetes(KubernetesOptions)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_Kubernetes()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Kubernetes getKubernetes();
+	KubernetesOptions getKubernetes();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getKubernetes <em>Kubernetes</em>}' containment reference.
@@ -103,18 +128,6 @@ public interface Image extends EObject {
 	 * @see #getKubernetes()
 	 * @generated
 	 */
-	void setKubernetes(Kubernetes value);
-
-	/**
-	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute list.
-	 * The list contents are of type {@link java.lang.String}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Pull Policy</em>' attribute list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_PullPolicy()
-	 * @model
-	 * @generated
-	 */
-	EList<String> getPullPolicy();
+	void setKubernetes(KubernetesOptions value);
 
 } // Image

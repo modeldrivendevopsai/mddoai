@@ -91,7 +91,7 @@ public class DefaultItemProvider extends ItemProviderAdapter implements IEditing
 						getString("_UI_PropertyDescriptor_description", "_UI_Default_interruptible_feature",
 								"_UI_Default_type"),
 						GitlabMMPackage.Literals.DEFAULT__INTERRUPTIBLE, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -107,11 +107,11 @@ public class DefaultItemProvider extends ItemProviderAdapter implements IEditing
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
 			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__IMAGE);
-			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__SERVICES);
-			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__TAGS);
-			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__CACHE);
 			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__BEFORE_SCRIPT);
 			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__AFTER_SCRIPT);
+			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__SERVICES);
+			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__CACHE);
+			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__TAGS);
 			childrenFeatures.add(GitlabMMPackage.Literals.DEFAULT__RETRY);
 		}
 		return childrenFeatures;
@@ -181,11 +181,11 @@ public class DefaultItemProvider extends ItemProviderAdapter implements IEditing
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
 		case GitlabMMPackage.DEFAULT__IMAGE:
-		case GitlabMMPackage.DEFAULT__SERVICES:
-		case GitlabMMPackage.DEFAULT__TAGS:
-		case GitlabMMPackage.DEFAULT__CACHE:
 		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
 		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
+		case GitlabMMPackage.DEFAULT__SERVICES:
+		case GitlabMMPackage.DEFAULT__CACHE:
+		case GitlabMMPackage.DEFAULT__TAGS:
 		case GitlabMMPackage.DEFAULT__RETRY:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
@@ -207,20 +207,17 @@ public class DefaultItemProvider extends ItemProviderAdapter implements IEditing
 		newChildDescriptors.add(
 				createChildParameter(GitlabMMPackage.Literals.DEFAULT__IMAGE, GitlabMMFactory.eINSTANCE.createImage()));
 
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__BEFORE_SCRIPT, ""));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__AFTER_SCRIPT, ""));
+
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__SERVICES,
 				GitlabMMFactory.eINSTANCE.createService()));
 
 		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.DEFAULT__TAGS, GitlabMMFactory.eINSTANCE.createTags()));
-
-		newChildDescriptors.add(
 				createChildParameter(GitlabMMPackage.Literals.DEFAULT__CACHE, GitlabMMFactory.eINSTANCE.createCache()));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__BEFORE_SCRIPT,
-				GitlabMMFactory.eINSTANCE.createBeforeScript()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__AFTER_SCRIPT,
-				GitlabMMFactory.eINSTANCE.createAfterScript()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.DEFAULT__TAGS, ""));
 
 		newChildDescriptors.add(
 				createChildParameter(GitlabMMPackage.Literals.DEFAULT__RETRY, GitlabMMFactory.eINSTANCE.createRetry()));

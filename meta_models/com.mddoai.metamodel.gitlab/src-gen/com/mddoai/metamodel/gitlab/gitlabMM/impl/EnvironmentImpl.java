@@ -3,8 +3,9 @@
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
+import com.mddoai.metamodel.gitlab.gitlabMM.EnvironmentAction;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes;
+import com.mddoai.metamodel.gitlab.gitlabMM.KubernetesOptions;
 
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
@@ -102,7 +103,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 * @ordered
 	 */
-	protected static final String ACTION_EDEFAULT = null;
+	protected static final EnvironmentAction ACTION_EDEFAULT = EnvironmentAction.START;
 
 	/**
 	 * The cached value of the '{@link #getAction() <em>Action</em>}' attribute.
@@ -112,7 +113,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 * @ordered
 	 */
-	protected String action = ACTION_EDEFAULT;
+	protected EnvironmentAction action = ACTION_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #getAutoStopIn() <em>Auto Stop In</em>}' attribute.
@@ -142,7 +143,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 * @ordered
 	 */
-	protected Kubernetes kubernetes;
+	protected KubernetesOptions kubernetes;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -239,7 +240,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public String getAction() {
+	public EnvironmentAction getAction() {
 		return action;
 	}
 
@@ -249,9 +250,9 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public void setAction(String newAction) {
-		String oldAction = action;
-		action = newAction;
+	public void setAction(EnvironmentAction newAction) {
+		EnvironmentAction oldAction = action;
+		action = newAction == null ? ACTION_EDEFAULT : newAction;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ENVIRONMENT__ACTION, oldAction,
 					action));
@@ -287,7 +288,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public Kubernetes getKubernetes() {
+	public KubernetesOptions getKubernetes() {
 		return kubernetes;
 	}
 
@@ -296,8 +297,8 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public NotificationChain basicSetKubernetes(Kubernetes newKubernetes, NotificationChain msgs) {
-		Kubernetes oldKubernetes = kubernetes;
+	public NotificationChain basicSetKubernetes(KubernetesOptions newKubernetes, NotificationChain msgs) {
+		KubernetesOptions oldKubernetes = kubernetes;
 		kubernetes = newKubernetes;
 		if (eNotificationRequired()) {
 			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
@@ -316,7 +317,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public void setKubernetes(Kubernetes newKubernetes) {
+	public void setKubernetes(KubernetesOptions newKubernetes) {
 		if (newKubernetes != kubernetes) {
 			NotificationChain msgs = null;
 			if (kubernetes != null)
@@ -389,13 +390,13 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 			setOnStop((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
-			setAction((String) newValue);
+			setAction((EnvironmentAction) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
 			setAutoStopIn((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
-			setKubernetes((Kubernetes) newValue);
+			setKubernetes((KubernetesOptions) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -425,7 +426,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 			setAutoStopIn(AUTO_STOP_IN_EDEFAULT);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
-			setKubernetes((Kubernetes) null);
+			setKubernetes((KubernetesOptions) null);
 			return;
 		}
 		super.eUnset(featureID);
@@ -446,7 +447,7 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 		case GitlabMMPackage.ENVIRONMENT__ON_STOP:
 			return ON_STOP_EDEFAULT == null ? onStop != null : !ON_STOP_EDEFAULT.equals(onStop);
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
-			return ACTION_EDEFAULT == null ? action != null : !ACTION_EDEFAULT.equals(action);
+			return action != ACTION_EDEFAULT;
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
 			return AUTO_STOP_IN_EDEFAULT == null ? autoStopIn != null : !AUTO_STOP_IN_EDEFAULT.equals(autoStopIn);
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:

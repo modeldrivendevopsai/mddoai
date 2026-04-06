@@ -21,11 +21,11 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getJob <em>Job</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#isArtifacts <em>Artifacts</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getArtifacts <em>Artifacts</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getOptional <em>Optional</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getProject <em>Project</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getRef <em>Ref</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#getPipeline <em>Pipeline</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.NeedImpl#isOptional <em>Optional</em>}</li>
  * </ul>
  *
  * @generated
@@ -52,24 +52,44 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 	protected String job = JOB_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #isArtifacts() <em>Artifacts</em>}' attribute.
+	 * The default value of the '{@link #getArtifacts() <em>Artifacts</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isArtifacts()
+	 * @see #getArtifacts()
 	 * @generated
 	 * @ordered
 	 */
-	protected static final boolean ARTIFACTS_EDEFAULT = false;
+	protected static final Boolean ARTIFACTS_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #isArtifacts() <em>Artifacts</em>}' attribute.
+	 * The cached value of the '{@link #getArtifacts() <em>Artifacts</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isArtifacts()
+	 * @see #getArtifacts()
 	 * @generated
 	 * @ordered
 	 */
-	protected boolean artifacts = ARTIFACTS_EDEFAULT;
+	protected Boolean artifacts = ARTIFACTS_EDEFAULT;
+
+	/**
+	 * The default value of the '{@link #getOptional() <em>Optional</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getOptional()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final Boolean OPTIONAL_EDEFAULT = null;
+
+	/**
+	 * The cached value of the '{@link #getOptional() <em>Optional</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getOptional()
+	 * @generated
+	 * @ordered
+	 */
+	protected Boolean optional = OPTIONAL_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #getProject() <em>Project</em>}' attribute.
@@ -132,26 +152,6 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 	protected String pipeline = PIPELINE_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #isOptional() <em>Optional</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #isOptional()
-	 * @generated
-	 * @ordered
-	 */
-	protected static final boolean OPTIONAL_EDEFAULT = false;
-
-	/**
-	 * The cached value of the '{@link #isOptional() <em>Optional</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #isOptional()
-	 * @generated
-	 * @ordered
-	 */
-	protected boolean optional = OPTIONAL_EDEFAULT;
-
-	/**
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -199,7 +199,7 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 	 * @generated
 	 */
 	@Override
-	public boolean isArtifacts() {
+	public Boolean getArtifacts() {
 		return artifacts;
 	}
 
@@ -209,12 +209,36 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 	 * @generated
 	 */
 	@Override
-	public void setArtifacts(boolean newArtifacts) {
-		boolean oldArtifacts = artifacts;
+	public void setArtifacts(Boolean newArtifacts) {
+		Boolean oldArtifacts = artifacts;
 		artifacts = newArtifacts;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.NEED__ARTIFACTS, oldArtifacts,
 					artifacts));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Boolean getOptional() {
+		return optional;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setOptional(Boolean newOptional) {
+		Boolean oldOptional = optional;
+		optional = newOptional;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.NEED__OPTIONAL, oldOptional,
+					optional));
 	}
 
 	/**
@@ -293,44 +317,20 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 	 * @generated
 	 */
 	@Override
-	public boolean isOptional() {
-		return optional;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setOptional(boolean newOptional) {
-		boolean oldOptional = optional;
-		optional = newOptional;
-		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.NEED__OPTIONAL, oldOptional,
-					optional));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public Object eGet(int featureID, boolean resolve, boolean coreType) {
 		switch (featureID) {
 		case GitlabMMPackage.NEED__JOB:
 			return getJob();
 		case GitlabMMPackage.NEED__ARTIFACTS:
-			return isArtifacts();
+			return getArtifacts();
+		case GitlabMMPackage.NEED__OPTIONAL:
+			return getOptional();
 		case GitlabMMPackage.NEED__PROJECT:
 			return getProject();
 		case GitlabMMPackage.NEED__REF:
 			return getRef();
 		case GitlabMMPackage.NEED__PIPELINE:
 			return getPipeline();
-		case GitlabMMPackage.NEED__OPTIONAL:
-			return isOptional();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -349,6 +349,9 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 		case GitlabMMPackage.NEED__ARTIFACTS:
 			setArtifacts((Boolean) newValue);
 			return;
+		case GitlabMMPackage.NEED__OPTIONAL:
+			setOptional((Boolean) newValue);
+			return;
 		case GitlabMMPackage.NEED__PROJECT:
 			setProject((String) newValue);
 			return;
@@ -357,9 +360,6 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 			return;
 		case GitlabMMPackage.NEED__PIPELINE:
 			setPipeline((String) newValue);
-			return;
-		case GitlabMMPackage.NEED__OPTIONAL:
-			setOptional((Boolean) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -379,6 +379,9 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 		case GitlabMMPackage.NEED__ARTIFACTS:
 			setArtifacts(ARTIFACTS_EDEFAULT);
 			return;
+		case GitlabMMPackage.NEED__OPTIONAL:
+			setOptional(OPTIONAL_EDEFAULT);
+			return;
 		case GitlabMMPackage.NEED__PROJECT:
 			setProject(PROJECT_EDEFAULT);
 			return;
@@ -387,9 +390,6 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 			return;
 		case GitlabMMPackage.NEED__PIPELINE:
 			setPipeline(PIPELINE_EDEFAULT);
-			return;
-		case GitlabMMPackage.NEED__OPTIONAL:
-			setOptional(OPTIONAL_EDEFAULT);
 			return;
 		}
 		super.eUnset(featureID);
@@ -406,15 +406,15 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 		case GitlabMMPackage.NEED__JOB:
 			return JOB_EDEFAULT == null ? job != null : !JOB_EDEFAULT.equals(job);
 		case GitlabMMPackage.NEED__ARTIFACTS:
-			return artifacts != ARTIFACTS_EDEFAULT;
+			return ARTIFACTS_EDEFAULT == null ? artifacts != null : !ARTIFACTS_EDEFAULT.equals(artifacts);
+		case GitlabMMPackage.NEED__OPTIONAL:
+			return OPTIONAL_EDEFAULT == null ? optional != null : !OPTIONAL_EDEFAULT.equals(optional);
 		case GitlabMMPackage.NEED__PROJECT:
 			return PROJECT_EDEFAULT == null ? project != null : !PROJECT_EDEFAULT.equals(project);
 		case GitlabMMPackage.NEED__REF:
 			return REF_EDEFAULT == null ? ref != null : !REF_EDEFAULT.equals(ref);
 		case GitlabMMPackage.NEED__PIPELINE:
 			return PIPELINE_EDEFAULT == null ? pipeline != null : !PIPELINE_EDEFAULT.equals(pipeline);
-		case GitlabMMPackage.NEED__OPTIONAL:
-			return optional != OPTIONAL_EDEFAULT;
 		}
 		return super.eIsSet(featureID);
 	}
@@ -434,14 +434,14 @@ public class NeedImpl extends MinimalEObjectImpl.Container implements Need {
 		result.append(job);
 		result.append(", artifacts: ");
 		result.append(artifacts);
+		result.append(", optional: ");
+		result.append(optional);
 		result.append(", project: ");
 		result.append(project);
 		result.append(", ref: ");
 		result.append(ref);
 		result.append(", pipeline: ");
 		result.append(pipeline);
-		result.append(", optional: ");
-		result.append(optional);
 		result.append(')');
 		return result.toString();
 	}

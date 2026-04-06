@@ -17,8 +17,7 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getKey <em>Key</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getPaths <em>Paths</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#isUntracked <em>Untracked</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#isUnprotect <em>Unprotect</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getUntracked <em>Untracked</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getWhen <em>When</em>}</li>
  * </ul>
  *
@@ -28,26 +27,26 @@ import org.eclipse.emf.ecore.EObject;
  */
 public interface Cache extends EObject {
 	/**
-	 * Returns the value of the '<em><b>Key</b></em>' reference.
+	 * Returns the value of the '<em><b>Key</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Key</em>' reference.
-	 * @see #setKey(Key)
+	 * @return the value of the '<em>Key</em>' containment reference.
+	 * @see #setKey(CacheKey)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getCache_Key()
-	 * @model
+	 * @model containment="true"
 	 * @generated
 	 */
-	Key getKey();
+	CacheKey getKey();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getKey <em>Key</em>}' reference.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getKey <em>Key</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Key</em>' reference.
+	 * @param value the new value of the '<em>Key</em>' containment reference.
 	 * @see #getKey()
 	 * @generated
 	 */
-	void setKey(Key value);
+	void setKey(CacheKey value);
 
 	/**
 	 * Returns the value of the '<em><b>Paths</b></em>' attribute list.
@@ -66,65 +65,46 @@ public interface Cache extends EObject {
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Untracked</em>' attribute.
-	 * @see #setUntracked(boolean)
+	 * @see #setUntracked(Boolean)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getCache_Untracked()
 	 * @model
 	 * @generated
 	 */
-	boolean isUntracked();
+	Boolean getUntracked();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#isUntracked <em>Untracked</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getUntracked <em>Untracked</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @param value the new value of the '<em>Untracked</em>' attribute.
-	 * @see #isUntracked()
+	 * @see #getUntracked()
 	 * @generated
 	 */
-	void setUntracked(boolean value);
-
-	/**
-	 * Returns the value of the '<em><b>Unprotect</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Unprotect</em>' attribute.
-	 * @see #setUnprotect(boolean)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getCache_Unprotect()
-	 * @model
-	 * @generated
-	 */
-	boolean isUnprotect();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#isUnprotect <em>Unprotect</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Unprotect</em>' attribute.
-	 * @see #isUnprotect()
-	 * @generated
-	 */
-	void setUnprotect(boolean value);
+	void setUntracked(Boolean value);
 
 	/**
 	 * Returns the value of the '<em><b>When</b></em>' attribute.
+	 * The literals are from the enumeration {@link com.mddoai.metamodel.gitlab.gitlabMM.CacheWhenType}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>When</em>' attribute.
-	 * @see #setWhen(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.CacheWhenType
+	 * @see #setWhen(CacheWhenType)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getCache_When()
 	 * @model
 	 * @generated
 	 */
-	String getWhen();
+	CacheWhenType getWhen();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Cache#getWhen <em>When</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @param value the new value of the '<em>When</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.CacheWhenType
 	 * @see #getWhen()
 	 * @generated
 	 */
-	void setWhen(String value);
+	void setWhen(CacheWhenType value);
 
 } // Cache

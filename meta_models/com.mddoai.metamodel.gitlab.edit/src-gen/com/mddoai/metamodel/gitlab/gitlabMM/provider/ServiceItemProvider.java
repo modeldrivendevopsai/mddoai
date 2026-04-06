@@ -59,7 +59,6 @@ public class ServiceItemProvider extends ItemProviderAdapter implements IEditing
 			addNamePropertyDescriptor(object);
 			addAliasPropertyDescriptor(object);
 			addEntrypointPropertyDescriptor(object);
-			addCommandsPropertyDescriptor(object);
 			addPullPolicyPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
@@ -113,21 +112,6 @@ public class ServiceItemProvider extends ItemProviderAdapter implements IEditing
 	}
 
 	/**
-	 * This adds a property descriptor for the Commands feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addCommandsPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Service_commands_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Service_commands_feature",
-								"_UI_Service_type"),
-						GitlabMMPackage.Literals.SERVICE__COMMANDS, true, false, true, null, null, null));
-	}
-
-	/**
 	 * This adds a property descriptor for the Pull Policy feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -155,8 +139,8 @@ public class ServiceItemProvider extends ItemProviderAdapter implements IEditing
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
+			childrenFeatures.add(GitlabMMPackage.Literals.SERVICE__VARIABLES);
 			childrenFeatures.add(GitlabMMPackage.Literals.SERVICE__DOCKER);
-			childrenFeatures.add(GitlabMMPackage.Literals.SERVICE__KUBERNETES);
 		}
 		return childrenFeatures;
 	}
@@ -226,8 +210,8 @@ public class ServiceItemProvider extends ItemProviderAdapter implements IEditing
 		case GitlabMMPackage.SERVICE__PULL_POLICY:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
+		case GitlabMMPackage.SERVICE__VARIABLES:
 		case GitlabMMPackage.SERVICE__DOCKER:
-		case GitlabMMPackage.SERVICE__KUBERNETES:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -245,11 +229,11 @@ public class ServiceItemProvider extends ItemProviderAdapter implements IEditing
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.SERVICE__DOCKER,
-				GitlabMMFactory.eINSTANCE.createDocker()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.SERVICE__VARIABLES,
+				GitlabMMFactory.eINSTANCE.createVariable()));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.SERVICE__KUBERNETES,
-				GitlabMMFactory.eINSTANCE.createKubernetes()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.SERVICE__DOCKER,
+				GitlabMMFactory.eINSTANCE.createDockerOptions()));
 	}
 
 	/**

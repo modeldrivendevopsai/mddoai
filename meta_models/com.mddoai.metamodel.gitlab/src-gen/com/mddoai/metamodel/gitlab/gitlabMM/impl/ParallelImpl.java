@@ -3,17 +3,24 @@
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Matrix;
+import com.mddoai.metamodel.gitlab.gitlabMM.MatrixEntry;
 import com.mddoai.metamodel.gitlab.gitlabMM.Parallel;
+
+import java.util.Collection;
 
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
+
+import org.eclipse.emf.common.util.EList;
 
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
+
+import org.eclipse.emf.ecore.util.EObjectContainmentEList;
+import org.eclipse.emf.ecore.util.InternalEList;
 
 /**
  * <!-- begin-user-doc -->
@@ -51,14 +58,14 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 	protected Integer count = COUNT_EDEFAULT;
 
 	/**
-	 * The cached value of the '{@link #getMatrix() <em>Matrix</em>}' containment reference.
+	 * The cached value of the '{@link #getMatrix() <em>Matrix</em>}' containment reference list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @see #getMatrix()
 	 * @generated
 	 * @ordered
 	 */
-	protected Matrix matrix;
+	protected EList<MatrixEntry> matrix;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -108,50 +115,12 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 	 * @generated
 	 */
 	@Override
-	public Matrix getMatrix() {
-		return matrix;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetMatrix(Matrix newMatrix, NotificationChain msgs) {
-		Matrix oldMatrix = matrix;
-		matrix = newMatrix;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.PARALLEL__MATRIX, oldMatrix, newMatrix);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
+	public EList<MatrixEntry> getMatrix() {
+		if (matrix == null) {
+			matrix = new EObjectContainmentEList<MatrixEntry>(MatrixEntry.class, this,
+					GitlabMMPackage.PARALLEL__MATRIX);
 		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setMatrix(Matrix newMatrix) {
-		if (newMatrix != matrix) {
-			NotificationChain msgs = null;
-			if (matrix != null)
-				msgs = ((InternalEObject) matrix).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PARALLEL__MATRIX, null, msgs);
-			if (newMatrix != null)
-				msgs = ((InternalEObject) newMatrix).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.PARALLEL__MATRIX, null, msgs);
-			msgs = basicSetMatrix(newMatrix, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.PARALLEL__MATRIX, newMatrix,
-					newMatrix));
+		return matrix;
 	}
 
 	/**
@@ -163,7 +132,7 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
 		case GitlabMMPackage.PARALLEL__MATRIX:
-			return basicSetMatrix(null, msgs);
+			return ((InternalEList<?>) getMatrix()).basicRemove(otherEnd, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -189,6 +158,7 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
@@ -196,7 +166,8 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 			setCount((Integer) newValue);
 			return;
 		case GitlabMMPackage.PARALLEL__MATRIX:
-			setMatrix((Matrix) newValue);
+			getMatrix().clear();
+			getMatrix().addAll((Collection<? extends MatrixEntry>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -214,7 +185,7 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 			setCount(COUNT_EDEFAULT);
 			return;
 		case GitlabMMPackage.PARALLEL__MATRIX:
-			setMatrix((Matrix) null);
+			getMatrix().clear();
 			return;
 		}
 		super.eUnset(featureID);
@@ -231,7 +202,7 @@ public class ParallelImpl extends MinimalEObjectImpl.Container implements Parall
 		case GitlabMMPackage.PARALLEL__COUNT:
 			return COUNT_EDEFAULT == null ? count != null : !COUNT_EDEFAULT.equals(count);
 		case GitlabMMPackage.PARALLEL__MATRIX:
-			return matrix != null;
+			return matrix != null && !matrix.isEmpty();
 		}
 		return super.eIsSet(featureID);
 	}

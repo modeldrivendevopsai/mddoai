@@ -14,11 +14,11 @@ import org.eclipse.emf.ecore.EObject;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getJob <em>Job</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#isArtifacts <em>Artifacts</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getArtifacts <em>Artifacts</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getOptional <em>Optional</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getProject <em>Project</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getRef <em>Ref</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getPipeline <em>Pipeline</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#isOptional <em>Optional</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getNeed()
@@ -33,7 +33,7 @@ public interface Need extends EObject {
 	 * @return the value of the '<em>Job</em>' attribute.
 	 * @see #setJob(String)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getNeed_Job()
-	 * @model
+	 * @model required="true"
 	 * @generated
 	 */
 	String getJob();
@@ -53,22 +53,44 @@ public interface Need extends EObject {
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Artifacts</em>' attribute.
-	 * @see #setArtifacts(boolean)
+	 * @see #setArtifacts(Boolean)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getNeed_Artifacts()
 	 * @model
 	 * @generated
 	 */
-	boolean isArtifacts();
+	Boolean getArtifacts();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#isArtifacts <em>Artifacts</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getArtifacts <em>Artifacts</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @param value the new value of the '<em>Artifacts</em>' attribute.
-	 * @see #isArtifacts()
+	 * @see #getArtifacts()
 	 * @generated
 	 */
-	void setArtifacts(boolean value);
+	void setArtifacts(Boolean value);
+
+	/**
+	 * Returns the value of the '<em><b>Optional</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Optional</em>' attribute.
+	 * @see #setOptional(Boolean)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getNeed_Optional()
+	 * @model
+	 * @generated
+	 */
+	Boolean getOptional();
+
+	/**
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#getOptional <em>Optional</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @param value the new value of the '<em>Optional</em>' attribute.
+	 * @see #getOptional()
+	 * @generated
+	 */
+	void setOptional(Boolean value);
 
 	/**
 	 * Returns the value of the '<em><b>Project</b></em>' attribute.
@@ -135,27 +157,5 @@ public interface Need extends EObject {
 	 * @generated
 	 */
 	void setPipeline(String value);
-
-	/**
-	 * Returns the value of the '<em><b>Optional</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Optional</em>' attribute.
-	 * @see #setOptional(boolean)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getNeed_Optional()
-	 * @model
-	 * @generated
-	 */
-	boolean isOptional();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Need#isOptional <em>Optional</em>}' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Optional</em>' attribute.
-	 * @see #isOptional()
-	 * @generated
-	 */
-	void setOptional(boolean value);
 
 } // Need

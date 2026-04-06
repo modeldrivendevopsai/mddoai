@@ -4,22 +4,17 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.AfterScript;
-import com.mddoai.metamodel.gitlab.gitlabMM.Artifact;
-import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
+import com.mddoai.metamodel.gitlab.gitlabMM.Artifacts;
 import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
-import com.mddoai.metamodel.gitlab.gitlabMM.Dependencies;
 import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
-import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Need;
-import com.mddoai.metamodel.gitlab.gitlabMM.Only;
 import com.mddoai.metamodel.gitlab.gitlabMM.Parallel;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
-import com.mddoai.metamodel.gitlab.gitlabMM.Script;
+import com.mddoai.metamodel.gitlab.gitlabMM.Rule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
-import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
-import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
+import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
+import com.mddoai.metamodel.gitlab.gitlabMM.WhenType;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -36,45 +31,47 @@ public interface JobValidator {
 
 	boolean validateStage(String value);
 
-	boolean validateArtifacts(Artifact value);
-
-	boolean validateScript(Script value);
-
-	boolean validateBeforeScript(BeforeScript value);
-
-	boolean validateTags(Tags value);
-
-	boolean validateOnly(Only value);
-
-	boolean validateDependencies(Dependencies value);
-
-	boolean validateWhen(String value);
-
 	boolean validateImage(Image value);
 
-	boolean validateAllowFailure(boolean value);
+	boolean validateScript(EList<String> value);
 
-	boolean validateTimeout(String value);
+	boolean validateBeforeScript(EList<String> value);
 
-	boolean validateInterruptible(boolean value);
-
-	boolean validateResourceGroup(String value);
-
-	boolean validateAfterScript(AfterScript value);
-
-	boolean validateCache(Cache value);
-
-	boolean validateRules(EList<GitlabRule> value);
-
-	boolean validateNeeds(EList<Need> value);
+	boolean validateAfterScript(EList<String> value);
 
 	boolean validateServices(EList<Service> value);
 
-	boolean validateEnvironment(Environment value);
+	boolean validateVariables(EList<Variable> value);
+
+	boolean validateArtifacts(Artifacts value);
+
+	boolean validateCache(Cache value);
+
+	boolean validateNeeds(EList<Need> value);
+
+	boolean validateRules(EList<Rule> value);
+
+	boolean validateTags(EList<String> value);
+
+	boolean validateOnly(EList<String> value);
+
+	boolean validateExcept(EList<String> value);
+
+	boolean validateWhen(WhenType value);
+
+	boolean validateAllowFailure(Boolean value);
+
+	boolean validateTimeout(String value);
+
+	boolean validateInterruptible(Boolean value);
+
+	boolean validateResourceGroup(String value);
 
 	boolean validateRetry(Retry value);
 
-	boolean validateVariables(Variables value);
-
 	boolean validateParallel(Parallel value);
+
+	boolean validateEnvironment(Environment value);
+
+	boolean validateDependencies(EList<String> value);
 }

@@ -247,7 +247,7 @@ public class EnvironmentItemProvider extends ItemProviderAdapter implements IEdi
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.ENVIRONMENT__KUBERNETES,
-				GitlabMMFactory.eINSTANCE.createKubernetes()));
+				GitlabMMFactory.eINSTANCE.createKubernetesOptions()));
 	}
 
 	/**

@@ -176,7 +176,7 @@ public class ParallelItemProvider extends ItemProviderAdapter implements IEditin
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PARALLEL__MATRIX,
-				GitlabMMFactory.eINSTANCE.createMatrix()));
+				GitlabMMFactory.eINSTANCE.createMatrixEntry()));
 	}
 
 	/**

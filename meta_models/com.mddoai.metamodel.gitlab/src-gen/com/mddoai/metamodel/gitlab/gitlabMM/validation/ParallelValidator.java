@@ -4,7 +4,9 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Matrix;
+import com.mddoai.metamodel.gitlab.gitlabMM.MatrixEntry;
+
+import org.eclipse.emf.common.util.EList;
 
 /**
  * A sample validator interface for {@link com.mddoai.metamodel.gitlab.gitlabMM.Parallel}.
@@ -17,5 +19,5 @@ public interface ParallelValidator {
 
 	boolean validateCount(Integer value);
 
-	boolean validateMatrix(Matrix value);
+	boolean validateMatrix(EList<MatrixEntry> value);
 }

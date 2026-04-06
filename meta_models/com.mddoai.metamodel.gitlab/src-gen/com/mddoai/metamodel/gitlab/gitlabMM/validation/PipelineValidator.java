@@ -6,7 +6,7 @@ package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.Default;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
-import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
+import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
 import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 
 import org.eclipse.emf.common.util.EList;
@@ -22,11 +22,11 @@ public interface PipelineValidator {
 
 	boolean validateStages(EList<String> value);
 
-	boolean validateJobs(EList<Job> value);
-
-	boolean validateVariables(Variables value);
-
 	boolean validateWorkflow(Workflow value);
 
-	boolean validateDefault(Default value);
+	boolean validateDefaults(Default value);
+
+	boolean validateVariables(EList<Variable> value);
+
+	boolean validateJobs(EList<Job> value);
 }

@@ -16,7 +16,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#getValue <em>Value</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#getDescription <em>Description</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#isExpand <em>Expand</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#getExpand <em>Expand</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getVariable()
@@ -31,7 +31,7 @@ public interface Variable extends EObject {
 	 * @return the value of the '<em>Name</em>' attribute.
 	 * @see #setName(String)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getVariable_Name()
-	 * @model required="true"
+	 * @model id="true" required="true"
 	 * @generated
 	 */
 	String getName();
@@ -53,7 +53,7 @@ public interface Variable extends EObject {
 	 * @return the value of the '<em>Value</em>' attribute.
 	 * @see #setValue(String)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getVariable_Value()
-	 * @model required="true"
+	 * @model
 	 * @generated
 	 */
 	String getValue();
@@ -95,21 +95,21 @@ public interface Variable extends EObject {
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Expand</em>' attribute.
-	 * @see #setExpand(boolean)
+	 * @see #setExpand(Boolean)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getVariable_Expand()
 	 * @model
 	 * @generated
 	 */
-	boolean isExpand();
+	Boolean getExpand();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#isExpand <em>Expand</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Variable#getExpand <em>Expand</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @param value the new value of the '<em>Expand</em>' attribute.
-	 * @see #isExpand()
+	 * @see #getExpand()
 	 * @generated
 	 */
-	void setExpand(boolean value);
+	void setExpand(Boolean value);
 
 } // Variable

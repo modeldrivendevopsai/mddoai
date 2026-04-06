@@ -2,15 +2,12 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.AfterScript;
-import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
 import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
 import com.mddoai.metamodel.gitlab.gitlabMM.Default;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
-import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
 
 import java.util.Collection;
 
@@ -25,6 +22,7 @@ import org.eclipse.emf.ecore.InternalEObject;
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 
+import org.eclipse.emf.ecore.util.EDataTypeUniqueEList;
 import org.eclipse.emf.ecore.util.EObjectContainmentEList;
 import org.eclipse.emf.ecore.util.InternalEList;
 
@@ -37,13 +35,13 @@ import org.eclipse.emf.ecore.util.InternalEList;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getImage <em>Image</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getServices <em>Services</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getTags <em>Tags</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getCache <em>Cache</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getBeforeScript <em>Before Script</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getAfterScript <em>After Script</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getServices <em>Services</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getCache <em>Cache</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getTags <em>Tags</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getTimeout <em>Timeout</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#isInterruptible <em>Interruptible</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getInterruptible <em>Interruptible</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.DefaultImpl#getRetry <em>Retry</em>}</li>
  * </ul>
  *
@@ -61,6 +59,26 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	protected Image image;
 
 	/**
+	 * The cached value of the '{@link #getBeforeScript() <em>Before Script</em>}' attribute list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getBeforeScript()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<String> beforeScript;
+
+	/**
+	 * The cached value of the '{@link #getAfterScript() <em>After Script</em>}' attribute list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getAfterScript()
+	 * @generated
+	 * @ordered
+	 */
+	protected EList<String> afterScript;
+
+	/**
 	 * The cached value of the '{@link #getServices() <em>Services</em>}' containment reference list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -69,16 +87,6 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	 * @ordered
 	 */
 	protected EList<Service> services;
-
-	/**
-	 * The cached value of the '{@link #getTags() <em>Tags</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getTags()
-	 * @generated
-	 * @ordered
-	 */
-	protected Tags tags;
 
 	/**
 	 * The cached value of the '{@link #getCache() <em>Cache</em>}' containment reference.
@@ -91,24 +99,14 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	protected Cache cache;
 
 	/**
-	 * The cached value of the '{@link #getBeforeScript() <em>Before Script</em>}' containment reference.
+	 * The cached value of the '{@link #getTags() <em>Tags</em>}' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getBeforeScript()
+	 * @see #getTags()
 	 * @generated
 	 * @ordered
 	 */
-	protected BeforeScript beforeScript;
-
-	/**
-	 * The cached value of the '{@link #getAfterScript() <em>After Script</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getAfterScript()
-	 * @generated
-	 * @ordered
-	 */
-	protected AfterScript afterScript;
+	protected EList<String> tags;
 
 	/**
 	 * The default value of the '{@link #getTimeout() <em>Timeout</em>}' attribute.
@@ -131,24 +129,24 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	protected String timeout = TIMEOUT_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #isInterruptible() <em>Interruptible</em>}' attribute.
+	 * The default value of the '{@link #getInterruptible() <em>Interruptible</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isInterruptible()
+	 * @see #getInterruptible()
 	 * @generated
 	 * @ordered
 	 */
-	protected static final boolean INTERRUPTIBLE_EDEFAULT = false;
+	protected static final Boolean INTERRUPTIBLE_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #isInterruptible() <em>Interruptible</em>}' attribute.
+	 * The cached value of the '{@link #getInterruptible() <em>Interruptible</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #isInterruptible()
+	 * @see #getInterruptible()
 	 * @generated
 	 * @ordered
 	 */
-	protected boolean interruptible = INTERRUPTIBLE_EDEFAULT;
+	protected Boolean interruptible = INTERRUPTIBLE_EDEFAULT;
 
 	/**
 	 * The cached value of the '{@link #getRetry() <em>Retry</em>}' containment reference.
@@ -236,62 +234,37 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	 * @generated
 	 */
 	@Override
+	public EList<String> getBeforeScript() {
+		if (beforeScript == null) {
+			beforeScript = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.DEFAULT__BEFORE_SCRIPT);
+		}
+		return beforeScript;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EList<String> getAfterScript() {
+		if (afterScript == null) {
+			afterScript = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.DEFAULT__AFTER_SCRIPT);
+		}
+		return afterScript;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public EList<Service> getServices() {
 		if (services == null) {
 			services = new EObjectContainmentEList<Service>(Service.class, this, GitlabMMPackage.DEFAULT__SERVICES);
 		}
 		return services;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Tags getTags() {
-		return tags;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetTags(Tags newTags, NotificationChain msgs) {
-		Tags oldTags = tags;
-		tags = newTags;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.DEFAULT__TAGS, oldTags, newTags);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setTags(Tags newTags) {
-		if (newTags != tags) {
-			NotificationChain msgs = null;
-			if (tags != null)
-				msgs = ((InternalEObject) tags).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__TAGS, null, msgs);
-			if (newTags != null)
-				msgs = ((InternalEObject) newTags).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__TAGS, null, msgs);
-			msgs = basicSetTags(newTags, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.DEFAULT__TAGS, newTags, newTags));
 	}
 
 	/**
@@ -351,102 +324,11 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	 * @generated
 	 */
 	@Override
-	public BeforeScript getBeforeScript() {
-		return beforeScript;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetBeforeScript(BeforeScript newBeforeScript, NotificationChain msgs) {
-		BeforeScript oldBeforeScript = beforeScript;
-		beforeScript = newBeforeScript;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.DEFAULT__BEFORE_SCRIPT, oldBeforeScript, newBeforeScript);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
+	public EList<String> getTags() {
+		if (tags == null) {
+			tags = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.DEFAULT__TAGS);
 		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setBeforeScript(BeforeScript newBeforeScript) {
-		if (newBeforeScript != beforeScript) {
-			NotificationChain msgs = null;
-			if (beforeScript != null)
-				msgs = ((InternalEObject) beforeScript).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__BEFORE_SCRIPT, null, msgs);
-			if (newBeforeScript != null)
-				msgs = ((InternalEObject) newBeforeScript).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__BEFORE_SCRIPT, null, msgs);
-			msgs = basicSetBeforeScript(newBeforeScript, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.DEFAULT__BEFORE_SCRIPT,
-					newBeforeScript, newBeforeScript));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public AfterScript getAfterScript() {
-		return afterScript;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetAfterScript(AfterScript newAfterScript, NotificationChain msgs) {
-		AfterScript oldAfterScript = afterScript;
-		afterScript = newAfterScript;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.DEFAULT__AFTER_SCRIPT, oldAfterScript, newAfterScript);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setAfterScript(AfterScript newAfterScript) {
-		if (newAfterScript != afterScript) {
-			NotificationChain msgs = null;
-			if (afterScript != null)
-				msgs = ((InternalEObject) afterScript).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__AFTER_SCRIPT, null, msgs);
-			if (newAfterScript != null)
-				msgs = ((InternalEObject) newAfterScript).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.DEFAULT__AFTER_SCRIPT, null, msgs);
-			msgs = basicSetAfterScript(newAfterScript, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.DEFAULT__AFTER_SCRIPT, newAfterScript,
-					newAfterScript));
+		return tags;
 	}
 
 	/**
@@ -479,7 +361,7 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	 * @generated
 	 */
 	@Override
-	public boolean isInterruptible() {
+	public Boolean getInterruptible() {
 		return interruptible;
 	}
 
@@ -489,8 +371,8 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 	 * @generated
 	 */
 	@Override
-	public void setInterruptible(boolean newInterruptible) {
-		boolean oldInterruptible = interruptible;
+	public void setInterruptible(Boolean newInterruptible) {
+		Boolean oldInterruptible = interruptible;
 		interruptible = newInterruptible;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.DEFAULT__INTERRUPTIBLE,
@@ -560,14 +442,8 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 			return basicSetImage(null, msgs);
 		case GitlabMMPackage.DEFAULT__SERVICES:
 			return ((InternalEList<?>) getServices()).basicRemove(otherEnd, msgs);
-		case GitlabMMPackage.DEFAULT__TAGS:
-			return basicSetTags(null, msgs);
 		case GitlabMMPackage.DEFAULT__CACHE:
 			return basicSetCache(null, msgs);
-		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
-			return basicSetBeforeScript(null, msgs);
-		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
-			return basicSetAfterScript(null, msgs);
 		case GitlabMMPackage.DEFAULT__RETRY:
 			return basicSetRetry(null, msgs);
 		}
@@ -584,20 +460,20 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 		switch (featureID) {
 		case GitlabMMPackage.DEFAULT__IMAGE:
 			return getImage();
-		case GitlabMMPackage.DEFAULT__SERVICES:
-			return getServices();
-		case GitlabMMPackage.DEFAULT__TAGS:
-			return getTags();
-		case GitlabMMPackage.DEFAULT__CACHE:
-			return getCache();
 		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
 			return getBeforeScript();
 		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
 			return getAfterScript();
+		case GitlabMMPackage.DEFAULT__SERVICES:
+			return getServices();
+		case GitlabMMPackage.DEFAULT__CACHE:
+			return getCache();
+		case GitlabMMPackage.DEFAULT__TAGS:
+			return getTags();
 		case GitlabMMPackage.DEFAULT__TIMEOUT:
 			return getTimeout();
 		case GitlabMMPackage.DEFAULT__INTERRUPTIBLE:
-			return isInterruptible();
+			return getInterruptible();
 		case GitlabMMPackage.DEFAULT__RETRY:
 			return getRetry();
 		}
@@ -616,21 +492,24 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 		case GitlabMMPackage.DEFAULT__IMAGE:
 			setImage((Image) newValue);
 			return;
+		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
+			getBeforeScript().clear();
+			getBeforeScript().addAll((Collection<? extends String>) newValue);
+			return;
+		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
+			getAfterScript().clear();
+			getAfterScript().addAll((Collection<? extends String>) newValue);
+			return;
 		case GitlabMMPackage.DEFAULT__SERVICES:
 			getServices().clear();
 			getServices().addAll((Collection<? extends Service>) newValue);
 			return;
-		case GitlabMMPackage.DEFAULT__TAGS:
-			setTags((Tags) newValue);
-			return;
 		case GitlabMMPackage.DEFAULT__CACHE:
 			setCache((Cache) newValue);
 			return;
-		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
-			setBeforeScript((BeforeScript) newValue);
-			return;
-		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
-			setAfterScript((AfterScript) newValue);
+		case GitlabMMPackage.DEFAULT__TAGS:
+			getTags().clear();
+			getTags().addAll((Collection<? extends String>) newValue);
 			return;
 		case GitlabMMPackage.DEFAULT__TIMEOUT:
 			setTimeout((String) newValue);
@@ -656,20 +535,20 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 		case GitlabMMPackage.DEFAULT__IMAGE:
 			setImage((Image) null);
 			return;
+		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
+			getBeforeScript().clear();
+			return;
+		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
+			getAfterScript().clear();
+			return;
 		case GitlabMMPackage.DEFAULT__SERVICES:
 			getServices().clear();
-			return;
-		case GitlabMMPackage.DEFAULT__TAGS:
-			setTags((Tags) null);
 			return;
 		case GitlabMMPackage.DEFAULT__CACHE:
 			setCache((Cache) null);
 			return;
-		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
-			setBeforeScript((BeforeScript) null);
-			return;
-		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
-			setAfterScript((AfterScript) null);
+		case GitlabMMPackage.DEFAULT__TAGS:
+			getTags().clear();
 			return;
 		case GitlabMMPackage.DEFAULT__TIMEOUT:
 			setTimeout(TIMEOUT_EDEFAULT);
@@ -694,20 +573,21 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 		switch (featureID) {
 		case GitlabMMPackage.DEFAULT__IMAGE:
 			return image != null;
+		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
+			return beforeScript != null && !beforeScript.isEmpty();
+		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
+			return afterScript != null && !afterScript.isEmpty();
 		case GitlabMMPackage.DEFAULT__SERVICES:
 			return services != null && !services.isEmpty();
-		case GitlabMMPackage.DEFAULT__TAGS:
-			return tags != null;
 		case GitlabMMPackage.DEFAULT__CACHE:
 			return cache != null;
-		case GitlabMMPackage.DEFAULT__BEFORE_SCRIPT:
-			return beforeScript != null;
-		case GitlabMMPackage.DEFAULT__AFTER_SCRIPT:
-			return afterScript != null;
+		case GitlabMMPackage.DEFAULT__TAGS:
+			return tags != null && !tags.isEmpty();
 		case GitlabMMPackage.DEFAULT__TIMEOUT:
 			return TIMEOUT_EDEFAULT == null ? timeout != null : !TIMEOUT_EDEFAULT.equals(timeout);
 		case GitlabMMPackage.DEFAULT__INTERRUPTIBLE:
-			return interruptible != INTERRUPTIBLE_EDEFAULT;
+			return INTERRUPTIBLE_EDEFAULT == null ? interruptible != null
+					: !INTERRUPTIBLE_EDEFAULT.equals(interruptible);
 		case GitlabMMPackage.DEFAULT__RETRY:
 			return retry != null;
 		}
@@ -725,7 +605,13 @@ public class DefaultImpl extends MinimalEObjectImpl.Container implements Default
 			return super.toString();
 
 		StringBuilder result = new StringBuilder(super.toString());
-		result.append(" (timeout: ");
+		result.append(" (beforeScript: ");
+		result.append(beforeScript);
+		result.append(", afterScript: ");
+		result.append(afterScript);
+		result.append(", tags: ");
+		result.append(tags);
+		result.append(", timeout: ");
 		result.append(timeout);
 		result.append(", interruptible: ");
 		result.append(interruptible);

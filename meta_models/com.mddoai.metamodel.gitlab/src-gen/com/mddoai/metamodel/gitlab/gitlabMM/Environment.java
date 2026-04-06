@@ -94,25 +94,28 @@ public interface Environment extends EObject {
 
 	/**
 	 * Returns the value of the '<em><b>Action</b></em>' attribute.
+	 * The literals are from the enumeration {@link com.mddoai.metamodel.gitlab.gitlabMM.EnvironmentAction}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Action</em>' attribute.
-	 * @see #setAction(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.EnvironmentAction
+	 * @see #setAction(EnvironmentAction)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_Action()
 	 * @model
 	 * @generated
 	 */
-	String getAction();
+	EnvironmentAction getAction();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAction <em>Action</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @param value the new value of the '<em>Action</em>' attribute.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.EnvironmentAction
 	 * @see #getAction()
 	 * @generated
 	 */
-	void setAction(String value);
+	void setAction(EnvironmentAction value);
 
 	/**
 	 * Returns the value of the '<em><b>Auto Stop In</b></em>' attribute.
@@ -141,12 +144,12 @@ public interface Environment extends EObject {
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Kubernetes</em>' containment reference.
-	 * @see #setKubernetes(Kubernetes)
+	 * @see #setKubernetes(KubernetesOptions)
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_Kubernetes()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Kubernetes getKubernetes();
+	KubernetesOptions getKubernetes();
 
 	/**
 	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getKubernetes <em>Kubernetes</em>}' containment reference.
@@ -156,6 +159,6 @@ public interface Environment extends EObject {
 	 * @see #getKubernetes()
 	 * @generated
 	 */
-	void setKubernetes(Kubernetes value);
+	void setKubernetes(KubernetesOptions value);
 
 } // Environment

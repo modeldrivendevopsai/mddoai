@@ -89,10 +89,10 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__JOBS);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__VARIABLES);
 			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__WORKFLOW);
-			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__DEFAULT);
+			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__DEFAULTS);
+			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__VARIABLES);
+			childrenFeatures.add(GitlabMMPackage.Literals.PIPELINE__JOBS);
 		}
 		return childrenFeatures;
 	}
@@ -157,10 +157,10 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 		case GitlabMMPackage.PIPELINE__STAGES:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;
-		case GitlabMMPackage.PIPELINE__JOBS:
-		case GitlabMMPackage.PIPELINE__VARIABLES:
 		case GitlabMMPackage.PIPELINE__WORKFLOW:
-		case GitlabMMPackage.PIPELINE__DEFAULT:
+		case GitlabMMPackage.PIPELINE__DEFAULTS:
+		case GitlabMMPackage.PIPELINE__VARIABLES:
+		case GitlabMMPackage.PIPELINE__JOBS:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 			return;
 		}
@@ -178,17 +178,17 @@ public class PipelineItemProvider extends ItemProviderAdapter implements IEditin
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.PIPELINE__JOBS, GitlabMMFactory.eINSTANCE.createJob()));
-
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__VARIABLES,
-				GitlabMMFactory.eINSTANCE.createVariables()));
-
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__WORKFLOW,
 				GitlabMMFactory.eINSTANCE.createWorkflow()));
 
-		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__DEFAULT,
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__DEFAULTS,
 				GitlabMMFactory.eINSTANCE.createDefault()));
+
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.PIPELINE__VARIABLES,
+				GitlabMMFactory.eINSTANCE.createVariable()));
+
+		newChildDescriptors.add(
+				createChildParameter(GitlabMMPackage.Literals.PIPELINE__JOBS, GitlabMMFactory.eINSTANCE.createJob()));
 	}
 
 	/**

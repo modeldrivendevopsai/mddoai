@@ -211,11 +211,11 @@ public class ImageItemProvider extends ItemProviderAdapter implements IEditingDo
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
-		newChildDescriptors.add(
-				createChildParameter(GitlabMMPackage.Literals.IMAGE__DOCKER, GitlabMMFactory.eINSTANCE.createDocker()));
+		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.IMAGE__DOCKER,
+				GitlabMMFactory.eINSTANCE.createDockerOptions()));
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.IMAGE__KUBERNETES,
-				GitlabMMFactory.eINSTANCE.createKubernetes()));
+				GitlabMMFactory.eINSTANCE.createKubernetesOptions()));
 	}
 
 	/**

@@ -16,10 +16,10 @@ import org.eclipse.emf.ecore.EObject;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getStages <em>Stages</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getJobs <em>Jobs</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getWorkflow <em>Workflow</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefault <em>Default</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefaults <em>Defaults</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getVariables <em>Variables</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getJobs <em>Jobs</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline()
@@ -38,40 +38,6 @@ public interface Pipeline extends EObject {
 	 * @generated
 	 */
 	EList<String> getStages();
-
-	/**
-	 * Returns the value of the '<em><b>Jobs</b></em>' containment reference list.
-	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Job}.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Jobs</em>' containment reference list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Jobs()
-	 * @model containment="true" required="true"
-	 * @generated
-	 */
-	EList<Job> getJobs();
-
-	/**
-	 * Returns the value of the '<em><b>Variables</b></em>' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Variables</em>' containment reference.
-	 * @see #setVariables(Variables)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Variables()
-	 * @model containment="true"
-	 * @generated
-	 */
-	Variables getVariables();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getVariables <em>Variables</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Variables</em>' containment reference.
-	 * @see #getVariables()
-	 * @generated
-	 */
-	void setVariables(Variables value);
 
 	/**
 	 * Returns the value of the '<em><b>Workflow</b></em>' containment reference.
@@ -96,25 +62,49 @@ public interface Pipeline extends EObject {
 	void setWorkflow(Workflow value);
 
 	/**
-	 * Returns the value of the '<em><b>Default</b></em>' containment reference.
+	 * Returns the value of the '<em><b>Defaults</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Default</em>' containment reference.
-	 * @see #setDefault(Default)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Default()
+	 * @return the value of the '<em>Defaults</em>' containment reference.
+	 * @see #setDefaults(Default)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Defaults()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Default getDefault();
+	Default getDefaults();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefault <em>Default</em>}' containment reference.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Pipeline#getDefaults <em>Defaults</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Default</em>' containment reference.
-	 * @see #getDefault()
+	 * @param value the new value of the '<em>Defaults</em>' containment reference.
+	 * @see #getDefaults()
 	 * @generated
 	 */
-	void setDefault(Default value);
+	void setDefaults(Default value);
+
+	/**
+	 * Returns the value of the '<em><b>Variables</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Variable}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Variables</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Variables()
+	 * @model containment="true"
+	 * @generated
+	 */
+	EList<Variable> getVariables();
+
+	/**
+	 * Returns the value of the '<em><b>Jobs</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Job}.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the value of the '<em>Jobs</em>' containment reference list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getPipeline_Jobs()
+	 * @model containment="true" required="true"
+	 * @generated
+	 */
+	EList<Job> getJobs();
 
 } // Pipeline

@@ -4,13 +4,10 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.AfterScript;
-import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
 import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
-import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -25,19 +22,19 @@ public interface DefaultValidator {
 
 	boolean validateImage(Image value);
 
-	boolean validateServices(EList<Service> value);
+	boolean validateBeforeScript(EList<String> value);
 
-	boolean validateTags(Tags value);
+	boolean validateAfterScript(EList<String> value);
+
+	boolean validateServices(EList<Service> value);
 
 	boolean validateCache(Cache value);
 
-	boolean validateBeforeScript(BeforeScript value);
-
-	boolean validateAfterScript(AfterScript value);
+	boolean validateTags(EList<String> value);
 
 	boolean validateTimeout(String value);
 
-	boolean validateInterruptible(boolean value);
+	boolean validateInterruptible(Boolean value);
 
 	boolean validateRetry(Retry value);
 }

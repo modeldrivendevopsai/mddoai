@@ -9,179 +9,187 @@ Package gitlabMM <http://www.mddoai.com/mddoai/metamodel/gitlab>
 
   Class Pipeline
     Attribute stages : EString<<0..*>>
-    Reference jobs : Job<<1..*>>
-    Reference variables : Variables
     Reference workflow : Workflow
-    Reference default : Default
-
-  Class Job
-    Attribute name : EString<<1..1>>
-    Attribute stage : EString<<1..1>>
-    Reference artifacts : Artifact
-    Reference script : Script
-    Reference beforeScript : BeforeScript
-    Reference tags : Tags
-    Reference only : Only
-    Reference dependencies : Dependencies
-    Attribute when : EString
-    Reference image : Image
-    Attribute allowFailure : EBoolean
-    Attribute timeout : EString
-    Attribute interruptible : EBoolean
-    Attribute resourceGroup : EString
-    Reference afterScript : AfterScript
-    Reference cache : Cache
-    Reference rules : GitlabRule<<0..*>>
-    Reference needs : Need<<0..*>>
-    Reference services : Service<<0..*>>
-    Reference environment : Environment
-    Reference retry : Retry
-    Reference variables : Variables
-    Reference parallel : Parallel
-
-  Class Artifact
-    Attribute when : EString
-    Reference reports : Report
-    Reference paths : Path<<0..*>>
-    Attribute name : EString
-    Attribute expireIn : EString
-    Attribute exposeAs : EString
-    Attribute untracked : EBoolean
-    Attribute exclude : EString<<0..*>>
-
-  Class Report
-    Attribute junit : EString<<1..1>>
-    Attribute coverageReport : EString
-    Attribute dotenv : EString
-    Attribute cobertura : EString
-
-  Class Command
-    Attribute command : EString<<1..1>>
-
-  Class BeforeScript
-    Reference commands : Command<<1..*>>
-
-  Class Script
-    Reference commands : Command<<1..*>>
-
-  Class Tags
-    Reference tags : Tag<<1..*>>
-
-  Class Tag
-    Attribute tag : EString<<1..1>>
-
-  Class Only
-    Reference branches : OnlyBranches<<1..*>>
-
-  Class OnlyBranches
-    Attribute branch : EString<<1..1>>
-
-  Class Dependencies
-    Reference dependencies : Dependency<<1..*>>
-
-  Class Dependency
-    Attribute dependency : EString<<1..1>>
-
-  Class Variables
+    Reference defaults : Default
     Reference variables : Variable<<0..*>>
+    Reference jobs : Job<<1..*>>
+
+  Class Workflow
+    Reference rules : Rule<<0..*>>
+
+  Class Default
+    Reference image : Image
+    Attribute beforeScript : EString<<0..*>>
+    Attribute afterScript : EString<<0..*>>
+    Reference services : Service<<0..*>>
+    Reference cache : Cache
+    Attribute tags : EString<<0..*>>
+    Attribute timeout : EString
+    Attribute interruptible : EBooleanObject
+    Reference retry : Retry
 
   Class Variable
     Attribute name : EString<<1..1>>
-    Attribute value : EString<<1..1>>
+    Attribute value : EString
     Attribute description : EString
-    Attribute expand : EBoolean
+    Attribute expand : EBooleanObject
 
-  Class Path
-    Attribute path : EString<<1..1>>
-
-  Class GitlabRule
-    Attribute gitlabIf : EString
-    Attribute when : EString
-    Attribute changes : EString<<0..*>>
-    Attribute exists : EString<<0..*>>
-    Attribute allowFailure : EBoolean
-    Reference variables : Variables
-
-  Class Workflow
-    Reference rules : GitlabRule<<0..*>>
+  Class Job
+    Attribute name : EString<<1..1>>
+    Attribute stage : EString
+    Reference image : Image
+    Attribute script : EString<<1..*>>
+    Attribute beforeScript : EString<<0..*>>
+    Attribute afterScript : EString<<0..*>>
+    Reference services : Service<<0..*>>
+    Reference variables : Variable<<0..*>>
+    Reference artifacts : Artifacts
+    Reference cache : Cache
+    Reference needs : Need<<0..*>>
+    Reference rules : Rule<<0..*>>
+    Attribute tags : EString<<0..*>>
+    Attribute only : EString<<0..*>>
+    Attribute except : EString<<0..*>>
+    Attribute when : WhenType
+    Attribute allowFailure : EBooleanObject
+    Attribute timeout : EString
+    Attribute interruptible : EBooleanObject
+    Attribute resourceGroup : EString
+    Reference retry : Retry
+    Reference parallel : Parallel
+    Reference environment : Environment
+    Attribute dependencies : EString<<0..*>>
 
   Class Image
     Attribute name : EString<<1..1>>
     Attribute entrypoint : EString<<0..*>>
-    Reference docker : Docker
-    Reference kubernetes : Kubernetes
-    Attribute pullPolicy : EString<<0..*>>
+    Attribute pullPolicy : PullPolicy
+    Reference docker : DockerOptions
+    Reference kubernetes : KubernetesOptions
 
-  Class Docker
+  Class DockerOptions
     Attribute platform : EString
     Attribute user : EString
 
-  Class Kubernetes
+  Class KubernetesOptions
     Attribute user : EString
+    Attribute namespace : EString
 
   Class Service
     Attribute name : EString<<1..1>>
     Attribute alias : EString
     Attribute entrypoint : EString<<0..*>>
-    Reference commands : Command<<0..*>>
-    Reference docker : Docker
-    Reference kubernetes : Kubernetes
-    Attribute pullPolicy : EString<<0..*>>
+    Reference variables : Variable<<0..*>>
+    Attribute pullPolicy : PullPolicy
+    Reference docker : DockerOptions
+
+  Class Artifacts
+    Attribute name : EString
+    Attribute paths : EString<<0..*>>
+    Attribute when : ArtifactsWhenType
+    Attribute expireIn : EString
+    Attribute exposeAs : EString
+    Attribute untracked : EBooleanObject
+    Attribute exclude : EString<<0..*>>
+    Reference reports : ArtifactReports
+
+  Class ArtifactReports
+    Attribute junit : EString<<0..*>>
+    Reference coverageReport : CoverageReport
+    Attribute dotenv : EString
+
+  Class CoverageReport
+    Attribute coverageFormat : EString<<1..1>>
+    Attribute path : EString<<1..1>>
 
   Class Cache
-    Reference key : Key
+    Reference key : CacheKey
     Attribute paths : EString<<0..*>>
-    Attribute untracked : EBoolean
-    Attribute unprotect : EBoolean
-    Attribute when : EString
+    Attribute untracked : EBooleanObject
+    Attribute when : CacheWhenType
 
-  Class Key
-    Attribute name : EString
+  Class CacheKey
+    Attribute value : EString
     Attribute files : EString<<0..*>>
-    Attribute filesCommits : EString<<0..*>>
     Attribute prefix : EString
 
   Class Need
-    Attribute job : EString
-    Attribute artifacts : EBoolean
+    Attribute job : EString<<1..1>>
+    Attribute artifacts : EBooleanObject
+    Attribute optional : EBooleanObject
     Attribute project : EString
     Attribute ref : EString
     Attribute pipeline : EString
-    Attribute optional : EBoolean
+
+  Class Rule
+    Attribute ifCondition : EString
+    Attribute when : WhenType
+    Attribute changes : EString<<0..*>>
+    Attribute exists : EString<<0..*>>
+    Attribute allowFailure : EBooleanObject
+    Reference variables : Variable<<0..*>>
+
+  Class Retry
+    Attribute max : EInt<<1..1>>
+    Attribute when : RetryWhenType<<0..*>>
+
+  Class Parallel
+    Attribute count : EIntegerObject
+    Reference matrix : MatrixEntry<<0..*>>
+
+  Class MatrixEntry
+    Attribute key : EString<<1..1>>
+    Attribute values : EString<<1..*>>
 
   Class Environment
     Attribute name : EString<<1..1>>
     Attribute url : EString
     Attribute onStop : EString
-    Attribute action : EString
+    Attribute action : EnvironmentAction
     Attribute autoStopIn : EString
-    Reference kubernetes : Kubernetes
+    Reference kubernetes : KubernetesOptions
 
-  Class AfterScript
-    Reference commands : Command<<0..*>>
+  Enum WhenType
+    Literal ON_SUCCESS = 0
+    Literal ON_FAILURE = 1
+    Literal ALWAYS = 2
+    Literal MANUAL = 3
+    Literal DELAYED = 4
+    Literal NEVER = 5
 
-  Class Default
-    Reference image : Image
-    Reference services : Service<<0..*>>
-    Reference tags : Tags
-    Reference cache : Cache
-    Reference beforeScript : BeforeScript
-    Reference afterScript : AfterScript
-    Attribute timeout : EString
-    Attribute interruptible : EBoolean
-    Reference retry : Retry
+  Enum ArtifactsWhenType
+    Literal ON_SUCCESS = 0
+    Literal ON_FAILURE = 1
+    Literal ALWAYS = 2
 
-  Class Retry
-    Attribute max : EInt
-    Attribute when : EString<<0..*>>
+  Enum CacheWhenType
+    Literal ON_SUCCESS = 0
+    Literal ON_FAILURE = 1
+    Literal ALWAYS = 2
 
-  Class Axis
-    Attribute name : EString
-    Attribute values : EString<<0..*>>
+  Enum PullPolicy
+    Literal ALWAYS = 0
+    Literal NEVER = 1
+    Literal IF_NOT_PRESENT = 2
 
-  Class Matrix
-    Reference axes : Axis<<0..*>>
+  Enum EnvironmentAction
+    Literal START = 0
+    Literal STOP = 1
+    Literal PREPARE = 2
+    Literal VERIFY = 3
+    Literal ACCESS = 4
 
-  Class Parallel
-    Attribute count : EIntegerObject
-    Reference matrix : Matrix
+  Enum RetryWhenType
+    Literal ALWAYS = 0
+    Literal UNKNOWN_FAILURE = 1
+    Literal SCRIPT_FAILURE = 2
+    Literal API_FAILURE = 3
+    Literal STUCK_OR_TIMEOUT_FAILURE = 4
+    Literal RUNNER_SYSTEM_FAILURE = 5
+    Literal RUNNER_UNSUPPORTED = 6
+    Literal STALE_SCHEDULE = 7
+    Literal JOB_EXECUTION_TIMEOUT = 8
+    Literal ARCHIVED_FAILURE = 9
+    Literal UNMET_PREREQUISITES = 10
+    Literal SCHEDULER_FAILURE = 11
+    Literal DATA_INTEGRITY_FAILURE = 12

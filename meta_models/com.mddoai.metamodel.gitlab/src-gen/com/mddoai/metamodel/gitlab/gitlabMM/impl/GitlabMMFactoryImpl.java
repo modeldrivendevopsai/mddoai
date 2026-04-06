@@ -5,6 +5,7 @@ package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 import com.mddoai.metamodel.gitlab.gitlabMM.*;
 
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
@@ -58,70 +59,96 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 		switch (eClass.getClassifierID()) {
 		case GitlabMMPackage.PIPELINE:
 			return createPipeline();
-		case GitlabMMPackage.JOB:
-			return createJob();
-		case GitlabMMPackage.ARTIFACT:
-			return createArtifact();
-		case GitlabMMPackage.REPORT:
-			return createReport();
-		case GitlabMMPackage.COMMAND:
-			return createCommand();
-		case GitlabMMPackage.BEFORE_SCRIPT:
-			return createBeforeScript();
-		case GitlabMMPackage.SCRIPT:
-			return createScript();
-		case GitlabMMPackage.TAGS:
-			return createTags();
-		case GitlabMMPackage.TAG:
-			return createTag();
-		case GitlabMMPackage.ONLY:
-			return createOnly();
-		case GitlabMMPackage.ONLY_BRANCHES:
-			return createOnlyBranches();
-		case GitlabMMPackage.DEPENDENCIES:
-			return createDependencies();
-		case GitlabMMPackage.DEPENDENCY:
-			return createDependency();
-		case GitlabMMPackage.VARIABLES:
-			return createVariables();
-		case GitlabMMPackage.VARIABLE:
-			return createVariable();
-		case GitlabMMPackage.PATH:
-			return createPath();
-		case GitlabMMPackage.GITLAB_RULE:
-			return createGitlabRule();
 		case GitlabMMPackage.WORKFLOW:
 			return createWorkflow();
-		case GitlabMMPackage.IMAGE:
-			return createImage();
-		case GitlabMMPackage.DOCKER:
-			return createDocker();
-		case GitlabMMPackage.KUBERNETES:
-			return createKubernetes();
-		case GitlabMMPackage.SERVICE:
-			return createService();
-		case GitlabMMPackage.CACHE:
-			return createCache();
-		case GitlabMMPackage.KEY:
-			return createKey();
-		case GitlabMMPackage.NEED:
-			return createNeed();
-		case GitlabMMPackage.ENVIRONMENT:
-			return createEnvironment();
-		case GitlabMMPackage.AFTER_SCRIPT:
-			return createAfterScript();
 		case GitlabMMPackage.DEFAULT:
 			return createDefault();
+		case GitlabMMPackage.VARIABLE:
+			return createVariable();
+		case GitlabMMPackage.JOB:
+			return createJob();
+		case GitlabMMPackage.IMAGE:
+			return createImage();
+		case GitlabMMPackage.DOCKER_OPTIONS:
+			return createDockerOptions();
+		case GitlabMMPackage.KUBERNETES_OPTIONS:
+			return createKubernetesOptions();
+		case GitlabMMPackage.SERVICE:
+			return createService();
+		case GitlabMMPackage.ARTIFACTS:
+			return createArtifacts();
+		case GitlabMMPackage.ARTIFACT_REPORTS:
+			return createArtifactReports();
+		case GitlabMMPackage.COVERAGE_REPORT:
+			return createCoverageReport();
+		case GitlabMMPackage.CACHE:
+			return createCache();
+		case GitlabMMPackage.CACHE_KEY:
+			return createCacheKey();
+		case GitlabMMPackage.NEED:
+			return createNeed();
+		case GitlabMMPackage.RULE:
+			return createRule();
 		case GitlabMMPackage.RETRY:
 			return createRetry();
-		case GitlabMMPackage.AXIS:
-			return createAxis();
-		case GitlabMMPackage.MATRIX:
-			return createMatrix();
 		case GitlabMMPackage.PARALLEL:
 			return createParallel();
+		case GitlabMMPackage.MATRIX_ENTRY:
+			return createMatrixEntry();
+		case GitlabMMPackage.ENVIRONMENT:
+			return createEnvironment();
 		default:
 			throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
+		}
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Object createFromString(EDataType eDataType, String initialValue) {
+		switch (eDataType.getClassifierID()) {
+		case GitlabMMPackage.WHEN_TYPE:
+			return createWhenTypeFromString(eDataType, initialValue);
+		case GitlabMMPackage.ARTIFACTS_WHEN_TYPE:
+			return createArtifactsWhenTypeFromString(eDataType, initialValue);
+		case GitlabMMPackage.CACHE_WHEN_TYPE:
+			return createCacheWhenTypeFromString(eDataType, initialValue);
+		case GitlabMMPackage.PULL_POLICY:
+			return createPullPolicyFromString(eDataType, initialValue);
+		case GitlabMMPackage.ENVIRONMENT_ACTION:
+			return createEnvironmentActionFromString(eDataType, initialValue);
+		case GitlabMMPackage.RETRY_WHEN_TYPE:
+			return createRetryWhenTypeFromString(eDataType, initialValue);
+		default:
+			throw new IllegalArgumentException("The datatype '" + eDataType.getName() + "' is not a valid classifier");
+		}
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public String convertToString(EDataType eDataType, Object instanceValue) {
+		switch (eDataType.getClassifierID()) {
+		case GitlabMMPackage.WHEN_TYPE:
+			return convertWhenTypeToString(eDataType, instanceValue);
+		case GitlabMMPackage.ARTIFACTS_WHEN_TYPE:
+			return convertArtifactsWhenTypeToString(eDataType, instanceValue);
+		case GitlabMMPackage.CACHE_WHEN_TYPE:
+			return convertCacheWhenTypeToString(eDataType, instanceValue);
+		case GitlabMMPackage.PULL_POLICY:
+			return convertPullPolicyToString(eDataType, instanceValue);
+		case GitlabMMPackage.ENVIRONMENT_ACTION:
+			return convertEnvironmentActionToString(eDataType, instanceValue);
+		case GitlabMMPackage.RETRY_WHEN_TYPE:
+			return convertRetryWhenTypeToString(eDataType, instanceValue);
+		default:
+			throw new IllegalArgumentException("The datatype '" + eDataType.getName() + "' is not a valid classifier");
 		}
 	}
 
@@ -142,284 +169,9 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
-	public Job createJob() {
-		JobImpl job = new JobImpl();
-		return job;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Artifact createArtifact() {
-		ArtifactImpl artifact = new ArtifactImpl();
-		return artifact;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Report createReport() {
-		ReportImpl report = new ReportImpl();
-		return report;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Command createCommand() {
-		CommandImpl command = new CommandImpl();
-		return command;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public BeforeScript createBeforeScript() {
-		BeforeScriptImpl beforeScript = new BeforeScriptImpl();
-		return beforeScript;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Script createScript() {
-		ScriptImpl script = new ScriptImpl();
-		return script;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Tags createTags() {
-		TagsImpl tags = new TagsImpl();
-		return tags;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Tag createTag() {
-		TagImpl tag = new TagImpl();
-		return tag;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Only createOnly() {
-		OnlyImpl only = new OnlyImpl();
-		return only;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public OnlyBranches createOnlyBranches() {
-		OnlyBranchesImpl onlyBranches = new OnlyBranchesImpl();
-		return onlyBranches;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Dependencies createDependencies() {
-		DependenciesImpl dependencies = new DependenciesImpl();
-		return dependencies;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Dependency createDependency() {
-		DependencyImpl dependency = new DependencyImpl();
-		return dependency;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Variables createVariables() {
-		VariablesImpl variables = new VariablesImpl();
-		return variables;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Variable createVariable() {
-		VariableImpl variable = new VariableImpl();
-		return variable;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Path createPath() {
-		PathImpl path = new PathImpl();
-		return path;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public GitlabRule createGitlabRule() {
-		GitlabRuleImpl gitlabRule = new GitlabRuleImpl();
-		return gitlabRule;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public Workflow createWorkflow() {
 		WorkflowImpl workflow = new WorkflowImpl();
 		return workflow;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Image createImage() {
-		ImageImpl image = new ImageImpl();
-		return image;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Docker createDocker() {
-		DockerImpl docker = new DockerImpl();
-		return docker;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Kubernetes createKubernetes() {
-		KubernetesImpl kubernetes = new KubernetesImpl();
-		return kubernetes;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Service createService() {
-		ServiceImpl service = new ServiceImpl();
-		return service;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Cache createCache() {
-		CacheImpl cache = new CacheImpl();
-		return cache;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Key createKey() {
-		KeyImpl key = new KeyImpl();
-		return key;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Need createNeed() {
-		NeedImpl need = new NeedImpl();
-		return need;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Environment createEnvironment() {
-		EnvironmentImpl environment = new EnvironmentImpl();
-		return environment;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public AfterScript createAfterScript() {
-		AfterScriptImpl afterScript = new AfterScriptImpl();
-		return afterScript;
 	}
 
 	/**
@@ -439,6 +191,149 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
+	public Variable createVariable() {
+		VariableImpl variable = new VariableImpl();
+		return variable;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Job createJob() {
+		JobImpl job = new JobImpl();
+		return job;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Image createImage() {
+		ImageImpl image = new ImageImpl();
+		return image;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public DockerOptions createDockerOptions() {
+		DockerOptionsImpl dockerOptions = new DockerOptionsImpl();
+		return dockerOptions;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public KubernetesOptions createKubernetesOptions() {
+		KubernetesOptionsImpl kubernetesOptions = new KubernetesOptionsImpl();
+		return kubernetesOptions;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Service createService() {
+		ServiceImpl service = new ServiceImpl();
+		return service;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Artifacts createArtifacts() {
+		ArtifactsImpl artifacts = new ArtifactsImpl();
+		return artifacts;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public ArtifactReports createArtifactReports() {
+		ArtifactReportsImpl artifactReports = new ArtifactReportsImpl();
+		return artifactReports;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public CoverageReport createCoverageReport() {
+		CoverageReportImpl coverageReport = new CoverageReportImpl();
+		return coverageReport;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Cache createCache() {
+		CacheImpl cache = new CacheImpl();
+		return cache;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public CacheKey createCacheKey() {
+		CacheKeyImpl cacheKey = new CacheKeyImpl();
+		return cacheKey;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Need createNeed() {
+		NeedImpl need = new NeedImpl();
+		return need;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Rule createRule() {
+		RuleImpl rule = new RuleImpl();
+		return rule;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public Retry createRetry() {
 		RetryImpl retry = new RetryImpl();
 		return retry;
@@ -450,31 +345,163 @@ public class GitlabMMFactoryImpl extends EFactoryImpl implements GitlabMMFactory
 	 * @generated
 	 */
 	@Override
-	public Axis createAxis() {
-		AxisImpl axis = new AxisImpl();
-		return axis;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public Matrix createMatrix() {
-		MatrixImpl matrix = new MatrixImpl();
-		return matrix;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public Parallel createParallel() {
 		ParallelImpl parallel = new ParallelImpl();
 		return parallel;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public MatrixEntry createMatrixEntry() {
+		MatrixEntryImpl matrixEntry = new MatrixEntryImpl();
+		return matrixEntry;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public Environment createEnvironment() {
+		EnvironmentImpl environment = new EnvironmentImpl();
+		return environment;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public WhenType createWhenTypeFromString(EDataType eDataType, String initialValue) {
+		WhenType result = WhenType.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertWhenTypeToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public ArtifactsWhenType createArtifactsWhenTypeFromString(EDataType eDataType, String initialValue) {
+		ArtifactsWhenType result = ArtifactsWhenType.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertArtifactsWhenTypeToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public CacheWhenType createCacheWhenTypeFromString(EDataType eDataType, String initialValue) {
+		CacheWhenType result = CacheWhenType.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertCacheWhenTypeToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public PullPolicy createPullPolicyFromString(EDataType eDataType, String initialValue) {
+		PullPolicy result = PullPolicy.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertPullPolicyToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public EnvironmentAction createEnvironmentActionFromString(EDataType eDataType, String initialValue) {
+		EnvironmentAction result = EnvironmentAction.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertEnvironmentActionToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public RetryWhenType createRetryWhenTypeFromString(EDataType eDataType, String initialValue) {
+		RetryWhenType result = RetryWhenType.get(initialValue);
+		if (result == null)
+			throw new IllegalArgumentException(
+					"The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+		return result;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertRetryWhenTypeToString(EDataType eDataType, Object instanceValue) {
+		return instanceValue == null ? null : instanceValue.toString();
 	}
 
 	/**

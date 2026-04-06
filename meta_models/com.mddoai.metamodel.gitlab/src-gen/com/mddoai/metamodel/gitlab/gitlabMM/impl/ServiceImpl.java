@@ -2,11 +2,11 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Command;
-import com.mddoai.metamodel.gitlab.gitlabMM.Docker;
+import com.mddoai.metamodel.gitlab.gitlabMM.DockerOptions;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Kubernetes;
+import com.mddoai.metamodel.gitlab.gitlabMM.PullPolicy;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
+import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
 
 import java.util.Collection;
 
@@ -22,7 +22,8 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 
 import org.eclipse.emf.ecore.util.EDataTypeUniqueEList;
-import org.eclipse.emf.ecore.util.EObjectResolvingEList;
+import org.eclipse.emf.ecore.util.EObjectContainmentEList;
+import org.eclipse.emf.ecore.util.InternalEList;
 
 /**
  * <!-- begin-user-doc -->
@@ -35,10 +36,9 @@ import org.eclipse.emf.ecore.util.EObjectResolvingEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getAlias <em>Alias</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getEntrypoint <em>Entrypoint</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getCommands <em>Commands</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getDocker <em>Docker</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getKubernetes <em>Kubernetes</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getVariables <em>Variables</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getPullPolicy <em>Pull Policy</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ServiceImpl#getDocker <em>Docker</em>}</li>
  * </ul>
  *
  * @generated
@@ -95,14 +95,34 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	protected EList<String> entrypoint;
 
 	/**
-	 * The cached value of the '{@link #getCommands() <em>Commands</em>}' reference list.
+	 * The cached value of the '{@link #getVariables() <em>Variables</em>}' containment reference list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getCommands()
+	 * @see #getVariables()
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<Command> commands;
+	protected EList<Variable> variables;
+
+	/**
+	 * The default value of the '{@link #getPullPolicy() <em>Pull Policy</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getPullPolicy()
+	 * @generated
+	 * @ordered
+	 */
+	protected static final PullPolicy PULL_POLICY_EDEFAULT = PullPolicy.ALWAYS;
+
+	/**
+	 * The cached value of the '{@link #getPullPolicy() <em>Pull Policy</em>}' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #getPullPolicy()
+	 * @generated
+	 * @ordered
+	 */
+	protected PullPolicy pullPolicy = PULL_POLICY_EDEFAULT;
 
 	/**
 	 * The cached value of the '{@link #getDocker() <em>Docker</em>}' containment reference.
@@ -112,27 +132,7 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * @generated
 	 * @ordered
 	 */
-	protected Docker docker;
-
-	/**
-	 * The cached value of the '{@link #getKubernetes() <em>Kubernetes</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getKubernetes()
-	 * @generated
-	 * @ordered
-	 */
-	protected Kubernetes kubernetes;
-
-	/**
-	 * The cached value of the '{@link #getPullPolicy() <em>Pull Policy</em>}' attribute list.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @see #getPullPolicy()
-	 * @generated
-	 * @ordered
-	 */
-	protected EList<String> pullPolicy;
+	protected DockerOptions docker;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -218,11 +218,11 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * @generated
 	 */
 	@Override
-	public EList<Command> getCommands() {
-		if (commands == null) {
-			commands = new EObjectResolvingEList<Command>(Command.class, this, GitlabMMPackage.SERVICE__COMMANDS);
+	public EList<Variable> getVariables() {
+		if (variables == null) {
+			variables = new EObjectContainmentEList<Variable>(Variable.class, this, GitlabMMPackage.SERVICE__VARIABLES);
 		}
-		return commands;
+		return variables;
 	}
 
 	/**
@@ -231,7 +231,31 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * @generated
 	 */
 	@Override
-	public Docker getDocker() {
+	public PullPolicy getPullPolicy() {
+		return pullPolicy;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public void setPullPolicy(PullPolicy newPullPolicy) {
+		PullPolicy oldPullPolicy = pullPolicy;
+		pullPolicy = newPullPolicy == null ? PULL_POLICY_EDEFAULT : newPullPolicy;
+		if (eNotificationRequired())
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.SERVICE__PULL_POLICY, oldPullPolicy,
+					pullPolicy));
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public DockerOptions getDocker() {
 		return docker;
 	}
 
@@ -240,8 +264,8 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public NotificationChain basicSetDocker(Docker newDocker, NotificationChain msgs) {
-		Docker oldDocker = docker;
+	public NotificationChain basicSetDocker(DockerOptions newDocker, NotificationChain msgs) {
+		DockerOptions oldDocker = docker;
 		docker = newDocker;
 		if (eNotificationRequired()) {
 			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
@@ -260,7 +284,7 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * @generated
 	 */
 	@Override
-	public void setDocker(Docker newDocker) {
+	public void setDocker(DockerOptions newDocker) {
 		if (newDocker != docker) {
 			NotificationChain msgs = null;
 			if (docker != null)
@@ -283,77 +307,12 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 	 * @generated
 	 */
 	@Override
-	public Kubernetes getKubernetes() {
-		return kubernetes;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	public NotificationChain basicSetKubernetes(Kubernetes newKubernetes, NotificationChain msgs) {
-		Kubernetes oldKubernetes = kubernetes;
-		kubernetes = newKubernetes;
-		if (eNotificationRequired()) {
-			ENotificationImpl notification = new ENotificationImpl(this, Notification.SET,
-					GitlabMMPackage.SERVICE__KUBERNETES, oldKubernetes, newKubernetes);
-			if (msgs == null)
-				msgs = notification;
-			else
-				msgs.add(notification);
-		}
-		return msgs;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public void setKubernetes(Kubernetes newKubernetes) {
-		if (newKubernetes != kubernetes) {
-			NotificationChain msgs = null;
-			if (kubernetes != null)
-				msgs = ((InternalEObject) kubernetes).eInverseRemove(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.SERVICE__KUBERNETES, null, msgs);
-			if (newKubernetes != null)
-				msgs = ((InternalEObject) newKubernetes).eInverseAdd(this,
-						EOPPOSITE_FEATURE_BASE - GitlabMMPackage.SERVICE__KUBERNETES, null, msgs);
-			msgs = basicSetKubernetes(newKubernetes, msgs);
-			if (msgs != null)
-				msgs.dispatch();
-		} else if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.SERVICE__KUBERNETES, newKubernetes,
-					newKubernetes));
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EList<String> getPullPolicy() {
-		if (pullPolicy == null) {
-			pullPolicy = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.SERVICE__PULL_POLICY);
-		}
-		return pullPolicy;
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
 		switch (featureID) {
+		case GitlabMMPackage.SERVICE__VARIABLES:
+			return ((InternalEList<?>) getVariables()).basicRemove(otherEnd, msgs);
 		case GitlabMMPackage.SERVICE__DOCKER:
 			return basicSetDocker(null, msgs);
-		case GitlabMMPackage.SERVICE__KUBERNETES:
-			return basicSetKubernetes(null, msgs);
 		}
 		return super.eInverseRemove(otherEnd, featureID, msgs);
 	}
@@ -372,14 +331,12 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 			return getAlias();
 		case GitlabMMPackage.SERVICE__ENTRYPOINT:
 			return getEntrypoint();
-		case GitlabMMPackage.SERVICE__COMMANDS:
-			return getCommands();
-		case GitlabMMPackage.SERVICE__DOCKER:
-			return getDocker();
-		case GitlabMMPackage.SERVICE__KUBERNETES:
-			return getKubernetes();
+		case GitlabMMPackage.SERVICE__VARIABLES:
+			return getVariables();
 		case GitlabMMPackage.SERVICE__PULL_POLICY:
 			return getPullPolicy();
+		case GitlabMMPackage.SERVICE__DOCKER:
+			return getDocker();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -403,19 +360,15 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 			getEntrypoint().clear();
 			getEntrypoint().addAll((Collection<? extends String>) newValue);
 			return;
-		case GitlabMMPackage.SERVICE__COMMANDS:
-			getCommands().clear();
-			getCommands().addAll((Collection<? extends Command>) newValue);
-			return;
-		case GitlabMMPackage.SERVICE__DOCKER:
-			setDocker((Docker) newValue);
-			return;
-		case GitlabMMPackage.SERVICE__KUBERNETES:
-			setKubernetes((Kubernetes) newValue);
+		case GitlabMMPackage.SERVICE__VARIABLES:
+			getVariables().clear();
+			getVariables().addAll((Collection<? extends Variable>) newValue);
 			return;
 		case GitlabMMPackage.SERVICE__PULL_POLICY:
-			getPullPolicy().clear();
-			getPullPolicy().addAll((Collection<? extends String>) newValue);
+			setPullPolicy((PullPolicy) newValue);
+			return;
+		case GitlabMMPackage.SERVICE__DOCKER:
+			setDocker((DockerOptions) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -438,17 +391,14 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 		case GitlabMMPackage.SERVICE__ENTRYPOINT:
 			getEntrypoint().clear();
 			return;
-		case GitlabMMPackage.SERVICE__COMMANDS:
-			getCommands().clear();
-			return;
-		case GitlabMMPackage.SERVICE__DOCKER:
-			setDocker((Docker) null);
-			return;
-		case GitlabMMPackage.SERVICE__KUBERNETES:
-			setKubernetes((Kubernetes) null);
+		case GitlabMMPackage.SERVICE__VARIABLES:
+			getVariables().clear();
 			return;
 		case GitlabMMPackage.SERVICE__PULL_POLICY:
-			getPullPolicy().clear();
+			setPullPolicy(PULL_POLICY_EDEFAULT);
+			return;
+		case GitlabMMPackage.SERVICE__DOCKER:
+			setDocker((DockerOptions) null);
 			return;
 		}
 		super.eUnset(featureID);
@@ -468,14 +418,12 @@ public class ServiceImpl extends MinimalEObjectImpl.Container implements Service
 			return ALIAS_EDEFAULT == null ? alias != null : !ALIAS_EDEFAULT.equals(alias);
 		case GitlabMMPackage.SERVICE__ENTRYPOINT:
 			return entrypoint != null && !entrypoint.isEmpty();
-		case GitlabMMPackage.SERVICE__COMMANDS:
-			return commands != null && !commands.isEmpty();
+		case GitlabMMPackage.SERVICE__VARIABLES:
+			return variables != null && !variables.isEmpty();
+		case GitlabMMPackage.SERVICE__PULL_POLICY:
+			return pullPolicy != PULL_POLICY_EDEFAULT;
 		case GitlabMMPackage.SERVICE__DOCKER:
 			return docker != null;
-		case GitlabMMPackage.SERVICE__KUBERNETES:
-			return kubernetes != null;
-		case GitlabMMPackage.SERVICE__PULL_POLICY:
-			return pullPolicy != null && !pullPolicy.isEmpty();
 		}
 		return super.eIsSet(featureID);
 	}

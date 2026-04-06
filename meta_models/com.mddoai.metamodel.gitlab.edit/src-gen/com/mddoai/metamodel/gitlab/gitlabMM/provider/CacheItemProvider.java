@@ -56,7 +56,6 @@ public class CacheItemProvider extends ItemProviderAdapter implements IEditingDo
 			addKeyPropertyDescriptor(object);
 			addPathsPropertyDescriptor(object);
 			addUntrackedPropertyDescriptor(object);
-			addUnprotectPropertyDescriptor(object);
 			addWhenPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
@@ -104,23 +103,7 @@ public class CacheItemProvider extends ItemProviderAdapter implements IEditingDo
 						getString("_UI_PropertyDescriptor_description", "_UI_Cache_untracked_feature",
 								"_UI_Cache_type"),
 						GitlabMMPackage.Literals.CACHE__UNTRACKED, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
-	}
-
-	/**
-	 * This adds a property descriptor for the Unprotect feature.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	protected void addUnprotectPropertyDescriptor(Object object) {
-		itemPropertyDescriptors
-				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Cache_unprotect_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Cache_unprotect_feature",
-								"_UI_Cache_type"),
-						GitlabMMPackage.Literals.CACHE__UNPROTECT, true, false, false,
-						ItemPropertyDescriptor.BOOLEAN_VALUE_IMAGE, null, null));
+						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));
 	}
 
 	/**
@@ -167,8 +150,10 @@ public class CacheItemProvider extends ItemProviderAdapter implements IEditingDo
 	 */
 	@Override
 	public String getText(Object object) {
-		Cache cache = (Cache) object;
-		return getString("_UI_Cache_type") + " " + cache.isUntracked();
+		Boolean labelValue = ((Cache) object).getUntracked();
+		String label = labelValue == null ? null : labelValue.toString();
+		return label == null || label.length() == 0 ? getString("_UI_Cache_type")
+				: getString("_UI_Cache_type") + " " + label;
 	}
 
 	/**
@@ -185,7 +170,6 @@ public class CacheItemProvider extends ItemProviderAdapter implements IEditingDo
 		switch (notification.getFeatureID(Cache.class)) {
 		case GitlabMMPackage.CACHE__PATHS:
 		case GitlabMMPackage.CACHE__UNTRACKED:
-		case GitlabMMPackage.CACHE__UNPROTECT:
 		case GitlabMMPackage.CACHE__WHEN:
 			fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
 			return;

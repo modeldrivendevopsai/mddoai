@@ -2,6 +2,8 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM;
 
+import org.eclipse.emf.common.util.EList;
+
 import org.eclipse.emf.ecore.EObject;
 
 /**
@@ -45,25 +47,15 @@ public interface Parallel extends EObject {
 	void setCount(Integer value);
 
 	/**
-	 * Returns the value of the '<em><b>Matrix</b></em>' containment reference.
+	 * Returns the value of the '<em><b>Matrix</b></em>' containment reference list.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.MatrixEntry}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Matrix</em>' containment reference.
-	 * @see #setMatrix(Matrix)
+	 * @return the value of the '<em>Matrix</em>' containment reference list.
 	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getParallel_Matrix()
 	 * @model containment="true"
 	 * @generated
 	 */
-	Matrix getMatrix();
-
-	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Parallel#getMatrix <em>Matrix</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Matrix</em>' containment reference.
-	 * @see #getMatrix()
-	 * @generated
-	 */
-	void setMatrix(Matrix value);
+	EList<MatrixEntry> getMatrix();
 
 } // Parallel
