@@ -1,59 +1,29 @@
-<?xml version="1.0" encoding="ASCII"?>
+<?xml version="1.0" encoding="ISO-8859-1"?>
 <gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
   <stages>build</stages>
   <stages>unitTest</stages>
   <stages>healthCheck</stages>
   <stages>push</stages>
+  <defaults>
+    <image name="docker:latest"/>
+  </defaults>
+  <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
+  <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
   <jobs name="build" stage="build">
-    <script>
-      <commands command="docker build -t ${IMAGE_TAG} ."/>
-    </script>
-    <tags>
-      <tags tag="ai-shared"/>
-    </tags>
+    <script>docker build -t ${IMAGE_TAG} .</script>
   </jobs>
   <jobs name="unitTest" stage="unitTest">
-    <script>
-      <commands command="python3 test/run_unit_tests.py"/>
-    </script>
-    <beforeScript>
-      <commands command="python3 -m pip install --break-system-packages -r requirements.txt"/>
-    </beforeScript>
-    <tags>
-      <tags tag="ai-shared"/>
-    </tags>
     <image name="python:3.12-slim"/>
+    <script>python3 test/run_unit_tests.py</script>
   </jobs>
   <jobs name="healthCheck" stage="healthCheck">
-    <script>
-      <commands command="./scripts/health_check.sh"/>
-    </script>
-    <tags>
-      <tags tag="ai-shared"/>
-    </tags>
     <image name="curlimages/curl:latest"/>
-    <needs job="build" artifacts="true"/>
+    <script>./scripts/health_check.sh</script>
+    <needs job="build"/>
   </jobs>
   <jobs name="push" stage="push">
-    <script>
-      <commands command="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
-      <commands command="docker push ${IMAGE_TAG}"/>
-    </script>
-    <tags>
-      <tags tag="ai-shared"/>
-    </tags>
-    <needs job="healthCheck" artifacts="true"/>
+    <script>docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}</script>
+    <script>docker push ${IMAGE_TAG}</script>
+    <needs job="healthCheck"/>
   </jobs>
-  <variables>
-    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
-    <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
-  </variables>
-  <workflow>
-    <rules gitlabIf="$CI_PIPELINE_SOURCE == &quot;parent_pipeline&quot;"/>
-    <rules gitlabIf="$CI_COMMIT_BRANCH"/>
-  </workflow>
-  <default>
-    <image name="docker:latest"/>
-    <services name="docker:dind"/>
-  </default>
 </gitlabMM:Pipeline>
