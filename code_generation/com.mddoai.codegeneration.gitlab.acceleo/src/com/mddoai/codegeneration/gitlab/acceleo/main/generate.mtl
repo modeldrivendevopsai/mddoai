@@ -1,244 +1,504 @@
 [comment encoding = UTF-8 /]
 [module generate('http://www.mddoai.com/mddoai/metamodel/gitlab')]
 
-
-[template public generateElement(aPipeline : Pipeline)]
-[comment @main/]
-[file ('.gitlab-ci.yml', false, 'UTF-8')]
-#######################################################################
-# Copyright (c) 2025 MDDOAI All rights reserved.
-#
-# This file was automatically generated.
-# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
-# For more information, visit: https://mddoai.com
-#######################################################################
-
-[generateWorkflow(aPipeline.workflow)/]
-[if (aPipeline.default <> null)][generateDefault(aPipeline.default)/]
-[/if][generateStages(aPipeline.stages)/]
-[generateVariables(aPipeline.variables)/]
-[if (aPipeline.jobs->notEmpty())]
-[for (j: Job | aPipeline.jobs)]
-[generateJob(j)/]
+[template public generateElement(pipeline : Pipeline)]
+[comment @main /]
+[file ('gitlab-ci.yml', false, 'UTF-8')]
+[if (pipeline.stages->notEmpty())]
+stages:
+[for (stageName : String | pipeline.stages)]
+  - [stageName/]
 [/for]
+
 [/if]
+[if (not pipeline.workflow.oclIsUndefined())]
+[generateWorkflow(pipeline.workflow)/]
+[/if]
+[if (not pipeline.defaults.oclIsUndefined())]
+[generateDefault(pipeline.defaults)/]
+[/if]
+[if (pipeline.variables->notEmpty())]
+variables:
+[for (v : Variable | pipeline.variables)]
+[generateVariableEntry(v, '')/]
+[/for]
+
+[/if]
+[for (job : Job | pipeline.jobs)]
+[generateJob(job)/]
+[/for]
 [/file]
 [/template]
 
-[template public generateWorkflow(workflow : Workflow)]
-[if (workflow <> null)]
+[template public generateWorkflow(wf : Workflow)]
 workflow:
   rules:
-[for (r: GitlabRule | workflow.rules)]
-    - if: [r.gitlabIf/]
-[if (r.when <> null)]
-      when: [r.when/]
-[/if]
+[for (rule : Rule | wf.rules)]
+[generateRule(rule, '    ')/]
 [/for]
-[/if]
+
 [/template]
 
-[template public generateDefault(d : Default)]
-[if (d <> null)]
+[template public generateDefault(defs : Default)]
 default:
-[if (d.image <> null)]
-  image: [d.image.name/]
+[if (not defs.image.oclIsUndefined())]
+  [generateImageBlock(defs.image, '  ')/]
 [/if]
-[generateServices(d.services)/][if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+[if (defs.beforeScript->notEmpty())]
   before_script:
-[for (command: Command | d.beforeScript.commands)]
-    - [command.command/]
+[for (cmd : String | defs.beforeScript)]
+    - [cmd/]
 [/for]
 [/if]
-[/if]
-[/template]
-
-[template public generateStages(stages : OrderedSet(String))]
-stages:
-[for (stage: String | stages)]
-  - [stage/]
-[/for]
-[/template]
-
-[template public generateVariables(variables: Variables)]
-[if (variables <> null and variables.variables->notEmpty())]
-variables:
-[for (variable : Variable | variables.variables)]
-  [variable.name/]: [variable.value/]
+[if (defs.afterScript->notEmpty())]
+  after_script:
+[for (cmd : String | defs.afterScript)]
+    - [cmd/]
 [/for]
 [/if]
-[/template]
-
-[template public generateJob(job: Job)]
-[job.name/]:
-  stage: [job.stage/]
-  [if (job.image <> null)]
-  image: [job.image.name/]
-  [/if]
-  [generateServices(job.services)/][generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateNeeds(job)/][generateJobVariables(job.variables)/][generateAllowFailure(job.allowFailure)/][generateTimeout(job.timeout)/][generateRetry(job.retry)/][generateParallel(job.parallel)/][generateRules(job.rules)/][generateCache(job.cache)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
-[/template]
-
-[comment][generateTags(job.tags)/][/comment]
-[template public generateScript(script: Script)]
-[if (script <> null and script.commands->notEmpty())]
-script:
-[for (command: Command | script.commands)]
-  - [command.command/]
-[/for]
-[/if]
-[/template]
-
-[template public generateBeforeScript(script: BeforeScript)]
-[if (script <> null and script.commands->notEmpty())]
-before_script:
-[for (command: Command | script.commands)]
-  - [command.command/]
-[/for]
-[/if]
-[/template]
-
-[template public generateTags(tags: Tags)]
-[if (tags <> null and tags.tags->notEmpty())]
-tags:
-[for (tag: Tag | tags.tags)]
-  - [tag.tag/]
-[/for]
-[/if]
-[/template]
-
-[template public generateOnly(only: Only)]
-[if (only <> null and only.branches->notEmpty())]
-only:
-[for (onlyBranch: OnlyBranches | only.branches)]
-  - [onlyBranch.branch/]
-[/for]
-[/if]
-[/template]
-
-[template public generateDependencies(dependencies: Dependencies)]
-[if (dependencies <> null and dependencies.dependencies->notEmpty())]
-dependencies:
-[for (dependency: Dependency | dependencies.dependencies)]
-  - [dependency.dependency/]
-[/for]
-[/if]
-[/template]
-
-[template public generateNeeds(job: Job)]
-[if (job.needs->notEmpty())]
-needs:
-[for (need : Need | job.needs)]
-  - job: "[need.job/]"
-[if (need.artifacts <> null and need.artifacts = false)]
-    artifacts: false
-[/if]
-[if (need.optional <> null and need.optional = true)]
-    optional: true
-[/if]
-[/for]
-[/if]
-[/template]
-
-[template public generateArtifacts(a : Artifact)]
-[if (a <> null)]
-artifacts:
-[if (a.paths->notEmpty())]
-  paths:
-  [for (p : Path | a.paths)]
-    - [p.path/]
-  [/for]  
-[/if]
-[if (a <> null and a.when <> null)]
-  when: [a.when/]
-[/if]
-[if (a.reports <> null and a.reports.junit <> null)]
-  [generateReport(a.reports)/]
-[/if]
-[/if]
-[/template]
-
-[template public generateReport(report: Report)]
-reports:
-  junit: [report.junit/]
-[/template]
-
-[template public generateJobVariables(variables: Variables)]
-[if (variables <> null and variables.variables->notEmpty())]
-  variables:
-[for (variable : Variable | variables.variables)]
-    [variable.name/]: [variable.value/]
-[/for]
-[/if]
-[/template]
-
-[template public generateServices(services: OrderedSet(Service))]
-[if (services->notEmpty())]
+[if (defs.services->notEmpty())]
   services:
-[for (service : Service | services)]
-    - name: [service.name/]
-[if (service.alias <> null)]
-      alias: [service.alias/]
+[for (svc : Service | defs.services)]
+[generateServiceBlock(svc, '    ')/]
+[/for]
 [/if]
+[if (not defs.cache.oclIsUndefined())]
+[generateCacheBlock(defs.cache, '  ')/]
+[/if]
+[if (defs.tags->notEmpty())]
+  tags:
+[for (tag : String | defs.tags)]
+    - [tag/]
+[/for]
+[/if]
+[if (not defs.timeout.oclIsUndefined() and defs.timeout <> '')]
+  timeout: [defs.timeout/]
+[/if]
+[if (not defs.interruptible.oclIsUndefined())]
+  interruptible: [defs.interruptible/]
+[/if]
+[if (not defs.retry.oclIsUndefined())]
+[generateRetryBlock(defs.retry, '  ')/]
+[/if]
+
+[/template]
+
+[template public generateVariableEntry(v : Variable, indent : String)]
+[indent/]  [v.name/]:
+[if (not v.description.oclIsUndefined() and v.description <> '') or (not v.expand.oclIsUndefined())]
+[indent/]    value: [if (not v.value.oclIsUndefined())][v.value/][/if]
+[if (not v.description.oclIsUndefined() and v.description <> '')]
+[indent/]    description: [v.description/]
+[/if]
+[if (not v.expand.oclIsUndefined())]
+[indent/]    expand: [v.expand/]
+[/if]
+[else]
+[indent/]    [if (not v.value.oclIsUndefined())][v.value/][/if]
+[/if]
+[/template]
+
+[template public generateImageBlock(img : Image, indent : String)]
+[if (img.entrypoint->isEmpty() and img.pullPolicy.toString() = 'ALWAYS' and img.docker.oclIsUndefined() and img.kubernetes.oclIsUndefined())]
+[indent/]image: [img.name/]
+[else]
+[indent/]image:
+[indent/]  name: [img.name/]
+[if (img.entrypoint->notEmpty())]
+[indent/]  entrypoint:
+[for (ep : String | img.entrypoint)]
+[indent/]    - [ep/]
+[/for]
+[/if]
+[if (img.pullPolicy.toString() = 'NEVER')]
+[indent/]  pull_policy: never
+[elseif (img.pullPolicy.toString() = 'IF_NOT_PRESENT')]
+[indent/]  pull_policy: if-not-present
+[/if]
+[if (not img.docker.oclIsUndefined())]
+[indent/]  docker:
+[if (not img.docker.platform.oclIsUndefined() and img.docker.platform <> '')]
+[indent/]    platform: [img.docker.platform/]
+[/if]
+[if (not img.docker.user.oclIsUndefined() and img.docker.user <> '')]
+[indent/]    user: [img.docker.user/]
+[/if]
+[/if]
+[if (not img.kubernetes.oclIsUndefined())]
+[indent/]  kubernetes:
+[if (not img.kubernetes.user.oclIsUndefined() and img.kubernetes.user <> '')]
+[indent/]    user: [img.kubernetes.user/]
+[/if]
+[if (not img.kubernetes.namespace.oclIsUndefined() and img.kubernetes.namespace <> '')]
+[indent/]    namespace: [img.kubernetes.namespace/]
+[/if]
+[/if]
+[/if]
+[/template]
+
+[template public generateServiceBlock(svc : Service, indent : String)]
+[if (svc.alias.oclIsUndefined() or svc.alias = '') and svc.entrypoint->isEmpty() and svc.variables->isEmpty() and svc.pullPolicy.toString() = 'ALWAYS' and svc.docker.oclIsUndefined()]
+[indent/]- [svc.name/]
+[else]
+[indent/]- name: [svc.name/]
+[if (not svc.alias.oclIsUndefined() and svc.alias <> '')]
+[indent/]  alias: [svc.alias/]
+[/if]
+[if (svc.entrypoint->notEmpty())]
+[indent/]  entrypoint:
+[for (ep : String | svc.entrypoint)]
+[indent/]    - [ep/]
+[/for]
+[/if]
+[if (svc.variables->notEmpty())]
+[indent/]  variables:
+[for (v : Variable | svc.variables)]
+[generateVariableEntry(v, indent)/]
+[/for]
+[/if]
+[if (svc.pullPolicy.toString() = 'NEVER')]
+[indent/]  pull_policy: never
+[elseif (svc.pullPolicy.toString() = 'IF_NOT_PRESENT')]
+[indent/]  pull_policy: if-not-present
+[/if]
+[if (not svc.docker.oclIsUndefined())]
+[indent/]  docker:
+[if (not svc.docker.platform.oclIsUndefined() and svc.docker.platform <> '')]
+[indent/]    platform: [svc.docker.platform/]
+[/if]
+[if (not svc.docker.user.oclIsUndefined() and svc.docker.user <> '')]
+[indent/]    user: [svc.docker.user/]
+[/if]
+[/if]
+[/if]
+[/template]
+
+[template public generateCacheBlock(c : Cache, indent : String)]
+[indent/]cache:
+[if (not c.key.oclIsUndefined())]
+[if (not c.key.value.oclIsUndefined() and c.key.value <> '' and c.key.files->isEmpty())]
+[indent/]  key: [c.key.value/]
+[else]
+[indent/]  key:
+[if (c.key.files->notEmpty())]
+[indent/]    files:
+[for (f : String | c.key.files)]
+[indent/]      - [f/]
+[/for]
+[/if]
+[if (not c.key.prefix.oclIsUndefined() and c.key.prefix <> '')]
+[indent/]    prefix: [c.key.prefix/]
+[/if]
+[/if]
+[/if]
+[if (c.paths->notEmpty())]
+[indent/]  paths:
+[for (p : String | c.paths)]
+[indent/]    - [p/]
+[/for]
+[/if]
+[if (not c.untracked.oclIsUndefined())]
+[indent/]  untracked: [c.untracked/]
+[/if]
+[if (c.when.toString() = 'ON_FAILURE')]
+[indent/]  when: on_failure
+[elseif (c.when.toString() = 'ALWAYS')]
+[indent/]  when: always
+[/if]
+[/template]
+
+[template public generateRetryBlock(r : Retry, indent : String)]
+[if (r.when->isEmpty())]
+[indent/]retry: [r.max/]
+[else]
+[indent/]retry:
+[indent/]  max: [r.max/]
+[indent/]  when:
+[for (w : RetryWhenType | r.when)]
+[indent/]    - [w/]
 [/for]
 [/if]
 [/template]
 
-[template public generateAllowFailure(allowFailure: Boolean)]
-[if (allowFailure <> null and allowFailure = true)]
-  allow_failure: true
+[template public generateRule(rule : Rule, indent : String)]
+[if (not rule.ifCondition.oclIsUndefined() and rule.ifCondition <> '')]
+[indent/]- if: '[rule.ifCondition/]'
+[else]
+[indent/]-
+[/if]
+[if (rule.changes->notEmpty())]
+[indent/]  changes:
+[for (ch : String | rule.changes)]
+[indent/]    - [ch/]
+[/for]
+[/if]
+[if (rule.exists->notEmpty())]
+[indent/]  exists:
+[for (ex : String | rule.exists)]
+[indent/]    - [ex/]
+[/for]
+[/if]
+[if (rule.when.toString() = 'ON_FAILURE')]
+[indent/]  when: on_failure
+[elseif (rule.when.toString() = 'ALWAYS')]
+[indent/]  when: always
+[elseif (rule.when.toString() = 'MANUAL')]
+[indent/]  when: manual
+[elseif (rule.when.toString() = 'DELAYED')]
+[indent/]  when: delayed
+[elseif (rule.when.toString() = 'NEVER')]
+[indent/]  when: never
+[/if]
+[if (not rule.allowFailure.oclIsUndefined())]
+[indent/]  allow_failure: [rule.allowFailure/]
+[/if]
+[if (rule.variables->notEmpty())]
+[indent/]  variables:
+[for (v : Variable | rule.variables)]
+[generateVariableEntry(v, indent + '  ')/]
+[/for]
 [/if]
 [/template]
 
-[template public generateTimeout(timeout: String)]
-[if (timeout <> null)]
-  timeout: [timeout/]
+[template public generateJob(job : Job)]
+[job.name/]:
+[if (not job.stage.oclIsUndefined() and job.stage <> '')]
+  stage: [job.stage/]
+[/if]
+[if (not job.image.oclIsUndefined())]
+[generateImageBlock(job.image, '  ')/]
+[/if]
+[if (job.script->notEmpty())]
+  script:
+[for (cmd : String | job.script)]
+    - [cmd/]
+[/for]
+[/if]
+[if (job.beforeScript->notEmpty())]
+  before_script:
+[for (cmd : String | job.beforeScript)]
+    - [cmd/]
+[/for]
+[/if]
+[if (job.afterScript->notEmpty())]
+  after_script:
+[for (cmd : String | job.afterScript)]
+    - [cmd/]
+[/for]
+[/if]
+[if (job.services->notEmpty())]
+  services:
+[for (svc : Service | job.services)]
+[generateServiceBlock(svc, '    ')/]
+[/for]
+[/if]
+[if (job.variables->notEmpty())]
+  variables:
+[for (v : Variable | job.variables)]
+[generateVariableEntry(v, '  ')/]
+[/for]
+[/if]
+[if (not job.artifacts.oclIsUndefined())]
+[generateArtifactsBlock(job.artifacts)/]
+[/if]
+[if (not job.cache.oclIsUndefined())]
+[generateCacheBlock(job.cache, '  ')/]
+[/if]
+[if (job.needs->notEmpty())]
+  needs:
+[for (need : Need | job.needs)]
+[generateNeedEntry(need)/]
+[/for]
+[/if]
+[if (job.rules->notEmpty())]
+  rules:
+[for (rule : Rule | job.rules)]
+[generateRule(rule, '    ')/]
+[/for]
+[/if]
+[if (job.tags->notEmpty())]
+  tags:
+[for (tag : String | job.tags)]
+    - [tag/]
+[/for]
+[/if]
+[if (job.only->notEmpty())]
+  only:
+[for (o : String | job.only)]
+    - [o/]
+[/for]
+[/if]
+[if (job.except->notEmpty())]
+  except:
+[for (e : String | job.except)]
+    - [e/]
+[/for]
+[/if]
+[if (job.when.toString() = 'ON_FAILURE')]
+  when: on_failure
+[elseif (job.when.toString() = 'ALWAYS')]
+  when: always
+[elseif (job.when.toString() = 'MANUAL')]
+  when: manual
+[elseif (job.when.toString() = 'DELAYED')]
+  when: delayed
+[elseif (job.when.toString() = 'NEVER')]
+  when: never
+[/if]
+[if (not job.allowFailure.oclIsUndefined())]
+  allow_failure: [job.allowFailure/]
+[/if]
+[if (not job.timeout.oclIsUndefined() and job.timeout <> '')]
+  timeout: [job.timeout/]
+[/if]
+[if (not job.interruptible.oclIsUndefined())]
+  interruptible: [job.interruptible/]
+[/if]
+[if (not job.resourceGroup.oclIsUndefined() and job.resourceGroup <> '')]
+  resource_group: [job.resourceGroup/]
+[/if]
+[if (not job.retry.oclIsUndefined())]
+[generateRetryBlock(job.retry, '  ')/]
+[/if]
+[if (not job.parallel.oclIsUndefined())]
+[generateParallelBlock(job.parallel)/]
+[/if]
+[if (not job.environment.oclIsUndefined())]
+[generateEnvironmentBlock(job.environment)/]
+[/if]
+[if (job.dependencies->notEmpty())]
+  dependencies:
+[for (dep : String | job.dependencies)]
+    - [dep/]
+[/for]
+[/if]
+
+[/template]
+
+[template public generateArtifactsBlock(art : Artifacts)]
+  artifacts:
+[if (not art.name.oclIsUndefined() and art.name <> '')]
+    name: [art.name/]
+[/if]
+[if (art.paths->notEmpty())]
+    paths:
+[for (p : String | art.paths)]
+      - [p/]
+[/for]
+[/if]
+[if (art.when.toString() = 'ON_FAILURE')]
+    when: on_failure
+[elseif (art.when.toString() = 'ALWAYS')]
+    when: always
+[/if]
+[if (not art.expireIn.oclIsUndefined() and art.expireIn <> '')]
+    expire_in: [art.expireIn/]
+[/if]
+[if (not art.exposeAs.oclIsUndefined() and art.exposeAs <> '')]
+    expose_as: [art.exposeAs/]
+[/if]
+[if (not art.untracked.oclIsUndefined())]
+    untracked: [art.untracked/]
+[/if]
+[if (art.exclude->notEmpty())]
+    exclude:
+[for (ex : String | art.exclude)]
+      - [ex/]
+[/for]
+[/if]
+[if (not art.reports.oclIsUndefined())]
+[generateArtifactReportsBlock(art.reports)/]
 [/if]
 [/template]
 
-[template public generateRetry(retry: Retry)]
-[if (retry <> null)]
-  retry:
-    max: [retry.max/]
+[template public generateArtifactReportsBlock(rep : ArtifactReports)]
+    reports:
+[if (rep.junit->notEmpty())]
+      junit:
+[for (j : String | rep.junit)]
+        - [j/]
+[/for]
+[/if]
+[if (not rep.coverageReport.oclIsUndefined())]
+      coverage_report:
+        coverage_format: [rep.coverageReport.coverageFormat/]
+        path: [rep.coverageReport.path/]
+[/if]
+[if (not rep.dotenv.oclIsUndefined() and rep.dotenv <> '')]
+      dotenv: [rep.dotenv/]
 [/if]
 [/template]
 
-[template public generateParallel(parallel: Parallel)]
-[if (parallel <> null and parallel.matrix <> null)]
+[template public generateNeedEntry(need : Need)]
+[if ((need.project.oclIsUndefined() or need.project = '') and (need.ref.oclIsUndefined() or need.ref = '') and (need.pipeline.oclIsUndefined() or need.pipeline = '') and need.artifacts.oclIsUndefined() and need.optional.oclIsUndefined())]
+    - [need.job/]
+[else]
+    - job: [need.job/]
+[if (not need.artifacts.oclIsUndefined())]
+      artifacts: [need.artifacts/]
+[/if]
+[if (not need.optional.oclIsUndefined())]
+      optional: [need.optional/]
+[/if]
+[if (not need.project.oclIsUndefined() and need.project <> '')]
+      project: [need.project/]
+[/if]
+[if (not need.ref.oclIsUndefined() and need.ref <> '')]
+      ref: [need.ref/]
+[/if]
+[if (not need.pipeline.oclIsUndefined() and need.pipeline <> '')]
+      pipeline: [need.pipeline/]
+[/if]
+[/if]
+[/template]
+
+[template public generateParallelBlock(par : Parallel)]
+[if (par.matrix->isEmpty())]
+  parallel: [par.count/]
+[else]
   parallel:
     matrix:
-[for (axis : Axis | parallel.matrix.axes)]
-      - [axis.name/]:
-[for (value : String | axis.values)]
-          - "[value/]"
+[for (entry : MatrixEntry | par.matrix)]
+      - [entry.key/]:
+[for (val : String | entry.values)]
+          - [val/]
 [/for]
 [/for]
 [/if]
 [/template]
 
-[template public generateRules(rules: OrderedSet(GitlabRule))]
-[if (rules->notEmpty())]
-  rules:
-[for (rule : GitlabRule | rules)]
-    - if: [rule.gitlabIf/]
-[if (rule.when <> null)]
-      when: [rule.when/]
+[template public generateEnvironmentBlock(env : Environment)]
+[if ((env.url.oclIsUndefined() or env.url = '') and (env.onStop.oclIsUndefined() or env.onStop = '') and env.action.toString() = 'START' and (env.autoStopIn.oclIsUndefined() or env.autoStopIn = '') and env.kubernetes.oclIsUndefined())]
+  environment: [env.name/]
+[else]
+  environment:
+    name: [env.name/]
+[if (not env.url.oclIsUndefined() and env.url <> '')]
+    url: [env.url/]
 [/if]
-[/for]
+[if (not env.onStop.oclIsUndefined() and env.onStop <> '')]
+    on_stop: [env.onStop/]
+[/if]
+[if (env.action.toString() = 'STOP')]
+    action: stop
+[elseif (env.action.toString() = 'PREPARE')]
+    action: prepare
+[elseif (env.action.toString() = 'VERIFY')]
+    action: verify
+[elseif (env.action.toString() = 'ACCESS')]
+    action: access
+[/if]
+[if (not env.autoStopIn.oclIsUndefined() and env.autoStopIn <> '')]
+    auto_stop_in: [env.autoStopIn/]
+[/if]
+[if (not env.kubernetes.oclIsUndefined())]
+    kubernetes:
+[if (not env.kubernetes.namespace.oclIsUndefined() and env.kubernetes.namespace <> '')]
+      namespace: [env.kubernetes.namespace/]
+[/if]
+[if (not env.kubernetes.user.oclIsUndefined() and env.kubernetes.user <> '')]
+      user: [env.kubernetes.user/]
+[/if]
+[/if]
 [/if]
 [/template]
-
-[template public generateCache(cache: Cache)]
-[if (cache <> null)]
-  cache:
-[if (cache.key <> null)]
-    key: [cache.key.name/]
-[/if]
-[if (cache.paths->notEmpty())]
-    paths:
-[for (path : String | cache.paths)]
-      - [path/]
-[/for]
-[/if]
-[/if]
-[/template]
-
