@@ -1,16 +1,16 @@
-# Round 3 — Explicit fix for def keyword + @main placement + remaining output issues
+# Round 4 — Fix enum literal vs name mismatch in toString() comparisons
 
-## Why Round 3
+## Why Round 4
 
-Round 2 ran successfully after two manual fixes and produced mostly correct YAML.
-Remaining issues:
+Round 3 compiled cleanly and fixed `def` and `@main` placement. Two bugs remain:
 
-1. `def` still used as template parameter — compile error, same as Round 1.
-   General "no reserved keywords" instruction insufficient — must name `def` explicitly.
-2. `[comment @main/]` placed before the template declaration instead of inside its body.
-3. Variables serialized with value on separate line instead of inline.
-4. `needs` items missing `job:` prefix — outputs `- build` instead of `- job: build`.
-5. `default` image block over-indented.
+1. `pull_policy: always` emitted on every image — enum `toString()` comparison uses wrong case.
+2. `when: on_success` emitted on every job — same root cause.
+
+Root cause: in Acceleo, calling `toString()` on an EMF enum attribute returns the
+**literal** value (the `literal=` attribute in the ecore), not the enum **name**.
+The ecore defines enums like `name="ALWAYS" literal="always"` — so `toString()`
+returns `'always'`, not `'ALWAYS'`. Comparisons against uppercase names are always true.
 
 ---
 
@@ -75,16 +75,19 @@ the template declaration. Correct placement:
 EMF enum attributes always return a default literal even when not set.
 Compare against the default literal string to decide whether to omit output.
 
+**EMF enum `toString()` returns the literal value, not the enum name.**
+In the ecore, each enum literal has a `name` and a `literal`. Acceleo's `toString()`
+returns the `literal` (the serialization string), which may differ in case from the name.
+For example, `PullPolicy` has `name="ALWAYS" literal="always"` — so
+`img.pullPolicy.toString()` returns `'always'`, not `'ALWAYS'`.
+Always compare against the lowercase literal string, not the uppercase enum name:
+- Use `img.pullPolicy.toString() <> 'always'` to skip the default pull policy.
+- Use `j.when.toString() <> 'on_success'` to skip the default when value.
+Check the ecore `literal=` attributes for the exact string to compare against.
+
 **Ensure correct YAML indentation throughout.**
 Every YAML key must be indented relative to its parent. Use the `indent` parameter
 consistently — never hardcode spaces when a template already receives an indent string.
-
-**Variables must be serialized inline when they have only a value:**
-```yaml
-variables:
-  MY_VAR: "some value"
-```
-Not as a block with value on a separate line.
 
 ---
 
