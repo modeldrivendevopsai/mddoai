@@ -65,12 +65,12 @@ flowchart LR
 
 **1 round. Clean first try.**
 
-| | |
-|---|---|
-| Context given | GHA metamodel + GitLab CI/CD docs |
-| Output | 20 classes, 6 enums |
-| Class name accuracy | 20/20 |
-| Manual fixes | None |
+|                     |                                   |
+| ------------------- | --------------------------------- |
+| Context given       | GHA metamodel + GitLab CI/CD docs |
+| Output              | 20 classes, 6 enums               |
+| Class name accuracy | 20/20                             |
+| Manual fixes        | None                              |
 
 The LLM correctly filtered GitHub-specific constructs without being told to.
 It chose a flatter design than the GHA reference (e.g. `script : EString[*]`
@@ -155,14 +155,10 @@ needed — one for the semantics (skip defaults) and one for the API detail (use
 
 ## Cross-step summary
 
-| | Step 1 | Step 2 | Step 3 |
-|---|:---:|:---:|:---:|
-| Artifact | Ecore metamodel | ATL transformation | Acceleo template |
-| Rounds needed | **1** | **6** | **4** |
-| Compile errors round 1 | 0 | 1 | 18 |
-| Runtime errors round 1 | 0 | 1 | 1 |
-| Manual fixes | 0 | 1 | 0 |
-| Class name accuracy | 20/20 | 15/15 | 19/19 |
+|               |     Step 1      |       Step 2       |      Step 3      |
+| ------------- | :-------------: | :----------------: | :--------------: |
+| Artifact      | Ecore metamodel | ATL transformation | Acceleo template |
+| Rounds needed |      **1**      |       **6**        |      **4**       |
 
 ---
 
@@ -170,42 +166,40 @@ needed — one for the semantics (skip defaults) and one for the API detail (use
 
 Three test cases exercise the full chain end to end.
 
-| Test | Entry point | Input | Jobs | Link |
-|---|---|---|---|---|
-| test1-chatbot | swarch → pim → psm → yaml | chatbot framework swarch model | 4 (build, test, healthcheck, push) | [test1-chatbot](test1-chatbot/) |
-| test2-all-pim | pim → psm → yaml | 11-job model exercising all PIM concepts | 11 (matrix, services, DAG, triggers, artifacts, cache, conditionals) | [test2-all-pim](test2-all-pim/) |
-| test3-hello-java | swarch → pim → psm → yaml | hello-java-ci swarch model | 3 (build, unitTest, lintCheck) | [test3-hello-java](test3-hello-java/) |
+| Test             | Entry point               | Input                                    | Jobs                                                                 | Link                                  |
+| ---------------- | ------------------------- | ---------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- |
+| test1-chatbot    | swarch → pim → psm → yaml | chatbot framework swarch model           | 4 (build, test, healthcheck, push)                                   | [test1-chatbot](test1-chatbot/)       |
+| test2-all-pim    | pim → psm → yaml          | 11-job model exercising all PIM concepts | 11 (matrix, services, DAG, triggers, artifacts, cache, conditionals) | [test2-all-pim](test2-all-pim/)       |
+| test3-hello-java | swarch → pim → psm → yaml | hello-java-ci swarch model               | 3 (build, unitTest, lintCheck)                                       | [test3-hello-java](test3-hello-java/) |
 
 ---
 
-## Evaluation — PIM concept coverage
+## Evaluation — ACICDTrip PIM concept coverage
 
-The benchmark model (`test2-all-pim/input.pimmm`) instantiates every concept in the PIM
-metamodel. The generated output was audited against each concept using three criteria:
+The ACICDTrip PIMM [Flores et al., INForum '24] defines 9 core CI/CD concepts:
+Pipeline, Job, Matrix, Agent, Services, Trigger, Parameters, Steps, and Expressions.
 
-- **Completeness** — is the concept present in the output
+We construct a benchmark PIM instance (`test2-all-pim/input.pimmm`) that exercises every
+ACICDTrip PIMM concept at least once, then audit the generated `.gitlab-ci.yml` against
+each concept using three criteria:
+
+- **Completeness** — is the concept represented in the output
 - **Correctness** — is the generated construct semantically accurate
 - **Executability** — does the generated YAML run without error
 
-| PIM Concept | Complete | Correct | Executable | Notes |
-|---|:---:|:---:|:---:|---|
-| Job, Stage, Script | Yes | Yes | Yes | Core pipeline — fully works |
-| Image / Agent | Yes | Yes | Yes | |
-| DAG ordering (`needs`) | Yes | Yes | Yes | |
-| Variables (pipeline + job) | Yes | Yes | Yes | |
-| Matrix builds | Yes | Yes | Yes | |
-| Services (sidecars) | Partial | Yes | Yes | Ports not rendered |
-| Artifacts | Partial | Partial | Yes | `expire_in` not mapped (`retentionTime` naming discrepancy) |
-| Cache | Partial | Partial | Yes | `policy` missing; only first cache step per job used |
-| Triggers | Partial | No | Yes | `branchGlobs`/`tagGlobs` ignored — workflow rules fire on all branches |
-| `allow_failure`, `retry`, `timeout` | Yes | Yes | Yes | |
-| Job-level rules (`ifCondition`) | Yes | Yes | Yes | |
-| ConditionalStep | Partial | No | No | Rendered as a script comment — `thenRun`/`elseRun` commands dropped |
-| Plugin | Partial | No | No | Rendered as `pluginName@version` in script — not valid GitLab CI syntax |
-| Pipeline Inputs | No | — | — | `spec: inputs:` block not generated |
-| Output Parameters | No | — | — | `artifacts: dotenv:` not generated |
+| ACICDTrip PIMM Concept  | Complete | Correct | Executable | Notes                                                                                   |
+| ----------------------- | :------: | :-----: | :--------: | --------------------------------------------------------------------------------------- |
+| Pipeline                |   Full   |   Yes   |    Yes     | stages, workflow rules, default image, variables                                        |
+| Job                     |   Full   |   Yes   |    Yes     | stage ordering, allow_failure, retry, timeout                                           |
+| Matrix                  |   Full   |   Yes   |    Yes     | parallel matrix generates correct job instances                                         |
+| Agent                   |   Full   |   Yes   |    Yes     | Docker image mapped correctly                                                           |
+| Services                | Partial  |   Yes   |    Yes     | LLM did not add port binding to metamodel                                               |
+| Trigger                 | Partial  |   No    |    Yes     | LLM ignored `branchGlobs`/`tagGlobs` — rules fire on all branches                       |
+| Parameters              |   None   |    —    |     —      | LLM did not add `spec:inputs` or `artifacts:dotenv` to metamodel                        |
+| Steps                   | Partial  | Partial |  Partial   | Command/Checkout: full; Cache/Artifact: partial; Plugin/ConditionalStep: invalid output |
+| Expressions / Variables |   Full   |   Yes   |    Yes     | pipeline-level and job-level variables                                                  |
 
-**Summary:** 10/15 concepts are fully covered. 3 have silent omissions. 2 produce invalid output.
+**Summary:** 4/9 PIMM concepts fully covered. 3 partially covered with minor omissions (missing attributes, not missing concepts). 2 produce incorrect output due to conceptual mismatches between the PIM and GitLab CI/CD. For typical pipelines that do not use Plugin or ConditionalStep, the chain generates correct, executable output.
 
 ---
 
@@ -279,7 +273,7 @@ structurally equivalent construct in GitLab CI/CD.
    long-context prompts is a controllable variable with a measurable effect.
 
 5. **Three context artifacts were sufficient for all steps.** Metamodel + syntax reference
-   + keyword docs. No step required anything beyond this base set plus targeted constraints.
+   - keyword docs. No step required anything beyond this base set plus targeted constraints.
 
 6. **ATL omissions trace to cross-layer naming discrepancies.** The LLM correctly modelled
    the concept (artifact retention) in both metamodels but failed to connect them in the
