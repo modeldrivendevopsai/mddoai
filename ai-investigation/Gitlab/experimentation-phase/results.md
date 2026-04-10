@@ -9,23 +9,10 @@ by adding one constraint per round — not by editing the output manually.
 
 ---
 
-## Quick navigation
+## Navigation
 
-| Step   | Round   | Prompt                                                | Notes                                               |
-| ------ | ------- | ----------------------------------------------------- | --------------------------------------------------- |
-| Step 1 | Round 1 | [prompt](step1-metamodel-generation/round1/prompt.md) | [notes](step1-metamodel-generation/round1/notes.md) |
-| Step 2 | Round 1 | [prompt](step2-atl-generation/round1/prompt.md)       | [notes](step2-atl-generation/round1/notes.md)       |
-| Step 2 | Round 2 | [prompt](step2-atl-generation/round2/prompt.md)       | [notes](step2-atl-generation/round2/notes.md)       |
-| Step 2 | Round 3 | [prompt](step2-atl-generation/round3/prompt.md)       | [notes](step2-atl-generation/round3/notes.md)       |
-| Step 2 | Round 4 | [prompt](step2-atl-generation/round4/prompt.md)       | [notes](step2-atl-generation/round4/notes.md)       |
-| Step 2 | Round 5 | [prompt](step2-atl-generation/round5/prompt.md)       | [notes](step2-atl-generation/round5/notes.md)       |
-| Step 2 | Round 6 | [prompt](step2-atl-generation/round6/prompt.md)       | [notes](step2-atl-generation/round6/notes.md)       |
-| Step 3 | Round 1 | [prompt](step3-acceleo-generation/round1/prompt.md)   | [notes](step3-acceleo-generation/round1/notes.md)   |
-| Step 3 | Round 2 | [prompt](step3-acceleo-generation/round2/prompt.md)   | [notes](step3-acceleo-generation/round2/notes.md)   |
-| Step 3 | Round 3 | [prompt](step3-acceleo-generation/round3/prompt.md)   | [notes](step3-acceleo-generation/round3/notes.md)   |
-| Step 3 | Round 4 | [prompt](step3-acceleo-generation/round4/prompt.md)   | [notes](step3-acceleo-generation/round4/notes.md)   |
-
-- Step 3 detailed results: [step3-acceleo-generation/results.md](step3-acceleo-generation/results.md)
+- Step links are placed inside each step section (Step 1, Step 2, Step 3) for easier reading.
+- Test case folders: [test1-chatbot](test1-chatbot/), [test2-all-pim](test2-all-pim/), [test3-hello-java](test3-hello-java/)
 
 ---
 
@@ -85,6 +72,11 @@ flowchart LR
 
 **1 round. Clean first try.**
 
+**Round links**
+
+- Round 1 prompt: [step1-metamodel-generation/round1/prompt.md](step1-metamodel-generation/round1/prompt.md)
+- Round 1 notes: [step1-metamodel-generation/round1/notes.md](step1-metamodel-generation/round1/notes.md)
+
 |                     |                                   |
 | ------------------- | --------------------------------- |
 | Context given       | GHA metamodel + GitLab CI/CD docs |
@@ -101,6 +93,15 @@ instead of `Script → Command[*]`) — a valid simplification that downstream s
 ## Step 2 — ATL Transformation (`pim2gitlab.atl`)
 
 **6 rounds.**
+
+**Round links**
+
+- Round 1: [prompt](step2-atl-generation/round1/prompt.md), [notes](step2-atl-generation/round1/notes.md)
+- Round 2: [prompt](step2-atl-generation/round2/prompt.md), [notes](step2-atl-generation/round2/notes.md)
+- Round 3: [prompt](step2-atl-generation/round3/prompt.md), [notes](step2-atl-generation/round3/notes.md)
+- Round 4: [prompt](step2-atl-generation/round4/prompt.md), [notes](step2-atl-generation/round4/notes.md)
+- Round 5: [prompt](step2-atl-generation/round5/prompt.md), [notes](step2-atl-generation/round5/notes.md)
+- Round 6: [prompt](step2-atl-generation/round6/prompt.md), [notes](step2-atl-generation/round6/notes.md)
 
 ```mermaid
 flowchart TD
@@ -142,6 +143,13 @@ The bug disappeared. Constraint placement matters as much as constraint content.
 ## Step 3 — Acceleo Template (`generate.mtl`)
 
 **4 rounds.**
+
+**Round links**
+
+- Round 1: [prompt](step3-acceleo-generation/round1/prompt.md), [notes](step3-acceleo-generation/round1/notes.md)
+- Round 2: [prompt](step3-acceleo-generation/round2/prompt.md), [notes](step3-acceleo-generation/round2/notes.md)
+- Round 3: [prompt](step3-acceleo-generation/round3/prompt.md), [notes](step3-acceleo-generation/round3/notes.md)
+- Round 4: [prompt](step3-acceleo-generation/round4/prompt.md), [notes](step3-acceleo-generation/round4/notes.md)
 
 ```mermaid
 flowchart TD

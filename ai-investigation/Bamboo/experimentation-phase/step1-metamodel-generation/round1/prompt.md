@@ -16,7 +16,7 @@ Bamboo terminology diverges more from PIM concepts (Plan vs Pipeline, Task vs Co
 
 ---
 
-<!-- BEGIN PROMPT -->
+## &lt;BEGIN PROMPT&gt;
 
 You are working on a Model-Driven Engineering (MDE) project.
 The goal is to generate a Bamboo CI/CD PSM metamodel in EMF Ecore format.
@@ -75,4 +75,4 @@ Use:
 Output only the XML content of the `.ecore` file, starting with `<?xml ...>`.
 Do not add any explanation.
 
-<!-- END PROMPT -->
+## &lt;END PROMPT&gt;
