@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
 subgraph inputs["Fixed Inputs"]
 GHA_MM["GitHub Actions PSM Metamodel (.ecore)\n(Reference Metamodel)"]
@@ -50,3 +51,4 @@ end
     DOCS --> CTX3
     VAL2 -- Yes --> CTX3
     VAL3 -- Yes --> OUT["Complete Transformation Chain\nReady for Pipeline Generation"]
+```
