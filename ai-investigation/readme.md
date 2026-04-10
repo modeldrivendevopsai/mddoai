@@ -1,3 +1,7 @@
+This shows detailed context engineering workflow with reasonings behind each and every context parts.
+
+
+
 ```mermaid
 flowchart TD
 subgraph inputs["Fixed Inputs"]
