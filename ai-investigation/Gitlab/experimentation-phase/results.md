@@ -9,6 +9,26 @@ by adding one constraint per round — not by editing the output manually.
 
 ---
 
+## Quick navigation
+
+| Step   | Round   | Prompt                                                | Notes                                               |
+| ------ | ------- | ----------------------------------------------------- | --------------------------------------------------- |
+| Step 1 | Round 1 | [prompt](step1-metamodel-generation/round1/prompt.md) | [notes](step1-metamodel-generation/round1/notes.md) |
+| Step 2 | Round 1 | [prompt](step2-atl-generation/round1/prompt.md)       | [notes](step2-atl-generation/round1/notes.md)       |
+| Step 2 | Round 2 | [prompt](step2-atl-generation/round2/prompt.md)       | [notes](step2-atl-generation/round2/notes.md)       |
+| Step 2 | Round 3 | [prompt](step2-atl-generation/round3/prompt.md)       | [notes](step2-atl-generation/round3/notes.md)       |
+| Step 2 | Round 4 | [prompt](step2-atl-generation/round4/prompt.md)       | [notes](step2-atl-generation/round4/notes.md)       |
+| Step 2 | Round 5 | [prompt](step2-atl-generation/round5/prompt.md)       | [notes](step2-atl-generation/round5/notes.md)       |
+| Step 2 | Round 6 | [prompt](step2-atl-generation/round6/prompt.md)       | [notes](step2-atl-generation/round6/notes.md)       |
+| Step 3 | Round 1 | [prompt](step3-acceleo-generation/round1/prompt.md)   | [notes](step3-acceleo-generation/round1/notes.md)   |
+| Step 3 | Round 2 | [prompt](step3-acceleo-generation/round2/prompt.md)   | [notes](step3-acceleo-generation/round2/notes.md)   |
+| Step 3 | Round 3 | [prompt](step3-acceleo-generation/round3/prompt.md)   | [notes](step3-acceleo-generation/round3/notes.md)   |
+| Step 3 | Round 4 | [prompt](step3-acceleo-generation/round4/prompt.md)   | [notes](step3-acceleo-generation/round4/notes.md)   |
+
+- Step 3 detailed results: [step3-acceleo-generation/results.md](step3-acceleo-generation/results.md)
+
+---
+
 ## The MDE pipeline
 
 ```mermaid

@@ -16,7 +16,7 @@ but moved to after the ATL reference, immediately before the task. Single variab
 
 ---
 
-<!-- BEGIN PROMPT -->
+## &lt;BEGIN PROMPT&gt;
 
 You are working on a Model-Driven Engineering (MDE) project.
 
@@ -90,4 +90,4 @@ Use:
 
 Output only the ATL file content. Do not add any explanation.
 
-<!-- END PROMPT -->
+## &lt;END PROMPT&gt;

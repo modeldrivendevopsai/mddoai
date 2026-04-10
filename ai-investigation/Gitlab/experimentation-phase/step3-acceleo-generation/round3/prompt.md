@@ -12,7 +12,7 @@ Remaining issues:
 
 ---
 
-<!-- BEGIN PROMPT -->
+## &lt;BEGIN PROMPT&gt;
 
 You are working on a Model-Driven Engineering (MDE) project.
 
@@ -92,4 +92,4 @@ Use:
 
 Output only the Acceleo file content. Do not add any explanation.
 
-<!-- END PROMPT -->
+## &lt;END PROMPT&gt;
