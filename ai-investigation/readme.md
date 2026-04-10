@@ -9,62 +9,72 @@ DOCS["Platform Documentation"]
 end
 
     subgraph step1["Step 1 — PSM Metamodel Generation"]
-        CTX1["Context:\n• GitHub Actions PSM Metamodel\n• Platform Documentation"]
-        R1A["Reason 1.1 - Structure template:\nGHA PSM metamodel provides\nPSM structure conventions."]
-        R1B["Reason 1.2 - Domain coverage:\nPlatform docs define concepts,\nattributes, and relationships."]
+        C11["Context 1.1:\nGitHub Actions PSM Metamodel"]
+        C12["Context 1.2:\nPlatform Documentation"]
+        R1A["Reason 1.1:\nProvides PSM structure\nand modeling conventions."]
+        R1B["Reason 1.2:\nDefines platform concepts,\nattributes, and relationships."]
         GEN1["LLM generates:\nNew Platform PSM Metamodel (.ecore)"]
         VAL1{"Loads in\nEclipse EMF?"}
-        CTX1 -- derives --> R1A
-        CTX1 -- derives --> R1B
+        C11 -- why it matters --> R1A
+        C12 -- why it matters --> R1B
         R1A --> GEN1
         R1B --> GEN1
         GEN1 --> VAL1
-        VAL1 -- No --> CTX1
+        VAL1 -- No --> C11
+        VAL1 -- No --> C12
     end
 
     subgraph step2["Step 2 — ATL Transformation Generation"]
-        CTX2["Context:\n• pimMM.ecore\n• cicd2gha.atl (reference)\n• New Platform PSM Metamodel from Step 1"]
-        R2A["Reason 2.1 - Source model:\nPIM defines ATL left-hand side\nsource classes."]
-        R2B["Reason 2.2 - Target model:\nStep 1 metamodel defines\nclasses ATL must produce."]
-        R2C["Reason 2.3 - Syntax and mapping:\nReference ATL provides rule style,\nhelpers, and mapping patterns."]
+        C21["Context 2.1:\npimMM.ecore"]
+        C22["Context 2.2:\ncicd2gha.atl\n(reference)"]
+        C23["Context 2.3:\nNew Platform PSM Metamodel\n(from Step 1)"]
+        R2A["Reason 2.1:\nDefines ATL source classes\nfor rule left-hand sides."]
+        R2B["Reason 2.2:\nDefines ATL syntax, helper style,\nand mapping pattern examples."]
+        R2C["Reason 2.3:\nDefines target classes\nATL rules must produce."]
         GEN2["LLM generates:\nATL Transformation (.atl)"]
         VAL2{"Executes without errors?\nXMI references valid classes?"}
-        CTX2 -- derives --> R2A
-        CTX2 -- derives --> R2B
-        CTX2 -- derives --> R2C
+        C21 -- why it matters --> R2A
+        C22 -- why it matters --> R2B
+        C23 -- why it matters --> R2C
         R2A --> GEN2
         R2B --> GEN2
         R2C --> GEN2
         GEN2 --> VAL2
-        VAL2 -- No --> CTX2
+        VAL2 -- No --> C21
+        VAL2 -- No --> C22
+        VAL2 -- No --> C23
     end
 
     subgraph step3["Step 3 — Acceleo Template Generation"]
-        CTX3["Context:\n• New Platform PSM Metamodel from Step 1\n• gha2code.mtl (reference)\n• Platform Documentation"]
-        R3A["Reason 3.1 - Data model access:\nStep 1 metamodel defines classes\nand attributes queried by Acceleo."]
-        R3B["Reason 3.2 - Template structure:\nReference Acceleo defines module style,\nquery syntax, and file generation."]
-        R3C["Reason 3.3 - Output correctness:\nPlatform docs define YAML schema,\nkeywords, and required structure."]
+        C31["Context 3.1:\nNew Platform PSM Metamodel\n(from Step 1)"]
+        C32["Context 3.2:\ngha2code.mtl\n(reference)"]
+        C33["Context 3.3:\nPlatform Documentation"]
+        R3A["Reason 3.1:\nDefines classes and attributes\nqueried by Acceleo."]
+        R3B["Reason 3.2:\nDefines module structure,\nquery syntax, and file patterns."]
+        R3C["Reason 3.3:\nDefines YAML schema, keywords,\nand required output structure."]
         GEN3["LLM generates:\nAcceleo Template (.mtl)"]
         VAL3{"Generated YAML passes\nplatform CI linter?"}
-        CTX3 -- derives --> R3A
-        CTX3 -- derives --> R3B
-        CTX3 -- derives --> R3C
+        C31 -- why it matters --> R3A
+        C32 -- why it matters --> R3B
+        C33 -- why it matters --> R3C
         R3A --> GEN3
         R3B --> GEN3
         R3C --> GEN3
         GEN3 --> VAL3
-        VAL3 -- No --> CTX3
+        VAL3 -- No --> C31
+        VAL3 -- No --> C32
+        VAL3 -- No --> C33
     end
 
-    GHA_MM --> CTX1
-    DOCS --> CTX1
+    GHA_MM --> C11
+    DOCS --> C12
     VAL1 -- Yes --> PSM_OUT["New Platform PSM Metamodel (.ecore)"]
-    PSM_OUT --> CTX2
-    PSM_OUT --> CTX3
-    PIM --> CTX2
-    REF_ATL --> CTX2
-    REF_MTL --> CTX3
-    DOCS --> CTX3
-    VAL2 -- Yes --> CTX3
+    PIM --> C21
+    REF_ATL --> C22
+    PSM_OUT --> C23
+    PSM_OUT --> C31
+    REF_MTL --> C32
+    DOCS --> C33
+    VAL2 -- Yes --> C31
     VAL3 -- Yes --> OUT["Complete Transformation Chain\nReady for Pipeline Generation"]
 ```
