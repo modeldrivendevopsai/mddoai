@@ -1,0 +1,317 @@
+stages:
+  - install-deps
+  - lint
+  - test-unit
+  - test-integration
+  - security-scan
+  - build
+  - docker-build
+  - docker-push
+  - deploy-staging
+  - e2e-test
+  - deploy-prod
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+
+
+default:
+  image:
+    name: docker:24-dind
+
+  timeout: 90 minutes
+
+
+variables:
+  REGISTRY:
+    ${CI_REGISTRY}
+
+  APP_IMAGE:
+    ${CI_REGISTRY_IMAGE}/fullstack-webapp
+
+  APP_VERSION:
+    ${CI_COMMIT_SHORT_SHA}
+
+
+install-deps:
+  stage: install-deps
+  image: node:20-alpine
+  script:
+    - npm ci --prefer-offline
+    - cd frontend && npm ci --prefer-offline
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+
+  timeout: 15 minutes
+
+
+lint:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - npm run lint
+    - npm run format:check
+    - cd frontend && npm run lint
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+
+  needs:
+  - job: install-deps
+
+
+
+test-unit:
+  stage: test-unit
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - npm run test:unit -- --coverage
+  variables:
+    NODE_ENV:
+      test
+
+    CI:
+      true
+
+  artifacts:
+    name: unit-test-coverage
+    paths:
+      - coverage/
+
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+
+  needs:
+  - job: install-deps
+
+  retry:
+    max: 1
+
+  parallel:
+    matrix:
+      - NODE_VERSION:
+          - 18
+          - 20
+          - 22
+
+
+
+test-integration:
+  stage: test-integration
+  image: node:20-alpine
+  script:
+    - npm run db:migrate:test
+    - npm run test:integration
+  services:
+  - name: postgres:15-alpine
+    alias: postgres
+    variables:
+      POSTGRES_DB:
+        testdb
+
+      POSTGRES_USER:
+        testuser
+
+      POSTGRES_PASSWORD:
+        testpass
+
+
+  - name: redis:7-alpine
+    alias: redis
+
+  variables:
+    DATABASE_URL:
+      postgres://testuser:testpass@postgres/testdb
+
+    REDIS_URL:
+      redis://redis:6379
+
+  artifacts:
+    name: integration-test-results
+    paths:
+      - test-results/
+
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+
+  needs:
+  - job: install-deps
+
+  retry:
+    max: 1
+
+
+
+security-scan:
+  stage: security-scan
+  image: node:20-alpine
+  script:
+    - snyk/actions/node@master
+    - npm audit --audit-level=critical
+  variables:
+    SNYK_TOKEN:
+      ${SNYK_TOKEN}
+
+  artifacts:
+    name: security-report
+    paths:
+      - snyk-report.sarif
+
+  needs:
+  - job: install-deps
+
+  allow_failure: true
+
+
+build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - npm run build:backend
+    - cd frontend && npm run build
+  variables:
+    NODE_ENV:
+      production
+
+  artifacts:
+    name: build-output
+    paths:
+      - dist/
+      - frontend/dist/
+
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+
+  needs:
+  - job: lint
+
+  - job: test-unit
+
+  - job: test-integration
+
+
+
+docker-build:
+  stage: docker-build
+  image: docker:24-dind
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    - docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest .
+    - # conditional step: ${CI_COMMIT_BRANCH} == 'main'
+  variables:
+    DOCKER_BUILDKIT:
+      1
+
+  needs:
+  - job: build
+
+
+
+docker-push:
+  stage: docker-push
+  image: docker:24-dind
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    - docker push ${APP_IMAGE}:${APP_VERSION}
+    - docker push ${APP_IMAGE}:latest
+    - # conditional step: ${CI_COMMIT_BRANCH} == 'main'
+  needs:
+  - job: docker-build
+
+  - job: security-scan
+
+
+
+deploy-staging:
+  stage: deploy-staging
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl config use-context staging
+    - kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+    - kubectl rollout status deployment/webapp -n staging --timeout=5m
+  variables:
+    KUBECONFIG:
+      ${STAGING_KUBECONFIG}
+
+    DEPLOY_NAMESPACE:
+      staging
+
+  needs:
+  - job: docker-push
+
+  timeout: 20 minutes
+
+
+e2e-test:
+  stage: e2e-test
+  image: mcr.microsoft.com/playwright:v1.44.0-jammy
+  script:
+    - npm run test:e2e -- --reporter=html
+  variables:
+    BASE_URL:
+      https://staging.example.com
+
+    CI:
+      true
+
+  artifacts:
+    name: e2e-report
+    paths:
+      - playwright-report/
+      - test-results/
+
+  needs:
+  - job: deploy-staging
+
+  rules:
+    - if: ${SKIP_E2E} != 'true'
+
+  allow_failure: false
+  retry:
+    max: 1
+
+
+
+deploy-prod:
+  stage: deploy-prod
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl config use-context production
+    - kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+    - kubectl rollout status deployment/webapp -n production --timeout=10m
+    - # conditional step: ${CI_COMMIT_TAG} != ''
+  variables:
+    KUBECONFIG:
+      ${PROD_KUBECONFIG}
+
+    DEPLOY_NAMESPACE:
+      production
+
+  needs:
+  - job: e2e-test
+
+  rules:
+    - if: ${CI_COMMIT_BRANCH} == 'main' || ${CI_COMMIT_TAG} != ''
+
+  allow_failure: false
+  timeout: 30 minutes
+
+

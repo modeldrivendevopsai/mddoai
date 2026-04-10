@@ -1,0 +1,522 @@
+-- @nsURI PIM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pim2gitlab;
+
+create OUT : GitLabMM from IN : PIM;
+
+-- =========================================================
+-- Helpers
+-- =========================================================
+
+helper def : getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+	let next : Sequence(PIM!Job) =
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(PIM!Job)) = Sequence{} |
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in
+	if next.isEmpty() then
+		jobStreams
+	else
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+helper context PIM!Job def : depth() : Integer =
+	if self.previous->isEmpty() then
+		1
+	else
+		self.previous->collect(prev | prev.depth())->max() + 1
+	endif;
+
+helper def : jobStageName(j : PIM!Job) : String =
+	'stage-' + j.depth().toString();
+
+helper def : computeStages(jobStreams : Sequence(PIM!Job)) : Sequence(String) =
+	thisModule.getAllJobs(jobStreams)
+		->collect(j | j.depth())
+		->asSet()->asSequence()
+		->sortedBy(d | d)
+		->collect(d | 'stage-' + d.toString());
+
+helper def : expression2String(expr : PIM!Expression) : String =
+	if expr.oclIsUndefined() then
+		''
+	else if expr.oclIsTypeOf(PIM!StringLiteral) then
+		expr.oclAsType(PIM!StringLiteral).value
+	else if expr.oclIsTypeOf(PIM!IntegerLiteral) then
+		expr.oclAsType(PIM!IntegerLiteral).value.toString()
+	else if expr.oclIsTypeOf(PIM!DoubleLiteral) then
+		expr.oclAsType(PIM!DoubleLiteral).value.toString()
+	else if expr.oclIsTypeOf(PIM!BooleanLiteral) then
+		expr.oclAsType(PIM!BooleanLiteral).value.toString()
+	else if expr.oclIsTypeOf(PIM!VariableReference) then
+		'$' + expr.oclAsType(PIM!VariableReference).reference.name
+	else if expr.oclIsTypeOf(PIM!Concat) then
+		expr.oclAsType(PIM!Concat).expressions->iterate(e; acc : String = '' |
+			acc + thisModule.expression2String(e))
+	else if expr.oclIsTypeOf(PIM!Assignment) then
+		expr.oclAsType(PIM!Assignment).key.name + '=' + thisModule.expression2String(expr.oclAsType(PIM!Assignment).value)
+	else if expr.oclIsTypeOf(PIM!DotOp) then
+		thisModule.expression2String(expr.oclAsType(PIM!DotOp).lhs) + '.' + thisModule.expression2String(expr.oclAsType(PIM!DotOp).rhs)
+	else
+		''
+	endif endif endif endif endif endif endif endif endif;
+
+helper def : agentToImage(agent : PIM!Agent) : GitLabMM!Image =
+	if agent.oclIsUndefined() then
+		OclUndefined
+	else if agent.oclIsTypeOf(PIM!LinuxAgent) then
+		if not agent.oclAsType(PIM!LinuxAgent).container.oclIsUndefined() then
+			thisModule.Expression2Image(agent.oclAsType(PIM!LinuxAgent).container.image)
+		else if not agent.oclAsType(PIM!LinuxAgent).image.oclIsUndefined() then
+			thisModule.Expression2Image(agent.oclAsType(PIM!LinuxAgent).image)
+		else
+			OclUndefined
+		endif endif
+	else if agent.oclIsTypeOf(PIM!WindowsAgent) then
+		if not agent.oclAsType(PIM!WindowsAgent).image.oclIsUndefined() then
+			thisModule.Expression2Image(agent.oclAsType(PIM!WindowsAgent).image)
+		else
+			OclUndefined
+		endif
+	else if agent.oclIsTypeOf(PIM!MacOSAgent) then
+		if not agent.oclAsType(PIM!MacOSAgent).image.oclIsUndefined() then
+			thisModule.Expression2Image(agent.oclAsType(PIM!MacOSAgent).image)
+		else
+			OclUndefined
+		endif
+	else
+		OclUndefined
+	endif endif endif endif;
+
+helper def : agentToTags(agent : PIM!Agent) : Sequence(String) =
+	if agent.oclIsUndefined() then
+		Sequence{}
+	else if agent.oclIsTypeOf(PIM!CustomAgent) then
+		agent.oclAsType(PIM!CustomAgent).labels->collect(l | thisModule.expression2String(l))
+	else if agent.oclIsTypeOf(PIM!WindowsAgent) then
+		Sequence{'windows'}
+	else if agent.oclIsTypeOf(PIM!MacOSAgent) then
+		Sequence{'macos'}
+	else
+		Sequence{}
+	endif endif endif endif;
+
+helper def : stepsToArtifacts(steps : Sequence(PIM!Step)) : GitLabMM!Artifacts =
+	let artSteps : Sequence(PIM!Artifact) =
+		steps->select(s | s.oclIsTypeOf(PIM!Artifact))
+			->collect(s | s.oclAsType(PIM!Artifact))
+			->select(a | a.store)
+	in
+	if artSteps->isEmpty() then
+		OclUndefined
+	else
+		thisModule.Artifact2Artifacts(artSteps->first())
+	endif;
+
+helper def : stepsToCache(steps : Sequence(PIM!Step)) : GitLabMM!Cache =
+	let cacheSteps : Sequence(PIM!Cache) =
+		steps->select(s | s.oclIsTypeOf(PIM!Cache))
+			->collect(s | s.oclAsType(PIM!Cache))
+	in
+	if cacheSteps->isEmpty() then
+		OclUndefined
+	else
+		thisModule.PimCache2GitLabCache(cacheSteps->first())
+	endif;
+
+helper def : Matrix2Parallel(matrix : PIM!Matrix) : GitLabMM!Parallel =
+	if matrix.oclIsUndefined() then
+		OclUndefined
+	else
+		thisModule.CreateParallel(matrix)
+	endif;
+
+helper def : scriptJobLines(j : PIM!ScriptJob) : Sequence(String) =
+	let lines : Sequence(String) = j.steps->collect(s | s.toScriptLines())->flatten()
+	in
+	if lines->isEmpty() then
+		Sequence{'echo "no steps"'}
+	else
+		lines
+	endif;
+
+-- Step toScriptLines helpers (polymorphic via context)
+
+helper context PIM!Step def : toScriptLines() : Sequence(String) =
+	Sequence{};
+
+helper context PIM!Command def : toScriptLines() : Sequence(String) =
+	let cmd : String = thisModule.expression2String(self.program) in
+	Sequence{
+		if not self.allowFailure.oclIsUndefined() and self.allowFailure then
+			cmd + ' || true'
+		else
+			cmd
+		endif
+	};
+
+helper context PIM!Plugin def : toScriptLines() : Sequence(String) =
+	Sequence{'# plugin: ' + self.pluginName + '@' + self.version};
+
+helper context PIM!Cache def : toScriptLines() : Sequence(String) =
+	Sequence{};
+
+helper context PIM!Artifact def : toScriptLines() : Sequence(String) =
+	Sequence{};
+
+helper context PIM!Checkout def : toScriptLines() : Sequence(String) =
+	Sequence{};
+
+helper context PIM!ConditionalStep def : toScriptLines() : Sequence(String) =
+	Sequence{'if ' + thisModule.expression2String(self.ifCondition) + '; then'}
+		->union(self.thenRun->collect(s | s.toScriptLines())->flatten())
+		->union(
+			if self.elseRun->notEmpty() then
+				Sequence{'else'}->union(self.elseRun->collect(s | s.toScriptLines())->flatten())
+			else
+				Sequence{}
+			endif
+		)
+		->union(Sequence{'fi'});
+
+-- Trigger toWorkflowRules helpers (polymorphic via context)
+
+helper context PIM!Trigger def : toWorkflowRules() : Sequence(GitLabMM!Rule) =
+	Sequence{};
+
+helper context PIM!PushTrigger def : toWorkflowRules() : Sequence(GitLabMM!Rule) =
+	Sequence{thisModule.PushTrigger2Rule(self)};
+
+helper context PIM!PullRequestTrigger def : toWorkflowRules() : Sequence(GitLabMM!Rule) =
+	Sequence{thisModule.PullRequestTrigger2Rule(self)};
+
+helper context PIM!ManualTrigger def : toWorkflowRules() : Sequence(GitLabMM!Rule) =
+	Sequence{thisModule.ManualTrigger2Rule(self)};
+
+helper context PIM!ScheduledTrigger def : toWorkflowRules() : Sequence(GitLabMM!Rule) =
+	Sequence{thisModule.ScheduledTrigger2Rule(self)};
+
+-- =========================================================
+-- Lazy Rules
+-- =========================================================
+
+lazy rule Expression2Image {
+	from
+		expr : PIM!Expression
+	to
+		img : GitLabMM!Image(
+			name <- thisModule.expression2String(expr)
+		)
+}
+
+lazy rule Assignment2Variable {
+	from
+		a : PIM!Assignment
+	to
+		v : GitLabMM!Variable(
+			name <- a.key.name,
+			value <- thisModule.expression2String(a.value)
+		)
+}
+
+lazy rule Input2Variable {
+	from
+		i : PIM!Input
+	to
+		v : GitLabMM!Variable(
+			name <- i.id.name,
+			value <-
+				if not i.defaultValue.oclIsUndefined() then
+					thisModule.expression2String(i.defaultValue)
+				else
+					OclUndefined
+				endif,
+			description <-
+				if not i.description.oclIsUndefined() then
+					thisModule.expression2String(i.description)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+lazy rule DockerContainer2Service {
+	from
+		dc : PIM!DockerContainer
+	to
+		s : GitLabMM!Service(
+			name <- thisModule.expression2String(dc.image),
+			alias <- dc.label,
+			variables <- dc.environmentVariables->collect(a | thisModule.Assignment2Variable(a))
+		)
+}
+
+lazy rule Job2Need {
+	from
+		j : PIM!Job
+	to
+		n : GitLabMM!Need(
+			job <-
+				if not j.id.oclIsUndefined() then
+					j.id
+				else if not j.name.oclIsUndefined() then
+					j.name
+				else
+					'unknown'
+				endif endif
+		)
+}
+
+lazy rule IfCondition2Rule {
+	from
+		expr : PIM!Expression
+	to
+		r : GitLabMM!Rule(
+			ifCondition <- thisModule.expression2String(expr),
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule Artifact2Artifacts {
+	from
+		a : PIM!Artifact
+	to
+		arts : GitLabMM!Artifacts(
+			name <-
+				if not a.artifactName.oclIsUndefined() then
+					thisModule.expression2String(a.artifactName)
+				else
+					OclUndefined
+				endif,
+			paths <- a.includePaths->collect(p | thisModule.expression2String(p)),
+			exclude <- a.excludePaths->collect(p | thisModule.expression2String(p)),
+			expireIn <-
+				if not a.retentionTime.oclIsUndefined() then
+					thisModule.expression2String(a.retentionTime)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+lazy rule PimCache2GitLabCache {
+	from
+		c : PIM!Cache
+	to
+		glCache : GitLabMM!Cache(
+			key <-
+				if c.keys->notEmpty() then
+					thisModule.CreateCacheKey(c.keys->first())
+				else
+					OclUndefined
+				endif,
+			paths <- c.paths->collect(p | thisModule.expression2String(p)),
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule CreateCacheKey {
+	from
+		expr : PIM!Expression
+	to
+		key : GitLabMM!CacheKey(
+			value <- thisModule.expression2String(expr)
+		)
+}
+
+lazy rule CreateParallel {
+	from
+		m : PIM!Matrix
+	to
+		p : GitLabMM!Parallel(
+			matrix <- m.axes->collect(axis | thisModule.MatrixAxis2Entry(axis))
+		)
+}
+
+lazy rule MatrixAxis2Entry {
+	from
+		axis : PIM!MatrixAxis
+	to
+		entry : GitLabMM!MatrixEntry(
+			key <- axis.name.name,
+			values <- axis.cells->collect(c | thisModule.expression2String(c))
+		)
+}
+
+lazy rule CreateRetry {
+	from
+		maxAttempts : Integer
+	to
+		r : GitLabMM!Retry(
+			max <-
+				if maxAttempts > 2 then
+					2
+				else if maxAttempts < 0 then
+					0
+				else
+					maxAttempts
+				endif endif
+		)
+}
+
+lazy rule PushTrigger2Rule {
+	from
+		t : PIM!PushTrigger
+	to
+		r : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "push"',
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule PullRequestTrigger2Rule {
+	from
+		t : PIM!PullRequestTrigger
+	to
+		r : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "merge_request_event"',
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule ManualTrigger2Rule {
+	from
+		t : PIM!ManualTrigger
+	to
+		r : GitLabMM!Rule(
+			when <- #MANUAL
+		)
+}
+
+lazy rule ScheduledTrigger2Rule {
+	from
+		t : PIM!ScheduledTrigger
+	to
+		r : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "schedule"',
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule CreateWorkflow {
+	from
+		triggers : Sequence(PIM!Trigger)
+	to
+		w : GitLabMM!Workflow(
+			rules <- triggers->collect(t | t.toWorkflowRules())->flatten()
+		)
+}
+
+-- =========================================================
+-- Main Rules
+-- =========================================================
+
+rule Pipeline2Pipeline {
+	from
+		p : PIM!Pipeline
+	to
+		gl : GitLabMM!Pipeline(
+			stages <- thisModule.computeStages(p.jobStreams),
+			workflow <-
+				if p.triggers->notEmpty() then
+					thisModule.CreateWorkflow(p.triggers)
+				else
+					OclUndefined
+				endif,
+			variables <-
+				p.environmentVariables->collect(a | thisModule.Assignment2Variable(a))
+					->union(p.inputs->collect(i | thisModule.Input2Variable(i))),
+			jobs <- thisModule.getAllJobs(p.jobStreams)
+		)
+}
+
+rule ScriptJob2Job {
+	from
+		j : PIM!ScriptJob
+	to
+		glJob : GitLabMM!Job(
+			name <-
+				if not j.id.oclIsUndefined() then
+					j.id
+				else if not j.name.oclIsUndefined() then
+					j.name
+				else
+					'job'
+				endif endif,
+			stage <- thisModule.jobStageName(j),
+			image <- thisModule.agentToImage(j.agent),
+			script <- thisModule.scriptJobLines(j),
+			services <- j.services->collect(s | thisModule.DockerContainer2Service(s)),
+			variables <- j.environmentVariables->collect(a | thisModule.Assignment2Variable(a)),
+			artifacts <- thisModule.stepsToArtifacts(j.steps),
+			cache <- thisModule.stepsToCache(j.steps),
+			needs <- j.previous->collect(prev | thisModule.Job2Need(prev)),
+			rules <-
+				if not j.ifCondition.oclIsUndefined() then
+					Sequence{thisModule.IfCondition2Rule(j.ifCondition)}
+				else
+					Sequence{}
+				endif,
+			tags <- thisModule.agentToTags(j.agent),
+			allowFailure <- j.allowFailure,
+			timeout <-
+				if not j.timeoutMinutes.oclIsUndefined() then
+					j.timeoutMinutes.toString() + ' minutes'
+				else
+					OclUndefined
+				endif,
+			retry <-
+				if not j.maxAttempts.oclIsUndefined() and j.maxAttempts > 1 then
+					thisModule.CreateRetry(j.maxAttempts - 1)
+				else
+					OclUndefined
+				endif,
+			parallel <- thisModule.Matrix2Parallel(j.matrix)
+		)
+}
+
+rule PipelineCallJob2Job {
+	from
+		j : PIM!PipelineCallJob
+	to
+		glJob : GitLabMM!Job(
+			name <-
+				if not j.id.oclIsUndefined() then
+					j.id
+				else if not j.name.oclIsUndefined() then
+					j.name
+				else
+					'pipeline-call'
+				endif endif,
+			stage <- thisModule.jobStageName(j),
+			image <- thisModule.agentToImage(j.agent),
+			script <-
+				Sequence{'# trigger: ' + thisModule.expression2String(j.pipelinePath)},
+			variables <-
+				j.environmentVariables->collect(a | thisModule.Assignment2Variable(a))
+					->union(j.args->collect(a | thisModule.Assignment2Variable(a))),
+			needs <- j.previous->collect(prev | thisModule.Job2Need(prev)),
+			rules <-
+				if not j.ifCondition.oclIsUndefined() then
+					Sequence{thisModule.IfCondition2Rule(j.ifCondition)}
+				else
+					Sequence{}
+				endif,
+			tags <- thisModule.agentToTags(j.agent),
+			allowFailure <- j.allowFailure,
+			timeout <-
+				if not j.timeoutMinutes.oclIsUndefined() then
+					j.timeoutMinutes.toString() + ' minutes'
+				else
+					OclUndefined
+				endif,
+			retry <-
+				if not j.maxAttempts.oclIsUndefined() and j.maxAttempts > 1 then
+					thisModule.CreateRetry(j.maxAttempts - 1)
+				else
+					OclUndefined
+				endif,
+			parallel <- thisModule.Matrix2Parallel(j.matrix)
+		)
+}

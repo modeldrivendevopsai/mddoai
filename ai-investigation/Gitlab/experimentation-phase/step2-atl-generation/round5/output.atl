@@ -1,0 +1,537 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitLabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pim2gitlab;
+
+create OUT : GitLabMM from IN : PIM;
+
+-- ============================================================
+-- Global helpers
+-- ============================================================
+
+helper def : getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+	let next : Sequence(PIM!Job) =
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(PIM!Job)) = Sequence{} |
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in
+	if next.isEmpty() then
+		jobStreams
+	else
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+helper def : getMaxDepth(jobs : Sequence(PIM!Job)) : Integer =
+	jobs->iterate(j; acc : Integer = 0 |
+		if j.stageDepth() > acc then j.stageDepth() else acc endif
+	);
+
+helper def : generateStages(maxDepth : Integer, current : Integer) : Sequence(String) =
+	if current > maxDepth then
+		Sequence{}
+	else
+		Sequence{'stage-' + current.toString()}
+			->union(thisModule.generateStages(maxDepth, current + 1))
+	endif;
+
+-- ============================================================
+-- Job topology helpers
+-- ============================================================
+
+helper context PIM!Job def : stageDepth() : Integer =
+	if self.previous->isEmpty() then
+		1
+	else
+		self.previous->iterate(p; acc : Integer = 0 |
+			if p.stageDepth() > acc then p.stageDepth() else acc endif
+		) + 1
+	endif;
+
+helper context PIM!Job def : stageName() : String =
+	'stage-' + self.stageDepth().toString();
+
+helper context PIM!ScriptJob def : getCacheStep() : OclAny =
+	let caches : Sequence(PIM!Step) = self.steps->select(s | s.oclIsTypeOf(PIM!Cache)) in
+	if caches->notEmpty() then
+		caches->first()
+	else
+		OclUndefined
+	endif;
+
+helper context PIM!ScriptJob def : getArtifactStep() : OclAny =
+	let arts : Sequence(PIM!Step) = self.steps->select(s | s.oclIsTypeOf(PIM!Artifact)) in
+	if arts->notEmpty() then
+		arts->first()
+	else
+		OclUndefined
+	endif;
+
+helper context PIM!ScriptJob def : getScriptLines() : Sequence(String) =
+	let lines : Sequence(String) =
+		self.steps->collect(s | s.stepToScript())->flatten()
+	in
+	if lines->isEmpty() then
+		Sequence{'echo "no-op"'}
+	else
+		lines
+	endif;
+
+-- ============================================================
+-- Expression -> String helpers
+-- ============================================================
+
+helper context PIM!Expression def : expressionToString() : String = '';
+
+helper context PIM!StringLiteral def : expressionToString() : String = self.value;
+
+helper context PIM!IntegerLiteral def : expressionToString() : String =
+	self.value.toString();
+
+helper context PIM!DoubleLiteral def : expressionToString() : String =
+	self.value.toString();
+
+helper context PIM!BooleanLiteral def : expressionToString() : String =
+	self.value.toString();
+
+helper context PIM!VariableReference def : expressionToString() : String =
+	'$' + self.reference.name;
+
+helper context PIM!Concat def : expressionToString() : String =
+	self.expressions->iterate(e; acc : String = '' | acc + e.expressionToString());
+
+helper context PIM!Assignment def : expressionToString() : String =
+	self.key.name + '=' + self.value.expressionToString();
+
+helper context PIM!EqualityOp def : expressionToString() : String =
+	self.lhs.expressionToString()
+		+ (if self.op = #"==" then ' == ' else ' != ' endif)
+		+ self.rhs.expressionToString();
+
+helper context PIM!ComparisonOp def : expressionToString() : String =
+	self.lhs.expressionToString()
+		+ ' '
+		+ (if self.op = #">" then '>'
+		   else if self.op = #">=" then '>='
+		   else if self.op = #"<" then '<'
+		   else '<='
+		   endif endif endif)
+		+ ' '
+		+ self.rhs.expressionToString();
+
+helper context PIM!And def : expressionToString() : String =
+	self.lhs.expressionToString() + ' && ' + self.rhs.expressionToString();
+
+helper context PIM!Or def : expressionToString() : String =
+	self.lhs.expressionToString() + ' || ' + self.rhs.expressionToString();
+
+helper context PIM!Negation def : expressionToString() : String =
+	'!' + self.rhs.expressionToString();
+
+helper context PIM!DotOp def : expressionToString() : String =
+	self.lhs.expressionToString() + '.' + self.rhs.expressionToString();
+
+-- ============================================================
+-- Step -> script-line helpers
+-- ============================================================
+
+helper context PIM!Step def : stepToScript() : Sequence(String) = Sequence{};
+
+helper context PIM!Command def : stepToScript() : Sequence(String) =
+	Sequence{self.program.expressionToString()};
+
+helper context PIM!Plugin def : stepToScript() : Sequence(String) =
+	Sequence{self.pluginName + '@' + self.version};
+
+helper context PIM!Checkout def : stepToScript() : Sequence(String) =
+	Sequence{
+		if not self.path.oclIsUndefined() then
+			'git checkout -- ' + self.path.expressionToString()
+		else
+			'git checkout'
+		endif
+	};
+
+helper context PIM!Cache def : stepToScript() : Sequence(String) = Sequence{};
+
+helper context PIM!Artifact def : stepToScript() : Sequence(String) = Sequence{};
+
+helper context PIM!ConditionalStep def : stepToScript() : Sequence(String) =
+	self.thenRun->collect(s | s.stepToScript())->flatten();
+
+-- ============================================================
+-- Agent -> Image / Tags helpers
+-- ============================================================
+
+helper context PIM!Agent def : agentToImage() : GitLabMM!Image = OclUndefined;
+
+helper context PIM!LinuxAgent def : agentToImage() : GitLabMM!Image =
+	if not self.image.oclIsUndefined() then
+		thisModule.CreateImage(self.image.expressionToString())
+	else
+		if not self.container.oclIsUndefined() then
+			thisModule.CreateImage(self.container.image.expressionToString())
+		else
+			OclUndefined
+		endif
+	endif;
+
+helper context PIM!WindowsAgent def : agentToImage() : GitLabMM!Image =
+	if not self.image.oclIsUndefined() then
+		thisModule.CreateImage(self.image.expressionToString())
+	else
+		OclUndefined
+	endif;
+
+helper context PIM!MacOSAgent def : agentToImage() : GitLabMM!Image =
+	if not self.image.oclIsUndefined() then
+		thisModule.CreateImage(self.image.expressionToString())
+	else
+		OclUndefined
+	endif;
+
+helper context PIM!CustomAgent def : agentToImage() : GitLabMM!Image = OclUndefined;
+
+helper context PIM!Agent def : agentToTags() : Sequence(String) = Sequence{};
+
+helper context PIM!CustomAgent def : agentToTags() : Sequence(String) =
+	self.labels->collect(l | l.expressionToString());
+
+helper context PIM!LinuxAgent def : agentToTags() : Sequence(String) = Sequence{};
+
+helper context PIM!WindowsAgent def : agentToTags() : Sequence(String) =
+	Sequence{'windows'};
+
+helper context PIM!MacOSAgent def : agentToTags() : Sequence(String) =
+	Sequence{'macos'};
+
+-- ============================================================
+-- Trigger -> Rule helpers
+-- ============================================================
+
+helper context PIM!Trigger def : triggerToRule() : GitLabMM!Rule = OclUndefined;
+
+helper context PIM!PushTrigger def : triggerToRule() : GitLabMM!Rule =
+	thisModule.PushTrigger2Rule(self);
+
+helper context PIM!PullRequestTrigger def : triggerToRule() : GitLabMM!Rule =
+	thisModule.PullRequestTrigger2Rule(self);
+
+helper context PIM!ManualTrigger def : triggerToRule() : GitLabMM!Rule =
+	thisModule.ManualTrigger2Rule(self);
+
+helper context PIM!ScheduledTrigger def : triggerToRule() : GitLabMM!Rule =
+	thisModule.ScheduledTrigger2Rule(self);
+
+-- ============================================================
+-- Matched rules
+-- ============================================================
+
+rule Pipeline2Pipeline {
+	from
+		pipeline : PIM!Pipeline
+	to
+		gitlabPipeline : GitLabMM!Pipeline(
+			stages <- thisModule.generateStages(
+				thisModule.getMaxDepth(thisModule.getAllJobs(pipeline.jobStreams)),
+				1
+			),
+			workflow <-
+				if pipeline.triggers->notEmpty() then
+					thisModule.CreateWorkflow(pipeline.triggers)
+				else
+					OclUndefined
+				endif,
+			variables <- pipeline.environmentVariables
+				->collect(a | thisModule.CreateVariable(a)),
+			jobs <- thisModule.getAllJobs(pipeline.jobStreams)
+		)
+}
+
+rule ScriptJob2Job {
+	from
+		job : PIM!ScriptJob
+	to
+		gitlabJob : GitLabMM!Job(
+			name <- job.id,
+			stage <- job.stageName(),
+			image <-
+				if not job.agent.oclIsUndefined() then
+					job.agent.agentToImage()
+				else
+					OclUndefined
+				endif,
+			script <- job.getScriptLines(),
+			variables <- job.environmentVariables
+				->collect(a | thisModule.CreateVariable(a)),
+			services <- job.services
+				->collect(c | thisModule.DockerContainer2Service(c)),
+			needs <- job.previous->collect(p | thisModule.CreateNeed(p)),
+			rules <-
+				if not job.ifCondition.oclIsUndefined() then
+					Sequence{thisModule.CreateJobRule(job.ifCondition)}
+				else
+					Sequence{}
+				endif,
+			allowFailure <-
+				if not job.allowFailure.oclIsUndefined() then
+					job.allowFailure
+				else
+					OclUndefined
+				endif,
+			timeout <-
+				if not job.timeoutMinutes.oclIsUndefined() then
+					job.timeoutMinutes.toString() + ' minutes'
+				else
+					OclUndefined
+				endif,
+			retry <-
+				if not job.maxAttempts.oclIsUndefined() then
+					if job.maxAttempts > 1 then
+						thisModule.CreateRetry(job.maxAttempts - 1)
+					else
+						OclUndefined
+					endif
+				else
+					OclUndefined
+				endif,
+			tags <-
+				if not job.agent.oclIsUndefined() then
+					job.agent.agentToTags()
+				else
+					Sequence{}
+				endif,
+			cache <-
+				if not job.getCacheStep().oclIsUndefined() then
+					thisModule.Cache2Cache(job.getCacheStep())
+				else
+					OclUndefined
+				endif,
+			artifacts <-
+				if not job.getArtifactStep().oclIsUndefined() then
+					thisModule.Artifact2Artifacts(job.getArtifactStep())
+				else
+					OclUndefined
+				endif,
+			parallel <-
+				if not job.matrix.oclIsUndefined() then
+					thisModule.Matrix2Parallel(job.matrix)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule PipelineCallJob2Job {
+	from
+		job : PIM!PipelineCallJob
+	to
+		gitlabJob : GitLabMM!Job(
+			name <- job.id,
+			stage <- job.stageName(),
+			script <- Sequence{'trigger: ' + job.pipelinePath.expressionToString()},
+			variables <- job.environmentVariables
+				->collect(a | thisModule.CreateVariable(a))
+				->union(job.args->collect(a | thisModule.CreateVariable(a))),
+			needs <- job.previous->collect(p | thisModule.CreateNeed(p)),
+			rules <-
+				if not job.ifCondition.oclIsUndefined() then
+					Sequence{thisModule.CreateJobRule(job.ifCondition)}
+				else
+					Sequence{}
+				endif,
+			allowFailure <-
+				if not job.allowFailure.oclIsUndefined() then
+					job.allowFailure
+				else
+					OclUndefined
+				endif,
+			timeout <-
+				if not job.timeoutMinutes.oclIsUndefined() then
+					job.timeoutMinutes.toString() + ' minutes'
+				else
+					OclUndefined
+				endif,
+			retry <-
+				if not job.maxAttempts.oclIsUndefined() then
+					if job.maxAttempts > 1 then
+						thisModule.CreateRetry(job.maxAttempts - 1)
+					else
+						OclUndefined
+					endif
+				else
+					OclUndefined
+				endif
+		)
+}
+
+-- ============================================================
+-- Lazy rules
+-- ============================================================
+
+lazy rule CreateWorkflow {
+	from
+		triggers : Sequence(PIM!Trigger)
+	to
+		workflow : GitLabMM!Workflow(
+			rules <- triggers->collect(t | t.triggerToRule())
+		)
+}
+
+lazy rule CreateVariable {
+	from
+		assignment : PIM!Assignment
+	to
+		variable : GitLabMM!Variable(
+			name <- assignment.key.name,
+			value <- assignment.value.expressionToString()
+		)
+}
+
+lazy rule CreateNeed {
+	from
+		job : PIM!Job
+	to
+		need : GitLabMM!Need(
+			job <- job.id
+		)
+}
+
+lazy rule CreateJobRule {
+	from
+		condition : PIM!Expression
+	to
+		rule_ : GitLabMM!Rule(
+			ifCondition <- condition.expressionToString(),
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule CreateRetry {
+	from
+		maxRetries : Integer
+	to
+		retry : GitLabMM!Retry(
+			max <- maxRetries
+		)
+}
+
+lazy rule CreateImage {
+	from
+		imageName : String
+	to
+		glImage : GitLabMM!Image(
+			name <- imageName
+		)
+}
+
+lazy rule Cache2Cache {
+	from
+		cacheStep : PIM!Cache
+	to
+		glCache : GitLabMM!Cache(
+			key <- thisModule.CreateCacheKey(cacheStep.keys->first()),
+			paths <- cacheStep.paths->collect(p | p.expressionToString())
+		)
+}
+
+lazy rule CreateCacheKey {
+	from
+		keyExpr : PIM!Expression
+	to
+		cacheKey : GitLabMM!CacheKey(
+			value <- keyExpr.expressionToString()
+		)
+}
+
+lazy rule Artifact2Artifacts {
+	from
+		artifactStep : PIM!Artifact
+	to
+		glArtifacts : GitLabMM!Artifacts(
+			name <-
+				if not artifactStep.artifactName.oclIsUndefined() then
+					artifactStep.artifactName.expressionToString()
+				else
+					OclUndefined
+				endif,
+			paths <- artifactStep.includePaths->collect(p | p.expressionToString()),
+			exclude <- artifactStep.excludePaths->collect(p | p.expressionToString()),
+			expireIn <-
+				if not artifactStep.retentionTime.oclIsUndefined() then
+					artifactStep.retentionTime.expressionToString()
+				else
+					OclUndefined
+				endif
+		)
+}
+
+lazy rule Matrix2Parallel {
+	from
+		matrix : PIM!Matrix
+	to
+		parallel : GitLabMM!Parallel(
+			matrix <- matrix.axes->collect(axis | thisModule.MatrixAxis2MatrixEntry(axis))
+		)
+}
+
+lazy rule MatrixAxis2MatrixEntry {
+	from
+		axis : PIM!MatrixAxis
+	to
+		entry : GitLabMM!MatrixEntry(
+			key <- axis.name.name,
+			values <- axis.cells->collect(c | c.expressionToString())
+		)
+}
+
+lazy rule DockerContainer2Service {
+	from
+		container : PIM!DockerContainer
+	to
+		service : GitLabMM!Service(
+			name <- container.image.expressionToString(),
+			alias <- container.label,
+			variables <- container.environmentVariables
+				->collect(a | thisModule.CreateVariable(a))
+		)
+}
+
+lazy rule PushTrigger2Rule {
+	from
+		trigger : PIM!PushTrigger
+	to
+		rule_ : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "push"',
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule PullRequestTrigger2Rule {
+	from
+		trigger : PIM!PullRequestTrigger
+	to
+		rule_ : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "merge_request_event"',
+			when <- #ON_SUCCESS
+		)
+}
+
+lazy rule ManualTrigger2Rule {
+	from
+		trigger : PIM!ManualTrigger
+	to
+		rule_ : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "web"',
+			when <- #MANUAL
+		)
+}
+
+lazy rule ScheduledTrigger2Rule {
+	from
+		trigger : PIM!ScheduledTrigger
+	to
+		rule_ : GitLabMM!Rule(
+			ifCondition <- '$CI_PIPELINE_SOURCE == "schedule"',
+			when <- #ON_SUCCESS
+		)
+}
