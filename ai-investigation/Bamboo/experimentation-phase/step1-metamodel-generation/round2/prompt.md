@@ -1,6 +1,7 @@
 # Round 2 — GHA PSM metamodel + pimMM + Bamboo documentation + enum-default guard
 
 ## Why Round 2
+
 Round 1 generated a valid-looking metamodel but failed Eclipse EMF validation on enum default literals.
 This round keeps the same context and adds strict constraints so enum defaults are always legal.
 
@@ -60,6 +61,7 @@ Use Bamboo terminology (Plan, Stage, Job, Task, Agent, Trigger, Artifact, Variab
 4. If unsure about an enum default, omit `defaultValueLiteral` instead of inventing one.
 
 Examples of valid literal forms:
+
 - `REPOSITORY_SCOPE`: `global`, `project`
 - `RELEASE_APPROVAL`: `not-broken`, `approved`, `none`
 
@@ -72,6 +74,7 @@ covering the constructs described in the Bamboo reference above and mapping
 to the PIM concepts where applicable.
 
 Use:
+
 - `name="bambooMM"`
 - `nsURI="http://www.mddoai.com/mddoai/metamodel/bamboo"`
 - `nsPrefix="bambooMM"`
