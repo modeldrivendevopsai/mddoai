@@ -1,17 +1,17 @@
 ```mermaid
 flowchart TD
 subgraph inputs["Fixed Inputs"]
-GHA_MM["GitHub Actions PSM Metamodel (.ecore)\n(Reference Metamodel)"]
+GHA_MM["GitHub Actions\nPSM Metamodel (.ecore)\n(Reference Metamodel)"]
 PIM["pimMM.ecore\n(PIM Metamodel)"]
 REF_ATL["cicd2gha.atl\n(Reference ATL - GitHub Actions)"]
-REF_MTL["gha2code.mtl\n(Reference Acceleo - GitHub Actions)"]
+REF_MTL["gha2code.mtl\n(Reference Acceleo)\n(GitHub Actions)"]
 DOCS["Platform Documentation"]
 end
 
     subgraph step1["Step 1 — PSM Metamodel Generation"]
         CTX1["Context:\n• GitHub Actions PSM Metamodel\n• Platform Documentation"]
-        R1A["↳ GitHub PSM metamodel shows the expected structure and conventions\n   of a CI/CD PSM — the LLM replicates this pattern for the new platform."]
-        R1B["↳ Platform docs define what concepts, attributes, and relationships\n   the new platform actually has and needs to express."]
+        R1A["1.1 Structure template:\nGHA PSM metamodel provides\nPSM structure conventions."]
+        R1B["1.2 Domain coverage:\nPlatform docs define concepts,\nattributes, and relationships."]
         GEN1["LLM generates:\nNew Platform PSM Metamodel (.ecore)"]
         VAL1{"Loads in\nEclipse EMF?"}
         CTX1 --> R1A & R1B --> GEN1 --> VAL1
@@ -20,9 +20,9 @@ end
 
     subgraph step2["Step 2 — ATL Transformation Generation"]
         CTX2["Context:\n• pimMM.ecore\n• cicd2gha.atl (reference)\n• New Platform PSM Metamodel from Step 1"]
-        R2A["↳ The PIM metamodel defines the source classes for the left-hand side\n   of every rule — what is being transformed from."]
-        R2B["↳ The Step 1 metamodel defines the target classes ATL rules must produce\n   — what is being transformed to. Rules cannot reference classes that do not exist."]
-        R2C["↳ The reference ATL shows the required rule syntax, helper structure,\n   and mapping patterns to replicate for the new platform."]
+        R2A["2.1 Source model:\nPIM defines ATL left-hand side\nsource classes."]
+        R2B["2.2 Target model:\nStep 1 metamodel defines\nclasses ATL must produce."]
+        R2C["2.3 Syntax and mapping:\nReference ATL provides rule style,\nhelpers, and mapping patterns."]
         GEN2["LLM generates:\nATL Transformation (.atl)"]
         VAL2{"Executes without errors?\nXMI references valid classes?"}
         CTX2 --> R2A & R2B & R2C --> GEN2 --> VAL2
@@ -31,9 +31,9 @@ end
 
     subgraph step3["Step 3 — Acceleo Template Generation"]
         CTX3["Context:\n• New Platform PSM Metamodel from Step 1\n• gha2code.mtl (reference)\n• Platform Documentation"]
-        R3A["↳ The Step 1 metamodel defines the PSM classes and attributes\n   the Acceleo template must query to produce output."]
-        R3B["↳ The reference Acceleo template shows the required module structure,\n   query syntax, and file generation patterns to replicate."]
-        R3C["↳ Platform docs define the exact YAML schema, keyword names,\n   and structure the generated pipeline file must conform to."]
+        R3A["3.1 Data model access:\nStep 1 metamodel defines classes\nand attributes queried by Acceleo."]
+        R3B["3.2 Template structure:\nReference Acceleo defines module style,\nquery syntax, and file generation."]
+        R3C["3.3 Output correctness:\nPlatform docs define YAML schema,\nkeywords, and required structure."]
         GEN3["LLM generates:\nAcceleo Template (.mtl)"]
         VAL3{"Generated YAML passes\nplatform CI linter?"}
         CTX3 --> R3A & R3B & R3C --> GEN3 --> VAL3
