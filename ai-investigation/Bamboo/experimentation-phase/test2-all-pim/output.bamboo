@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<bambooMM:Plan xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bambooMM="http://www.mddoai.com/mddoai/metamodel/bamboo" projectKey="FULLSTACK_WEBAPP" key="FULLSTACK_WEBAPP" name="fullstack-webapp">
+  <stages name="Default Stage" jobRefs="install-deps lint test-unit test-integration security-scan build docker-build docker-push deploy-staging e2e-test deploy-prod"/>
+  <jobs name="install-deps" key="INSTALL_DEPS">
+    <tasks xsi:type="bambooMM:AnyTask" pluginKey="com.atlassian.bamboo:cache">
+      <configuration key="cacheName" value="node-modules-cache"/>
+      <configuration key="cacheMode" value="BOTH"/>
+      <configuration key="cacheKey" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <configuration key="cachePaths" value="node_modules/"/>
+    </tasks>
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm ci --prefer-offline</scripts>
+    </tasks>
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>cd frontend &amp;&amp; npm ci --prefer-offline</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="lint" key="LINT">
+    <tasks xsi:type="bambooMM:AnyTask" pluginKey="com.atlassian.bamboo:cache">
+      <configuration key="cacheName" value="node-modules-cache"/>
+      <configuration key="cacheMode" value="LOAD"/>
+      <configuration key="cacheKey" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <configuration key="cachePaths" value="node_modules/"/>
+    </tasks>
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm run lint</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="test-unit" key="TEST_UNIT">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm run test:unit -- --coverage</scripts>
+    </tasks>
+    <artifacts name="unit-test-coverage" pattern="coverage/" shared="true"/>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="test-integration" key="TEST_INTEGRATION">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm run test:integration</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="security-scan" key="SECURITY_SCAN">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm audit --audit-level=critical</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="build" key="BUILD">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm run build:backend</scripts>
+    </tasks>
+    <artifacts name="build-output" pattern="dist/" shared="true"/>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="docker-build" key="DOCKER_BUILD">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>docker build -t ${APP_IMAGE}:${APP_VERSION} .</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="docker-push" key="DOCKER_PUSH">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>docker push ${APP_IMAGE}:${APP_VERSION}</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="deploy-staging" key="DEPLOY_STAGING">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="e2e-test" key="E2E_TEST">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>npm run test:e2e</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="deploy-prod" key="DEPLOY_PROD">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <triggers xsi:type="bambooMM:PollingTrigger" period="180"/>
+  <triggers xsi:type="bambooMM:PollingTrigger" period="180"/>
+  <triggers xsi:type="bambooMM:CronTrigger" expression="0"/>
+  <variables key="REGISTRY" value="${CI_REGISTRY}"/>
+  <variables key="APP_IMAGE" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+  <variables key="APP_VERSION" value="${CI_COMMIT_SHORT_SHA}"/>
+</bambooMM:Plan>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<bambooMM:Plan xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bambooMM="http://www.mddoai.com/mddoai/metamodel/bamboo" projectKey="CHATBOT_APP" key="CHATBOT_APP" name="chatbot-app">
+  <stages name="Default Stage" jobRefs="build unitTest healthCheck push"/>
+  <jobs name="build" key="BUILD">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>docker build -t ${IMAGE_TAG} .</scripts>
+    </tasks>
+  </jobs>
+  <jobs name="unitTest" key="UNITTEST">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>python3 test/run_unit_tests.py</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="healthCheck" key="HEALTHCHECK">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>./scripts/health_check.sh</scripts>
+    </tasks>
+    <requirements capability="os.linux"/>
+  </jobs>
+  <jobs name="push" key="PUSH">
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}</scripts>
+    </tasks>
+    <tasks xsi:type="bambooMM:ScriptTask">
+      <scripts>docker push ${IMAGE_TAG}</scripts>
+    </tasks>
+  </jobs>
+  <variables key="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
+  <variables key="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
+</bambooMM:Plan>
