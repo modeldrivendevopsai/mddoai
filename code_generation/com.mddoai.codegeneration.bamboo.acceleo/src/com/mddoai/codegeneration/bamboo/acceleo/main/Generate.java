@@ -335,78 +335,28 @@ public class Generate extends AbstractAcceleoGenerator {
      * 
      * @param resourceSet
      *            The resource set which registry has to be updated.
-     * @generated
+     * @generated NOT
      */
     @Override
     public void registerPackages(ResourceSet resourceSet) {
         super.registerPackages(resourceSet);
-        
-        /*
-         * If you want to change the content of this method, do NOT forget to change the "@generated"
-         * tag in the Javadoc of this method to "@generated NOT". Without this new tag, any compilation
-         * of the Acceleo module with the main template that has caused the creation of this class will
-         * revert your modifications.
-         */
-        
-        /*
-         * If you need additional package registrations, you can register them here. The following line
-         * (in comment) is an example of the package registration for UML.
-         * 
-         * You can use the method  "isInWorkspace(Class c)" to check if the package that you are about to
-         * register is in the workspace.
-         * 
-         * To register a package properly, please follow the following conventions:
-         *
-         * If the package is located in another plug-in, already installed in Eclipse. The following content should
-         * have been generated at the beginning of this method. Do not register the package using this mechanism if
-         * the metamodel is located in the workspace.
-         *  
-         * if (!isInWorkspace(UMLPackage.class)) {
-         *     // The normal package registration if your metamodel is in a plugin.
-         *     resourceSet.getPackageRegistry().put(UMLPackage.eNS_URI, UMLPackage.eINSTANCE);
-         * }
-         * 
-         * If the package is located in another project in your workspace, the plugin containing the package has not
-         * been register by EMF and Acceleo should register it automatically. If you want to use the generator in
-         * stand alone, the regular registration (seen a couple lines before) is needed.
-         * 
-         * To learn more about Package Registration, have a look at the Acceleo documentation (Help -> Help Contents).
-         */
+        resourceSet.getPackageRegistry().put(
+            com.mddoai.metamodel.bambooMM.BambooPackage.eNS_URI,
+            com.mddoai.metamodel.bambooMM.BambooPackage.eINSTANCE);
     }
 
     /**
      * This can be used to update the resource set's resource factory registry with all needed factories.
-     * 
+     *
      * @param resourceSet
      *            The resource set which registry has to be updated.
-     * @generated
+     * @generated NOT
      */
     @Override
     public void registerResourceFactories(ResourceSet resourceSet) {
         super.registerResourceFactories(resourceSet);
-        /*
-         * If you want to change the content of this method, do NOT forget to change the "@generated"
-         * tag in the Javadoc of this method to "@generated NOT". Without this new tag, any compilation
-         * of the Acceleo module with the main template that has caused the creation of this class will
-         * revert your modifications.
-         */
-        
-        /*
-         * TODO If you need additional resource factories registrations, you can register them here. the following line
-         * (in comment) is an example of the resource factory registration.
-         *
-         * If you want to use the generator in stand alone, the resource factory registration will be required.
-         *  
-         * To learn more about the registration of Resource Factories, have a look at the Acceleo documentation (Help -> Help Contents). 
-         */ 
-        
-        // resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(XyzResource.FILE_EXTENSION, XyzResource.Factory.INSTANCE);
-        
-        /*
-         * Some metamodels require a very complex setup for standalone usage. For example, if you want to use a generator
-         * targetting UML models in standalone, you NEED to use the following:
-         */ 
-        // UMLResourcesUtil.init(resourceSet)
+        resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(
+            "bamboo", new org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl());
     }
     
 }

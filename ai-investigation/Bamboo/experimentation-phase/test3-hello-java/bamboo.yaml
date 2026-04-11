@@ -1,0 +1,33 @@
+version: 2
+plan:
+  project-key: HELLO_JAVA_CI
+  key: HELLO_JAVA_CI
+  name: hello-java-ci
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - lintCheck
+
+build:
+  key: BUILD
+  tasks:
+    - script: gradle clean build -x test
+
+
+
+unitTest:
+  key: UNITTEST
+  tasks:
+    - script: gradle test
+
+
+
+lintCheck:
+  key: LINTCHECK
+  tasks:
+    - script: gradle check
+
+
+

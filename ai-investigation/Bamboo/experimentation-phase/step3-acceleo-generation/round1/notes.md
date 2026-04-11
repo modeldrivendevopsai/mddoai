@@ -1,7 +1,7 @@
 # Round 1 — Notes
 
 ## Run date
-<!-- fill in -->
+2026-04-11
 
 ## Context given
 - `context/bambooMM.ecore`
@@ -12,19 +12,22 @@
 ---
 
 ## Errors found
-<!-- fill in — compile errors, runtime errors -->
+YAML indentation bug — all `tasks` and `requirements` list items emitted at column 0 instead of indented under their parent key.
 
 ---
 
 ## Root cause
-<!-- fill in -->
+`generateTaskIndented` and `generateRequirement` both have `post(trim())` which strips all leading whitespace from the output, including the indent String passed as parameter. The indent parameter is therefore ineffective.
 
 ---
 
 ## Compilable / runs without error?
-<!-- fill in -->
+Yes — compiled and ran without errors. Output file generated.
 
 ---
 
 ## Key findings
-<!-- fill in -->
+- Pre-applied GitLab constraints effective: no `def` keyword issues, `@main` correctly placed, no enum toString issues
+- YAML structure mostly correct (plan header, variables, stages, job names/keys)
+- Bug: `post(trim())` on indented sub-templates removes leading spaces → invalid YAML
+- Fix for Round 2: remove `post(trim())` from `generateTaskIndented` and `generateRequirement`, or ensure indent is applied after trim

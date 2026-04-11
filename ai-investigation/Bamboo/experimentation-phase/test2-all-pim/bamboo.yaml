@@ -1,0 +1,178 @@
+version: 2
+plan:
+  project-key: FULLSTACK_WEBAPP
+  key: FULLSTACK_WEBAPP
+  name: fullstack-webapp
+triggers:
+  - polling: 180
+
+
+  - polling: 180
+
+
+  - cron: 0
+
+
+variables:
+  REGISTRY: ${CI_REGISTRY}
+  APP_IMAGE: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+  APP_VERSION: ${CI_COMMIT_SHORT_SHA}
+
+stages:
+  - Default Stage:
+      jobs:
+        - install-deps
+        - lint
+        - test-unit
+        - test-integration
+        - security-scan
+        - build
+        - docker-build
+        - docker-push
+        - deploy-staging
+        - e2e-test
+        - deploy-prod
+
+install-deps:
+  key: INSTALL_DEPS
+  tasks:
+    - any-task:
+        plugin-key: com.atlassian.bamboo:cache
+        configuration:
+          cacheName: node-modules-cache
+          cacheMode: BOTH
+          cacheKey: ${CI_COMMIT_REF_SLUG}-node-modules
+          cachePaths: node_modules/
+
+
+    - script: npm ci --prefer-offline
+
+
+    - script: cd frontend && npm ci --prefer-offline
+
+
+  requirements:
+    - os.linux
+
+
+lint:
+  key: LINT
+  tasks:
+    - any-task:
+        plugin-key: com.atlassian.bamboo:cache
+        configuration:
+          cacheName: node-modules-cache
+          cacheMode: LOAD
+          cacheKey: ${CI_COMMIT_REF_SLUG}-node-modules
+          cachePaths: node_modules/
+
+
+    - script: npm run lint
+
+
+  requirements:
+    - os.linux
+
+
+test-unit:
+  key: TEST_UNIT
+  tasks:
+    - script: npm run test:unit -- --coverage
+
+
+  artifacts:
+    -
+      name: unit-test-coverage
+      pattern: 'coverage/'
+      shared: true
+
+  requirements:
+    - os.linux
+
+
+test-integration:
+  key: TEST_INTEGRATION
+  tasks:
+    - script: npm run test:integration
+
+
+  requirements:
+    - os.linux
+
+
+security-scan:
+  key: SECURITY_SCAN
+  tasks:
+    - script: npm audit --audit-level=critical
+
+
+  requirements:
+    - os.linux
+
+
+build:
+  key: BUILD
+  tasks:
+    - script: npm run build:backend
+
+
+  artifacts:
+    -
+      name: build-output
+      pattern: 'dist/'
+      shared: true
+
+  requirements:
+    - os.linux
+
+
+docker-build:
+  key: DOCKER_BUILD
+  tasks:
+    - script: docker build -t ${APP_IMAGE}:${APP_VERSION} .
+
+
+  requirements:
+    - os.linux
+
+
+docker-push:
+  key: DOCKER_PUSH
+  tasks:
+    - script: docker push ${APP_IMAGE}:${APP_VERSION}
+
+
+  requirements:
+    - os.linux
+
+
+deploy-staging:
+  key: DEPLOY_STAGING
+  tasks:
+    - script: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+
+
+  requirements:
+    - os.linux
+
+
+e2e-test:
+  key: E2E_TEST
+  tasks:
+    - script: npm run test:e2e
+
+
+  requirements:
+    - os.linux
+
+
+deploy-prod:
+  key: DEPLOY_PROD
+  tasks:
+    - script: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+
+
+  requirements:
+    - os.linux
+
+
