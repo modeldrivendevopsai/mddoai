@@ -1,0 +1,641 @@
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI AzureDevOpsMM=http://www.mddoai.com/mddoai/metamodel/azuredevops
+
+module pim2azuredevops;
+
+create OUT : AzureDevOpsMM from IN : PIMMM;
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Expression → String
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Expression def : expression2String() : String = '';
+
+helper context PIMMM!StringLiteral def : expression2String() : String =
+    self.value;
+
+helper context PIMMM!IntegerLiteral def : expression2String() : String =
+    self.value.toString();
+
+helper context PIMMM!DoubleLiteral def : expression2String() : String =
+    self.value.toString();
+
+helper context PIMMM!BooleanLiteral def : expression2String() : String =
+    if self.value then 'true' else 'false' endif;
+
+helper context PIMMM!VariableReference def : expression2String() : String =
+    'variables[''' + self.reference.name + ''']';
+
+helper context PIMMM!Concat def : expression2String() : String =
+    self.expressions->iterate(e; acc : String = '' | acc + e.expression2String());
+
+helper context PIMMM!Assignment def : expression2String() : String =
+    self.key.name + '=' + self.value.expression2String();
+
+helper context PIMMM!EqualityOp def : expression2String() : String =
+    if self.op = #"==" then
+        'eq(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    else
+        'ne(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    endif;
+
+helper context PIMMM!ComparisonOp def : expression2String() : String =
+    if self.op = #">" then
+        'gt(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    else if self.op = #">=" then
+        'ge(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    else if self.op = #"<" then
+        'lt(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    else
+        'le(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')'
+    endif endif endif;
+
+helper context PIMMM!And def : expression2String() : String =
+    'and(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')';
+
+helper context PIMMM!Or def : expression2String() : String =
+    'or(' + self.lhs.expression2String() + ', ' + self.rhs.expression2String() + ')';
+
+helper context PIMMM!Negation def : expression2String() : String =
+    'not(' + self.rhs.expression2String() + ')';
+
+helper context PIMMM!DotOp def : expression2String() : String =
+    self.lhs.expression2String() + '.' + self.rhs.expression2String();
+
+-- Helper used in guards to retrieve the raw string value of a StringLiteral
+-- without casting; returns '' for any other Expression subtype.
+helper context PIMMM!Expression def : stringValue() : String = '';
+helper context PIMMM!StringLiteral def : stringValue() : String = self.value;
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Agent → Pool
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Agent def : agent2Pool() : AzureDevOpsMM!Pool =
+    OclUndefined;
+
+helper context PIMMM!CustomAgent def : agent2Pool() : AzureDevOpsMM!Pool =
+    thisModule.CustomAgent2Pool(
+        self.labels->collect(lbl | lbl.expression2String())
+    );
+
+helper context PIMMM!LinuxAgent def : agent2Pool() : AzureDevOpsMM!Pool =
+    thisModule.PresetAgent2Pool(
+        if self.image.oclIsUndefined() then 'ubuntu-latest'
+        else self.image.expression2String()
+        endif
+    );
+
+helper context PIMMM!WindowsAgent def : agent2Pool() : AzureDevOpsMM!Pool =
+    thisModule.PresetAgent2Pool(
+        if self.image.oclIsUndefined() then 'windows-latest'
+        else self.image.expression2String()
+        endif
+    );
+
+helper context PIMMM!MacOSAgent def : agent2Pool() : AzureDevOpsMM!Pool =
+    thisModule.PresetAgent2Pool(
+        if self.image.oclIsUndefined() then 'macos-latest'
+        else self.image.expression2String()
+        endif
+    );
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Agent → ContainerReference (LinuxAgent only)
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Agent def : toContainerReference() : AzureDevOpsMM!ContainerReference =
+    OclUndefined;
+
+helper context PIMMM!LinuxAgent def : toContainerReference() : AzureDevOpsMM!ContainerReference =
+    if self.container.oclIsUndefined() then
+        OclUndefined
+    else
+        thisModule.DockerContainer2ContainerImage(self.container)
+    endif;
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Trigger type discriminators
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Trigger def : isPushTrigger() : Boolean = false;
+helper context PIMMM!PushTrigger def : isPushTrigger() : Boolean = true;
+
+helper context PIMMM!Trigger def : isPullRequestTrigger() : Boolean = false;
+helper context PIMMM!PullRequestTrigger def : isPullRequestTrigger() : Boolean = true;
+
+helper context PIMMM!Trigger def : isScheduledTrigger() : Boolean = false;
+helper context PIMMM!ScheduledTrigger def : isScheduledTrigger() : Boolean = true;
+
+-- PushTrigger-specific: tag globs
+helper context PIMMM!Trigger def : getTagGlobs() : Sequence(String) = Sequence{};
+helper context PIMMM!PushTrigger def : getTagGlobs() : Sequence(String) = self.tagGlobs;
+
+-- ScheduledTrigger-specific: produce CronSchedule elements (one per cron string)
+helper context PIMMM!Trigger def : toAzureCronSchedules() : Sequence(AzureDevOpsMM!CronSchedule) =
+    Sequence{};
+
+helper context PIMMM!ScheduledTrigger def : toAzureCronSchedules() : Sequence(AzureDevOpsMM!CronSchedule) =
+    self.crons->collect(cronStr |
+        thisModule.CreateCronScheduleWithBranches(cronStr, self.branchGlobs)
+    );
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Shell discriminators for Command steps
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Command def : isBashShell() : Boolean =
+    if self.shell.oclIsUndefined() then false
+    else self.shell.stringValue() = 'bash'
+    endif;
+
+helper context PIMMM!Command def : isPowershellShell() : Boolean =
+    if self.shell.oclIsUndefined() then false
+    else self.shell.stringValue() = 'powershell'
+    endif;
+
+helper context PIMMM!Command def : isPwshShell() : Boolean =
+    if self.shell.oclIsUndefined() then false
+    else self.shell.stringValue() = 'pwsh'
+    endif;
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Step flattening (ConditionalStep → leaf steps)
+-- ═══════════════════════════════════════════════════════════
+
+helper context PIMMM!Step def : getLeafSteps() : Sequence(PIMMM!Step) =
+    Sequence{self};
+
+helper context PIMMM!ConditionalStep def : getLeafSteps() : Sequence(PIMMM!Step) =
+    self.thenRun->collect(s | s.getLeafSteps())->flatten()
+    ->union(self.elseRun->collect(s | s.getLeafSteps())->flatten());
+
+-- ═══════════════════════════════════════════════════════════
+-- HELPERS: Traverse the job graph
+-- ═══════════════════════════════════════════════════════════
+
+helper def : getAllJobs(jobStreams : Sequence(PIMMM!Job)) : Sequence(PIMMM!Job) =
+    let nextJobs : Sequence(PIMMM!Job) =
+        jobStreams->iterate(js; acc : Sequence(PIMMM!Job) = Sequence{} |
+            acc->union(js.next)
+        )->asSet()->asSequence()
+    in
+    if nextJobs->isEmpty() then
+        jobStreams
+    else
+        thisModule.getAllJobs(nextJobs)->prepend(jobStreams)->flatten()
+    endif;
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Pipeline → Pipeline
+-- ═══════════════════════════════════════════════════════════
+
+rule Pipeline2Pipeline {
+    from p : PIMMM!Pipeline
+    to azPipeline : AzureDevOpsMM!Pipeline(
+        name <- p.name,
+        pool <-
+            if p.agent.oclIsUndefined() then OclUndefined
+            else p.agent.agent2Pool()
+            endif,
+        parameters <- p.inputs,
+        variables <- p.environmentVariables,
+        trigger <-
+            let pushTriggers : Sequence(PIMMM!Trigger) =
+                p.triggers->select(t | t.isPushTrigger())
+            in
+            if pushTriggers->notEmpty() then
+                thisModule.CreatePushTrigger(
+                    pushTriggers->first().branchGlobs,
+                    pushTriggers->first().getTagGlobs()
+                )
+            else
+                OclUndefined
+            endif,
+        pr <-
+            let prTriggers : Sequence(PIMMM!Trigger) =
+                p.triggers->select(t | t.isPullRequestTrigger())
+            in
+            if prTriggers->notEmpty() then
+                thisModule.CreatePrTrigger(prTriggers->first().branchGlobs)
+            else
+                OclUndefined
+            endif,
+        schedules <-
+            p.triggers->collect(t | t.toAzureCronSchedules())->flatten(),
+        jobs <- thisModule.getAllJobs(p.jobStreams)
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- LAZY RULES: Pool
+-- ═══════════════════════════════════════════════════════════
+
+lazy rule CustomAgent2Pool {
+    from lbls : Sequence(String)
+    to pool : AzureDevOpsMM!Pool(
+        demands <- lbls
+    )
+}
+
+lazy rule PresetAgent2Pool {
+    from vmImage : String
+    to pool : AzureDevOpsMM!Pool(
+        vmImage <- vmImage
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- LAZY RULES: Triggers
+-- ═══════════════════════════════════════════════════════════
+
+lazy rule CreatePushTrigger {
+    from branchGlobs : Sequence(String), tagGlobs : Sequence(String)
+    to azTrigger : AzureDevOpsMM!Trigger(
+        branches <-
+            if branchGlobs->notEmpty() then
+                thisModule.CreateIncludeExcludeFilters(branchGlobs, Sequence{})
+            else OclUndefined
+            endif,
+        tags <-
+            if tagGlobs->notEmpty() then
+                thisModule.CreateIncludeExcludeFilters(tagGlobs, Sequence{})
+            else OclUndefined
+            endif
+    )
+}
+
+lazy rule CreatePrTrigger {
+    from branchGlobs : Sequence(String)
+    to azPr : AzureDevOpsMM!PrTrigger(
+        branches <-
+            if branchGlobs->notEmpty() then
+                thisModule.CreateIncludeExcludeFilters(branchGlobs, Sequence{})
+            else OclUndefined
+            endif
+    )
+}
+
+lazy rule CreateCronScheduleWithBranches {
+    from cronStr : String, branchGlobs : Sequence(String)
+    to azCron : AzureDevOpsMM!CronSchedule(
+        cron <- cronStr,
+        branches <-
+            if branchGlobs->notEmpty() then
+                thisModule.CreateIncludeExcludeFilters(branchGlobs, Sequence{})
+            else OclUndefined
+            endif
+    )
+}
+
+lazy rule CreateIncludeExcludeFilters {
+    from includes : Sequence(String), excludes : Sequence(String)
+    to filters : AzureDevOpsMM!IncludeExcludeFilters(
+        include <- includes,
+        exclude <- excludes
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Input → Parameter
+-- ═══════════════════════════════════════════════════════════
+
+rule Input2Parameter {
+    from i : PIMMM!Input
+    to p : AzureDevOpsMM!Parameter(
+        name <- i.id.name,
+        displayName <-
+            if i.description.oclIsUndefined() then OclUndefined
+            else i.description.expression2String()
+            endif,
+        type <-
+            if i.type = #STRING then #string
+            else if i.type = #NUMBER then #number
+            else if i.type = #BOOLEAN then #boolean
+            else #string
+            endif endif endif,
+        default <-
+            if i.defaultValue.oclIsUndefined() then OclUndefined
+            else i.defaultValue.expression2String()
+            endif,
+        values <- i.choices
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Assignment → VariableName
+--   Fires for every Assignment; primarily consumed via
+--   PipelineBlock/Job/Step environmentVariables bindings.
+-- ═══════════════════════════════════════════════════════════
+
+rule Assignment2VariableName {
+    from a : PIMMM!Assignment
+    to v : AzureDevOpsMM!VariableName(
+        name <- a.key.name,
+        value <- a.value.expression2String()
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- LAZY RULES: Assignment conversions for specific contexts
+-- ═══════════════════════════════════════════════════════════
+
+lazy rule Assignment2EnvEntry {
+    from a : PIMMM!Assignment
+    to e : AzureDevOpsMM!EnvEntry(
+        key <- a.key.name,
+        value <- a.value.expression2String()
+    )
+}
+
+lazy rule Assignment2InputEntry {
+    from a : PIMMM!Assignment
+    to e : AzureDevOpsMM!InputEntry(
+        key <- a.key.name,
+        value <- a.value.expression2String()
+    )
+}
+
+lazy rule Assignment2TemplateParamAssignment {
+    from a : PIMMM!Assignment
+    to tpa : AzureDevOpsMM!TemplateParameterAssignment(
+        key <- a.key.name,
+        value <- a.value.expression2String()
+    )
+}
+
+lazy rule CreateInputEntry {
+    from k : String, v : String
+    to e : AzureDevOpsMM!InputEntry(
+        key <- k,
+        value <- v
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- LAZY RULES: DockerContainer
+-- ═══════════════════════════════════════════════════════════
+
+lazy rule DockerContainer2ContainerImage {
+    from dc : PIMMM!DockerContainer
+    to ci : AzureDevOpsMM!ContainerImage(
+        image <- dc.image.expression2String(),
+        options <- dc.options,
+        ports <- dc.ports->collect(port | port.expression2String()),
+        volumes <- dc.volumes->collect(vol | vol.expression2String()),
+        env <- dc.environmentVariables->collect(envVar | thisModule.Assignment2EnvEntry(envVar))
+    )
+}
+
+lazy rule DockerContainer2ServiceEntry {
+    from dc : PIMMM!DockerContainer
+    to se : AzureDevOpsMM!ServiceEntry(
+        key <- if dc.label.oclIsUndefined() then 'service' else dc.label endif,
+        value <- dc.image.expression2String()
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- LAZY RULES: Matrix → JobStrategy
+-- ═══════════════════════════════════════════════════════════
+
+lazy rule Matrix2JobStrategy {
+    from m : PIMMM!Matrix
+    to js : AzureDevOpsMM!JobStrategy(
+        matrix <- m.axes->collect(axis | thisModule.MatrixAxis2MatrixEntry(axis))
+    )
+}
+
+lazy rule MatrixAxis2MatrixEntry {
+    from axis : PIMMM!MatrixAxis
+    to entry : AzureDevOpsMM!MatrixEntry(
+        key <- axis.name.name,
+        value <- axis.cells->collect(c |
+            thisModule.CreateMatrixVariable(axis.name.name, c.expression2String())
+        )
+    )
+}
+
+lazy rule CreateMatrixVariable {
+    from varKey : String, varValue : String
+    to mv : AzureDevOpsMM!MatrixVariable(
+        key <- varKey,
+        value <- varValue
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: ScriptJob → Job
+-- ═══════════════════════════════════════════════════════════
+
+rule ScriptJob2Job {
+    from cicdJob : PIMMM!ScriptJob
+    to azJob : AzureDevOpsMM!Job(
+        job <- cicdJob.id,
+        displayName <- cicdJob.name,
+        condition <-
+            if cicdJob.ifCondition.oclIsUndefined() then OclUndefined
+            else cicdJob.ifCondition.expression2String()
+            endif,
+        continueOnError <-
+            if cicdJob.allowFailure.oclIsUndefined() then OclUndefined
+            else if cicdJob.allowFailure then 'true' else 'false' endif
+            endif,
+        timeoutInMinutes <-
+            if cicdJob.timeoutMinutes.oclIsUndefined() then OclUndefined
+            else cicdJob.timeoutMinutes.toString()
+            endif,
+        dependsOn <- cicdJob.previous->collect(prev | prev.id),
+        pool <-
+            if cicdJob.agent.oclIsUndefined() then OclUndefined
+            else cicdJob.agent.agent2Pool()
+            endif,
+        container <-
+            if cicdJob.agent.oclIsUndefined() then OclUndefined
+            else cicdJob.agent.toContainerReference()
+            endif,
+        variables <- cicdJob.environmentVariables,
+        services <- cicdJob.services->collect(svc | thisModule.DockerContainer2ServiceEntry(svc)),
+        strategy <-
+            if cicdJob.matrix.oclIsUndefined() then OclUndefined
+            else thisModule.Matrix2JobStrategy(cicdJob.matrix)
+            endif,
+        steps <- cicdJob.steps->collect(s | s.getLeafSteps())->flatten()
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: PipelineCallJob → JobTemplate
+-- ═══════════════════════════════════════════════════════════
+
+rule PipelineCallJob2JobTemplate {
+    from cicdJob : PIMMM!PipelineCallJob
+    to jt : AzureDevOpsMM!JobTemplate(
+        template <- cicdJob.pipelinePath.expression2String(),
+        parameters <- cicdJob.args->collect(a | thisModule.Assignment2TemplateParamAssignment(a))
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULES: Steps — abstract base
+-- ═══════════════════════════════════════════════════════════
+
+abstract rule NonConditionalStep2Step {
+    from cicdStep : PIMMM!NonConditionalStep
+    to azStep : AzureDevOpsMM!Step(
+        name <- cicdStep.id,
+        displayName <- cicdStep.name,
+        continueOnError <- cicdStep.allowFailure,
+        timeoutInMinutes <-
+            if cicdStep.timeoutMinutes.oclIsUndefined() then OclUndefined
+            else cicdStep.timeoutMinutes.expression2String()
+            endif,
+        env <- cicdStep.environmentVariables->collect(a | thisModule.Assignment2EnvEntry(a))
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULES: Command → BashStep / PowershellStep / PwshStep / ScriptStep
+-- ═══════════════════════════════════════════════════════════
+
+rule Command2BashStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Command (cicdStep.isBashShell())
+    to azStep : AzureDevOpsMM!BashStep(
+        bash <- cicdStep.program.expression2String(),
+        workingDirectory <-
+            if cicdStep.workingDirectory.oclIsUndefined() then OclUndefined
+            else cicdStep.workingDirectory.expression2String()
+            endif
+    )
+}
+
+rule Command2PowershellStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Command (cicdStep.isPowershellShell())
+    to azStep : AzureDevOpsMM!PowershellStep(
+        powershell <- cicdStep.program.expression2String(),
+        workingDirectory <-
+            if cicdStep.workingDirectory.oclIsUndefined() then OclUndefined
+            else cicdStep.workingDirectory.expression2String()
+            endif
+    )
+}
+
+rule Command2PwshStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Command (cicdStep.isPwshShell())
+    to azStep : AzureDevOpsMM!PwshStep(
+        pwsh <- cicdStep.program.expression2String(),
+        workingDirectory <-
+            if cicdStep.workingDirectory.oclIsUndefined() then OclUndefined
+            else cicdStep.workingDirectory.expression2String()
+            endif
+    )
+}
+
+rule Command2ScriptStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Command (
+        not cicdStep.isBashShell() and not cicdStep.isPowershellShell() and not cicdStep.isPwshShell()
+    )
+    to azStep : AzureDevOpsMM!ScriptStep(
+        script <- cicdStep.program.expression2String(),
+        workingDirectory <-
+            if cicdStep.workingDirectory.oclIsUndefined() then OclUndefined
+            else cicdStep.workingDirectory.expression2String()
+            endif
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Plugin → TaskStep
+-- ═══════════════════════════════════════════════════════════
+
+rule Plugin2TaskStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Plugin
+    to azStep : AzureDevOpsMM!TaskStep(
+        task <- cicdStep.pluginName + '@' + cicdStep.version,
+        inputs <- cicdStep.kwargs->collect(a | thisModule.Assignment2InputEntry(a))
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Cache → TaskStep (Cache@2)
+-- ═══════════════════════════════════════════════════════════
+
+rule Cache2TaskStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Cache
+    to azStep : AzureDevOpsMM!TaskStep(
+        task <- 'Cache@2',
+        inputs <-
+            Sequence{}
+            ->union(
+                if cicdStep.keys->notEmpty() then
+                    Sequence{thisModule.CreateInputEntry(
+                        'key',
+                        cicdStep.keys->first().expression2String()
+                    )}
+                else Sequence{} endif
+            )
+            ->union(
+                if cicdStep.paths->notEmpty() then
+                    Sequence{thisModule.CreateInputEntry(
+                        'path',
+                        cicdStep.paths->first().expression2String()
+                    )}
+                else Sequence{} endif
+            )
+            ->union(
+                if cicdStep.cacheName.oclIsUndefined() then
+                    Sequence{}
+                else
+                    Sequence{thisModule.CreateInputEntry(
+                        'cacheHitVar',
+                        cicdStep.cacheName.expression2String()
+                    )}
+                endif
+            )
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULES: Artifact → PublishStep (store) / DownloadStep (load)
+-- ═══════════════════════════════════════════════════════════
+
+rule Artifact2PublishStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Artifact (cicdStep.store = true)
+    to azStep : AzureDevOpsMM!PublishStep(
+        publish <-
+            if cicdStep.includePaths->notEmpty() then
+                cicdStep.includePaths->first().expression2String()
+            else '.'
+            endif,
+        artifact <-
+            if cicdStep.artifactName.oclIsUndefined() then OclUndefined
+            else cicdStep.artifactName.expression2String()
+            endif
+    )
+}
+
+rule Artifact2DownloadStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Artifact (cicdStep.store = false)
+    to azStep : AzureDevOpsMM!DownloadStep(
+        download <- 'current',
+        artifact <-
+            if cicdStep.artifactName.oclIsUndefined() then OclUndefined
+            else cicdStep.artifactName.expression2String()
+            endif
+    )
+}
+
+-- ═══════════════════════════════════════════════════════════
+-- RULE: Checkout → CheckoutStep
+-- ═══════════════════════════════════════════════════════════
+
+rule Checkout2CheckoutStep extends NonConditionalStep2Step {
+    from cicdStep : PIMMM!Checkout
+    to azStep : AzureDevOpsMM!CheckoutStep(
+        checkout <- 'self',
+        path <-
+            if cicdStep.path.oclIsUndefined() then OclUndefined
+            else cicdStep.path.expression2String()
+            endif
+    )
+}

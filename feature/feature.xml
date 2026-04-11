@@ -21,7 +21,6 @@
          id="com.mddoai.codegeneration.gitlab.acceleo"
          version="0.0.0"/>
 
-
    <plugin
          id="com.mddoai.metamodel.bamboo"
          version="0.0.0"/>
@@ -76,6 +75,22 @@
 
    <plugin
          id="com.mddoai.metamodel.swarch.editor"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.codegeneration.bamboo.acceleo"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.azuredevops"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.azuredevops.edit"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.mddoai.metamodel.azuredevops.editor"
          version="0.0.0"/>
 
 </feature>

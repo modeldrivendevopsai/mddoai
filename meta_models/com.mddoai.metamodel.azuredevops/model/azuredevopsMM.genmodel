@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.azuredevops/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.azuredevops.edit/src-gen" editorDirectory="/com.mddoai.metamodel.azuredevops.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.azuredevops" modelName="AzuredevopsMM" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>azuredevopsMM.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="AzuredevopsMM" basePackage="com.mddoai.metamodel.azuredevops"
+      disposableProviderFactory="true" ecorePackage="azuredevopsMM.ecore#/">
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//LOCK_BEHAVIOR">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//LOCK_BEHAVIOR/sequential"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//LOCK_BEHAVIOR/runLatest"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//STAGE_TRIGGER">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//STAGE_TRIGGER/manual"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//STAGE_TRIGGER/automatic"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//WORKSPACE_CLEAN">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//WORKSPACE_CLEAN/outputs"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//WORKSPACE_CLEAN/resources"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//WORKSPACE_CLEAN/all"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//PARAMETER_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/string"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/number"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/boolean"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/object"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/step"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/stepList"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/job"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/jobList"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/deployment"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/deploymentList"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/stage"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//PARAMETER_TYPE/stageList"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//REPOSITORY_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//REPOSITORY_TYPE/git"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//REPOSITORY_TYPE/github"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//REPOSITORY_TYPE/githubenterprise"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//REPOSITORY_TYPE/bitbucket"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="azuredevopsMM.ecore#//TARGET_COMMANDS">
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//TARGET_COMMANDS/any"/>
+      <genEnumLiterals ecoreEnumLiteral="azuredevopsMM.ecore#//TARGET_COMMANDS/restricted"/>
+    </genEnums>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Pipeline">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pipeline/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pipeline/appendCommitMessageToRunName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pipeline/lockBehavior"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/trigger"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/pr"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/schedules"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/parameters"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/pool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/resources"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/stages"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/jobs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/steps"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/extends"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Pipeline/workspace"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Extends">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Extends/template"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Extends/parameters"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="azuredevopsMM.ecore#//StageElement"/>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Stage">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/stage"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/condition"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/lockBehavior"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/trigger"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/isSkippable"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Stage/dependsOn"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Stage/pool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Stage/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Stage/jobs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Stage/templateContext"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//StageTemplate">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//StageTemplate/template"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//StageTemplate/parameters"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="azuredevopsMM.ecore#//JobElement"/>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Job">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/job"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/condition"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/continueOnError"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/timeoutInMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/cancelTimeoutInMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Job/dependsOn"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/pool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/strategy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/container"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/workspace"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/uses"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/steps"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Job/templateContext"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//DeploymentJob">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/deployment"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/condition"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/continueOnError"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/timeoutInMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/cancelTimeoutInMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DeploymentJob/dependsOn"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/pool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/environment"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/strategy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/container"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/workspace"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/uses"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentJob/templateContext"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//JobTemplate">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//JobTemplate/template"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//JobTemplate/parameters"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Environment">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Environment/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Environment/resourceName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Environment/resourceId"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Environment/resourceType"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Environment/tags"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//DeploymentStrategy">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentStrategy/runOnce"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentStrategy/rolling"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeploymentStrategy/canary"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//RunOnceStrategy">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RunOnceStrategy/preDeploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RunOnceStrategy/deploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RunOnceStrategy/routeTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RunOnceStrategy/postRouteTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RunOnceStrategy/on"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//RollingStrategy">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RollingStrategy/maxParallel"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RollingStrategy/preDeploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RollingStrategy/deploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RollingStrategy/routeTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RollingStrategy/postRouteTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RollingStrategy/on"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//CanaryStrategy">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CanaryStrategy/increments"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CanaryStrategy/preDeploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CanaryStrategy/deploy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CanaryStrategy/routeTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CanaryStrategy/postRouteTraffic"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CanaryStrategy/on"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//DeployHook">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeployHook/pool"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//DeployHook/steps"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//OnSuccessOrFailureHook">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//OnSuccessOrFailureHook/failure"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//OnSuccessOrFailureHook/success"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//JobStrategy">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//JobStrategy/parallel"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//JobStrategy/maxParallel"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//JobStrategy/matrix"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//MatrixEntry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MatrixEntry/key"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//MatrixEntry/value"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//MatrixVariable">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MatrixVariable/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MatrixVariable/value"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//JobUses">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//JobUses/repositories"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//JobUses/pools"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Pool">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pool/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pool/vmImage"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Pool/demands"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Workspace">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Workspace/clean"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="azuredevopsMM.ecore#//ContainerReference"/>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ContainerAlias">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerAlias/alias"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ContainerImage">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/image"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/endpoint"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/options"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/ports"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/volumes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerImage/mapDockerSocket"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerImage/env"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerImage/mountReadOnly"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//MountReadOnly">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MountReadOnly/work"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MountReadOnly/externals"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MountReadOnly/tools"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//MountReadOnly/tasks"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ServiceEntry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ServiceEntry/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ServiceEntry/value"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="azuredevopsMM.ecore#//Step">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/condition"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/continueOnError"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/enabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/timeoutInMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Step/retryCountOnTaskFailure"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Step/env"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Step/target"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//TaskStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//TaskStep/task"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//TaskStep/inputs"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ScriptStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ScriptStep/script"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ScriptStep/failOnStderr"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ScriptStep/workingDirectory"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//BashStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BashStep/bash"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BashStep/failOnStderr"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BashStep/workingDirectory"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PowershellStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PowershellStep/powershell"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PowershellStep/errorActionPreference"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PowershellStep/failOnStderr"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PowershellStep/ignoreLASTEXITCODE"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PowershellStep/workingDirectory"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PwshStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PwshStep/pwsh"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PwshStep/errorActionPreference"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PwshStep/failOnStderr"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PwshStep/ignoreLASTEXITCODE"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PwshStep/workingDirectory"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//CheckoutStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/checkout"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/clean"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/fetchDepth"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/fetchFilter"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/fetchTags"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/lfs"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/persistCredentials"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/submodules"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/sparseCheckoutDirectories"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/sparseCheckoutPatterns"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CheckoutStep/workspaceRepo"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//DownloadStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadStep/download"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadStep/artifact"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadStep/patterns"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//DownloadBuildStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadBuildStep/downloadBuild"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadBuildStep/artifact"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadBuildStep/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//DownloadBuildStep/patterns"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//GetPackageStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//GetPackageStep/getPackage"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//GetPackageStep/path"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PublishStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PublishStep/publish"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PublishStep/artifact"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ReviewAppStep">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ReviewAppStep/reviewApp"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//StepTemplate">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//StepTemplate/template"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//StepTemplate/parameters"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//StepTarget">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//StepTarget/container"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//StepTarget/commands"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//StepTarget/settableVariables"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//SettableVariables">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//SettableVariables/none"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//SettableVariables/variables"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Trigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Trigger/disabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Trigger/batch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Trigger/branchList"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Trigger/branches"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Trigger/paths"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Trigger/tags"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PrTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PrTrigger/disabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PrTrigger/autoCancel"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PrTrigger/drafts"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PrTrigger/branchList"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//PrTrigger/branches"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//PrTrigger/paths"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//CronSchedule">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CronSchedule/cron"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CronSchedule/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CronSchedule/batch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//CronSchedule/always"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//CronSchedule/branches"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//IncludeExcludeFilters">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//IncludeExcludeFilters/include"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//IncludeExcludeFilters/exclude"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Parameter">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Parameter/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Parameter/displayName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Parameter/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Parameter/default"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//Parameter/values"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//TemplateParameterAssignment">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//TemplateParameterAssignment/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//TemplateParameterAssignment/value"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="azuredevopsMM.ecore#//VariableDefinition"/>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//VariableName">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//VariableName/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//VariableName/value"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//VariableName/readonly"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//VariableGroup">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//VariableGroup/group"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//VariableTemplate">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//VariableTemplate/template"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//VariableTemplate/parameters"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//Resources">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/builds"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/containers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/pipelines"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/repositories"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/webhooks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//Resources/packages"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//BuildResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/build"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/connection"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/source"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/version"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/branch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//BuildResource/trigger"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ContainerResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/container"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/image"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/azureSubscription"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/resourceGroup"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/registry"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/repository"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/endpoint"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/localImage"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/options"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/ports"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/volumes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResource/mapDockerSocket"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerResource/env"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerResource/mountReadOnly"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerResource/trigger"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//ContainerResourceTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResourceTrigger/enabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//ContainerResourceTrigger/disabled"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//ContainerResourceTrigger/tags"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PipelineResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/pipeline"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/project"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/source"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/version"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/branch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResource/tags"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//PipelineResource/trigger"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PipelineResourceTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResourceTrigger/enabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResourceTrigger/disabled"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResourceTrigger/stages"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PipelineResourceTrigger/tags"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//PipelineResourceTrigger/branches"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//RepositoryResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RepositoryResource/repository"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RepositoryResource/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RepositoryResource/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RepositoryResource/endpoint"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//RepositoryResource/ref"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//RepositoryResource/trigger"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//WebhookResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//WebhookResource/webhook"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//WebhookResource/connection"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//WebhookResource/type"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//WebhookResource/filters"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//WebhookFilter">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//WebhookFilter/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//WebhookFilter/value"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//PackageResource">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/packageName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/connection"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/version"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/tag"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//PackageResource/trigger"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//EnvEntry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//EnvEntry/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//EnvEntry/value"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//InputEntry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//InputEntry/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute azuredevopsMM.ecore#//InputEntry/value"/>
+    </genClasses>
+    <genClasses ecoreClass="azuredevopsMM.ecore#//TemplateContext">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference azuredevopsMM.ecore#//TemplateContext/properties"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>

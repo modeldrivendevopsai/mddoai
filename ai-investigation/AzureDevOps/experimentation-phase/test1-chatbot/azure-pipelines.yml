@@ -1,0 +1,72 @@
+name: chatbot-app
+variables:
+- name: IMAGE_NAME
+  value: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+
+
+- name: IMAGE_TAG
+  value: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+- job: build
+  displayName: build
+  steps:
+  - script: docker build -t ${IMAGE_TAG} .
+
+
+
+
+
+- job: unitTest
+  displayName: unitTest
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: python:3.12-slim
+
+
+  steps:
+  - script: python3 test/run_unit_tests.py
+
+
+
+
+
+- job: healthCheck
+  displayName: healthCheck
+  dependsOn:
+  - build
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: curlimages/curl:latest
+
+
+  steps:
+  - script: ./scripts/health_check.sh
+
+
+
+
+
+- job: push
+  displayName: push
+  dependsOn:
+  - healthCheck
+  steps:
+  - script: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+
+
+
+  - script: docker push ${IMAGE_TAG}
+
+
+
+
+

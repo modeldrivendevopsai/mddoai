@@ -1,0 +1,327 @@
+name: fullstack-webapp
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+    - feature/*
+    - hotfix/*
+
+  tags:
+    include:
+    - v*.*.*
+
+
+pr:
+  branches:
+    include:
+    - main
+    - develop
+
+
+schedules:
+- cron: '0'
+  branches:
+    include:
+    - main
+
+
+- cron: '2'
+  branches:
+    include:
+    - main
+
+
+- cron: '*'
+  branches:
+    include:
+    - main
+
+
+- cron: '*'
+  branches:
+    include:
+    - main
+
+
+- cron: '1'
+  branches:
+    include:
+    - main
+
+
+parameters:
+- name: DEPLOY_TARGET
+  displayName: Target deployment environment
+  type: string
+  default: staging
+  values:
+  - staging
+  - production
+
+- name: SKIP_E2E
+  displayName: Skip end-to-end tests
+  type: boolean
+  default: false
+
+variables:
+- name: REGISTRY
+  value: ${CI_REGISTRY}
+
+
+- name: APP_IMAGE
+  value: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+
+
+- name: APP_VERSION
+  value: ${CI_COMMIT_SHORT_SHA}
+
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+- job: install-deps
+  displayName: install-deps
+  timeoutInMinutes: 15
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: node:20-alpine
+
+
+  steps:
+  - task: Cache@2
+
+    inputs:
+      key: ${CI_COMMIT_REF_SLUG}-node-modules
+      path: node_modules/
+      cacheHitVar: node-modules-cache
+
+
+  - script: npm ci --prefer-offline
+
+
+
+  - script: cd frontend && npm ci --prefer-offline
+
+
+
+
+
+- job: lint
+  displayName: lint
+  dependsOn:
+  - install-deps
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: node:20-alpine
+
+
+  steps:
+  - task: Cache@2
+
+    inputs:
+      key: ${CI_COMMIT_REF_SLUG}-node-modules
+      path: node_modules/
+      cacheHitVar: node-modules-cache
+
+
+  - script: npm run lint
+
+
+
+
+
+- job: test-unit
+  displayName: test-unit
+  dependsOn:
+  - install-deps
+  pool:
+    vmImage: ubuntu-latest
+
+  strategy:
+    matrix:
+      NODE_VERSION_18:
+        NODE_VERSION: 18
+      NODE_VERSION_20:
+        NODE_VERSION: 20
+      NODE_VERSION_22:
+        NODE_VERSION: 22
+
+  container:
+    image: node:${NODE_VERSION}-alpine
+
+
+  steps:
+  - script: npm run test:unit -- --coverage
+
+
+
+  - publish: coverage/
+
+    artifact: unit-test-coverage
+
+
+
+
+- job: test-integration
+  displayName: test-integration
+  dependsOn:
+  - install-deps
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: node:20-alpine
+
+
+  services:
+    postgres: postgres:15-alpine
+  steps:
+  - script: npm run test:integration
+
+
+
+
+
+- job: security-scan
+  displayName: security-scan
+  continueOnError: true
+  dependsOn:
+  - install-deps
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: node:20-alpine
+
+
+  steps:
+  - script: npm audit --audit-level=critical
+
+
+
+
+
+- job: build
+  displayName: build
+  dependsOn:
+  - lint
+  - test-unit
+  - test-integration
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: node:20-alpine
+
+
+  steps:
+  - script: npm run build:backend
+
+
+
+  - publish: dist/
+
+    artifact: build-output
+
+
+
+
+- job: docker-build
+  displayName: docker-build
+  dependsOn:
+  - build
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: docker:24-dind
+
+
+  steps:
+  - script: docker build -t ${APP_IMAGE}:${APP_VERSION} .
+
+
+
+
+
+- job: docker-push
+  displayName: docker-push
+  dependsOn:
+  - docker-build
+  - security-scan
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: docker:24-dind
+
+
+  steps:
+  - script: docker push ${APP_IMAGE}:${APP_VERSION}
+
+
+
+
+
+- job: deploy-staging
+  displayName: deploy-staging
+  timeoutInMinutes: 20
+  dependsOn:
+  - docker-push
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: bitnami/kubectl:latest
+
+
+  steps:
+  - script: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+
+
+
+
+
+- job: e2e-test
+  displayName: e2e-test
+  dependsOn:
+  - deploy-staging
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+
+
+  steps:
+  - script: npm run test:e2e
+
+
+
+
+
+- job: deploy-prod
+  displayName: deploy-prod
+  timeoutInMinutes: 30
+  dependsOn:
+  - e2e-test
+  pool:
+    vmImage: ubuntu-latest
+
+  container:
+    image: bitnami/kubectl:latest
+
+
+  steps:
+  - script: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+
+
+
+
+

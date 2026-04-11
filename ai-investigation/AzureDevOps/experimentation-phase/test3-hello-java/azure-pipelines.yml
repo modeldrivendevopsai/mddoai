@@ -1,0 +1,32 @@
+name: hello-java-ci
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+- job: build
+  displayName: build
+  steps:
+  - script: gradle clean build -x test
+
+
+
+
+
+- job: unitTest
+  displayName: unitTest
+  steps:
+  - script: gradle test
+
+
+
+
+
+- job: lintCheck
+  displayName: lintCheck
+  steps:
+  - script: gradle check
+
+
+
+
+

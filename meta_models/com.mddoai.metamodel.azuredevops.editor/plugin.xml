@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+
+<!--
+-->
+
+<plugin>
+
+   <extension point="org.eclipse.ui.newWizards">
+      <!-- @generated azuredevopsMM -->
+      <category
+            id="org.eclipse.emf.ecore.Wizard.category.ID"
+            name="%_UI_Wizard_category"/>
+      <wizard
+            id="com.mddoai.metamodel.azuredevops.azuredevopsMM.presentation.AzuredevopsMMModelWizardID"
+            name="%_UI_AzuredevopsMMModelWizard_label"
+            class="com.mddoai.metamodel.azuredevops.azuredevopsMM.presentation.AzuredevopsMMModelWizard"
+            category="org.eclipse.emf.ecore.Wizard.category.ID"
+            icon="icons/full/obj16/AzuredevopsMMModelFile.gif">
+         <description>%_UI_AzuredevopsMMModelWizard_description</description>
+         <selection class="org.eclipse.core.resources.IResource"/>
+      </wizard>
+   </extension>
+
+   <extension point="org.eclipse.ui.editors">
+      <!-- @generated azuredevopsMM -->
+      <editor
+            id="com.mddoai.metamodel.azuredevops.azuredevopsMM.presentation.AzuredevopsMMEditorID"
+            name="%_UI_AzuredevopsMMEditor_label"
+            icon="icons/full/obj16/AzuredevopsMMModelFile.gif"
+            extensions="azuredevopsmm"
+            class="com.mddoai.metamodel.azuredevops.azuredevopsMM.presentation.AzuredevopsMMEditor"
+            contributorClass="com.mddoai.metamodel.azuredevops.azuredevopsMM.presentation.AzuredevopsMMActionBarContributor">
+      </editor>
+   </extension>
+
+</plugin>

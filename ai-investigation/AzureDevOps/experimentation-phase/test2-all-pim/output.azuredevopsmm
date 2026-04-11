@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<azuredevopsMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:azuredevopsMM="http://www.mddoai.com/mddoai/metamodel/azuredevops" name="fullstack-webapp">
+  <trigger>
+    <branches>
+      <include>main</include>
+      <include>develop</include>
+      <include>feature/*</include>
+      <include>hotfix/*</include>
+    </branches>
+    <tags>
+      <include>v*.*.*</include>
+    </tags>
+  </trigger>
+  <pr>
+    <branches>
+      <include>main</include>
+      <include>develop</include>
+    </branches>
+  </pr>
+  <schedules cron="0">
+    <branches>
+      <include>main</include>
+    </branches>
+  </schedules>
+  <schedules cron="2">
+    <branches>
+      <include>main</include>
+    </branches>
+  </schedules>
+  <schedules cron="*">
+    <branches>
+      <include>main</include>
+    </branches>
+  </schedules>
+  <schedules cron="*">
+    <branches>
+      <include>main</include>
+    </branches>
+  </schedules>
+  <schedules cron="1">
+    <branches>
+      <include>main</include>
+    </branches>
+  </schedules>
+  <parameters name="DEPLOY_TARGET" displayName="Target deployment environment" default="staging">
+    <values>staging</values>
+    <values>production</values>
+  </parameters>
+  <parameters name="SKIP_E2E" displayName="Skip end-to-end tests" type="boolean" default="false"/>
+  <variables xsi:type="azuredevopsMM:VariableName" name="REGISTRY" value="${CI_REGISTRY}"/>
+  <variables xsi:type="azuredevopsMM:VariableName" name="APP_IMAGE" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+  <variables xsi:type="azuredevopsMM:VariableName" name="APP_VERSION" value="${CI_COMMIT_SHORT_SHA}"/>
+  <pool vmImage="ubuntu-latest"/>
+  <jobs xsi:type="azuredevopsMM:Job" job="install-deps" displayName="install-deps" timeoutInMinutes="15">
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:20-alpine"/>
+    <steps xsi:type="azuredevopsMM:TaskStep" task="Cache@2">
+      <inputs key="key" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <inputs key="path" value="node_modules/"/>
+      <inputs key="cacheHitVar" value="node-modules-cache"/>
+    </steps>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm ci --prefer-offline"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="cd frontend &amp;&amp; npm ci --prefer-offline"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="lint" displayName="lint">
+    <dependsOn>install-deps</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:20-alpine"/>
+    <steps xsi:type="azuredevopsMM:TaskStep" task="Cache@2">
+      <inputs key="key" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <inputs key="path" value="node_modules/"/>
+      <inputs key="cacheHitVar" value="node-modules-cache"/>
+    </steps>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm run lint"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="test-unit" displayName="test-unit">
+    <dependsOn>install-deps</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <strategy>
+      <matrix key="NODE_VERSION_18">
+        <value key="NODE_VERSION" value="18"/>
+      </matrix>
+      <matrix key="NODE_VERSION_20">
+        <value key="NODE_VERSION" value="20"/>
+      </matrix>
+      <matrix key="NODE_VERSION_22">
+        <value key="NODE_VERSION" value="22"/>
+      </matrix>
+    </strategy>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:${NODE_VERSION}-alpine"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm run test:unit -- --coverage"/>
+    <steps xsi:type="azuredevopsMM:PublishStep" publish="coverage/" artifact="unit-test-coverage"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="test-integration" displayName="test-integration">
+    <dependsOn>install-deps</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:20-alpine"/>
+    <services key="postgres" value="postgres:15-alpine"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm run test:integration"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="security-scan" displayName="security-scan" continueOnError="true">
+    <dependsOn>install-deps</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:20-alpine"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm audit --audit-level=critical"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="build" displayName="build">
+    <dependsOn>lint</dependsOn>
+    <dependsOn>test-unit</dependsOn>
+    <dependsOn>test-integration</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="node:20-alpine"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm run build:backend"/>
+    <steps xsi:type="azuredevopsMM:PublishStep" publish="dist/" artifact="build-output"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="docker-build" displayName="docker-build">
+    <dependsOn>build</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="docker:24-dind"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="docker build -t ${APP_IMAGE}:${APP_VERSION} ."/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="docker-push" displayName="docker-push">
+    <dependsOn>docker-build</dependsOn>
+    <dependsOn>security-scan</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="docker:24-dind"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="docker push ${APP_IMAGE}:${APP_VERSION}"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="deploy-staging" displayName="deploy-staging" timeoutInMinutes="20">
+    <dependsOn>docker-push</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="bitnami/kubectl:latest"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="e2e-test" displayName="e2e-test">
+    <dependsOn>deploy-staging</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="mcr.microsoft.com/playwright:v1.44.0-jammy"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="npm run test:e2e"/>
+  </jobs>
+  <jobs xsi:type="azuredevopsMM:Job" job="deploy-prod" displayName="deploy-prod" timeoutInMinutes="30">
+    <dependsOn>e2e-test</dependsOn>
+    <pool vmImage="ubuntu-latest"/>
+    <container xsi:type="azuredevopsMM:ContainerImage" image="bitnami/kubectl:latest"/>
+    <steps xsi:type="azuredevopsMM:ScriptStep" script="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production"/>
+  </jobs>
+</azuredevopsMM:Pipeline>
