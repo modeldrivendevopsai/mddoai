@@ -1,4 +1,4 @@
-# Round 2 — GHA PSM metamodel + pimMM + Bamboo documentation + enum-default guard
+# Round 2 — GHA PSM metamodel + Bamboo documentation + enum-default guard
 
 ## Why Round 2
 
@@ -21,8 +21,7 @@ to the actual CI/CD YAML format.
 ## Reference: GitHub Actions PSM metamodel
 
 This is a real PSM metamodel for GitHub Actions, written in EMF Ecore.
-Use it as a structural reference for the EMF format and how CI/CD concepts
-map to EClass hierarchies with containment references.
+Use it as a structural reference for Ecore syntax and class/reference organization.
 
 ```xml
 [PASTE context/GHA.ecore HERE]
@@ -30,21 +29,10 @@ map to EClass hierarchies with containment references.
 
 ---
 
-## Platform-independent CI/CD metamodel (PIM)
-
-This defines the platform-independent CI/CD concepts your metamodel must be able to represent.
-Every concept in this metamodel should have a corresponding representation in your Bamboo PSM.
-
-```xml
-[PASTE context/pimMM.ecore HERE]
-```
-
----
-
 ## Bamboo CI/CD YAML — official reference
 
 This defines the Bamboo-specific constructs your metamodel must cover.
-Use Bamboo terminology (Plan, Stage, Job, Task, Agent, Trigger, Artifact, Variable).
+Use terminology strictly from the Bamboo documentation provided below.
 
 ```
 [PASTE context/bamboo-docs.md HERE]
@@ -52,26 +40,20 @@ Use Bamboo terminology (Plan, Stage, Job, Task, Agent, Trigger, Artifact, Variab
 
 ---
 
-## Critical constraints (Round 2)
+## Constraints
 
-1. For every enum-typed attribute (`eType="#//SomeEnum"`) with a `defaultValueLiteral`,
-   the default must exactly match one of that enum's `eLiterals literal="..."` values.
-2. Do not use enum constant names as defaults when literal text differs.
-3. Matching is case-sensitive and punctuation-sensitive (hyphens, underscores, lowercase).
-4. If unsure about an enum default, omit `defaultValueLiteral` instead of inventing one.
-
-Examples of valid literal forms:
-
-- `REPOSITORY_SCOPE`: `global`, `project`
-- `RELEASE_APPROVAL`: `not-broken`, `approved`, `none`
+1. For any enum-typed attribute, `defaultValueLiteral` must exactly match one declared
+   enum literal value (case-sensitive and punctuation-sensitive).
+2. Do not use enum constant names as defaults when they differ from literal values.
+3. If a correct enum default cannot be derived from declared literals, omit
+   `defaultValueLiteral`.
 
 ---
 
 ## Task
 
 Generate `bambooMM.ecore` — an EMF Ecore metamodel for Bamboo CI/CD pipelines,
-covering the constructs described in the Bamboo reference above and mapping
-to the PIM concepts where applicable.
+covering the constructs described in the Bamboo reference above.
 
 Use:
 

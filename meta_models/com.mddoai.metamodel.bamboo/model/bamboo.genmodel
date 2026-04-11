@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.bamboo/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.bamboo.edit/src-gen" editorDirectory="/com.mddoai.metamodel.bamboo.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.bamboo" modelName="Bamboo" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>bamboo.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="Bamboo" basePackage="com.mddoai.metamodel" disposableProviderFactory="true"
+      ecorePackage="bamboo.ecore#/">
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//VARIABLE_SCOPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//VARIABLE_SCOPE/local"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//VARIABLE_SCOPE/result"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//TEST_PARSER_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//TEST_PARSER_TYPE/junit"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//TEST_PARSER_TYPE/testng"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//TEST_PARSER_TYPE/mocha"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//TEST_PARSER_TYPE/nunit"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//TEST_PARSER_TYPE/mstest"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//REPOSITORY_SCOPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//REPOSITORY_SCOPE/global"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//REPOSITORY_SCOPE/project"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//FILE_FILTER_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//FILE_FILTER_TYPE/includeOnly"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//FILE_FILTER_TYPE/excludeOnly"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//BRANCH_CREATE_STRATEGY">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BRANCH_CREATE_STRATEGY/forNewBranch"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BRANCH_CREATE_STRATEGY/forPullRequest"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BRANCH_CREATE_STRATEGY/manually"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BRANCH_CREATE_STRATEGY/never"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//BLOCK_STRATEGY">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BLOCK_STRATEGY/dontBlock"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BLOCK_STRATEGY/blockIfParentInProgress"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//BLOCK_STRATEGY/blockIfParentHasUnbuiltChanges"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//NOTIFICATION_EVENT_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/planFailed"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/planCompleted"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/planStatusChanged"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/planCommentAdded"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/planResponsibilityChanged"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobError"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobCompleted"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobStatusChanged"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobFailed"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobFirstFailed"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobHung"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobQueueTimeout"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/jobQueuedWithoutCapableAgents"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/deploymentFailed"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/deploymentFinished"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_EVENT_TYPE/deploymentStartedAndFinished"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//NOTIFICATION_ROLE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_ROLE/responsible"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_ROLE/watchers"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_ROLE/committers"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_ROLE/loggedIn"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//NOTIFICATION_ROLE/anonymous"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//PERMISSION_ROLE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_ROLE/loggedIn"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_ROLE/anonymous"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//PERMISSION_TYPE">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/view"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/edit"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/build"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/clone"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/admin"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/deploy"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/viewConfiguration"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//PERMISSION_TYPE/createRepository"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="bamboo.ecore#//RELEASE_APPROVAL">
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//RELEASE_APPROVAL/notBroken"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//RELEASE_APPROVAL/approved"/>
+      <genEnumLiterals ecoreEnumLiteral="bamboo.ecore#//RELEASE_APPROVAL/none"/>
+    </genEnums>
+    <genClasses ecoreClass="bamboo.ecore#//Plan">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Plan/projectKey"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Plan/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Plan/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Plan/serverName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/stages"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/jobs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/triggers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/repositories"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/notifications"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/labels"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/branches"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/dependencies"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/branchOverrides"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/other"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Plan/permissions"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Stage">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Stage/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Stage/manual"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Stage/finalStage"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference bamboo.ecore#//Stage/jobRefs"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Job">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Job/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Job/key"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/tasks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/finalTasks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/artifacts"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/artifactSubscriptions"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/requirements"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Job/other"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//Task">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Task/conditions"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ScriptTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/interpreter"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/scripts"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/file"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/argument"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/environment"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScriptTask/workingDir"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//CleanTask"/>
+    <genClasses ecoreClass="bamboo.ecore#//CheckoutTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//CheckoutTask/repository"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//CheckoutTask/path"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//CheckoutTask/forceCleanBuild"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//CheckoutTask/defaultRepository"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//MavenTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/executable"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/jdk"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/goal"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/tests"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/environment"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/workingDir"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/projectFile"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//MavenTask/useReturnCode"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//InjectVariablesTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//InjectVariablesTask/file"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//InjectVariablesTask/scope"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//InjectVariablesTask/namespace"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//TestParserTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//TestParserTask/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//TestParserTask/testResults"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//TestParserTask/ignoreTime"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ArtifactDownloadTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactDownloadTask/sourcePlan"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactDownloadTask/destination"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//ArtifactDownloadTask/artifacts"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ArtifactDownloadItem">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactDownloadItem/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactDownloadItem/destination"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//AnyTask">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//AnyTask/pluginKey"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//AnyTask/configuration"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//TaskCondition">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//TaskCondition/variableName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//TaskCondition/variableValue"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//Trigger"/>
+    <genClasses ecoreClass="bamboo.ecore#//PollingTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PollingTrigger/period"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PollingTrigger/cronExpression"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PollingTrigger/repositories"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//PollingTrigger/conditions"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//CronTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//CronTrigger/expression"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//RemoteTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//RemoteTrigger/ip"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//AfterDeploymentTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//AfterDeploymentTrigger/deploymentProject"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//AfterDeploymentTrigger/environment"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BuildSuccessTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BuildSuccessTrigger/branch"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//StageSuccessTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//StageSuccessTrigger/stage"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//StageSuccessTrigger/branch"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//EnvironmentSuccessTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//EnvironmentSuccessTrigger/environment"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ScheduledDeploymentTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScheduledDeploymentTrigger/cronExpression"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ScheduledDeploymentTrigger/artifactBranch"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//TriggerCondition"/>
+    <genClasses ecoreClass="bamboo.ecore#//GreenPlanCondition">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GreenPlanCondition/planKeys"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//AllOtherCondition">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//AllOtherCondition/properties"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//Repository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Repository/name"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//LinkedRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//LinkedRepository/scope"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//GitRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/url"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/branch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/username"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/password"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/sshKey"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/sshKeyPassphrase"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/sharedCredentials"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/sharedCredentialsScope"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/lfs"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/useShallowClones"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/submodules"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/fetchAll"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/cacheOnAgents"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/verboseLogs"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GitRepository/commandTimeoutMinutes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//GitRepository/changeDetection"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BitbucketCloudRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketCloudRepository/slug"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BitbucketServerRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/server"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/project"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/slug"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/cloneUrl"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/publicKey"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/privateKey"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/branch"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/lfs"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/useShallowClones"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/submodules"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/commandTimeoutMinutes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BitbucketServerRepository/fetchAll"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//GithubRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GithubRepository/repository"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GithubRepository/user"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//AnyVcsRepository">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//AnyVcsRepository/pluginKey"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//AnyVcsRepository/serverConfig"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//AnyVcsRepository/branchConfig"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ChangeDetection">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//ChangeDetection/quietPeriod"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ChangeDetection/excludeChangesetPattern"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ChangeDetection/fileFilterType"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ChangeDetection/fileFilterPattern"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//QuietPeriod">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//QuietPeriod/quietPeriodSeconds"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//QuietPeriod/maxRetries"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Artifact">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/location"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/pattern"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/required"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/shared"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Artifact/httpCompressionOn"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ArtifactSubscription">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactSubscription/artifact"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ArtifactSubscription/destination"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Requirement">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Requirement/capability"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Requirement/matchValue"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//VariableAssignment">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//VariableAssignment/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//VariableAssignment/value"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Label">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Label/value"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Notification">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Notification/recipients"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Notification/events"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//NotificationRecipient"/>
+    <genClasses ecoreClass="bamboo.ecore#//UserRecipient">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//UserRecipient/users"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//GroupRecipient">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//GroupRecipient/groups"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//EmailRecipient">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//EmailRecipient/emails"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//RoleRecipient">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//RoleRecipient/role"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//WebhookRecipient">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//WebhookRecipient/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//WebhookRecipient/url"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//NotificationEvent">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//NotificationEvent/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//NotificationEvent/failures"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//NotificationEvent/firstOnly"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BranchManagement">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchManagement/create"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchManagement/createPattern"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchManagement/acceptFork"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchManagement/delete"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchManagement/integration"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchManagement/linkToJira"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BranchDelete">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchDelete/afterDeletedDays"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchDelete/afterInactiveDays"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BranchIntegration">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchIntegration/mergeFrom"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchIntegration/mergeTo"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchIntegration/pushOnSuccess"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BranchOverride">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchOverride/branchPattern"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/stages"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/jobs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/triggers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/notifications"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/labels"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchOverride/branchConfig"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//BranchSpecificConfig">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//BranchSpecificConfig/integration"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//BranchSpecificConfig/disableExpiry"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Dependencies">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Dependencies/requireAllStagesPassing"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Dependencies/enabledForBranches"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Dependencies/blockStrategy"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Dependencies/plans"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//DockerConfig">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DockerConfig/image"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DockerConfig/volumes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DockerConfig/useDefaultVolumes"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DockerConfig/dockerRunArguments"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//OtherConfig">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//OtherConfig/concurrentBuildPlugin"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//OtherConfig/cleanWorkingDir"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//OtherConfig/allOtherApps"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//DeploymentProject">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DeploymentProject/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DeploymentProject/sourcePlan"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//DeploymentProject/serverName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DeploymentProject/releaseNaming"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DeploymentProject/environments"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DeploymentProject/permissions"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DeploymentProject/defaultEnvironmentPermissions"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//DeploymentProject/environmentPermissions"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//ReleaseNaming">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ReleaseNaming/nextVersionName"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ReleaseNaming/appliesToBranches"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ReleaseNaming/autoIncrement"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//ReleaseNaming/autoIncrementVariables"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//Environment">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Environment/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/tasks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/finalTasks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/variables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/triggers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/notifications"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/docker"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//Environment/requirements"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//Environment/releaseApprovalPrerequisite"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="bamboo.ecore#//PermissionEntry">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PermissionEntry/users"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PermissionEntry/groups"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PermissionEntry/roles"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//PermissionEntry/permissions"/>
+    </genClasses>
+    <genClasses ecoreClass="bamboo.ecore#//PlanPermissionEntry"/>
+    <genClasses ecoreClass="bamboo.ecore#//DeploymentPermissionEntry"/>
+    <genClasses ecoreClass="bamboo.ecore#//EnvironmentPermissionEntry"/>
+    <genClasses ecoreClass="bamboo.ecore#//NamedEnvironmentPermission">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bamboo.ecore#//NamedEnvironmentPermission/environmentName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bamboo.ecore#//NamedEnvironmentPermission/entries"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>

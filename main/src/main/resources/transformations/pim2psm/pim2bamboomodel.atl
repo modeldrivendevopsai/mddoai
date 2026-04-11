@@ -1,0 +1,437 @@
+-- @nsURI PIMMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI BambooMM=http://www.mddoai.com/mddoai/metamodel/bamboo
+
+module pim2bamboo;
+
+create OUT : BambooMM from IN : PIMMM;
+
+-- ===================================================
+-- Global Helpers
+-- ===================================================
+
+helper def : nameToKey(s : String) : String =
+	s.toUpperCase()
+	 .replaceAll(' ', '_')
+	 .replaceAll('-', '_')
+	 .replaceAll('/', '_');
+
+-- Recursively collect all reachable jobs from a set of root jobs
+-- by following `next` links (same pattern as the reference ATL file).
+helper def : getAllJobs(seeds : Sequence(PIMMM!Job)) : Sequence(PIMMM!Job) =
+	let nxt : Sequence(PIMMM!Job) =
+		seeds->iterate(j; acc : Sequence(Sequence(PIMMM!Job)) = Sequence{} |
+			acc.append(j.next)
+		)->flatten()->asSet()->asSequence()
+	in
+	if nxt->isEmpty() then
+		seeds
+	else
+		thisModule.getAllJobs(nxt)->prepend(seeds)->flatten()
+	endif;
+
+-- Build a space-separated KEY=VALUE environment string from a list of Assignments.
+helper def : assignmentsToEnvString(assignments : Sequence(PIMMM!Assignment)) : String =
+	assignments
+		->collect(a | a.key.name + '=' + a.value.exprStr())
+		->iterate(entry; acc : String = '' |
+			if acc = '' then entry else acc + ' ' + entry endif
+		);
+
+-- ===================================================
+-- Expression -> String helpers
+-- ===================================================
+
+helper context PIMMM!Expression def : exprStr() : String = '';
+
+helper context PIMMM!StringLiteral def : exprStr() : String =
+	self.value;
+
+helper context PIMMM!IntegerLiteral def : exprStr() : String =
+	self.value.toString();
+
+helper context PIMMM!DoubleLiteral def : exprStr() : String =
+	self.value.toString();
+
+helper context PIMMM!BooleanLiteral def : exprStr() : String =
+	self.value.toString();
+
+helper context PIMMM!Concat def : exprStr() : String =
+	self.expressions->iterate(e; acc : String = '' | acc + e.exprStr());
+
+helper context PIMMM!VariableReference def : exprStr() : String =
+	'${' + self.reference.name + '}';
+
+-- ===================================================
+-- Step -> Task helpers  (dispatch by runtime type)
+-- ===================================================
+
+helper context PIMMM!Step def : toTask() : BambooMM!Task =
+	OclUndefined;
+
+helper context PIMMM!ConditionalStep def : toTask() : BambooMM!Task =
+	OclUndefined;
+
+helper context PIMMM!Command def : toTask() : BambooMM!Task =
+	thisModule.Command2ScriptTask(self);
+
+helper context PIMMM!Plugin def : toTask() : BambooMM!Task =
+	thisModule.Plugin2AnyTask(self);
+
+helper context PIMMM!Cache def : toTask() : BambooMM!Task =
+	thisModule.Cache2AnyTask(self);
+
+helper context PIMMM!Checkout def : toTask() : BambooMM!Task =
+	thisModule.Checkout2CheckoutTask(self);
+
+-- Artifact upload -> no task (goes to job.artifacts); download -> ArtifactDownloadTask.
+helper context PIMMM!Artifact def : toTask() : BambooMM!Task =
+	if not self.store then
+		thisModule.ArtifactDownload2Task(self)
+	else
+		OclUndefined
+	endif;
+
+-- ===================================================
+-- Step -> Bamboo Artifact definition (upload only)
+-- ===================================================
+
+helper context PIMMM!Step def : toArtifactDef() : BambooMM!Artifact =
+	OclUndefined;
+
+helper context PIMMM!Artifact def : toArtifactDef() : BambooMM!Artifact =
+	if self.store then
+		thisModule.ArtifactUpload2ArtifactDef(self)
+	else
+		OclUndefined
+	endif;
+
+-- ===================================================
+-- Agent -> Requirements helpers
+-- ===================================================
+
+helper context PIMMM!Agent def : toRequirements() : Sequence(BambooMM!Requirement) =
+	Sequence{};
+
+helper context PIMMM!CustomAgent def : toRequirements() : Sequence(BambooMM!Requirement) =
+	self.labels->collect(lbl | thisModule.MakeRequirement(lbl.exprStr()));
+
+helper context PIMMM!LinuxAgent def : toRequirements() : Sequence(BambooMM!Requirement) =
+	Sequence{thisModule.MakeRequirement('os.linux')};
+
+helper context PIMMM!WindowsAgent def : toRequirements() : Sequence(BambooMM!Requirement) =
+	Sequence{thisModule.MakeRequirement('os.windows')};
+
+helper context PIMMM!MacOSAgent def : toRequirements() : Sequence(BambooMM!Requirement) =
+	Sequence{thisModule.MakeRequirement('os.mac')};
+
+-- ===================================================
+-- Agent -> DockerConfig helpers
+-- ===================================================
+
+helper context PIMMM!Agent def : toDockerConfig() : BambooMM!DockerConfig =
+	OclUndefined;
+
+helper context PIMMM!LinuxAgent def : toDockerConfig() : BambooMM!DockerConfig =
+	if not self.image.oclIsUndefined() then
+		thisModule.MakeDockerConfig(self.image.exprStr())
+	else
+		OclUndefined
+	endif;
+
+-- ===================================================
+-- Matched Rules
+-- ===================================================
+
+-- Pipeline -> Plan
+-- All PIM jobs are collected and placed in a single Bamboo Stage.
+rule Pipeline2Plan {
+	from
+		p : PIMMM!Pipeline
+	to
+		plan : BambooMM!Plan(
+			name       <- if not p.name.oclIsUndefined() then p.name else 'DefaultPlan' endif,
+			key        <- thisModule.nameToKey(
+				if not p.name.oclIsUndefined() then p.name else 'DEFAULTPLAN' endif),
+			projectKey <- thisModule.nameToKey(
+				if not p.name.oclIsUndefined() then p.name else 'PROJ' endif),
+			stages     <- Sequence{
+				thisModule.CreateDefaultStage(
+					thisModule.getAllJobs(p.jobStreams->asSequence()))},
+			jobs       <- thisModule.getAllJobs(p.jobStreams->asSequence()),
+			triggers   <- p.triggers,
+			variables  <- p.environmentVariables
+				->collect(a | thisModule.Assignment2VariableAssignment(a))
+		)
+}
+
+-- ScriptJob -> Job
+rule ScriptJob2Job {
+	from
+		j : PIMMM!ScriptJob
+	to
+		bj : BambooMM!Job(
+			name         <- if not j.name.oclIsUndefined() then j.name else j.id endif,
+			key          <- thisModule.nameToKey(
+				if not j.name.oclIsUndefined() then j.name else j.id endif),
+			tasks        <- j.steps
+				->collect(s | s.toTask())
+				->reject(t | t.oclIsUndefined()),
+			artifacts    <- j.steps
+				->collect(s | s.toArtifactDef())
+				->reject(a | a.oclIsUndefined()),
+			variables    <- j.environmentVariables
+				->collect(a | thisModule.Assignment2VariableAssignment(a)),
+			docker       <- if not j.agent.oclIsUndefined()
+			                then j.agent.toDockerConfig()
+			                else OclUndefined endif,
+			requirements <- if not j.agent.oclIsUndefined()
+			                then j.agent.toRequirements()
+			                else Sequence{} endif
+		)
+}
+
+-- PipelineCallJob -> Job with a ScriptTask that executes the referenced pipeline path
+rule PipelineCallJob2Job {
+	from
+		j : PIMMM!PipelineCallJob
+	to
+		bj : BambooMM!Job(
+			name         <- if not j.name.oclIsUndefined() then j.name else j.id endif,
+			key          <- thisModule.nameToKey(
+				if not j.name.oclIsUndefined() then j.name else j.id endif),
+			tasks        <- Sequence{thisModule.PipelineCall2ScriptTask(j)},
+			variables    <- j.environmentVariables
+				->collect(a | thisModule.Assignment2VariableAssignment(a)),
+			docker       <- if not j.agent.oclIsUndefined()
+			                then j.agent.toDockerConfig()
+			                else OclUndefined endif,
+			requirements <- if not j.agent.oclIsUndefined()
+			                then j.agent.toRequirements()
+			                else Sequence{} endif
+		)
+}
+
+-- PushTrigger -> PollingTrigger (Bamboo polls SCM for changes)
+rule PushTrigger2PollingTrigger {
+	from
+		t : PIMMM!PushTrigger
+	to
+		bt : BambooMM!PollingTrigger(
+			period <- 180
+		)
+}
+
+-- PullRequestTrigger -> PollingTrigger
+rule PullRequestTrigger2PollingTrigger {
+	from
+		t : PIMMM!PullRequestTrigger
+	to
+		bt : BambooMM!PollingTrigger(
+			period <- 180
+		)
+}
+
+-- ScheduledTrigger -> CronTrigger (first cron expression wins)
+rule ScheduledTrigger2CronTrigger {
+	from
+		t : PIMMM!ScheduledTrigger
+	to
+		bt : BambooMM!CronTrigger(
+			expression <- t.crons->first()
+		)
+}
+
+-- ManualTrigger -> RemoteTrigger (closest Bamboo analogue for manual / API triggering)
+rule ManualTrigger2RemoteTrigger {
+	from
+		t : PIMMM!ManualTrigger
+	to
+		bt : BambooMM!RemoteTrigger
+}
+
+-- ===================================================
+-- Lazy Rules
+-- ===================================================
+
+-- Single default stage that references every job in the plan.
+lazy rule CreateDefaultStage {
+	from
+		allJobs : Sequence(PIMMM!Job)
+	to
+		stage : BambooMM!Stage(
+			name       <- 'Default Stage',
+			manual     <- false,
+			finalStage <- false,
+			jobRefs    <- allJobs
+		)
+}
+
+-- PIMMM Assignment -> BambooMM VariableAssignment
+lazy rule Assignment2VariableAssignment {
+	from
+		a : PIMMM!Assignment
+	to
+		va : BambooMM!VariableAssignment(
+			key   <- a.key.name,
+			value <- a.value.exprStr()
+		)
+}
+
+-- Command -> ScriptTask
+lazy rule Command2ScriptTask {
+	from
+		s : PIMMM!Command
+	to
+		task : BambooMM!ScriptTask(
+			scripts     <- Sequence{s.program.exprStr()},
+			workingDir  <- if not s.workingDirectory.oclIsUndefined()
+			               then s.workingDirectory.exprStr()
+			               else OclUndefined endif,
+			environment <- if s.environmentVariables->isEmpty()
+			               then OclUndefined
+			               else thisModule.assignmentsToEnvString(s.environmentVariables) endif
+		)
+}
+
+-- Plugin -> AnyTask
+lazy rule Plugin2AnyTask {
+	from
+		s : PIMMM!Plugin
+	to
+		task : BambooMM!AnyTask(
+			pluginKey     <- s.pluginName + ':' + s.version,
+			configuration <- s.kwargs
+				->collect(a | thisModule.Assignment2VariableAssignment(a))
+		)
+}
+
+-- Cache -> AnyTask (generic cache plugin; STORE/LOAD/BOTH encoded in configuration)
+lazy rule Cache2AnyTask {
+	from
+		s : PIMMM!Cache
+	to
+		task : BambooMM!AnyTask(
+			pluginKey     <- 'com.atlassian.bamboo:cache',
+			configuration <- Sequence{
+				thisModule.MakeVarAssignment('cacheName', s.cacheName.exprStr()),
+				thisModule.MakeVarAssignment('cacheMode',
+					if s.store = #STORE then
+						'STORE'
+					else if s.store = #LOAD then
+						'LOAD'
+					else
+						'BOTH'
+					endif
+					endif
+				),
+				thisModule.MakeVarAssignment('cacheKey',
+					if s.keys->notEmpty() then s.keys->first().exprStr() else '' endif),
+				thisModule.MakeVarAssignment('cachePaths',
+					if s.paths->notEmpty() then s.paths->first().exprStr() else '' endif)
+			}
+		)
+}
+
+-- Artifact download -> ArtifactDownloadTask
+lazy rule ArtifactDownload2Task {
+	from
+		s : PIMMM!Artifact
+	to
+		task : BambooMM!ArtifactDownloadTask(
+			artifacts <- Sequence{
+				thisModule.MakeArtifactDownloadItem(
+					if not s.artifactName.oclIsUndefined()
+					then s.artifactName.exprStr()
+					else 'artifact' endif,
+					if s.includePaths->notEmpty()
+					then s.includePaths->first().exprStr()
+					else '' endif
+				)
+			}
+		)
+}
+
+-- Artifact upload -> Bamboo Artifact definition on the job
+lazy rule ArtifactUpload2ArtifactDef {
+	from
+		s : PIMMM!Artifact
+	to
+		artifact : BambooMM!Artifact(
+			name     <- if not s.artifactName.oclIsUndefined()
+			            then s.artifactName.exprStr()
+			            else 'artifact' endif,
+			pattern  <- if s.includePaths->notEmpty()
+			            then s.includePaths->first().exprStr()
+			            else '**/*' endif,
+			shared   <- true,
+			required <- false
+		)
+}
+
+-- Checkout -> CheckoutTask
+lazy rule Checkout2CheckoutTask {
+	from
+		s : PIMMM!Checkout
+	to
+		task : BambooMM!CheckoutTask(
+			path              <- if not s.path.oclIsUndefined()
+			                     then s.path.exprStr()
+			                     else OclUndefined endif,
+			defaultRepository <- true
+		)
+}
+
+-- PipelineCallJob -> ScriptTask (executes the pipeline at the given path)
+lazy rule PipelineCall2ScriptTask {
+	from
+		j : PIMMM!PipelineCallJob
+	to
+		task : BambooMM!ScriptTask(
+			scripts <- Sequence{j.pipelinePath.exprStr()}
+		)
+}
+
+-- Utility: Requirement from a capability string
+lazy rule MakeRequirement {
+	from
+		cap : String
+	to
+		req : BambooMM!Requirement(
+			capability <- cap
+		)
+}
+
+-- Utility: DockerConfig from an image string
+lazy rule MakeDockerConfig {
+	from
+		image : String
+	to
+		dc : BambooMM!DockerConfig(
+			image             <- image,
+			useDefaultVolumes <- true
+		)
+}
+
+-- Utility: VariableAssignment from two strings
+lazy rule MakeVarAssignment {
+	from
+		k : String,
+		v : String
+	to
+		va : BambooMM!VariableAssignment(
+			key   <- k,
+			value <- v
+		)
+}
+
+-- Utility: ArtifactDownloadItem from name and destination strings
+lazy rule MakeArtifactDownloadItem {
+	from
+		n    : String,
+		dest : String
+	to
+		item : BambooMM!ArtifactDownloadItem(
+			name        <- n,
+			destination <- dest
+		)
+}

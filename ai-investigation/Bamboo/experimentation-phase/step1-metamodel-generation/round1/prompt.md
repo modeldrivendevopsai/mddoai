@@ -1,18 +1,18 @@
-# Round 1 — GHA PSM metamodel + pimMM + Bamboo documentation
+# Round 1 — GHA PSM metamodel + Bamboo documentation
 
 ## Context given
+
 - `context/GHA.ecore` — GitHub Actions PSM metamodel from ACICDTrip (structural template)
-- `context/pimMM.ecore` — platform-independent CI/CD metamodel (concepts to cover)
 - `context/bamboo-docs.md` — Bamboo Specs v10.0.2 official reference
 
 ## Context NOT given
+
 - Any ATL transformation
 - Any example `bamboo.yaml` output
 
 ## Rationale
-Round 1 — no constraints. Tests what GHA.ecore structure + Bamboo docs + PIM concepts produces.
-The PIM is included from Round 1 (unlike GitLab where it was added in Round 2) because
-Bamboo terminology diverges more from PIM concepts (Plan vs Pipeline, Task vs Command, Stage mandatory).
+
+Round 1 — no constraints. Tests what GHA.ecore structure + Bamboo docs produces.
 
 ---
 
@@ -39,21 +39,10 @@ map to EClass hierarchies with containment references.
 
 ---
 
-## Platform-independent CI/CD metamodel (PIM)
-
-This defines the platform-independent CI/CD concepts your metamodel must be able to represent.
-Every concept in this metamodel should have a corresponding representation in your Bamboo PSM.
-
-```xml
-[PASTE context/pimMM.ecore HERE]
-```
-
----
-
 ## Bamboo CI/CD YAML — official reference
 
 This defines the Bamboo-specific constructs your metamodel must cover.
-Use Bamboo terminology (Plan, Stage, Job, Task, Agent, Trigger, Artifact, Variable).
+Use terminology strictly from the Bamboo documentation provided above.
 
 ```
 [PASTE context/bamboo-docs.md HERE]
@@ -64,10 +53,10 @@ Use Bamboo terminology (Plan, Stage, Job, Task, Agent, Trigger, Artifact, Variab
 ## Task
 
 Generate `bambooMM.ecore` — an EMF Ecore metamodel for Bamboo CI/CD pipelines,
-covering the constructs described in the Bamboo reference above and mapping
-to the PIM concepts where applicable.
+covering the constructs described in the Bamboo reference above.
 
 Use:
+
 - `name="bambooMM"`
 - `nsURI="http://www.mddoai.com/mddoai/metamodel/bamboo"`
 - `nsPrefix="bambooMM"`
