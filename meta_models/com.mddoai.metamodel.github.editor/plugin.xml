@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+
+<!--
+-->
+
+<plugin>
+
+   <extension point="org.eclipse.ui.newWizards">
+      <!-- @generated githubMM -->
+      <category
+            id="org.eclipse.emf.ecore.Wizard.category.ID"
+            name="%_UI_Wizard_category"/>
+      <wizard
+            id="com.mddoai.metamodel.github.githubMM.presentation.GithubMMModelWizardID"
+            name="%_UI_GithubMMModelWizard_label"
+            class="com.mddoai.metamodel.github.githubMM.presentation.GithubMMModelWizard"
+            category="org.eclipse.emf.ecore.Wizard.category.ID"
+            icon="icons/full/obj16/GithubMMModelFile.gif">
+         <description>%_UI_GithubMMModelWizard_description</description>
+         <selection class="org.eclipse.core.resources.IResource"/>
+      </wizard>
+   </extension>
+
+   <extension point="org.eclipse.ui.editors">
+      <!-- @generated githubMM -->
+      <editor
+            id="com.mddoai.metamodel.github.githubMM.presentation.GithubMMEditorID"
+            name="%_UI_GithubMMEditor_label"
+            icon="icons/full/obj16/GithubMMModelFile.gif"
+            extensions="githubmm"
+            class="com.mddoai.metamodel.github.githubMM.presentation.GithubMMEditor"
+            contributorClass="com.mddoai.metamodel.github.githubMM.presentation.GithubMMActionBarContributor">
+      </editor>
+   </extension>
+
+</plugin>

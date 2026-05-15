@@ -1,0 +1,16 @@
+/**
+ */
+package com.mddoai.metamodel.github.githubMM;
+
+/**
+ * <!-- begin-user-doc -->
+ * A representation of the model object '<em><b>Not</b></em>'.
+ * <!-- end-user-doc -->
+ *
+ *
+ * @see com.mddoai.metamodel.github.githubMM.GithubMMPackage#getNot()
+ * @model
+ * @generated
+ */
+public interface Not extends UnaryOp {
+} // Not
