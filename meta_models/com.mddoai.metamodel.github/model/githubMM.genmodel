@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel"
+    modelDirectory="/com.mddoai.metamodel.github/src-gen" creationIcons="false"
+    editDirectory="/com.mddoai.metamodel.github.edit/src-gen" editorDirectory="/com.mddoai.metamodel.github.editor/src-gen"
+    modelPluginID="com.mddoai.metamodel.github" modelName="GithubMM" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
+    codeFormatting="true" importerID="org.eclipse.emf.importer.ecore" complianceLevel="21.0"
+    copyrightFields="false" operationReflection="true" importOrganizing="true">
+  <foreignModel>githubMM.ecore</foreignModel>
+  <testsDirectory xsi:nil="true"/>
+  <genPackages prefix="GithubMM" basePackage="com.mddoai.metamodel.github" disposableProviderFactory="true"
+      ecorePackage="githubMM.ecore#/">
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//EVENTS">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/BRANCH_PROTECTION_RULE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/CHECK_RUN"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/CHECK_SUITE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/CREATE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/DELETE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/DEPLOYMENT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/DEPLOYMENT_STATUS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/DISCUSSION"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/DISCUSSION_COMMENT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/FORK"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/GOLLUM"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/ISSUE_COMMENT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/ISSUES"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/LABEL"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/MERGE_GROUP"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/MILESTONE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PAGE_BUILD"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PROJECT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PROJECT_CARD"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PROJECT_COLUMN"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PUBLIC"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PULL_REQUEST_REVIEW"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/PULL_REQUEST_REVIEW_COMMENT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/REGISTRY_PACKAGE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/RELEASE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/REPOSITORY_DISPATCH"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/STATUS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EVENTS/WATCH"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/ASSIGNED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/AUTO_MERGE_DISABLED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/AUTO_MERGE_ENABLED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/CLOSED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/CONVERTED_TO_DRAFT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/EDITED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/LABELED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/LOCKED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/OPENED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/READY_FOR_REVIEW"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/REOPENED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/REVIEW_REQUEST_REMOVED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/REVIEW_REQUESTED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/SYNCHRONIZE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/UNASSIGNED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/UNLABELED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/UNLOCKED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/CREATED"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//WEBHOOK_ACTIVITY_TYPES/DELETED"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//PERMISSION_SCOPES">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/ACTIONS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/CHECKS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/CONTENTS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/DEPLOYMENTS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/DISCUSSIONS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/ID_TOKEN"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/ISSUES"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/PACKAGES"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/PAGES"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/PULL_REQUESTS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/REPOSITORY_PROJECTS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/SECURITY_EVENTS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSION_SCOPES/STATUSES"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//PERMISSIONS">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSIONS/READ"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSIONS/WRITE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//PERMISSIONS/NONE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//EQUALITY_OPS">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EQUALITY_OPS/EQUALS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//EQUALITY_OPS/NOT_EQUALS"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//COMPARISON_OPS">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//COMPARISON_OPS/GT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//COMPARISON_OPS/GTE"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//COMPARISON_OPS/LT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//COMPARISON_OPS/LTE"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//CONTEXTS">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/GITHUB"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/ENV"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/VARS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/JOB"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/JOBS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/STEPS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/RUNNER"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/SECRETS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/STRATEGY"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/MATRIX"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/NEEDS"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//CONTEXTS/INPUTS"/>
+    </genEnums>
+    <genEnums typeSafeEnumCompatible="false" ecoreEnum="githubMM.ecore#//INPUT_TYPES">
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//INPUT_TYPES/STRING"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//INPUT_TYPES/NUMBER"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//INPUT_TYPES/BOOLEAN"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//INPUT_TYPES/ENVIRONMENT"/>
+      <genEnumLiterals ecoreEnumLiteral="githubMM.ecore#//INPUT_TYPES/CHOICE"/>
+    </genEnums>
+    <genClasses ecoreClass="githubMM.ecore#//Workflow">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/runName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/triggers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/permissions"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/defaults"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/environmentVariables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/concurrencyGroup"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Workflow/jobs"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Job">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Job/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/jobName"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/permissions"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/dependsOn"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/necessaryFor"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/ifCondition"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/agent"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/container"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/stagingEnvironment"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/defaults"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/environmentVariables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/services"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/concurrencyGroup"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/timeoutMinutes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/continueOnError"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/strategy"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Job/outputs"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//ScriptJob">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//ScriptJob/steps"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//WorkflowCallJob">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//WorkflowCallJob/uses"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//WorkflowCallJob/args"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//WorkflowCallJob/secrets"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//WorkflowCallJob/inheritSecrets"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Agent">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Agent/group"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Agent/labels"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Container">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/image"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/username"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/password"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/environmentVariables"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/ports"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/volumes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Container/options"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Service">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Service/key"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Service/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//StagingEnvironment">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//StagingEnvironment/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//StagingEnvironment/url"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Trigger"/>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//EventTypeTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//EventTypeTrigger/eventTypes"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//SpecifiedBranchesTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//SpecifiedBranchesTrigger/branches"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//SpecifiedBranchesTrigger/ignoreSpecifiedBranches"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//SpecifiedPathsTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//SpecifiedPathsTrigger/paths"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//SpecifiedPathsTrigger/ignoreSpecifiedPaths"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//StandardEventTrigger">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//StandardEventTrigger/event"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//InputTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//InputTrigger/inputs"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//WorkflowRunTrigger"/>
+    <genClasses ecoreClass="githubMM.ecore#//PullRequestTrigger"/>
+    <genClasses ecoreClass="githubMM.ecore#//PullRequestTargetTrigger"/>
+    <genClasses ecoreClass="githubMM.ecore#//PushTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//PushTrigger/tags"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//PushTrigger/ignoreSpecifiedTags"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//ScheduleTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//ScheduleTrigger/crons"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//WorkflowCallTrigger">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//WorkflowCallTrigger/outputs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//WorkflowCallTrigger/secrets"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//WorkflowDispatchTrigger"/>
+    <genClasses ecoreClass="githubMM.ecore#//Permission">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Permission/key"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Permission/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//ConcurrencyGroup">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//ConcurrencyGroup/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//ConcurrencyGroup/cancelInProgress"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Defaults">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Defaults/shell"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Defaults/workingDirectory"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Expression"/>
+    <genClasses ecoreClass="githubMM.ecore#//VariableDeclaration">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//VariableDeclaration/name"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//VariableAssignment">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//VariableAssignment/key"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//VariableAssignment/value"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//BinaryOp">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//BinaryOp/lhs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//BinaryOp/rhs"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Concat">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Concat/expressions"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//DotOp"/>
+    <genClasses ecoreClass="githubMM.ecore#//Equality">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Equality/op"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Comparison">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Comparison/op"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//LogicalOp"/>
+    <genClasses ecoreClass="githubMM.ecore#//Or"/>
+    <genClasses ecoreClass="githubMM.ecore#//And"/>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//UnaryOp">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//UnaryOp/childExpr"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Not"/>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//BuiltInFunctionCall"/>
+    <genClasses ecoreClass="githubMM.ecore#//Contains">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Contains/search"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Contains/item"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//StartsWith">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//StartsWith/searchString"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//StartsWith/searchValue"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//EndsWith">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//EndsWith/searchString"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//EndsWith/searchValue"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Format">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Format/string"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Format/replaceValues"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Join">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Join/array"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Join/sep"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//ToJSON">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//ToJSON/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//FromJSON">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//FromJSON/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//HashFiles">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//HashFiles/path"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//StatusCheck"/>
+    <genClasses ecoreClass="githubMM.ecore#//Always"/>
+    <genClasses ecoreClass="githubMM.ecore#//Success"/>
+    <genClasses ecoreClass="githubMM.ecore#//Cancelled"/>
+    <genClasses ecoreClass="githubMM.ecore#//Failure"/>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Value"/>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Literal"/>
+    <genClasses ecoreClass="githubMM.ecore#//StringLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//StringLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//IntegerLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//IntegerLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//DoubleLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//DoubleLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//BooleanLiteral">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//BooleanLiteral/value"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//VariableReference">
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference githubMM.ecore#//VariableReference/reference"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//GitHubContext">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//GitHubContext/context"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Matrix">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Matrix/axes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Matrix/includes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Matrix/excludes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Matrix/failFast"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Matrix/maxParallel"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//MatrixAxis">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//MatrixAxis/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//MatrixAxis/cells"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//MatrixCombination">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//MatrixCombination/entries"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//AbstractStep"/>
+    <genClasses ecoreClass="githubMM.ecore#//IfStep">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//IfStep/ifCondition"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//IfStep/thenRun"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Step">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Step/id"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/timeoutMinutes"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/continueOnError"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/shell"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/workingDirectory"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Step/environmentVariables"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Command">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Command/command"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Package">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Package/uses"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Package/args"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Package/entrypoint"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Package/containerArgs"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="githubMM.ecore#//Parameter">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Parameter/id"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Parameter/description"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Input">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Input/type"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Input/isRequired"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Input/default"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Input/options"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Secret">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute githubMM.ecore#//Secret/isRequired"/>
+    </genClasses>
+    <genClasses ecoreClass="githubMM.ecore#//Output">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference githubMM.ecore#//Output/value"/>
+    </genClasses>
+  </genPackages>
+</genmodel:GenModel>
