@@ -1,0 +1,5 @@
+services:
+  chat-ui:
+    build: .
+    ports:
+      - "8080:80"
