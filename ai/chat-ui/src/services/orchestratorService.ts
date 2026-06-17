@@ -22,3 +22,7 @@ export async function sendMessage(
     status: turn.status ?? "pending",
   }
 }
+
+export function resetTurnIndex(): void {
+  turnIndex = 0
+}
