@@ -1,0 +1,5 @@
+litellm==1.89.2
+python-dotenv>=1.0.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+pytest>=8.0.0
