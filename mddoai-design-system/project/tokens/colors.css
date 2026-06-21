@@ -1,0 +1,92 @@
+/* MDDOAI — Color tokens
+   Brand mark is a DevOps infinity loop fused with an AI sparkle, in a
+   violet gradient (#684aeb → #a45eed). Purple is the single brand hue;
+   neutrals are cool slate; semantics map to CI/CD pipeline states. */
+
+:root {
+  /* ---- Brand purple scale ---- */
+  --purple-50:  #f3f0fe;
+  --purple-100: #e7e1fd;
+  --purple-200: #cfc4fb;
+  --purple-300: #ad9cf6;
+  --purple-400: #8b70f1;
+  --purple-500: #684aeb; /* primary — logo */
+  --purple-600: #5736d6;
+  --purple-700: #4a2cba;
+  --purple-800: #3d2697;
+  --purple-900: #332179;
+
+  /* ---- Secondary violet (logo sparkle / gradient end) ---- */
+  --violet-400: #b97cf0;
+  --violet-500: #a45eed;
+  --violet-600: #8e3fe0;
+
+  /* ---- Cool neutral slate ---- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f8f8fb;
+  --neutral-100: #f0f0f5;
+  --neutral-200: #e4e4ee;
+  --neutral-300: #cdcddb;
+  --neutral-400: #a1a1b8;
+  --neutral-500: #74748d;
+  --neutral-600: #565569;
+  --neutral-700: #3d3d4c;
+  --neutral-800: #262633;
+  --neutral-900: #181820;
+  --neutral-950: #0e0d15; /* ink — dark surface base */
+
+  /* ---- Semantic / CI pipeline states ---- */
+  --success-500: #15a36a; /* passed */
+  --success-100: #e3f6ec;
+  --warning-500: #cf8a00; /* running / pending */
+  --warning-100: #fbf0d6;
+  --danger-500:  #e0443c; /* failed */
+  --danger-100:  #fbe5e3;
+  --info-500:    #3a7bd5; /* info */
+  --info-100:    #e4eefb;
+
+  /* ---- Brand gradient ---- */
+  --gradient-brand: linear-gradient(120deg, #684aeb 0%, #a45eed 100%); /* @kind color */
+  --gradient-brand-soft: linear-gradient(120deg, #7a5cf0 0%, #b97cf0 100%); /* @kind color */
+
+  /* =========================================================
+     Semantic aliases — reference these in components/screens
+     ========================================================= */
+
+  /* Brand */
+  --brand:            var(--purple-500);
+  --brand-strong:     var(--purple-600);
+  --brand-stronger:   var(--purple-700);
+  --brand-subtle:     var(--purple-100);
+  --brand-faint:      var(--purple-50);
+  --brand-accent:     var(--violet-500);
+  --on-brand:         var(--neutral-0);
+
+  /* Surfaces */
+  --surface-page:     var(--neutral-50);
+  --surface-card:     var(--neutral-0);
+  --surface-sunken:   var(--neutral-100);
+  --surface-inverse:  var(--neutral-950);
+  --surface-code:     #16141f;        /* code blocks / CLI on light pages */
+  --surface-overlay:  rgba(14,13,21,0.55);
+
+  /* Text */
+  --text-strong:      var(--neutral-900);
+  --text-body:        var(--neutral-700);
+  --text-muted:       var(--neutral-500);
+  --text-faint:       var(--neutral-400);
+  --text-brand:       var(--purple-600);
+  --text-on-inverse:  var(--neutral-100);
+  --text-on-inverse-muted: #9b9bb5;
+  --text-link:        var(--purple-600);
+
+  /* Borders */
+  --border-subtle:    var(--neutral-200);
+  --border-default:   var(--neutral-300);
+  --border-strong:    var(--neutral-400);
+  --border-brand:     var(--purple-300);
+  --border-inverse:   rgba(255,255,255,0.12);
+
+  /* States */
+  --focus-ring:       var(--purple-400);
+}

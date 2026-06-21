@@ -1,0 +1,53 @@
+<!-- @dsCard group="Components" viewport="700x250" name="Actions — Button & Icon" subtitle="Variants, sizes, icons, states" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-page); font-family: var(--font-sans); }
+  .wrap { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); width: 72px; flex: none; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+  <div id="root" class="wrap"></div>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Button, Icon } = window.MDDOAIDesignSystem_0a843c;
+    function Demo() {
+      return (
+        <>
+          <div className="row"><span className="lbl">Variant</span>
+            <Button variant="primary">Run the transformation</Button>
+            <Button variant="secondary">Build from source</Button>
+            <Button variant="ghost">Read the docs</Button>
+            <Button variant="gradient" iconRight={<Icon name="arrow-right" size={16} />}>Get started</Button>
+            <Button variant="danger">Delete</Button>
+          </div>
+          <div className="row"><span className="lbl">Size</span>
+            <Button size="sm">Small</Button>
+            <Button size="md">Medium</Button>
+            <Button size="lg">Large</Button>
+          </div>
+          <div className="row"><span className="lbl">Icon</span>
+            <Button variant="secondary" iconLeft={<Icon name="download" size={16} />}>Pull the image</Button>
+            <Button variant="primary" iconLeft={<Icon name="play" size={16} />}>Run</Button>
+            <Button variant="ghost" iconLeft={<Icon name="github" size={16} />}>Star on GitHub</Button>
+          </div>
+          <div className="row"><span className="lbl">State</span>
+            <Button variant="primary" disabled>Disabled</Button>
+            <Button variant="secondary" disabled>Disabled</Button>
+          </div>
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+  </script>
+</body>
+</html>

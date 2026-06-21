@@ -1,0 +1,50 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="Semantic — CI pipeline states" subtitle="passed · running · failed · info" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); background: var(--surface-card); }
+  .wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px; }
+  .cell { border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; }
+  .bar { height: 44px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill); font-weight: 600; }
+  .meta { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .hex { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="cell">
+      <div class="bar" style="background:var(--success-500)"></div>
+      <div class="meta">
+        <span class="pill" style="background:var(--success-100);color:var(--success-500)"><span class="dot" style="background:var(--success-500)"></span>passed</span>
+        <span class="hex">#15a36a</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="bar" style="background:var(--warning-500)"></div>
+      <div class="meta">
+        <span class="pill" style="background:var(--warning-100);color:#9a6800"><span class="dot" style="background:var(--warning-500)"></span>running</span>
+        <span class="hex">#cf8a00</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="bar" style="background:var(--danger-500)"></div>
+      <div class="meta">
+        <span class="pill" style="background:var(--danger-100);color:var(--danger-500)"><span class="dot" style="background:var(--danger-500)"></span>failed</span>
+        <span class="hex">#e0443c</span>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="bar" style="background:var(--info-500)"></div>
+      <div class="meta">
+        <span class="pill" style="background:var(--info-100);color:var(--info-500)"><span class="dot" style="background:var(--info-500)"></span>info</span>
+        <span class="hex">#3a7bd5</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
