@@ -1,0 +1,773 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/teamcity')]
+
+[template public generateProject(project : Project)]
+[comment @main/]
+[file ('teamcity-pipelines.kts', false, 'UTF-8')]
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.*
+import jetbrains.buildServer.configs.kotlin.triggers.*
+import jetbrains.buildServer.configs.kotlin.vcs.*
+
+version = "2024.03"
+
+project {
+[if (not name.oclIsUndefined())]
+    name = [generateExpressionQuoted(name)/]
+[/if]
+[if (not description.oclIsUndefined())]
+    description = [generateExpressionQuoted(description)/]
+[/if]
+[if (parameters->notEmpty())]
+
+    params {
+[for (param : ParameterAssignment | parameters)]
+        [generateParameterAssignment(param)/]
+[/for]
+    }
+[/if]
+[if (vcsRoots->notEmpty())]
+
+[for (vcsRoot : VcsRoot | vcsRoots)]
+    [generateVcsRootRef(vcsRoot)/]
+[/for]
+[/if]
+[if (templates->notEmpty())]
+
+[for (tmpl : Template | templates)]
+    [generateTemplateRef(tmpl)/]
+[/for]
+[/if]
+[if (buildTypes->notEmpty())]
+
+[for (bt : BuildType | buildTypes)]
+    buildType([bt.id/])
+[/for]
+[/if]
+[if (subProjects->notEmpty())]
+
+[for (sub : Project | subProjects)]
+    subProject([generateExpressionRaw(sub.name)/])
+[/for]
+[/if]
+}
+[if (vcsRoots->notEmpty())]
+
+[for (vcsRoot : VcsRoot | vcsRoots)]
+[generateVcsRoot(vcsRoot)/]
+
+[/for]
+[/if]
+[if (templates->notEmpty())]
+
+[for (tmpl : Template | templates)]
+[generateTemplate(tmpl)/]
+
+[/for]
+[/if]
+[if (buildTypes->notEmpty())]
+
+[for (bt : BuildType | buildTypes)]
+[generateBuildType(bt)/]
+
+[/for]
+[/if]
+[/file]
+[/template]
+
+[comment ==================== BuildType ==================== /]
+
+[template public generateBuildType(bt : BuildType) post(trim())]
+object [bt.id/] : BuildType({
+    id("[bt.id/]")
+[if (not bt.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(bt.name)/]
+[/if]
+[if (not bt.description.oclIsUndefined())]
+    description = [generateExpressionQuoted(bt.description)/]
+[/if]
+[if (not bt.buildNumberPattern.oclIsUndefined())]
+    buildNumberPattern = [generateExpressionQuoted(bt.buildNumberPattern)/]
+[/if]
+[if (not bt.maxRunningBuilds.oclIsUndefined())]
+    maxRunningBuilds = [bt.maxRunningBuilds/]
+[/if]
+[if (bt.artifactRules->notEmpty())]
+
+    artifactRules = [generateArtifactRulesString(bt.artifactRules)/]
+[/if]
+[if (bt.parameters->notEmpty())]
+
+    params {
+[for (param : ParameterAssignment | bt.parameters)]
+        [generateParameterAssignment(param)/]
+[/for]
+    }
+[/if]
+[if (bt.vcsRootEntries->notEmpty())]
+
+    vcs {
+[for (entry : VcsRootEntry | bt.vcsRootEntries)]
+        [generateVcsRootEntry(entry)/]
+[/for]
+    }
+[/if]
+[if (bt.oclIsTypeOf(ScriptBuildType))]
+[if (bt.oclAsType(ScriptBuildType).steps->notEmpty())]
+
+    steps {
+[for (step : BuildStep | bt.oclAsType(ScriptBuildType).steps)]
+        [generateBuildStep(step)/]
+[/for]
+    }
+[/if]
+[/if]
+[if (bt.triggers->notEmpty())]
+
+    triggers {
+[for (trigger : Trigger | bt.triggers)]
+        [generateTrigger(trigger)/]
+[/for]
+    }
+[/if]
+[if (bt.snapshotDependencies->notEmpty() or bt.artifactDependencies->notEmpty())]
+
+    dependencies {
+[for (snapDep : SnapshotDependency | bt.snapshotDependencies)]
+        [generateSnapshotDependency(snapDep)/]
+[/for]
+[for (artDep : ArtifactDependency | bt.artifactDependencies)]
+        [generateArtifactDependency(artDep)/]
+[/for]
+    }
+[/if]
+[if (bt.features->notEmpty())]
+
+    features {
+[for (feature : BuildFeature | bt.features)]
+        [generateBuildFeature(feature)/]
+[/for]
+    }
+[/if]
+[if (bt.requirements->notEmpty())]
+
+    requirements {
+[for (req : AgentRequirement | bt.requirements)]
+        [generateAgentRequirement(req)/]
+[/for]
+    }
+[/if]
+[if (not bt.failureConditions.oclIsUndefined())]
+
+    [generateFailureConditions(bt.failureConditions)/]
+[/if]
+[if (bt.templateRefs->notEmpty())]
+
+[for (tmplRef : Template | bt.templateRefs)]
+    templates([tmplRef.id/])
+[/for]
+[/if]
+})
+[/template]
+
+[comment ==================== Build Steps ==================== /]
+
+[template public generateBuildStep(step : BuildStep) post(trim())]
+[if (step.oclIsTypeOf(ScriptBuildStep))]
+[generateScriptBuildStep(step.oclAsType(ScriptBuildStep))/]
+[elseif (step.oclIsTypeOf(RunnerBuildStep))]
+[generateRunnerBuildStep(step.oclAsType(RunnerBuildStep))/]
+[/if]
+[/template]
+
+[template public generateScriptBuildStep(step : ScriptBuildStep) post(trim())]
+script {
+[if (not step.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(step.name)/]
+[/if]
+[if (not step.id.oclIsUndefined())]
+    id = "[step.id/]"
+[/if]
+    scriptContent = [generateExpressionQuoted(step.scriptContent)/]
+[if (not step.workingDir.oclIsUndefined())]
+    workingDir = [generateExpressionQuoted(step.workingDir)/]
+[/if]
+[if (not step.executionMode.oclIsUndefined())]
+[if (step.executionMode.toString() <> 'DEFAULT')]
+    executionMode = BuildStep.ExecutionMode.[step.executionMode/]
+[/if]
+[/if]
+[if (not step.enabled.oclIsUndefined())]
+[if (not step.enabled)]
+    enabled = false
+[/if]
+[/if]
+[if (step.environmentVariables->notEmpty())]
+[for (param : ParameterAssignment | step.environmentVariables)]
+    [generateParameterAssignment(param)/]
+[/for]
+[/if]
+}
+[/template]
+
+[template public generateRunnerBuildStep(step : RunnerBuildStep) post(trim())]
+step {
+    type = [generateExpressionQuoted(step.runnerType)/]
+[if (not step.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(step.name)/]
+[/if]
+[if (not step.id.oclIsUndefined())]
+    id = "[step.id/]"
+[/if]
+[if (not step.workingDir.oclIsUndefined())]
+    workingDir = [generateExpressionQuoted(step.workingDir)/]
+[/if]
+[if (not step.executionMode.oclIsUndefined())]
+[if (step.executionMode.toString() <> 'DEFAULT')]
+    executionMode = BuildStep.ExecutionMode.[step.executionMode/]
+[/if]
+[/if]
+[if (not step.enabled.oclIsUndefined())]
+[if (not step.enabled)]
+    enabled = false
+[/if]
+[/if]
+[if (step.runnerArgs->notEmpty())]
+    param([for (arg : ParameterAssignment | step.runnerArgs) separator (', ')][generateExpressionQuoted(arg.key.oclAsType(ParameterDeclaration).name.toString().oclAsType(Expression))/], [generateExpressionQuoted(arg.value)/][/for])
+[/if]
+}
+[/template]
+
+[comment ==================== Triggers ==================== /]
+
+[template public generateTrigger(trigger : Trigger) post(trim())]
+[if (trigger.oclIsTypeOf(VcsTrigger))]
+[generateVcsTrigger(trigger.oclAsType(VcsTrigger))/]
+[elseif (trigger.oclIsTypeOf(ScheduleTrigger))]
+[generateScheduleTrigger(trigger.oclAsType(ScheduleTrigger))/]
+[elseif (trigger.oclIsTypeOf(FinishBuildTrigger))]
+[generateFinishBuildTrigger(trigger.oclAsType(FinishBuildTrigger))/]
+[elseif (trigger.oclIsTypeOf(RetryBuildTrigger))]
+[generateRetryBuildTrigger(trigger.oclAsType(RetryBuildTrigger))/]
+[/if]
+[/template]
+
+[template public generateVcsTrigger(trigger : VcsTrigger) post(trim())]
+vcs {
+[if (not trigger.branchFilter.oclIsUndefined())]
+    branchFilter = [generateExpressionQuoted(trigger.branchFilter)/]
+[/if]
+[if (not trigger.quietPeriodSeconds.oclIsUndefined())]
+    quietPeriodMode = VcsTrigger.QuietPeriodMode.USE_CUSTOM
+    quietPeriod = [trigger.quietPeriodSeconds/]
+[/if]
+[if (trigger.perCheckinTriggering)]
+    perCheckinTriggering = true
+[/if]
+[if (trigger.groupCheckinsByCommitter)]
+    groupCheckinsByCommitter = true
+[/if]
+[if (not trigger.enableQueueOptimization)]
+    enableQueueOptimization = false
+[/if]
+[if (not trigger.triggerRules.oclIsUndefined())]
+    triggerRules = [generateExpressionQuoted(trigger.triggerRules)/]
+[/if]
+[if (trigger.watchChangesInDependencies)]
+    watchChangesInDependencies = true
+[/if]
+[if (not trigger.enabled.oclIsUndefined())]
+[if (not trigger.enabled)]
+    enabled = false
+[/if]
+[/if]
+}
+[/template]
+
+[template public generateScheduleTrigger(trigger : ScheduleTrigger) post(trim())]
+schedule {
+[if (trigger.schedulingPolicy.toString() = 'cron')]
+[if (not trigger.cronExpression.oclIsUndefined())]
+    schedulingPolicy = cron {
+        cronExpression = [generateExpressionQuoted(trigger.cronExpression)/]
+    }
+[/if]
+[elseif (trigger.schedulingPolicy.toString() = 'daily')]
+    schedulingPolicy = daily {
+[if (not trigger.hour.oclIsUndefined())]
+        hour = [trigger.hour/]
+[/if]
+[if (not trigger.minute.oclIsUndefined())]
+        minute = [trigger.minute/]
+[/if]
+    }
+[elseif (trigger.schedulingPolicy.toString() = 'weekly')]
+    schedulingPolicy = weekly {
+[if (not trigger.dayOfWeek.oclIsUndefined())]
+        dayOfWeek = ScheduleTrigger.DAY.[trigger.dayOfWeek/]
+[/if]
+[if (not trigger.hour.oclIsUndefined())]
+        hour = [trigger.hour/]
+[/if]
+[if (not trigger.minute.oclIsUndefined())]
+        minute = [trigger.minute/]
+[/if]
+    }
+[/if]
+[if (not trigger.branchFilter.oclIsUndefined())]
+    branchFilter = [generateExpressionQuoted(trigger.branchFilter)/]
+[/if]
+[if (trigger.withPendingChangesOnly)]
+    withPendingChangesOnly = true
+[/if]
+[if (not trigger.timezone.oclIsUndefined())]
+    timezone = [generateExpressionQuoted(trigger.timezone)/]
+[/if]
+[if (not trigger.enabled.oclIsUndefined())]
+[if (not trigger.enabled)]
+    enabled = false
+[/if]
+[/if]
+}
+[/template]
+
+[template public generateFinishBuildTrigger(trigger : FinishBuildTrigger) post(trim())]
+finishBuildTrigger {
+    buildType = "${[trigger.buildTypeRef.id/].id}"
+[if (trigger.successfulOnly)]
+    successfulOnly = true
+[/if]
+[if (not trigger.branchFilter.oclIsUndefined())]
+    branchFilter = [generateExpressionQuoted(trigger.branchFilter)/]
+[/if]
+[if (not trigger.enabled.oclIsUndefined())]
+[if (not trigger.enabled)]
+    enabled = false
+[/if]
+[/if]
+}
+[/template]
+
+[template public generateRetryBuildTrigger(trigger : RetryBuildTrigger) post(trim())]
+retryBuild {
+[if (not trigger.delaySeconds.oclIsUndefined())]
+    delaySeconds = [trigger.delaySeconds/]
+[/if]
+[if (not trigger.attempts.oclIsUndefined())]
+    attempts = [trigger.attempts/]
+[/if]
+[if (not trigger.branchFilter.oclIsUndefined())]
+    branchFilter = [generateExpressionQuoted(trigger.branchFilter)/]
+[/if]
+[if (not trigger.enabled.oclIsUndefined())]
+[if (not trigger.enabled)]
+    enabled = false
+[/if]
+[/if]
+}
+[/template]
+
+[comment ==================== Dependencies ==================== /]
+
+[template public generateSnapshotDependency(dep : SnapshotDependency) post(trim())]
+snapshot([dep.buildTypeRef.id/]) {
+[if (not dep.onDependencyFailure.oclIsUndefined())]
+    onDependencyFailure = FailureAction.[dep.onDependencyFailure/]
+[/if]
+[if (not dep.onDependencyCancel.oclIsUndefined())]
+    onDependencyCancel = FailureAction.[dep.onDependencyCancel/]
+[/if]
+[if (not dep.reuseBuilds.oclIsUndefined())]
+    reuseBuilds = ReuseBuilds.[dep.reuseBuilds/]
+[/if]
+[if (dep.runOnSameAgent)]
+    runOnSameAgent = true
+[/if]
+[if (dep.enforceCleanCheckout)]
+    enforceCleanCheckout = true
+[/if]
+[if (not dep.synchronizeRevisions)]
+    synchronizeRevisions = false
+[/if]
+}
+[/template]
+
+[template public generateArtifactDependency(dep : ArtifactDependency) post(trim())]
+artifacts([dep.buildTypeRef.id/]) {
+[if (not dep.buildRule.oclIsUndefined())]
+[if (dep.buildRule.toString() = 'lastSuccessful')]
+    buildRule = lastSuccessful()
+[elseif (dep.buildRule.toString() = 'lastPinned')]
+    buildRule = lastPinned()
+[elseif (dep.buildRule.toString() = 'lastFinished')]
+    buildRule = lastFinished()
+[elseif (dep.buildRule.toString() = 'buildNumber')]
+[if (not dep.buildNumber.oclIsUndefined())]
+    buildRule = build([generateExpressionRaw(dep.buildNumber)/])
+[/if]
+[elseif (dep.buildRule.toString() = 'buildTag')]
+[if (not dep.buildTag.oclIsUndefined())]
+    buildRule = tag([generateExpressionRaw(dep.buildTag)/])
+[/if]
+[/if]
+[/if]
+[if (not dep.artifactRules.oclIsUndefined())]
+    artifactRules = [generateExpressionQuoted(dep.artifactRules)/]
+[/if]
+[if (dep.cleanDestination)]
+    cleanDestination = true
+[/if]
+}
+[/template]
+
+[comment ==================== VCS Roots ==================== /]
+
+[template public generateVcsRootRef(vcsRoot : VcsRoot) post(trim())]
+vcsRoot([vcsRoot.id/])
+[/template]
+
+[template public generateVcsRoot(vcsRoot : VcsRoot) post(trim())]
+[if (vcsRoot.oclIsTypeOf(GitVcsRoot))]
+[generateGitVcsRoot(vcsRoot.oclAsType(GitVcsRoot))/]
+[else]
+[generateGenericVcsRoot(vcsRoot)/]
+[/if]
+[/template]
+
+[template public generateGitVcsRoot(vcsRoot : GitVcsRoot) post(trim())]
+object [vcsRoot.id/] : GitVcsRoot({
+    id("[vcsRoot.id/]")
+[if (not vcsRoot.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(vcsRoot.name)/]
+[/if]
+    url = [generateExpressionQuoted(vcsRoot.url)/]
+[if (not vcsRoot.branch.oclIsUndefined())]
+    branch = [generateExpressionQuoted(vcsRoot.branch)/]
+[/if]
+[if (not vcsRoot.branchSpec.oclIsUndefined())]
+    branchSpec = [generateExpressionQuoted(vcsRoot.branchSpec)/]
+[/if]
+[if (not vcsRoot.pollInterval.oclIsUndefined())]
+    pollInterval = [vcsRoot.pollInterval/]
+[/if]
+[if (not vcsRoot.authMethod.oclIsUndefined())]
+    [generateAuthMethod(vcsRoot.authMethod)/]
+[/if]
+[if (not vcsRoot.checkoutSubmodules.oclIsUndefined())]
+[if (vcsRoot.checkoutSubmodules)]
+    checkoutSubmodules = GitVcsRoot.CheckoutSubmodules.CHECKOUT
+[/if]
+[/if]
+[if (not vcsRoot.userNameStyle.oclIsUndefined())]
+    userNameStyle = GitVcsRoot.UserNameStyle.[vcsRoot.userNameStyle/]
+[/if]
+})
+[/template]
+
+[template public generateGenericVcsRoot(vcsRoot : VcsRoot) post(trim())]
+object [vcsRoot.id/] : GitVcsRoot({
+    id("[vcsRoot.id/]")
+[if (not vcsRoot.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(vcsRoot.name)/]
+[/if]
+    url = [generateExpressionQuoted(vcsRoot.url)/]
+[if (not vcsRoot.branch.oclIsUndefined())]
+    branch = [generateExpressionQuoted(vcsRoot.branch)/]
+[/if]
+})
+[/template]
+
+[template public generateAuthMethod(auth : AuthMethod) post(trim())]
+[if (auth.type.toString() = 'password')]
+authMethod = password {
+[if (not auth.userName.oclIsUndefined())]
+    userName = [generateExpressionQuoted(auth.userName)/]
+[/if]
+[if (not auth.password.oclIsUndefined())]
+    password = [generateExpressionQuoted(auth.password)/]
+[/if]
+}
+[elseif (auth.type.toString() = 'token')]
+authMethod = token {
+[if (not auth.password.oclIsUndefined())]
+    password = [generateExpressionQuoted(auth.password)/]
+[/if]
+}
+[elseif (auth.type.toString() = 'sshKey')]
+authMethod = uploadedKey {
+[if (not auth.userName.oclIsUndefined())]
+    userName = [generateExpressionQuoted(auth.userName)/]
+[/if]
+[if (not auth.keyPath.oclIsUndefined())]
+    uploadedKey = [generateExpressionQuoted(auth.keyPath)/]
+[/if]
+}
+[elseif (auth.type.toString() = 'anonymous')]
+authMethod = anonymous()
+[/if]
+[/template]
+
+[template public generateVcsRootEntry(entry : VcsRootEntry) post(trim())]
+root([entry.vcsRoot.id/][if (not entry.checkoutRules.oclIsUndefined())], [generateExpressionQuoted(entry.checkoutRules)/][/if])
+[if (not entry.checkoutMode.oclIsUndefined())]
+checkoutMode = CheckoutMode.[entry.checkoutMode/]
+[/if]
+[if (not entry.cleanCheckout.oclIsUndefined())]
+[if (entry.cleanCheckout)]
+cleanCheckout = true
+[/if]
+[/if]
+[if (not entry.checkoutDir.oclIsUndefined())]
+checkoutDir = [generateExpressionQuoted(entry.checkoutDir)/]
+[/if]
+[/template]
+
+[comment ==================== Templates ==================== /]
+
+[template public generateTemplateRef(tmpl : Template) post(trim())]
+template([tmpl.id/])
+[/template]
+
+[template public generateTemplate(tmpl : Template) post(trim())]
+object [tmpl.id/] : Template({
+    id("[tmpl.id/]")
+[if (not tmpl.name.oclIsUndefined())]
+    name = [generateExpressionQuoted(tmpl.name)/]
+[/if]
+[if (tmpl.parameters->notEmpty())]
+
+    params {
+[for (param : ParameterAssignment | tmpl.parameters)]
+        [generateParameterAssignment(param)/]
+[/for]
+    }
+[/if]
+[if (tmpl.steps->notEmpty())]
+
+    steps {
+[for (step : BuildStep | tmpl.steps)]
+        [generateBuildStep(step)/]
+[/for]
+    }
+[/if]
+[if (tmpl.triggers->notEmpty())]
+
+    triggers {
+[for (trigger : Trigger | tmpl.triggers)]
+        [generateTrigger(trigger)/]
+[/for]
+    }
+[/if]
+[if (tmpl.requirements->notEmpty())]
+
+    requirements {
+[for (req : AgentRequirement | tmpl.requirements)]
+        [generateAgentRequirement(req)/]
+[/for]
+    }
+[/if]
+[if (tmpl.features->notEmpty())]
+
+    features {
+[for (feature : BuildFeature | tmpl.features)]
+        [generateBuildFeature(feature)/]
+[/for]
+    }
+[/if]
+})
+[/template]
+
+[comment ==================== Agent Requirements ==================== /]
+
+[template public generateAgentRequirement(req : AgentRequirement) post(trim())]
+[if (req.condition.toString() = 'exists')]
+exists([generateExpressionQuoted(req.parameterName)/])
+[elseif (req.condition.toString() = 'does-not-exist')]
+doesNotExist([generateExpressionQuoted(req.parameterName)/])
+[elseif (not req.value.oclIsUndefined())]
+[if (req.condition.toString() = 'equals')]
+equals([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'does-not-equal')]
+doesNotEqual([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'contains')]
+contains([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'does-not-contain')]
+doesNotContain([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'starts-with')]
+startsWith([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'ends-with')]
+endsWith([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'matches')]
+matches([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'does-not-match')]
+doesNotMatch([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'no-less-than')]
+noLessThan([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[elseif (req.condition.toString() = 'no-more-than')]
+noMoreThan([generateExpressionQuoted(req.parameterName)/], [generateExpressionQuoted(req.value)/])
+[/if]
+[/if]
+[/template]
+
+[comment ==================== Build Features ==================== /]
+
+[template public generateBuildFeature(feature : BuildFeature) post(trim())]
+feature {
+    type = [generateExpressionQuoted(feature.type)/]
+[if (not feature.enabled.oclIsUndefined())]
+[if (not feature.enabled)]
+    enabled = false
+[/if]
+[/if]
+[if (feature.params->notEmpty())]
+[for (param : ParameterAssignment | feature.params)]
+    param([generateExpressionQuoted(param.key.oclAsType(Expression))/], [generateExpressionQuoted(param.value)/])
+[/for]
+[/if]
+}
+[/template]
+
+[comment ==================== Failure Conditions ==================== /]
+
+[template public generateFailureConditions(fc : FailureConditions) post(trim())]
+failureConditions {
+[if (not fc.executionTimeoutMin.oclIsUndefined())]
+    executionTimeoutMin = [fc.executionTimeoutMin/]
+[/if]
+[if (not fc.nonZeroExitCode)]
+    nonZeroExitCode = false
+[/if]
+[if (not fc.testFailure)]
+    testFailure = false
+[/if]
+[if (not fc.errorMessage)]
+    errorMessage = false
+[/if]
+[if (not fc.javaCrash)]
+    javaCrash = false
+[/if]
+}
+[/template]
+
+[comment ==================== Artifact Rules ==================== /]
+
+[template public generateArtifactRulesString(rules : OrderedSet(ArtifactRule)) post(trim())]
+[if (rules->size() = 1)]
+"[generateArtifactRule(rules->first())/]"
+[else]
+"""
+[for (artRule : ArtifactRule | rules)]
+    [generateArtifactRule(artRule)/]
+[/for]
+""".trimIndent()
+[/if]
+[/template]
+
+[template public generateArtifactRule(artRule : ArtifactRule) post(trim())]
+[if (artRule.mode.toString() = '-')]
+-:[generateExpressionRaw(artRule.sourcePath)/]
+[elseif (artRule.mode.toString() = '?')]
+?:[generateExpressionRaw(artRule.sourcePath)/]
+[else]
+[generateExpressionRaw(artRule.sourcePath)/]
+[/if]
+[if (not artRule.destinationPath.oclIsUndefined())]
+ => [generateExpressionRaw(artRule.destinationPath)/]
+[/if]
+[/template]
+
+[comment ==================== Parameters ==================== /]
+
+[template public generateParameterAssignment(param : ParameterAssignment) post(trim())]
+param("[generateParameterDeclarationName(param.key.oclAsType(ParameterDeclaration))/]", [generateExpressionQuoted(param.value)/])
+[/template]
+
+[template public generateParameterDeclarationName(paramDecl : ParameterDeclaration) post(trim())]
+[paramDecl.name/]
+[/template]
+
+[comment ==================== Expression Helpers ==================== /]
+
+[template public generateExpressionQuoted(expression : Expression) post(trim())]
+[if (expression.oclIsUndefined())]
+""
+[elseif (expression.oclIsTypeOf(StringLiteral))]
+[generateStringLiteralQuoted(expression.oclAsType(StringLiteral))/]
+[elseif (expression.oclIsTypeOf(IntegerLiteral))]
+[expression.oclAsType(IntegerLiteral).value/]
+[elseif (expression.oclIsTypeOf(DoubleLiteral))]
+[expression.oclAsType(DoubleLiteral).value/]
+[elseif (expression.oclIsTypeOf(BooleanLiteral))]
+[if (expression.oclAsType(BooleanLiteral).value)]true[else]false[/if]
+[elseif (expression.oclIsTypeOf(Concat))]
+[generateConcatQuoted(expression.oclAsType(Concat))/]
+[elseif (expression.oclIsTypeOf(VariableReference))]
+"%[expression.oclAsType(VariableReference).reference.name/]%"
+[elseif (expression.oclIsTypeOf(DotOp))]
+"[generateExpressionRaw(expression.oclAsType(DotOp).lhs)/].[generateExpressionRaw(expression.oclAsType(DotOp).rhs)/]"
+[elseif (expression.oclIsKindOf(BinaryOp))]
+"[generateBinaryOpRaw(expression.oclAsType(BinaryOp))/]"
+[elseif (expression.oclIsKindOf(UnaryOp))]
+"[generateUnaryOpRaw(expression.oclAsType(UnaryOp))/]"
+[else]
+"[generateExpressionRaw(expression)/]"
+[/if]
+[/template]
+
+[template public generateExpressionRaw(expression : Expression) post(trim())]
+[if (expression.oclIsUndefined())]
+[elseif (expression.oclIsTypeOf(StringLiteral))]
+[expression.oclAsType(StringLiteral).value/]
+[elseif (expression.oclIsTypeOf(IntegerLiteral))]
+[expression.oclAsType(IntegerLiteral).value/]
+[elseif (expression.oclIsTypeOf(DoubleLiteral))]
+[expression.oclAsType(DoubleLiteral).value/]
+[elseif (expression.oclIsTypeOf(BooleanLiteral))]
+[if (expression.oclAsType(BooleanLiteral).value)]true[else]false[/if]
+[elseif (expression.oclIsTypeOf(Concat))]
+[for (expr : Expression | expression.oclAsType(Concat).expressions) separator ('')][generateExpressionRaw(expr)/][/for]
+[elseif (expression.oclIsTypeOf(VariableReference))]
+%[expression.oclAsType(VariableReference).reference.name/]%
+[elseif (expression.oclIsTypeOf(DotOp))]
+[generateExpressionRaw(expression.oclAsType(DotOp).lhs)/].[generateExpressionRaw(expression.oclAsType(DotOp).rhs)/]
+[elseif (expression.oclIsKindOf(BinaryOp))]
+[generateBinaryOpRaw(expression.oclAsType(BinaryOp))/]
+[elseif (expression.oclIsKindOf(UnaryOp))]
+[generateUnaryOpRaw(expression.oclAsType(UnaryOp))/]
+[/if]
+[/template]
+
+[template public generateStringLiteralQuoted(literal : StringLiteral) post(trim())]
+[if (literal.value.contains('\n'))]
+"""
+[literal.value/]
+""".trimIndent()
+[else]
+"[literal.value/]"
+[/if]
+[/template]
+
+[template public generateConcatQuoted(concat : Concat) post(trim())]
+"[for (expr : Expression | concat.expressions) separator ('')][generateExpressionRaw(expr)/][/for]"
+[/template]
+
+[template public generateBinaryOpRaw(binaryOp : BinaryOp) post(trim())]
+[if (binaryOp.oclIsTypeOf(Equality))]
+[generateExpressionRaw(binaryOp.lhs)/] [if (binaryOp.oclAsType(Equality).op.toString() = '==')]==[else]!=[/if] [generateExpressionRaw(binaryOp.rhs)/]
+[elseif (binaryOp.oclIsTypeOf(Comparison))]
+[generateExpressionRaw(binaryOp.lhs)/] [binaryOp.oclAsType(Comparison).op/] [generateExpressionRaw(binaryOp.rhs)/]
+[elseif (binaryOp.oclIsTypeOf(And))]
+[generateExpressionRaw(binaryOp.lhs)/] && [generateExpressionRaw(binaryOp.rhs)/]
+[elseif (binaryOp.oclIsTypeOf(Or))]
+[generateExpressionRaw(binaryOp.lhs)/] || [generateExpressionRaw(binaryOp.rhs)/]
+[elseif (binaryOp.oclIsTypeOf(DotOp))]
+[generateExpressionRaw(binaryOp.lhs)/].[generateExpressionRaw(binaryOp.rhs)/]
+[/if]
+[/template]
+
+[template public generateUnaryOpRaw(unaryOp : UnaryOp) post(trim())]
+[if (unaryOp.oclIsTypeOf(Not))]
+![generateExpressionRaw(unaryOp.childExpr)/]
+[/if]
+[/template]

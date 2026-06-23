@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="TeamCity" nsURI="http://www.mddoai.com/mddoai/metamodel/teamcity"
+    nsPrefix="teamcityMM">
+  <!-- ==================== Project ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="Project">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="description" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildTypes" lowerBound="1"
+        upperBound="-1" eType="#//BuildType" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="templates" upperBound="-1"
+        eType="#//Template" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="vcsRoots" upperBound="-1"
+        eType="#//VcsRoot" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="subProjects" upperBound="-1"
+        eType="#//Project" containment="true"/>
+  </eClassifiers>
+  <!-- ==================== BuildType ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="BuildType" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="description" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildNumberPattern" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="maxRunningBuilds" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggers" upperBound="-1"
+        eType="#//Trigger" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="snapshotDependencies" upperBound="-1"
+        eType="#//SnapshotDependency" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifactDependencies" upperBound="-1"
+        eType="#//ArtifactDependency" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="features" upperBound="-1"
+        eType="#//BuildFeature" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="requirements" upperBound="-1"
+        eType="#//AgentRequirement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="vcsRootEntries" upperBound="-1"
+        eType="#//VcsRootEntry" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="failureConditions" eType="#//FailureConditions"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifactRules" upperBound="-1"
+        eType="#//ArtifactRule" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="templateRefs" upperBound="-1"
+        eType="#//Template"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="dependsOn" upperBound="-1"
+        eType="#//BuildType" eOpposite="#//BuildType/necessaryFor"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="necessaryFor" upperBound="-1"
+        eType="#//BuildType" eOpposite="#//BuildType/dependsOn"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ScriptBuildType" eSuperTypes="#//BuildType">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="steps" lowerBound="1" upperBound="-1"
+        eType="#//BuildStep" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="CompositeBuildType" eSuperTypes="#//BuildType"/>
+  <!-- ==================== Template ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="Template">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="steps" upperBound="-1"
+        eType="#//BuildStep" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggers" upperBound="-1"
+        eType="#//Trigger" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="requirements" upperBound="-1"
+        eType="#//AgentRequirement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="features" upperBound="-1"
+        eType="#//BuildFeature" containment="true"/>
+  </eClassifiers>
+  <!-- ==================== VCS Roots ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="VcsRoot" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="url" lowerBound="1" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branch" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branchSpec" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pollInterval" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="authMethod" eType="#//AuthMethod"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="GitVcsRoot" eSuperTypes="#//VcsRoot">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="checkoutSubmodules" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="userNameStyle" eType="#//USER_NAME_STYLE"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="SvnVcsRoot" eSuperTypes="#//VcsRoot"/>
+  <eClassifiers xsi:type="ecore:EClass" name="PerforceVcsRoot" eSuperTypes="#//VcsRoot"/>
+  <eClassifiers xsi:type="ecore:EClass" name="MercurialVcsRoot" eSuperTypes="#//VcsRoot"/>
+  <eClassifiers xsi:type="ecore:EClass" name="AuthMethod">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//AUTH_METHOD_TYPE"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="userName" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="password" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="keyPath" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="VcsRootEntry">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="vcsRoot" lowerBound="1" eType="#//VcsRoot"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="checkoutRules" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="checkoutMode" eType="#//CHECKOUT_MODE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cleanCheckout" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="checkoutDir" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <!-- ==================== Triggers ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="Trigger" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branchFilter" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enabled" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"
+        defaultValueLiteral="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="VcsTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="quietPeriodSeconds" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="perCheckinTriggering" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="groupCheckinsByCommitter" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggerRules" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="watchChangesInDependencies" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enableQueueOptimization" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ScheduleTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="schedulingPolicy" lowerBound="1"
+        eType="#//SCHEDULING_POLICY"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="cronExpression" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="hour" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="minute" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dayOfWeek" eType="#//DAY_OF_WEEK"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="withPendingChangesOnly" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="timezone" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FinishBuildTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildTypeRef" lowerBound="1"
+        eType="#//BuildType"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="successfulOnly" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="RetryBuildTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="delaySeconds" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="attempts" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+  </eClassifiers>
+  <!-- ==================== Dependencies ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="SnapshotDependency">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildTypeRef" lowerBound="1"
+        eType="#//BuildType"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="onDependencyFailure" eType="#//FAILURE_ACTION"
+        defaultValueLiteral="FAIL_TO_START"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="onDependencyCancel" eType="#//FAILURE_ACTION"
+        defaultValueLiteral="CANCEL"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="reuseBuilds" eType="#//REUSE_BUILDS"
+        defaultValueLiteral="SUCCESSFUL"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="runOnSameAgent" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enforceCleanCheckout" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="synchronizeRevisions" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ArtifactDependency">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildTypeRef" lowerBound="1"
+        eType="#//BuildType"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="buildRule" lowerBound="1"
+        eType="#//BUILD_RULE_TYPE"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildNumber" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="buildTag" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifactRules" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cleanDestination" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="false"/>
+  </eClassifiers>
+  <!-- ==================== Artifact Rules ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="ArtifactRule">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="sourcePath" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="destinationPath" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="mode" eType="#//ARTIFACT_RULE_MODE"
+        defaultValueLiteral="INCLUDE"/>
+  </eClassifiers>
+  <!-- ==================== Agent Requirements ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="AgentRequirement">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameterName" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="condition" lowerBound="1"
+        eType="#//REQUIREMENT_CONDITION"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="value" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <!-- ==================== Build Features ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="BuildFeature">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" lowerBound="1" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="params" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enabled" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"
+        defaultValueLiteral="true"/>
+  </eClassifiers>
+  <!-- ==================== Failure Conditions ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="FailureConditions">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="executionTimeoutMin" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="nonZeroExitCode" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="testFailure" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="errorMessage" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="javaCrash" lowerBound="1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        defaultValueLiteral="true"/>
+  </eClassifiers>
+  <!-- ==================== Build Steps ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="BuildStep" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="executionMode" eType="#//EXECUTION_MODE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enabled" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"
+        defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="environmentVariables" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="workingDir" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ScriptBuildStep" eSuperTypes="#//BuildStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="scriptContent" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="RunnerBuildStep" eSuperTypes="#//BuildStep">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="runnerType" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="runnerArgs" upperBound="-1"
+        eType="#//ParameterAssignment" containment="true"/>
+  </eClassifiers>
+  <!-- ==================== Expressions ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="Expression" abstract="true"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Concat" eSuperTypes="#//Expression">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="expressions" lowerBound="1"
+        upperBound="-1" eType="#//Expression" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="BinaryOp" abstract="true" eSuperTypes="#//Expression">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="lhs" lowerBound="1" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="rhs" lowerBound="1" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="DotOp" eSuperTypes="#//BinaryOp"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Equality" eSuperTypes="#//BinaryOp">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="op" lowerBound="1" eType="#//EQUALITY_OPS"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Comparison" eSuperTypes="#//BinaryOp">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="op" lowerBound="1" eType="#//COMPARISON_OPS"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="LogicalOp" abstract="true" eSuperTypes="#//BinaryOp"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Or" eSuperTypes="#//LogicalOp"/>
+  <eClassifiers xsi:type="ecore:EClass" name="And" eSuperTypes="#//LogicalOp"/>
+  <eClassifiers xsi:type="ecore:EClass" name="UnaryOp" abstract="true" eSuperTypes="#//Expression">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="childExpr" lowerBound="1"
+        eType="#//Expression" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Not" eSuperTypes="#//UnaryOp"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Value" abstract="true" eSuperTypes="#//Expression"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Literal" abstract="true" eSuperTypes="#//Value"/>
+  <eClassifiers xsi:type="ecore:EClass" name="StringLiteral" eSuperTypes="#//Literal">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="IntegerLiteral" eSuperTypes="#//Literal">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="DoubleLiteral" eSuperTypes="#//Literal">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDoubleObject"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="BooleanLiteral" eSuperTypes="#//Literal">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="VariableReference" eSuperTypes="#//Value">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="reference" lowerBound="1"
+        eType="#//ParameterDeclaration"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TeamCityContext" eSuperTypes="#//Value">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="context" lowerBound="1"
+        eType="#//TC_CONTEXTS"/>
+  </eClassifiers>
+  <!-- ==================== Parameters ==================== -->
+  <eClassifiers xsi:type="ecore:EClass" name="ParameterDeclaration">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ParameterAssignment" instanceClassName="java.util.Map$Entry"
+      eSuperTypes="#//Expression">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="key" lowerBound="1" eType="#//ParameterDeclaration"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
+  <!-- ==================== Enumerations ==================== -->
+  <eClassifiers xsi:type="ecore:EEnum" name="EXECUTION_MODE">
+    <eLiterals name="DEFAULT" literal="DEFAULT"/>
+    <eLiterals name="RUN_ON_FAILURE" value="1" literal="RUN_ON_FAILURE"/>
+    <eLiterals name="ALWAYS" value="2" literal="ALWAYS"/>
+    <eLiterals name="RUN_ONLY_IF_PREVIOUS_STEP_FAILED" value="3" literal="RUN_ONLY_IF_PREVIOUS_STEP_FAILED"/>
+    <eLiterals name="RUN_IF_ALL_PREVIOUS_SUCCEEDED" value="4" literal="RUN_IF_ALL_PREVIOUS_SUCCEEDED"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="SCHEDULING_POLICY">
+    <eLiterals name="DAILY" literal="daily"/>
+    <eLiterals name="WEEKLY" value="1" literal="weekly"/>
+    <eLiterals name="CRON" value="2" literal="cron"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="DAY_OF_WEEK">
+    <eLiterals name="MONDAY" literal="Monday"/>
+    <eLiterals name="TUESDAY" value="1" literal="Tuesday"/>
+    <eLiterals name="WEDNESDAY" value="2" literal="Wednesday"/>
+    <eLiterals name="THURSDAY" value="3" literal="Thursday"/>
+    <eLiterals name="FRIDAY" value="4" literal="Friday"/>
+    <eLiterals name="SATURDAY" value="5" literal="Saturday"/>
+    <eLiterals name="SUNDAY" value="6" literal="Sunday"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="FAILURE_ACTION">
+    <eLiterals name="FAIL_TO_START" literal="FAIL_TO_START"/>
+    <eLiterals name="CANCEL" value="1" literal="CANCEL"/>
+    <eLiterals name="RUN" value="2" literal="RUN"/>
+    <eLiterals name="RUN_ADD_PROBLEM" value="3" literal="RUN_ADD_PROBLEM"/>
+    <eLiterals name="IGNORE" value="4" literal="IGNORE"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="REUSE_BUILDS">
+    <eLiterals name="SUCCESSFUL" literal="SUCCESSFUL"/>
+    <eLiterals name="ANY" value="1" literal="ANY"/>
+    <eLiterals name="NO" value="2" literal="NO"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="BUILD_RULE_TYPE">
+    <eLiterals name="LAST_SUCCESSFUL" literal="lastSuccessful"/>
+    <eLiterals name="LAST_PINNED" value="1" literal="lastPinned"/>
+    <eLiterals name="LAST_FINISHED" value="2" literal="lastFinished"/>
+    <eLiterals name="BUILD_NUMBER" value="3" literal="buildNumber"/>
+    <eLiterals name="BUILD_TAG" value="4" literal="buildTag"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="REQUIREMENT_CONDITION">
+    <eLiterals name="EQUALS" literal="equals"/>
+    <eLiterals name="DOES_NOT_EQUAL" value="1" literal="does-not-equal"/>
+    <eLiterals name="CONTAINS" value="2" literal="contains"/>
+    <eLiterals name="DOES_NOT_CONTAIN" value="3" literal="does-not-contain"/>
+    <eLiterals name="STARTS_WITH" value="4" literal="starts-with"/>
+    <eLiterals name="ENDS_WITH" value="5" literal="ends-with"/>
+    <eLiterals name="MATCHES" value="6" literal="matches"/>
+    <eLiterals name="DOES_NOT_MATCH" value="7" literal="does-not-match"/>
+    <eLiterals name="EXISTS" value="8" literal="exists"/>
+    <eLiterals name="DOES_NOT_EXIST" value="9" literal="does-not-exist"/>
+    <eLiterals name="NO_LESS_THAN" value="10" literal="no-less-than"/>
+    <eLiterals name="NO_MORE_THAN" value="11" literal="no-more-than"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ARTIFACT_RULE_MODE">
+    <eLiterals name="INCLUDE" literal="+"/>
+    <eLiterals name="EXCLUDE" value="1" literal="-"/>
+    <eLiterals name="OPTIONAL" value="2" literal="?"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="AUTH_METHOD_TYPE">
+    <eLiterals name="PASSWORD" literal="password"/>
+    <eLiterals name="SSH_KEY" value="1" literal="sshKey"/>
+    <eLiterals name="TOKEN" value="2" literal="token"/>
+    <eLiterals name="ANONYMOUS" value="3" literal="anonymous"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="CHECKOUT_MODE">
+    <eLiterals name="ON_SERVER" literal="ON_SERVER"/>
+    <eLiterals name="ON_AGENT" value="1" literal="ON_AGENT"/>
+    <eLiterals name="MANUAL" value="2" literal="MANUAL"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="USER_NAME_STYLE">
+    <eLiterals name="USERID" literal="USERID"/>
+    <eLiterals name="NAME" value="1" literal="NAME"/>
+    <eLiterals name="FULL" value="2" literal="FULL"/>
+    <eLiterals name="EMAIL" value="3" literal="EMAIL"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="TC_CONTEXTS">
+    <eLiterals name="BUILD" literal="build"/>
+    <eLiterals name="TEAMCITY" value="1" literal="teamcity"/>
+    <eLiterals name="AGENT" value="2" literal="agent"/>
+    <eLiterals name="SYSTEM" value="3" literal="system"/>
+    <eLiterals name="ENV" value="4" literal="env"/>
+    <eLiterals name="VCS_ROOT" value="5" literal="vcsroot"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="EQUALITY_OPS">
+    <eLiterals name="EQUALS" literal="=="/>
+    <eLiterals name="NOT_EQUALS" value="1" literal="!="/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="COMPARISON_OPS">
+    <eLiterals name="GT" literal="&gt;"/>
+    <eLiterals name="GTE" value="1" literal="&gt;="/>
+    <eLiterals name="LT" value="2" literal="&lt;"/>
+    <eLiterals name="LTE" value="3" literal="&lt;="/>
+  </eClassifiers>
+</ecore:EPackage>

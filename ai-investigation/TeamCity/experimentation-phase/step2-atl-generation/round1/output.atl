@@ -1,0 +1,704 @@
+-- @path PIM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @path TeamCityMM=http://www.mddoai.com/mddoai/metamodel/teamcity
+
+module cicd2teamcity;
+
+create OUT : TeamCityMM from IN : PIM;
+
+-- ===================================================================
+-- Helpers
+-- ===================================================================
+
+helper def : getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+	let nextJobs : Sequence(PIM!Job) =
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(PIM!Job)) = Sequence{} |
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in
+	if nextJobs.isEmpty() then
+		jobStreams
+	else
+		thisModule.getAllJobs(nextJobs)->prepend(jobStreams)->flatten()
+	endif;
+
+helper context PIM!Agent def : agent2RequirementsHelper() : Sequence(TeamCityMM!AgentRequirement) =
+	Sequence{};
+
+helper context PIM!CustomAgent def : agent2RequirementsHelper() : Sequence(TeamCityMM!AgentRequirement) =
+	self.labels->collect(lbl | thisModule.Expression2AgentRequirement(lbl));
+
+helper context PIM!LinuxAgent def : agent2RequirementsHelper() : Sequence(TeamCityMM!AgentRequirement) =
+	Sequence{thisModule.CreateAgentRequirement('teamcity.agent.jvm.os.name', 'Linux')};
+
+helper context PIM!WindowsAgent def : agent2RequirementsHelper() : Sequence(TeamCityMM!AgentRequirement) =
+	Sequence{thisModule.CreateAgentRequirement('teamcity.agent.jvm.os.name', 'Windows')};
+
+helper context PIM!MacOSAgent def : agent2RequirementsHelper() : Sequence(TeamCityMM!AgentRequirement) =
+	Sequence{thisModule.CreateAgentRequirement('teamcity.agent.jvm.os.name', 'Mac OS X')};
+
+helper def : getJobIndex(job : PIM!Job) : Integer =
+	PIM!Job.allInstances()->asSequence()->indexOf(job);
+
+-- ===================================================================
+-- Pipeline -> Project + BuildType chain
+-- ===================================================================
+
+rule Pipeline2Project {
+	from
+		pipeline : PIM!Pipeline
+	to
+		project : TeamCityMM!Project(
+			name <-
+				if not pipeline.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(pipeline.name)
+				else
+					OclUndefined
+				endif,
+			parameters <- pipeline.environmentVariables->collect(envVar |
+				thisModule.Assignment2EnvParameter(envVar)
+			),
+			buildTypes <- thisModule.getAllJobs(pipeline.jobStreams),
+			vcsRoots <-
+				if pipeline.triggers->exists(t | t.oclIsTypeOf(PIM!PushTrigger)) then
+					Sequence{thisModule.CreateDefaultVcsRoot(pipeline)}
+				else if pipeline.triggers->exists(t | t.oclIsTypeOf(PIM!PullRequestTrigger)) then
+					Sequence{thisModule.CreateDefaultVcsRoot(pipeline)}
+				else
+					Sequence{}
+				endif
+				endif
+		)
+}
+
+-- ===================================================================
+-- Job rules
+-- ===================================================================
+
+abstract rule Job2BuildType {
+	from
+		cicdJob : PIM!Job
+	to
+		tcBuildType : TeamCityMM!BuildType(
+			id <- cicdJob.id,
+			name <-
+				if not cicdJob.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(cicdJob.name)
+				else
+					OclUndefined
+				endif,
+			parameters <- cicdJob.environmentVariables->collect(envVar |
+				thisModule.Assignment2EnvParameter(envVar)
+			),
+			requirements <-
+				if not cicdJob.agent.oclIsUndefined() then
+					cicdJob.agent.agent2RequirementsHelper()
+				else
+					Sequence{}
+				endif,
+			snapshotDependencies <- cicdJob.previous->collect(prevJob |
+				thisModule.CreateSnapshotDependency(prevJob)
+			),
+			triggers <- thisModule.getTriggersForJob(cicdJob),
+			failureConditions <-
+				if not cicdJob.timeoutMinutes.oclIsUndefined() then
+					thisModule.CreateFailureConditionsWithTimeout(cicdJob.timeoutMinutes)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule ScriptJob2ScriptBuildType extends Job2BuildType {
+	from
+		cicdJob : PIM!ScriptJob
+	to
+		tcBuildType : TeamCityMM!ScriptBuildType(
+			steps <- cicdJob.steps
+		)
+}
+
+rule PipelineCallJob2CompositeBuildType extends Job2BuildType {
+	from
+		cicdJob : PIM!PipelineCallJob
+	to
+		tcBuildType : TeamCityMM!CompositeBuildType
+}
+
+-- ===================================================================
+-- Step rules
+-- ===================================================================
+
+abstract rule Step2AbstractStep {
+	from
+		cicdStep : PIM!Step
+	to
+		tcStep : TeamCityMM!BuildStep
+}
+
+rule ConditionalStep2BuildStep extends Step2AbstractStep {
+	from
+		cicdStep : PIM!ConditionalStep
+	to
+		tcStep : TeamCityMM!ScriptBuildStep(
+			scriptContent <-
+				if cicdStep.thenRun->notEmpty() then
+					if cicdStep.thenRun->first().oclIsTypeOf(PIM!Command) then
+						cicdStep.thenRun->first().program
+					else
+						thisModule.String2StringLiteral('echo "conditional step"')
+					endif
+				else
+					thisModule.String2StringLiteral('echo "conditional step"')
+				endif
+		)
+}
+
+abstract rule NonConditionalStep2BuildStep extends Step2AbstractStep {
+	from
+		cicdStep : PIM!NonConditionalStep
+	to
+		tcStep : TeamCityMM!BuildStep(
+			id <- cicdStep.id,
+			name <-
+				if not cicdStep.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(cicdStep.name)
+				else
+					OclUndefined
+				endif,
+			environmentVariables <- cicdStep.environmentVariables->collect(envVar |
+				thisModule.Assignment2EnvParameterStep(envVar)
+			),
+			workingDir <- cicdStep.workingDirectory,
+			executionMode <-
+				if not cicdStep.allowFailure.oclIsUndefined() then
+					if cicdStep.allowFailure then
+						#ALWAYS
+					else
+						#DEFAULT
+					endif
+				else
+					#DEFAULT
+				endif
+		)
+}
+
+rule Command2ScriptBuildStep extends NonConditionalStep2BuildStep {
+	from
+		cicdStep : PIM!Command
+	to
+		tcStep : TeamCityMM!ScriptBuildStep(
+			scriptContent <- cicdStep.program
+		)
+}
+
+rule Plugin2RunnerBuildStep extends NonConditionalStep2BuildStep {
+	from
+		cicdStep : PIM!Plugin
+	to
+		tcStep : TeamCityMM!RunnerBuildStep(
+			runnerType <- thisModule.String2StringLiteral(cicdStep.pluginName),
+			runnerArgs <- cicdStep.kwargs
+		)
+}
+
+rule Cache2RunnerBuildStep extends NonConditionalStep2BuildStep {
+	from
+		cicdStep : PIM!Cache
+	to
+		tcStep : TeamCityMM!RunnerBuildStep(
+			runnerType <- thisModule.String2StringLiteral('cache'),
+			runnerArgs <- Sequence{}->union(
+				if cicdStep.keys->notEmpty() then
+					Sequence{thisModule.ParameterAssignmentFromExpr('key', cicdStep.keys->first())}
+				else
+					Sequence{}
+				endif
+			)->union(
+				if cicdStep.paths->notEmpty() then
+					Sequence{thisModule.ParameterAssignmentFromExpr('path', cicdStep.paths->first())}
+				else
+					Sequence{}
+				endif
+			)
+		)
+}
+
+rule Checkout2ScriptBuildStep extends NonConditionalStep2BuildStep {
+	from
+		cicdStep : PIM!Checkout
+	to
+		tcStep : TeamCityMM!ScriptBuildStep(
+			scriptContent <- thisModule.String2StringLiteral('echo "Checkout handled by VCS root"')
+		)
+}
+
+-- ===================================================================
+-- Trigger rules
+-- ===================================================================
+
+abstract rule Trigger2Trigger {
+	from
+		cicdTrigger : PIM!Trigger
+	to
+		tcTrigger : TeamCityMM!Trigger
+}
+
+rule PushTrigger2VcsTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : PIM!PushTrigger
+	to
+		tcTrigger : TeamCityMM!VcsTrigger(
+			branchFilter <-
+				if cicdTrigger.branchGlobs->notEmpty() then
+					thisModule.BranchGlobs2BranchFilter(cicdTrigger.branchGlobs)
+				else
+					OclUndefined
+				endif,
+			enableQueueOptimization <- true
+		)
+}
+
+rule PullRequestTrigger2VcsTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : PIM!PullRequestTrigger
+	to
+		tcTrigger : TeamCityMM!VcsTrigger(
+			branchFilter <-
+				if cicdTrigger.branchGlobs->notEmpty() then
+					thisModule.BranchGlobs2BranchFilter(cicdTrigger.branchGlobs)
+				else
+					OclUndefined
+				endif,
+			enableQueueOptimization <- true
+		)
+}
+
+rule ScheduledTrigger2ScheduleTrigger extends Trigger2Trigger {
+	from
+		cicdTrigger : PIM!ScheduledTrigger
+	to
+		tcTrigger : TeamCityMM!ScheduleTrigger(
+			schedulingPolicy <- #CRON,
+			cronExpression <-
+				if cicdTrigger.crons->notEmpty() then
+					thisModule.String2StringLiteral(cicdTrigger.crons->first())
+				else
+					OclUndefined
+				endif,
+			branchFilter <-
+				if cicdTrigger.branchGlobs->notEmpty() then
+					thisModule.BranchGlobs2BranchFilter(cicdTrigger.branchGlobs)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule ManualTrigger2NoOp extends Trigger2Trigger {
+	from
+		cicdTrigger : PIM!ManualTrigger
+	to
+		tcTrigger : TeamCityMM!VcsTrigger(
+			enabled <- false
+		)
+}
+
+-- ===================================================================
+-- DockerContainer rule
+-- ===================================================================
+
+rule DockerContainer2BuildFeature {
+	from
+		dockerContainer : PIM!DockerContainer
+	to
+		feature : TeamCityMM!BuildFeature(
+			type <- thisModule.String2StringLiteral('DockerSupport'),
+			enabled <- true
+		)
+}
+
+-- ===================================================================
+-- Expression passthrough rules
+-- ===================================================================
+
+abstract rule Expression2Expression {
+	from
+		input : PIM!Expression
+	to
+		output : TeamCityMM!Expression
+}
+
+rule Concat2Concat extends Expression2Expression {
+	from
+		input : PIM!Concat
+	to
+		output : TeamCityMM!Concat(
+			expressions <- input.expressions
+		)
+}
+
+abstract rule BinaryOp2BinaryOp extends Expression2Expression {
+	from
+		input : PIM!BinaryOp
+	to
+		output : TeamCityMM!BinaryOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}
+
+abstract rule LogicalOp2LogicalOp extends BinaryOp2BinaryOp {
+	from
+		input : PIM!LogicalOp
+	to
+		output : TeamCityMM!LogicalOp
+}
+
+rule And2And extends LogicalOp2LogicalOp {
+	from
+		input : PIM!And
+	to
+		output : TeamCityMM!And
+}
+
+rule Or2Or extends LogicalOp2LogicalOp {
+	from
+		input : PIM!Or
+	to
+		output : TeamCityMM!Or
+}
+
+rule EqualityOp2Equality extends BinaryOp2BinaryOp {
+	from
+		input : PIM!EqualityOp
+	to
+		output : TeamCityMM!Equality(
+			op <-
+				if input.op = #"==" then
+					#"=="
+				else
+					#"!="
+				endif
+		)
+}
+
+rule ComparisonOp2Comparison extends BinaryOp2BinaryOp {
+	from
+		input : PIM!ComparisonOp
+	to
+		output : TeamCityMM!Comparison(
+			op <-
+				if input.op = #">" then
+					#">"
+				else if input.op = #">=" then
+					#">="
+				else if input.op = #"<" then
+					#"<"
+				else
+					#"<="
+				endif
+				endif
+				endif
+		)
+}
+
+rule DotOp2DotOp extends BinaryOp2BinaryOp {
+	from
+		input : PIM!DotOp
+	to
+		output : TeamCityMM!DotOp(
+			lhs <- input.lhs,
+			rhs <- input.rhs
+		)
+}
+
+abstract rule Value2Value extends Expression2Expression {
+	from
+		input : PIM!Value
+	to
+		output : TeamCityMM!Value
+}
+
+rule VariableReference2VariableReference extends Value2Value {
+	from
+		input : PIM!VariableReference
+	to
+		output : TeamCityMM!VariableReference(
+			reference <- input.reference
+		)
+}
+
+abstract rule Literal2Literal extends Value2Value {
+	from
+		input : PIM!Literal
+	to
+		output : TeamCityMM!Literal
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+	from
+		input : PIM!StringLiteral
+	to
+		output : TeamCityMM!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+	from
+		input : PIM!IntegerLiteral
+	to
+		output : TeamCityMM!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+	from
+		input : PIM!DoubleLiteral
+	to
+		output : TeamCityMM!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+	from
+		input : PIM!BooleanLiteral
+	to
+		output : TeamCityMM!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+abstract rule UnaryOp2UnaryOp extends Expression2Expression {
+	from
+		input : PIM!UnaryOp
+	to
+		output : TeamCityMM!UnaryOp(
+			childExpr <- input.rhs
+		)
+}
+
+rule Negation2Not extends UnaryOp2UnaryOp {
+	from
+		input : PIM!Negation
+	to
+		output : TeamCityMM!Not
+}
+
+-- ===================================================================
+-- Assignment / VariableDeclaration rules
+-- ===================================================================
+
+rule Assignment2ParameterAssignment {
+	from
+		assignment : PIM!Assignment
+	to
+		paramAssignment : TeamCityMM!ParameterAssignment(
+			key <- assignment.key,
+			value <- assignment.value
+		)
+}
+
+rule VariableDeclaration2ParameterDeclaration {
+	from
+		input : PIM!VariableDeclaration
+	to
+		output : TeamCityMM!ParameterDeclaration(
+			name <- input.name
+		)
+}
+
+-- ===================================================================
+-- Matrix rules
+-- ===================================================================
+
+rule Matrix2Parameters {
+	from
+		cicdMatrix : PIM!Matrix
+	to
+		dummy : TeamCityMM!ParameterDeclaration(
+			name <- 'matrix'
+		)
+}
+
+-- ===================================================================
+-- Lazy rules
+-- ===================================================================
+
+lazy rule String2StringLiteral {
+	from
+		string : String
+	to
+		stringLiteral : TeamCityMM!StringLiteral(
+			value <- string
+		)
+}
+
+lazy rule Boolean2BooleanLiteral {
+	from
+		boolean : Boolean
+	to
+		booleanLiteral : TeamCityMM!BooleanLiteral(
+			value <- boolean
+		)
+}
+
+lazy rule Integer2IntegerLiteral {
+	from
+		integer : Integer
+	to
+		integerLiteral : TeamCityMM!IntegerLiteral(
+			value <- integer
+		)
+}
+
+lazy rule Assignment2EnvParameter {
+	from
+		envAssignment : PIM!Assignment
+	to
+		paramAssignment : TeamCityMM!ParameterAssignment(
+			key <- thisModule.CreateEnvParameterDeclaration(envAssignment.key),
+			value <- envAssignment.value
+		)
+}
+
+lazy rule Assignment2EnvParameterStep {
+	from
+		envAssignment : PIM!Assignment
+	to
+		paramAssignment : TeamCityMM!ParameterAssignment(
+			key <- thisModule.CreateEnvParameterDeclarationStep(envAssignment.key),
+			value <- envAssignment.value
+		)
+}
+
+lazy rule CreateEnvParameterDeclaration {
+	from
+		varDecl : PIM!VariableDeclaration
+	to
+		paramDecl : TeamCityMM!ParameterDeclaration(
+			name <- 'env.' + varDecl.name
+		)
+}
+
+lazy rule CreateEnvParameterDeclarationStep {
+	from
+		varDecl : PIM!VariableDeclaration
+	to
+		paramDecl : TeamCityMM!ParameterDeclaration(
+			name <- 'env.' + varDecl.name
+		)
+}
+
+lazy rule CreateSnapshotDependency {
+	from
+		depJob : PIM!Job
+	to
+		snapDep : TeamCityMM!SnapshotDependency(
+			buildTypeRef <- depJob,
+			onDependencyFailure <- #FAIL_TO_START,
+			onDependencyCancel <- #CANCEL,
+			reuseBuilds <- #SUCCESSFUL,
+			runOnSameAgent <- false,
+			enforceCleanCheckout <- false,
+			synchronizeRevisions <- true
+		)
+}
+
+lazy rule CreateAgentRequirement {
+	from
+		paramName : String,
+		paramValue : String
+	to
+		agentReq : TeamCityMM!AgentRequirement(
+			parameterName <- thisModule.String2StringLiteral(paramName),
+			condition <- #CONTAINS,
+			value <- thisModule.String2StringLiteral(paramValue)
+		)
+}
+
+lazy rule Expression2AgentRequirement {
+	from
+		labelExpr : PIM!Expression
+	to
+		agentReq : TeamCityMM!AgentRequirement(
+			parameterName <- thisModule.String2StringLiteral('teamcity.agent.name'),
+			condition <- #CONTAINS,
+			value <- labelExpr
+		)
+}
+
+lazy rule CreateDefaultVcsRoot {
+	from
+		pipeline : PIM!Pipeline
+	to
+		vcsRoot : TeamCityMM!GitVcsRoot(
+			id <- 'VcsRoot_' + pipeline.name,
+			name <- thisModule.String2StringLiteral(pipeline.name + '_VcsRoot'),
+			url <- thisModule.String2StringLiteral(''),
+			branch <- thisModule.String2StringLiteral('refs/heads/main')
+		)
+}
+
+lazy rule CreateFailureConditionsWithTimeout {
+	from
+		timeout : Integer
+	to
+		failCond : TeamCityMM!FailureConditions(
+			executionTimeoutMin <- timeout,
+			nonZeroExitCode <- true,
+			testFailure <- true,
+			errorMessage <- true,
+			javaCrash <- true
+		)
+}
+
+lazy rule ParameterAssignmentFromExpr {
+	from
+		keyName : String,
+		valueExpr : PIM!Expression
+	to
+		paramAssignment : TeamCityMM!ParameterAssignment(
+			key <- thisModule.CreateParameterDeclaration(keyName),
+			value <- valueExpr
+		)
+}
+
+lazy rule CreateParameterDeclaration {
+	from
+		paramName : String
+	to
+		paramDecl : TeamCityMM!ParameterDeclaration(
+			name <- paramName
+		)
+}
+
+lazy rule BranchGlobs2BranchFilter {
+	from
+		globs : Sequence(String)
+	to
+		branchFilter : TeamCityMM!StringLiteral(
+			value <- globs->iterate(glob; acc : String = '' |
+				acc + '+:' + glob + '\n'
+			)
+		)
+}
+
+-- ===================================================================
+-- Helper: get triggers for first job in stream (pipeline triggers)
+-- ===================================================================
+
+helper def : getTriggersForJob(job : PIM!Job) : Sequence(PIM!Trigger) =
+	let pipelines : Sequence(PIM!Pipeline) = PIM!Pipeline.allInstances()->asSequence() in
+	if pipelines->notEmpty() then
+		let pipeline : PIM!Pipeline = pipelines->first() in
+		if pipeline.jobStreams->includes(job) then
+			pipeline.triggers
+		else
+			Sequence{}
+		endif
+	else
+		Sequence{}
+	endif;

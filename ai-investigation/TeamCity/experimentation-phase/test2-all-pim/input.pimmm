@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:pimMM="http://www.mddoai.com/mddoai/metamodel/pim">
+
+  <!-- Pipeline: full-stack web app CI/CD with 11 jobs, 3 triggers, matrix builds, services, caches, artifacts -->
+  <pimMM:Pipeline name="fullstack-webapp" jobStreams="/1 /2 /3 /4 /5 /6 /7 /8 /9 /10 /11" timeoutMinutes="90">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="docker:24-dind"/>
+      </container>
+    </agent>
+    <triggers xsi:type="pimMM:PushTrigger" branchGlobs="main develop feature/* hotfix/*" tagGlobs="v*.*.*"/>
+    <triggers xsi:type="pimMM:PullRequestTrigger" branchGlobs="main develop"/>
+    <triggers xsi:type="pimMM:ScheduledTrigger" branchGlobs="main" crons="0 2 * * 1"/>
+    <environmentVariables>
+      <key name="REGISTRY"/>
+      <value xsi:type="pimMM:StringLiteral" value="${CI_REGISTRY}"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="APP_IMAGE"/>
+      <value xsi:type="pimMM:StringLiteral" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="APP_VERSION"/>
+      <value xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_SHORT_SHA}"/>
+    </environmentVariables>
+    <inputs type="CHOICE" required="true" choices="staging production">
+      <id name="DEPLOY_TARGET"/>
+      <description xsi:type="pimMM:StringLiteral" value="Target deployment environment"/>
+      <defaultValue xsi:type="pimMM:StringLiteral" value="staging"/>
+    </inputs>
+    <inputs type="BOOLEAN" required="false">
+      <id name="SKIP_E2E"/>
+      <description xsi:type="pimMM:StringLiteral" value="Skip end-to-end tests"/>
+      <defaultValue xsi:type="pimMM:BooleanLiteral" value="false"/>
+    </inputs>
+  </pimMM:Pipeline>
+
+  <!-- Job 1: install-deps — restores/saves node_modules cache, no dependencies -->
+  <pimMM:ScriptJob xmi:id="1" name="install-deps" id="install-deps" timeoutMinutes="15">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:20-alpine"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Cache" store="BOTH">
+      <cacheName xsi:type="pimMM:StringLiteral" value="node-modules-cache"/>
+      <keys xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <paths xsi:type="pimMM:StringLiteral" value="node_modules/"/>
+      <paths xsi:type="pimMM:StringLiteral" value="frontend/node_modules/"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm ci --prefer-offline"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="cd frontend &amp;&amp; npm ci --prefer-offline"/>
+    </steps>
+  </pimMM:ScriptJob>
+
+  <!-- Job 2: lint — runs ESLint and Prettier checks, depends on install-deps -->
+  <pimMM:ScriptJob xmi:id="2" name="lint" id="lint" previous="/1">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:20-alpine"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Cache" store="LOAD">
+      <cacheName xsi:type="pimMM:StringLiteral" value="node-modules-cache"/>
+      <keys xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <paths xsi:type="pimMM:StringLiteral" value="node_modules/"/>
+      <paths xsi:type="pimMM:StringLiteral" value="frontend/node_modules/"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run lint"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run format:check"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="cd frontend &amp;&amp; npm run lint"/>
+    </steps>
+  </pimMM:ScriptJob>
+
+  <!-- Job 3: test-unit — matrix over node versions, depends on install-deps -->
+  <pimMM:ScriptJob xmi:id="3" name="test-unit" id="test-unit" previous="/1" maxAttempts="2">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:${NODE_VERSION}-alpine"/>
+      </container>
+    </agent>
+    <matrix>
+      <axes>
+        <name name="NODE_VERSION"/>
+        <cells xsi:type="pimMM:StringLiteral" value="18"/>
+        <cells xsi:type="pimMM:StringLiteral" value="20"/>
+        <cells xsi:type="pimMM:StringLiteral" value="22"/>
+      </axes>
+    </matrix>
+    <steps xsi:type="pimMM:Cache" store="LOAD">
+      <cacheName xsi:type="pimMM:StringLiteral" value="node-modules-cache"/>
+      <keys xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <paths xsi:type="pimMM:StringLiteral" value="node_modules/"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run test:unit -- --coverage"/>
+    </steps>
+    <steps xsi:type="pimMM:Artifact" store="true">
+      <artifactName xsi:type="pimMM:StringLiteral" value="unit-test-coverage"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="coverage/"/>
+      <retentionTime xsi:type="pimMM:StringLiteral" value="3 days"/>
+    </steps>
+    <environmentVariables>
+      <key name="NODE_ENV"/>
+      <value xsi:type="pimMM:StringLiteral" value="test"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="CI"/>
+      <value xsi:type="pimMM:StringLiteral" value="true"/>
+    </environmentVariables>
+    <outputs>
+      <id name="COVERAGE_PCT"/>
+      <description xsi:type="pimMM:StringLiteral" value="Unit test coverage percentage"/>
+      <value xsi:type="pimMM:StringLiteral" value="${COVERAGE}"/>
+    </outputs>
+  </pimMM:ScriptJob>
+
+  <!-- Job 4: test-integration — depends on install-deps, uses postgres + redis sidecars -->
+  <pimMM:ScriptJob xmi:id="4" name="test-integration" id="test-integration" previous="/1" maxAttempts="2">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:20-alpine"/>
+      </container>
+    </agent>
+    <services label="postgres">
+      <image xsi:type="pimMM:StringLiteral" value="postgres:15-alpine"/>
+      <environmentVariables>
+        <key name="POSTGRES_DB"/>
+        <value xsi:type="pimMM:StringLiteral" value="testdb"/>
+      </environmentVariables>
+      <environmentVariables>
+        <key name="POSTGRES_USER"/>
+        <value xsi:type="pimMM:StringLiteral" value="testuser"/>
+      </environmentVariables>
+      <environmentVariables>
+        <key name="POSTGRES_PASSWORD"/>
+        <value xsi:type="pimMM:StringLiteral" value="testpass"/>
+      </environmentVariables>
+      <ports xsi:type="pimMM:StringLiteral" value="5432:5432"/>
+    </services>
+    <services label="redis">
+      <image xsi:type="pimMM:StringLiteral" value="redis:7-alpine"/>
+      <ports xsi:type="pimMM:StringLiteral" value="6379:6379"/>
+    </services>
+    <steps xsi:type="pimMM:Cache" store="LOAD">
+      <cacheName xsi:type="pimMM:StringLiteral" value="node-modules-cache"/>
+      <keys xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <paths xsi:type="pimMM:StringLiteral" value="node_modules/"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run db:migrate:test"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run test:integration"/>
+    </steps>
+    <steps xsi:type="pimMM:Artifact" store="true">
+      <artifactName xsi:type="pimMM:StringLiteral" value="integration-test-results"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="test-results/"/>
+      <retentionTime xsi:type="pimMM:StringLiteral" value="3 days"/>
+    </steps>
+    <environmentVariables>
+      <key name="DATABASE_URL"/>
+      <value xsi:type="pimMM:StringLiteral" value="postgres://testuser:testpass@postgres/testdb"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="REDIS_URL"/>
+      <value xsi:type="pimMM:StringLiteral" value="redis://redis:6379"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+  <!-- Job 5: security-scan — SAST and dependency audit, depends on install-deps, allow failure -->
+  <pimMM:ScriptJob xmi:id="5" name="security-scan" id="security-scan" previous="/1" allowFailure="true">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:20-alpine"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Plugin" pluginName="snyk/actions/node" version="master">
+      <kwargs>
+        <key name="args"/>
+        <value xsi:type="pimMM:StringLiteral" value="--severity-threshold=high"/>
+      </kwargs>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm audit --audit-level=critical"/>
+    </steps>
+    <steps xsi:type="pimMM:Artifact" store="true">
+      <artifactName xsi:type="pimMM:StringLiteral" value="security-report"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="snyk-report.sarif"/>
+      <retentionTime xsi:type="pimMM:StringLiteral" value="30 days"/>
+    </steps>
+    <environmentVariables>
+      <key name="SNYK_TOKEN"/>
+      <value xsi:type="pimMM:StringLiteral" value="${SNYK_TOKEN}"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+  <!-- Job 6: build — compiles frontend and backend, depends on lint + test-unit + test-integration -->
+  <pimMM:ScriptJob xmi:id="6" name="build" id="build" previous="/2 /3 /4">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="node:20-alpine"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Cache" store="LOAD">
+      <cacheName xsi:type="pimMM:StringLiteral" value="node-modules-cache"/>
+      <keys xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+      <paths xsi:type="pimMM:StringLiteral" value="node_modules/"/>
+      <paths xsi:type="pimMM:StringLiteral" value="frontend/node_modules/"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run build:backend"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="cd frontend &amp;&amp; npm run build"/>
+    </steps>
+    <steps xsi:type="pimMM:Artifact" store="true">
+      <artifactName xsi:type="pimMM:StringLiteral" value="build-output"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="dist/"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="frontend/dist/"/>
+      <retentionTime xsi:type="pimMM:StringLiteral" value="1 day"/>
+    </steps>
+    <environmentVariables>
+      <key name="NODE_ENV"/>
+      <value xsi:type="pimMM:StringLiteral" value="production"/>
+    </environmentVariables>
+    <outputs>
+      <id name="BUILD_SHA"/>
+      <description xsi:type="pimMM:StringLiteral" value="Git SHA of the built commit"/>
+      <value xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_SHORT_SHA}"/>
+    </outputs>
+  </pimMM:ScriptJob>
+
+  <!-- Job 7: docker-build — builds Docker image, depends on build -->
+  <pimMM:ScriptJob xmi:id="7" name="docker-build" id="docker-build" previous="/6">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="docker:24-dind"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest ."/>
+    </steps>
+    <steps xsi:type="pimMM:ConditionalStep">
+      <ifCondition xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_BRANCH} == 'main'"/>
+      <thenRun xsi:type="pimMM:Command">
+        <program xsi:type="pimMM:StringLiteral" value="docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable"/>
+      </thenRun>
+      <elseRun xsi:type="pimMM:Command">
+        <program xsi:type="pimMM:StringLiteral" value="echo 'Not on main, skipping stable tag'"/>
+      </elseRun>
+    </steps>
+    <environmentVariables>
+      <key name="DOCKER_BUILDKIT"/>
+      <value xsi:type="pimMM:StringLiteral" value="1"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+  <!-- Job 8: docker-push — pushes image, depends on docker-build + security-scan -->
+  <pimMM:ScriptJob xmi:id="8" name="docker-push" id="docker-push" previous="/7 /5">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="docker:24-dind"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker push ${APP_IMAGE}:${APP_VERSION}"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="docker push ${APP_IMAGE}:latest"/>
+    </steps>
+    <steps xsi:type="pimMM:ConditionalStep">
+      <ifCondition xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_BRANCH} == 'main'"/>
+      <thenRun xsi:type="pimMM:Command">
+        <program xsi:type="pimMM:StringLiteral" value="docker push ${APP_IMAGE}:stable"/>
+      </thenRun>
+    </steps>
+  </pimMM:ScriptJob>
+
+  <!-- Job 9: deploy-staging — deploys to staging, depends on docker-push -->
+  <pimMM:ScriptJob xmi:id="9" name="deploy-staging" id="deploy-staging" previous="/8" timeoutMinutes="20">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="bitnami/kubectl:latest"/>
+      </container>
+    </agent>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl config use-context staging"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl rollout status deployment/webapp -n staging --timeout=5m"/>
+    </steps>
+    <environmentVariables>
+      <key name="KUBECONFIG"/>
+      <value xsi:type="pimMM:StringLiteral" value="${STAGING_KUBECONFIG}"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="DEPLOY_NAMESPACE"/>
+      <value xsi:type="pimMM:StringLiteral" value="staging"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+  <!-- Job 10: e2e-test — end-to-end tests against staging, depends on deploy-staging -->
+  <pimMM:ScriptJob xmi:id="10" name="e2e-test" id="e2e-test" previous="/9" maxAttempts="2" allowFailure="false">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="mcr.microsoft.com/playwright:v1.44.0-jammy"/>
+      </container>
+    </agent>
+    <ifCondition xsi:type="pimMM:StringLiteral" value="${SKIP_E2E} != 'true'"/>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="npm run test:e2e -- --reporter=html"/>
+    </steps>
+    <steps xsi:type="pimMM:Artifact" store="true">
+      <artifactName xsi:type="pimMM:StringLiteral" value="e2e-report"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="playwright-report/"/>
+      <includePaths xsi:type="pimMM:StringLiteral" value="test-results/"/>
+      <retentionTime xsi:type="pimMM:StringLiteral" value="7 days"/>
+    </steps>
+    <environmentVariables>
+      <key name="BASE_URL"/>
+      <value xsi:type="pimMM:StringLiteral" value="https://staging.example.com"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="CI"/>
+      <value xsi:type="pimMM:StringLiteral" value="true"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+  <!-- Job 11: deploy-prod — production deploy, manual, depends on e2e-test -->
+  <pimMM:ScriptJob xmi:id="11" name="deploy-prod" id="deploy-prod" previous="/10" allowFailure="false" timeoutMinutes="30">
+    <agent xsi:type="pimMM:LinuxAgent">
+      <container>
+        <image xsi:type="pimMM:StringLiteral" value="bitnami/kubectl:latest"/>
+      </container>
+    </agent>
+    <ifCondition xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_BRANCH} == 'main' || ${CI_COMMIT_TAG} != ''"/>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl config use-context production"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production"/>
+    </steps>
+    <steps xsi:type="pimMM:Command">
+      <program xsi:type="pimMM:StringLiteral" value="kubectl rollout status deployment/webapp -n production --timeout=10m"/>
+    </steps>
+    <steps xsi:type="pimMM:ConditionalStep">
+      <ifCondition xsi:type="pimMM:StringLiteral" value="${CI_COMMIT_TAG} != ''"/>
+      <thenRun xsi:type="pimMM:Command">
+        <program xsi:type="pimMM:StringLiteral" value="kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite"/>
+      </thenRun>
+    </steps>
+    <environmentVariables>
+      <key name="KUBECONFIG"/>
+      <value xsi:type="pimMM:StringLiteral" value="${PROD_KUBECONFIG}"/>
+    </environmentVariables>
+    <environmentVariables>
+      <key name="DEPLOY_NAMESPACE"/>
+      <value xsi:type="pimMM:StringLiteral" value="production"/>
+    </environmentVariables>
+  </pimMM:ScriptJob>
+
+</xmi:XMI>
