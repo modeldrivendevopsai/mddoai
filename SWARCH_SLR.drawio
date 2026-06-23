@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36">
   <diagram name="Page-1" id="EPD-pxOS8JDJHKGQRMdU">
-    <mxGraphModel dx="632" dy="338" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="890" dy="476" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -147,10 +147,13 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="uM7LAKjQwFEnnQu7Dd1V-1" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;" value="Science&lt;div&gt;Direct&lt;/div&gt;" vertex="1">
-          <mxGeometry height="50" width="47" x="222" y="290" as="geometry" />
+          <mxGeometry height="50" width="47" x="222" y="350" as="geometry" />
         </mxCell>
         <mxCell id="uM7LAKjQwFEnnQu7Dd1V-2" parent="1" style="strokeWidth=1;html=1;shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;" value="87" vertex="1">
-          <mxGeometry height="30" width="40" x="285" y="300" as="geometry" />
+          <mxGeometry height="30" width="40" x="285" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="uM7LAKjQwFEnnQu7Dd1V-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Removed as duplicates (DOI): &lt;strong&gt;52&lt;/strong&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="376.5" y="360" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
