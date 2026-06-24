@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36">
   <diagram name="Page-1" id="EPD-pxOS8JDJHKGQRMdU">
-    <mxGraphModel dx="686" dy="367" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1201" dy="643" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -152,8 +152,8 @@
         <mxCell id="uM7LAKjQwFEnnQu7Dd1V-2" parent="1" style="strokeWidth=1;html=1;shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;" value="87" vertex="1">
           <mxGeometry height="30" width="40" x="285" y="360" as="geometry" />
         </mxCell>
-        <mxCell id="uM7LAKjQwFEnnQu7Dd1V-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Removed as duplicates (DOI): &lt;strong&gt;52&lt;/strong&gt;&lt;div&gt;Unique new papers: 35&lt;strong&gt;&lt;/strong&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="30" width="183.5" x="370" y="370" as="geometry" />
+        <mxCell id="uM7LAKjQwFEnnQu7Dd1V-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="Removed as duplicates (DOI): &lt;strong&gt;52&lt;/strong&gt;&lt;div&gt;Unique new papers: 35&lt;strong&gt;&lt;/strong&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;Excluded at screening (EC2/EC3): 19&lt;/div&gt;&lt;div&gt;Records included: 16&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="230" x="360" y="370" as="geometry" />
         </mxCell>
         <mxCell id="uM7LAKjQwFEnnQu7Dd1V-5" parent="1" style="shape=datastore;whiteSpace=wrap;html=1;" value="ACM" vertex="1">
           <mxGeometry height="50" width="47" x="215.5" y="450" as="geometry" />
@@ -161,7 +161,7 @@
         <mxCell id="uM7LAKjQwFEnnQu7Dd1V-6" parent="1" style="strokeWidth=1;html=1;shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;" value="139" vertex="1">
           <mxGeometry height="30" width="40" x="280" y="460" as="geometry" />
         </mxCell>
-        <mxCell id="uM7LAKjQwFEnnQu7Dd1V-7" parent="1" style="text;whiteSpace=wrap;html=1;" value="Removed (books/theses - wrong type): 20&#xa;Removed as duplicates (DOI): 102&#xa;Unique new papers:17" vertex="1">
+        <mxCell id="uM7LAKjQwFEnnQu7Dd1V-7" parent="1" style="text;whiteSpace=wrap;html=1;" value="Removed (books/theses - wrong type): 20 &lt;br&gt;Removed as duplicates (DOI): 103&lt;br&gt;Unique new papers:16&lt;div&gt;Excluded at screening: 10&lt;/div&gt;&lt;div&gt;Records Included: 6&lt;/div&gt;" vertex="1">
           <mxGeometry height="70" width="260" x="360" y="450" as="geometry" />
         </mxCell>
       </root>
