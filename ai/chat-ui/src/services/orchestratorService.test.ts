@@ -1,9 +1,16 @@
 import { describe, expect, it, vi, afterEach } from "vitest"
-import { sendMessage, resetTurnIndex } from "./orchestratorService"
+import { sendMessage } from "./orchestratorService"
+import type { Message } from "@/types"
 
 afterEach(() => {
-  resetTurnIndex()
   vi.restoreAllMocks()
+})
+
+const msg = (role: "user" | "assistant", content: string): Message => ({
+  id: "test-id",
+  role,
+  content,
+  timestamp: 0,
 })
 
 describe("orchestratorService", () => {
@@ -14,7 +21,8 @@ describe("orchestratorService", () => {
     })
     vi.stubGlobal("fetch", mockFetch)
 
-    const result = await sendMessage("I want to integrate with GitHub Actions")
+    const messages = [msg("user", "I want to integrate with GitHub Actions")]
+    const result = await sendMessage(messages)
 
     expect(mockFetch).toHaveBeenCalledWith("/api/chat", {
       method: "POST",
@@ -23,25 +31,24 @@ describe("orchestratorService", () => {
         messages: [{ role: "user", content: "I want to integrate with GitHub Actions" }],
       }),
     })
-    expect(result).toEqual({ message: "What stages are in scope?", status: "pending" })
+    expect(result).toEqual({ message: "What stages are in scope?", status: "complete" })
   })
 
-  it("accumulates conversation history across turns", async () => {
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ content: "First response", model: "gemini-flash" }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ content: "Second response", model: "gemini-flash" }),
-      })
+  it("strips id and timestamp fields before sending", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: "Second response", model: "gemini-flash" }),
+    })
     vi.stubGlobal("fetch", mockFetch)
 
-    await sendMessage("Hello")
-    await sendMessage("Follow up")
+    const messages = [
+      msg("user", "Hello"),
+      msg("assistant", "First response"),
+      msg("user", "Follow up"),
+    ]
+    await sendMessage(messages)
 
-    expect(mockFetch).toHaveBeenLastCalledWith("/api/chat", {
+    expect(mockFetch).toHaveBeenCalledWith("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -56,6 +63,6 @@ describe("orchestratorService", () => {
 
   it("throws on non-ok response", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
-    await expect(sendMessage("hi")).rejects.toThrow("AI layer error: 500")
+    await expect(sendMessage([msg("user", "hi")])).rejects.toThrow("Chat request failed: 500")
   })
 })

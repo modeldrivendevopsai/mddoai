@@ -1,29 +1,23 @@
-import type { OrchestratorResponse } from "@/types"
+import type { Message, OrchestratorResponse } from "@/types"
 
-const history: { role: string; content: string }[] = []
+export async function sendMessage(
+  messages: Message[]
+): Promise<OrchestratorResponse> {
+  const payload = messages.map(({ role, content }) => ({ role, content }))
 
-export async function sendMessage(message: string): Promise<OrchestratorResponse> {
-  history.push({ role: "user", content: message })
-
-  const response = await fetch("/api/chat", {
+  const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: history }),
+    body: JSON.stringify({ messages: payload }),
   })
 
-  if (!response.ok) {
-    throw new Error(`AI layer error: ${response.status}`)
+  if (!res.ok) {
+    throw new Error(`Chat request failed: ${res.status}`)
   }
 
-  const data = await response.json() as { content: string; model: string }
-  history.push({ role: "assistant", content: data.content })
-
+  const data = await res.json()
   return {
     message: data.content,
-    status: "pending",
+    status: "complete",
   }
-}
-
-export function resetTurnIndex(): void {
-  history.length = 0
 }
