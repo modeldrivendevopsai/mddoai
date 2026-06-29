@@ -37,7 +37,7 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getPaths <em>Paths</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExpireIn <em>Expire In</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExpose_as <em>Expose as</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExposeAs <em>Expose As</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#isUntracked <em>Untracked</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ArtifactImpl#getExclude <em>Exclude</em>}</li>
  * </ul>
@@ -126,24 +126,24 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 	protected String expireIn = EXPIRE_IN_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #getExpose_as() <em>Expose as</em>}' attribute.
+	 * The default value of the '{@link #getExposeAs() <em>Expose As</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getExpose_as()
+	 * @see #getExposeAs()
 	 * @generated
 	 * @ordered
 	 */
 	protected static final String EXPOSE_AS_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #getExpose_as() <em>Expose as</em>}' attribute.
+	 * The cached value of the '{@link #getExposeAs() <em>Expose As</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getExpose_as()
+	 * @see #getExposeAs()
 	 * @generated
 	 * @ordered
 	 */
-	protected String expose_as = EXPOSE_AS_EDEFAULT;
+	protected String exposeAs = EXPOSE_AS_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #isUntracked() <em>Untracked</em>}' attribute.
@@ -335,8 +335,8 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 	 * @generated
 	 */
 	@Override
-	public String getExpose_as() {
-		return expose_as;
+	public String getExposeAs() {
+		return exposeAs;
 	}
 
 	/**
@@ -345,12 +345,12 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 	 * @generated
 	 */
 	@Override
-	public void setExpose_as(String newExpose_as) {
-		String oldExpose_as = expose_as;
-		expose_as = newExpose_as;
+	public void setExposeAs(String newExposeAs) {
+		String oldExposeAs = exposeAs;
+		exposeAs = newExposeAs;
 		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__EXPOSE_AS, oldExpose_as,
-					expose_as));
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ARTIFACT__EXPOSE_AS, oldExposeAs,
+					exposeAs));
 	}
 
 	/**
@@ -425,7 +425,7 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
 			return getExpireIn();
 		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
-			return getExpose_as();
+			return getExposeAs();
 		case GitlabMMPackage.ARTIFACT__UNTRACKED:
 			return isUntracked();
 		case GitlabMMPackage.ARTIFACT__EXCLUDE:
@@ -460,7 +460,7 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 			setExpireIn((String) newValue);
 			return;
 		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
-			setExpose_as((String) newValue);
+			setExposeAs((String) newValue);
 			return;
 		case GitlabMMPackage.ARTIFACT__UNTRACKED:
 			setUntracked((Boolean) newValue);
@@ -497,7 +497,7 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 			setExpireIn(EXPIRE_IN_EDEFAULT);
 			return;
 		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
-			setExpose_as(EXPOSE_AS_EDEFAULT);
+			setExposeAs(EXPOSE_AS_EDEFAULT);
 			return;
 		case GitlabMMPackage.ARTIFACT__UNTRACKED:
 			setUntracked(UNTRACKED_EDEFAULT);
@@ -528,7 +528,7 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 		case GitlabMMPackage.ARTIFACT__EXPIRE_IN:
 			return EXPIRE_IN_EDEFAULT == null ? expireIn != null : !EXPIRE_IN_EDEFAULT.equals(expireIn);
 		case GitlabMMPackage.ARTIFACT__EXPOSE_AS:
-			return EXPOSE_AS_EDEFAULT == null ? expose_as != null : !EXPOSE_AS_EDEFAULT.equals(expose_as);
+			return EXPOSE_AS_EDEFAULT == null ? exposeAs != null : !EXPOSE_AS_EDEFAULT.equals(exposeAs);
 		case GitlabMMPackage.ARTIFACT__UNTRACKED:
 			return untracked != UNTRACKED_EDEFAULT;
 		case GitlabMMPackage.ARTIFACT__EXCLUDE:
@@ -554,8 +554,8 @@ public class ArtifactImpl extends MinimalEObjectImpl.Container implements Artifa
 		result.append(name);
 		result.append(", expireIn: ");
 		result.append(expireIn);
-		result.append(", expose_as: ");
-		result.append(expose_as);
+		result.append(", exposeAs: ");
+		result.append(exposeAs);
 		result.append(", untracked: ");
 		result.append(untracked);
 		result.append(", exclude: ");

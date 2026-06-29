@@ -25,9 +25,9 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getUrl <em>Url</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getOn_stop <em>On stop</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getOnStop <em>On Stop</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getAction <em>Action</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getAuto_stop_in <em>Auto stop in</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getAutoStopIn <em>Auto Stop In</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.EnvironmentImpl#getKubernetes <em>Kubernetes</em>}</li>
  * </ul>
  *
@@ -75,24 +75,24 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	protected String url = URL_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #getOn_stop() <em>On stop</em>}' attribute.
+	 * The default value of the '{@link #getOnStop() <em>On Stop</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getOn_stop()
+	 * @see #getOnStop()
 	 * @generated
 	 * @ordered
 	 */
 	protected static final String ON_STOP_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #getOn_stop() <em>On stop</em>}' attribute.
+	 * The cached value of the '{@link #getOnStop() <em>On Stop</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getOn_stop()
+	 * @see #getOnStop()
 	 * @generated
 	 * @ordered
 	 */
-	protected String on_stop = ON_STOP_EDEFAULT;
+	protected String onStop = ON_STOP_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #getAction() <em>Action</em>}' attribute.
@@ -115,24 +115,24 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	protected String action = ACTION_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #getAuto_stop_in() <em>Auto stop in</em>}' attribute.
+	 * The default value of the '{@link #getAutoStopIn() <em>Auto Stop In</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getAuto_stop_in()
+	 * @see #getAutoStopIn()
 	 * @generated
 	 * @ordered
 	 */
 	protected static final String AUTO_STOP_IN_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #getAuto_stop_in() <em>Auto stop in</em>}' attribute.
+	 * The cached value of the '{@link #getAutoStopIn() <em>Auto Stop In</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getAuto_stop_in()
+	 * @see #getAutoStopIn()
 	 * @generated
 	 * @ordered
 	 */
-	protected String auto_stop_in = AUTO_STOP_IN_EDEFAULT;
+	protected String autoStopIn = AUTO_STOP_IN_EDEFAULT;
 
 	/**
 	 * The cached value of the '{@link #getKubernetes() <em>Kubernetes</em>}' containment reference.
@@ -215,8 +215,8 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public String getOn_stop() {
-		return on_stop;
+	public String getOnStop() {
+		return onStop;
 	}
 
 	/**
@@ -225,12 +225,12 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public void setOn_stop(String newOn_stop) {
-		String oldOn_stop = on_stop;
-		on_stop = newOn_stop;
+	public void setOnStop(String newOnStop) {
+		String oldOnStop = onStop;
+		onStop = newOnStop;
 		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ENVIRONMENT__ON_STOP, oldOn_stop,
-					on_stop));
+			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ENVIRONMENT__ON_STOP, oldOnStop,
+					onStop));
 	}
 
 	/**
@@ -263,8 +263,8 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public String getAuto_stop_in() {
-		return auto_stop_in;
+	public String getAutoStopIn() {
+		return autoStopIn;
 	}
 
 	/**
@@ -273,12 +273,12 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 	 * @generated
 	 */
 	@Override
-	public void setAuto_stop_in(String newAuto_stop_in) {
-		String oldAuto_stop_in = auto_stop_in;
-		auto_stop_in = newAuto_stop_in;
+	public void setAutoStopIn(String newAutoStopIn) {
+		String oldAutoStopIn = autoStopIn;
+		autoStopIn = newAutoStopIn;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN,
-					oldAuto_stop_in, auto_stop_in));
+					oldAutoStopIn, autoStopIn));
 	}
 
 	/**
@@ -360,11 +360,11 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 		case GitlabMMPackage.ENVIRONMENT__URL:
 			return getUrl();
 		case GitlabMMPackage.ENVIRONMENT__ON_STOP:
-			return getOn_stop();
+			return getOnStop();
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
 			return getAction();
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
-			return getAuto_stop_in();
+			return getAutoStopIn();
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
 			return getKubernetes();
 		}
@@ -386,13 +386,13 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 			setUrl((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__ON_STOP:
-			setOn_stop((String) newValue);
+			setOnStop((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
 			setAction((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
-			setAuto_stop_in((String) newValue);
+			setAutoStopIn((String) newValue);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
 			setKubernetes((Kubernetes) newValue);
@@ -416,13 +416,13 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 			setUrl(URL_EDEFAULT);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__ON_STOP:
-			setOn_stop(ON_STOP_EDEFAULT);
+			setOnStop(ON_STOP_EDEFAULT);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
 			setAction(ACTION_EDEFAULT);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
-			setAuto_stop_in(AUTO_STOP_IN_EDEFAULT);
+			setAutoStopIn(AUTO_STOP_IN_EDEFAULT);
 			return;
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
 			setKubernetes((Kubernetes) null);
@@ -444,11 +444,11 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 		case GitlabMMPackage.ENVIRONMENT__URL:
 			return URL_EDEFAULT == null ? url != null : !URL_EDEFAULT.equals(url);
 		case GitlabMMPackage.ENVIRONMENT__ON_STOP:
-			return ON_STOP_EDEFAULT == null ? on_stop != null : !ON_STOP_EDEFAULT.equals(on_stop);
+			return ON_STOP_EDEFAULT == null ? onStop != null : !ON_STOP_EDEFAULT.equals(onStop);
 		case GitlabMMPackage.ENVIRONMENT__ACTION:
 			return ACTION_EDEFAULT == null ? action != null : !ACTION_EDEFAULT.equals(action);
 		case GitlabMMPackage.ENVIRONMENT__AUTO_STOP_IN:
-			return AUTO_STOP_IN_EDEFAULT == null ? auto_stop_in != null : !AUTO_STOP_IN_EDEFAULT.equals(auto_stop_in);
+			return AUTO_STOP_IN_EDEFAULT == null ? autoStopIn != null : !AUTO_STOP_IN_EDEFAULT.equals(autoStopIn);
 		case GitlabMMPackage.ENVIRONMENT__KUBERNETES:
 			return kubernetes != null;
 		}
@@ -470,12 +470,12 @@ public class EnvironmentImpl extends MinimalEObjectImpl.Container implements Env
 		result.append(name);
 		result.append(", url: ");
 		result.append(url);
-		result.append(", on_stop: ");
-		result.append(on_stop);
+		result.append(", onStop: ");
+		result.append(onStop);
 		result.append(", action: ");
 		result.append(action);
-		result.append(", auto_stop_in: ");
-		result.append(auto_stop_in);
+		result.append(", autoStopIn: ");
+		result.append(autoStopIn);
 		result.append(')');
 		return result.toString();
 	}

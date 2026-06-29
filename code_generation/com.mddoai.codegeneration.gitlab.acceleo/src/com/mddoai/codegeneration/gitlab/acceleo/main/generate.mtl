@@ -14,7 +14,8 @@
 #######################################################################
 
 [generateWorkflow(aPipeline.workflow)/]
-[generateStages(aPipeline.stages)/]
+[if (aPipeline.default <> null)][generateDefault(aPipeline.default)/]
+[/if][generateStages(aPipeline.stages)/]
 [generateVariables(aPipeline.variables)/]
 [if (aPipeline.jobs->notEmpty())]
 [for (j: Job | aPipeline.jobs)]
@@ -25,15 +26,30 @@
 [/template]
 
 [template public generateWorkflow(workflow : Workflow)]
-[if (workflow <> null)] 
+[if (workflow <> null)]
 workflow:
   rules:
-[for (r: Rule_ | workflow.rules)]
-    - if: [r.if_/]
+[for (r: GitlabRule | workflow.rules)]
+    - if: [r.gitlabIf/]
 [if (r.when <> null)]
       when: [r.when/]
 [/if]
 [/for]
+[/if]
+[/template]
+
+[template public generateDefault(d : Default)]
+[if (d <> null)]
+default:
+[if (d.image <> null)]
+  image: [d.image.name/]
+[/if]
+[generateServices(d.services)/][if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+  before_script:
+[for (command: Command | d.beforeScript.commands)]
+    - [command.command/]
+[/for]
+[/if]
 [/if]
 [/template]
 
@@ -66,8 +82,8 @@ variables:
 [template public generateScript(script: Script)]
 [if (script <> null and script.commands->notEmpty())]
 script:
-[for (command: Comand | script.commands)]
-  - [command.comand/]
+[for (command: Command | script.commands)]
+  - [command.command/]
 [/for]
 [/if]
 [/template]
@@ -75,8 +91,8 @@ script:
 [template public generateBeforeScript(script: BeforeScript)]
 [if (script <> null and script.commands->notEmpty())]
 before_script:
-[for (command: Comand | script.commands)]
-  - [command.comand/]
+[for (command: Command | script.commands)]
+  - [command.command/]
 [/for]
 [/if]
 [/template]
@@ -199,11 +215,11 @@ reports:
 [/if]
 [/template]
 
-[template public generateRules(rules: OrderedSet(Rule_))]
+[template public generateRules(rules: OrderedSet(GitlabRule))]
 [if (rules->notEmpty())]
   rules:
-[for (rule : Rule_ | rules)]
-    - if: [rule.if_/]
+[for (rule : GitlabRule | rules)]
+    - if: [rule.gitlabIf/]
 [if (rule.when <> null)]
       when: [rule.when/]
 [/if]

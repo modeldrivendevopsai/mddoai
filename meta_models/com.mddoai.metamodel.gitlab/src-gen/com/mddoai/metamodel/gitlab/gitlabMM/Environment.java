@@ -15,9 +15,9 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getUrl <em>Url</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOn_stop <em>On stop</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOnStop <em>On Stop</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAction <em>Action</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAuto_stop_in <em>Auto stop in</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAutoStopIn <em>Auto Stop In</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getKubernetes <em>Kubernetes</em>}</li>
  * </ul>
  *
@@ -71,26 +71,26 @@ public interface Environment extends EObject {
 	void setUrl(String value);
 
 	/**
-	 * Returns the value of the '<em><b>On stop</b></em>' attribute.
+	 * Returns the value of the '<em><b>On Stop</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>On stop</em>' attribute.
-	 * @see #setOn_stop(String)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_On_stop()
+	 * @return the value of the '<em>On Stop</em>' attribute.
+	 * @see #setOnStop(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_OnStop()
 	 * @model
 	 * @generated
 	 */
-	String getOn_stop();
+	String getOnStop();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOn_stop <em>On stop</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getOnStop <em>On Stop</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>On stop</em>' attribute.
-	 * @see #getOn_stop()
+	 * @param value the new value of the '<em>On Stop</em>' attribute.
+	 * @see #getOnStop()
 	 * @generated
 	 */
-	void setOn_stop(String value);
+	void setOnStop(String value);
 
 	/**
 	 * Returns the value of the '<em><b>Action</b></em>' attribute.
@@ -115,26 +115,26 @@ public interface Environment extends EObject {
 	void setAction(String value);
 
 	/**
-	 * Returns the value of the '<em><b>Auto stop in</b></em>' attribute.
+	 * Returns the value of the '<em><b>Auto Stop In</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Auto stop in</em>' attribute.
-	 * @see #setAuto_stop_in(String)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_Auto_stop_in()
+	 * @return the value of the '<em>Auto Stop In</em>' attribute.
+	 * @see #setAutoStopIn(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getEnvironment_AutoStopIn()
 	 * @model
 	 * @generated
 	 */
-	String getAuto_stop_in();
+	String getAutoStopIn();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAuto_stop_in <em>Auto stop in</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Environment#getAutoStopIn <em>Auto Stop In</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Auto stop in</em>' attribute.
-	 * @see #getAuto_stop_in()
+	 * @param value the new value of the '<em>Auto Stop In</em>' attribute.
+	 * @see #getAutoStopIn()
 	 * @generated
 	 */
-	void setAuto_stop_in(String value);
+	void setAutoStopIn(String value);
 
 	/**
 	 * Returns the value of the '<em><b>Kubernetes</b></em>' containment reference.

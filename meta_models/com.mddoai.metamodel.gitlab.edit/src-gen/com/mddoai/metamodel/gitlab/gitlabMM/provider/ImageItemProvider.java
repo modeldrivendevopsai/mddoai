@@ -58,7 +58,7 @@ public class ImageItemProvider extends ItemProviderAdapter implements IEditingDo
 
 			addNamePropertyDescriptor(object);
 			addEntrypointPropertyDescriptor(object);
-			addPull_policyPropertyDescriptor(object);
+			addPullPolicyPropertyDescriptor(object);
 		}
 		return itemPropertyDescriptors;
 	}
@@ -95,16 +95,16 @@ public class ImageItemProvider extends ItemProviderAdapter implements IEditingDo
 	}
 
 	/**
-	 * This adds a property descriptor for the Pull policy feature.
+	 * This adds a property descriptor for the Pull Policy feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addPull_policyPropertyDescriptor(Object object) {
+	protected void addPullPolicyPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Image_pull_policy_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Image_pull_policy_feature",
+						getResourceLocator(), getString("_UI_Image_pullPolicy_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Image_pullPolicy_feature",
 								"_UI_Image_type"),
 						GitlabMMPackage.Literals.IMAGE__PULL_POLICY, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));

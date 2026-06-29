@@ -20,7 +20,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getPaths <em>Paths</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExpireIn <em>Expire In</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExpose_as <em>Expose as</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExposeAs <em>Expose As</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#isUntracked <em>Untracked</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExclude <em>Exclude</em>}</li>
  * </ul>
@@ -131,26 +131,26 @@ public interface Artifact extends EObject {
 	void setExpireIn(String value);
 
 	/**
-	 * Returns the value of the '<em><b>Expose as</b></em>' attribute.
+	 * Returns the value of the '<em><b>Expose As</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Expose as</em>' attribute.
-	 * @see #setExpose_as(String)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getArtifact_Expose_as()
+	 * @return the value of the '<em>Expose As</em>' attribute.
+	 * @see #setExposeAs(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getArtifact_ExposeAs()
 	 * @model
 	 * @generated
 	 */
-	String getExpose_as();
+	String getExposeAs();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExpose_as <em>Expose as</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Artifact#getExposeAs <em>Expose As</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Expose as</em>' attribute.
-	 * @see #getExpose_as()
+	 * @param value the new value of the '<em>Expose As</em>' attribute.
+	 * @see #getExposeAs()
 	 * @generated
 	 */
-	void setExpose_as(String value);
+	void setExposeAs(String value);
 
 	/**
 	 * Returns the value of the '<em><b>Untracked</b></em>' attribute.

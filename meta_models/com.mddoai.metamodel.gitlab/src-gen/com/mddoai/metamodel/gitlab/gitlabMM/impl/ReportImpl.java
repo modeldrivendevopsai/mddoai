@@ -21,7 +21,7 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ReportImpl#getJunit <em>Junit</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ReportImpl#getCoverage_report <em>Coverage report</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ReportImpl#getCoverageReport <em>Coverage Report</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ReportImpl#getDotenv <em>Dotenv</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ReportImpl#getCobertura <em>Cobertura</em>}</li>
  * </ul>
@@ -50,24 +50,24 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 	protected String junit = JUNIT_EDEFAULT;
 
 	/**
-	 * The default value of the '{@link #getCoverage_report() <em>Coverage report</em>}' attribute.
+	 * The default value of the '{@link #getCoverageReport() <em>Coverage Report</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getCoverage_report()
+	 * @see #getCoverageReport()
 	 * @generated
 	 * @ordered
 	 */
 	protected static final String COVERAGE_REPORT_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #getCoverage_report() <em>Coverage report</em>}' attribute.
+	 * The cached value of the '{@link #getCoverageReport() <em>Coverage Report</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getCoverage_report()
+	 * @see #getCoverageReport()
 	 * @generated
 	 * @ordered
 	 */
-	protected String coverage_report = COVERAGE_REPORT_EDEFAULT;
+	protected String coverageReport = COVERAGE_REPORT_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #getDotenv() <em>Dotenv</em>}' attribute.
@@ -157,8 +157,8 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 	 * @generated
 	 */
 	@Override
-	public String getCoverage_report() {
-		return coverage_report;
+	public String getCoverageReport() {
+		return coverageReport;
 	}
 
 	/**
@@ -167,12 +167,12 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 	 * @generated
 	 */
 	@Override
-	public void setCoverage_report(String newCoverage_report) {
-		String oldCoverage_report = coverage_report;
-		coverage_report = newCoverage_report;
+	public void setCoverageReport(String newCoverageReport) {
+		String oldCoverageReport = coverageReport;
+		coverageReport = newCoverageReport;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GitlabMMPackage.REPORT__COVERAGE_REPORT,
-					oldCoverage_report, coverage_report));
+					oldCoverageReport, coverageReport));
 	}
 
 	/**
@@ -233,7 +233,7 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 		case GitlabMMPackage.REPORT__JUNIT:
 			return getJunit();
 		case GitlabMMPackage.REPORT__COVERAGE_REPORT:
-			return getCoverage_report();
+			return getCoverageReport();
 		case GitlabMMPackage.REPORT__DOTENV:
 			return getDotenv();
 		case GitlabMMPackage.REPORT__COBERTURA:
@@ -254,7 +254,7 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 			setJunit((String) newValue);
 			return;
 		case GitlabMMPackage.REPORT__COVERAGE_REPORT:
-			setCoverage_report((String) newValue);
+			setCoverageReport((String) newValue);
 			return;
 		case GitlabMMPackage.REPORT__DOTENV:
 			setDotenv((String) newValue);
@@ -278,7 +278,7 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 			setJunit(JUNIT_EDEFAULT);
 			return;
 		case GitlabMMPackage.REPORT__COVERAGE_REPORT:
-			setCoverage_report(COVERAGE_REPORT_EDEFAULT);
+			setCoverageReport(COVERAGE_REPORT_EDEFAULT);
 			return;
 		case GitlabMMPackage.REPORT__DOTENV:
 			setDotenv(DOTENV_EDEFAULT);
@@ -301,8 +301,8 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 		case GitlabMMPackage.REPORT__JUNIT:
 			return JUNIT_EDEFAULT == null ? junit != null : !JUNIT_EDEFAULT.equals(junit);
 		case GitlabMMPackage.REPORT__COVERAGE_REPORT:
-			return COVERAGE_REPORT_EDEFAULT == null ? coverage_report != null
-					: !COVERAGE_REPORT_EDEFAULT.equals(coverage_report);
+			return COVERAGE_REPORT_EDEFAULT == null ? coverageReport != null
+					: !COVERAGE_REPORT_EDEFAULT.equals(coverageReport);
 		case GitlabMMPackage.REPORT__DOTENV:
 			return DOTENV_EDEFAULT == null ? dotenv != null : !DOTENV_EDEFAULT.equals(dotenv);
 		case GitlabMMPackage.REPORT__COBERTURA:
@@ -324,8 +324,8 @@ public class ReportImpl extends MinimalEObjectImpl.Container implements Report {
 		StringBuilder result = new StringBuilder(super.toString());
 		result.append(" (junit: ");
 		result.append(junit);
-		result.append(", coverage_report: ");
-		result.append(coverage_report);
+		result.append(", coverageReport: ");
+		result.append(coverageReport);
 		result.append(", dotenv: ");
 		result.append(dotenv);
 		result.append(", cobertura: ");

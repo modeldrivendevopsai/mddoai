@@ -24,10 +24,10 @@ Output: GitLab CI/CD Pipeline (.gitlab-ci.yml)
 
 There are **two ways** to use MDDOAI:
 
-| Method | Best For | Setup Time |
-|--------|----------|------------|
-| **Docker** | Quick usage, CI/CD pipelines | 2 minutes |
-| **Build from Source** | Development, customization | 5 minutes |
+| Method                | Best For                     | Setup Time |
+| --------------------- | ---------------------------- | ---------- |
+| **Docker**            | Quick usage, CI/CD pipelines | 2 minutes  |
+| **Build from Source** | Development, customization   | 5 minutes  |
 
 Choose your method below:
 
@@ -44,10 +44,10 @@ Choose your method below:
 
 ```bash
 # Production release (recommended)
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1
 
 # Or latest development version
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0-snapshot
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0-snapshot
 ```
 
 ### Step 2: Prepare Your Input
@@ -65,7 +65,7 @@ mkdir -p input output
 docker run --rm \
   -v "$(pwd)/input:/app/input" \
   -v "$(pwd)/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/your-model.swarch" "/app/output"
 ```
 
@@ -78,21 +78,23 @@ docker run --rm \
 - **`--rm`** automatically removes the container after execution
 
 **Alternative - Using absolute paths:**
+
 ```bash
 docker run --rm \
   -v "/full/path/to/input:/app/input" \
   -v "/full/path/to/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/your-model.swarch" "/app/output"
 ```
 
 **For CI/CD pipelines:**
+
 ```bash
-docker pull ghcr.io/modeldrivendevopsai/mddoai:1.0.1
+docker pull ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1
 docker run --rm \
   -v "$(pwd)/models:/app/input" \
   -v "$(pwd)/generated:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/architecture.swarch" "/app/output"
 ```
 
@@ -125,29 +127,66 @@ cd main
 Run the Gradle build command:
 
 ```bash
+./gradlew clean installDist
+```
+
+If you are doing repeated local builds without major changes, you can use:
+
+```bash
 ./gradlew installDist
 ```
 
+Use `clean` especially for the first run, after switching branches, or after changes to models/transformations that can leave stale build artifacts.
+
+#### Rebuilding `libs/mddoai.jar` (after Eclipse model/template changes)
+
+`libs/mddoai.jar` bundles compiled classes from the 4 Eclipse plugin projects and is required by the CLI. If you modify metamodels, Acceleo templates, or code generation files in Eclipse, you need to rebuild this JAR before running `installDist`.
+
+**Prerequisites:** Eclipse must have compiled the plugin projects first (i.e. the `bin/` directories in each plugin project must be up to date).
+
+```bash
+cd main
+./gradlew buildMddoaiJar
+```
+
+Then rebuild the CLI:
+
+```bash
+./gradlew installDist
+```
+
+**Note for Windows users:**
+- In PowerShell: Use `./gradlew` (as shown above).
+- In CMD: Use `.\gradlew` instead.
+- On Linux/macOS: Use `./gradlew` (as shown above).
 
 **Expected output:** `BUILD SUCCESSFUL`
 
 This creates executable scripts in `build/install/com.mddoai/bin/`.
 
 ### Step 3: Run the Tool
+
 ```bash
 ./cli.bat <Type> <InputModelPath> <OutputFolder>
 ```
+
+**Note for Windows users:**
+
+- In PowerShell: Use `./cli.bat` (as shown above).
+- In CMD: Use `.\cli.bat` instead.
+- On Linux/macOS: Use `./cli.sh` (if available) or adapt accordingly.
+
 ---
 
 ## Transformation Types
 
 MDDOAI supports three transformation types:
 
-| Command | Input Format | Output | Use Case |
-|---------|-------------|--------|----------|
-| `swarch2gitlab` | `.swarch` | `.gitlab-ci.yml` |  End-to-end transformation |
-| `pim2gitlab` | `.pim` | `.gitlab-ci.yml` | Advanced - Custom PIM workflows |
-| `psm2gitlab` | `.gitlabpsm` | `.gitlab-ci.yml` | Advanced - Direct PSM to YAML |
+| Command         | Input Format | Output           | Use Case                        |
+| --------------- | ------------ | ---------------- | ------------------------------- |
+| `swarch2gitlab` | `.swarch`    | `.gitlab-ci.yml` | End-to-end transformation       |
+| `pim2gitlab`    | `.pim`       | `.gitlab-ci.yml` | Advanced - Custom PIM workflows |
+| `psm2gitlab`    | `.gitlabpsm` | `.gitlab-ci.yml` | Advanced - Direct PSM to YAML   |
 
 **Parameters:**
 
@@ -158,6 +197,8 @@ MDDOAI supports three transformation types:
 ---
 
 ## Usage Examples
+
+**Note:** All commands use `./` for Unix-like systems and PowerShell. On Windows CMD, replace `./` with `.\` (e.g., `.\cli.bat` instead of `./cli.bat`).
 
 ### Example 1: Transform Architecture Model (Docker)
 
@@ -170,7 +211,7 @@ cp my-app.swarch input/
 docker run --rm \
   -v "$(pwd)/input:/app/input" \
   -v "$(pwd)/output:/app/output" \
-  ghcr.io/modeldrivendevopsai/mddoai:1.0.1 \
+  ghcr.io/modeldrivendevopsai/mddoai/mddoai:1.0.1 \
   swarch2gitlab "/app/input/my-app.swarch" "/app/output"
 
 # Check result
@@ -183,7 +224,6 @@ cat output/.gitlab-ci.yml
 ./cli.bat swarch2gitlab ./input/my-app.swarch ./output
 ```
 
-
 ### Example 3: Using Included Test Models
 
 Test with example models included in the repository:
@@ -191,8 +231,11 @@ Test with example models included in the repository:
 ```bash
 ./cli.bat swarch2gitlab ./src/test/resources/testCases/e2e/input1.swarch ./test/generatedCode
 ```
+
 ---
+
 ## Testing
+
 Run tests to verify everything works correctly:
 
 ```bash
@@ -206,6 +249,11 @@ cd main
 ./gradlew integrationTest   # Integration tests
 ./gradlew test              # Unit tests
 ```
+
+**Note for Windows users:**
+
+- In PowerShell: Use `./gradlew` (as shown above).
+- In CMD: Use `.\gradlew` instead.
 
 ### Coverage Reports
 
@@ -228,11 +276,13 @@ MDDOAI uses a three-tier Docker image tagging strategy.
 **Purpose:** Testing tag for all feature branches
 
 **Characteristics:**
+
 - Overwritten on every feature branch push
 - Not safe for production use
 - Useful for quick testing
 
 **Example workflow:**
+
 ```bash
 # Create feature branch
 git checkout -b fix-parser-bug
@@ -247,11 +297,13 @@ git push origin fix-parser-bug
 **Purpose:** Latest code from the main branch
 
 **Characteristics:**
+
 - Overwritten on every main branch commit
 - Semi-stable
 - Recommended for development
 
 **Example workflow:**
+
 ```bash
 # Merge PR to main
 git checkout main
@@ -265,26 +317,32 @@ git push origin main
 **Purpose:** Permanent production releases
 
 **Characteristics:**
+
 - Never overwritten
 - Never expires
 - Follows Semantic Versioning (MAJOR.MINOR.PATCH)
 - Ideal for production deployments
 
-**Example workflow:**
+**Example workflow (automated — recommended):**
+
+Go to Actions → Release → Run workflow. The workflow automatically computes the next version, generates AI release notes, tags the commit, and publishes the GitHub Release. The CI/CD pipeline then builds and pushes the Docker image tagged with the new version.
+
+**Example workflow (manual):**
+
 ```bash
 # Ready to release? Create and push tag
-git tag -a 1.0.1 -m "Release 1.0.1 - Fixed parser bug"
+git tag 1.0.1
 git push origin 1.0.1
 # GitHub Actions builds and pushes ghcr.io/.../mddoai:1.0.1
 ```
 
 ### Comparison Table
 
-| Tag | Stability | Overwritten? | Use Case |
-|-----|-----------|--------------|----------|
-| `1.x-snapshot` | Unstable | Yes (any branch) | Feature Testing |
-| `1.0-snapshot` | Semi-stable | Yes (main only) | Development |
-| `1.0.1` | Stable | Never | Production |
+| Tag            | Stability   | Overwritten?     | Use Case        |
+| -------------- | ----------- | ---------------- | --------------- |
+| `1.x-snapshot` | Unstable    | Yes (any branch) | Feature Testing |
+| `1.0-snapshot` | Semi-stable | Yes (main only)  | Development     |
+| `1.0.1`        | Stable      | Never            | Production      |
 
 See the image tags in the [MDDOAI Container Registry](https://github.com/modeldrivendevopsai/mddoai/pkgs/container/mddoai%2Fmddoai).
 
@@ -304,7 +362,7 @@ All project dependencies are managed through the build.gradle file using Gradle'
 
 - Eclipse Core Runtime – OSGi-based plugin framework for model loading and service resolution
 
- - EMF (Eclipse Modeling Framework) – Model definition, XMI serialization, code generation
+- EMF (Eclipse Modeling Framework) – Model definition, XMI serialization, code generation
 
 - OCL (Object Constraint Language) – Constraint handling for model validation
 
@@ -331,19 +389,19 @@ All project dependencies are managed through the build.gradle file using Gradle'
 To add or update dependencies, modify the dependencies block in the Gradle build script located in `main/build.gradle`.
 
 ## Project Structure
+
 The project folder structure consists of these folders:
 
 - `code_generation` - this folder contains the necessary Acceleo files to generate code from models.
 
 - `designs` - this folder contains all Eclipse Sirius viewpoint projects that are used to visualize models and edit them.
 
-- `feature` - this folder contains all  the necessary packages in one feature project
+- `feature` - this folder contains all the necessary packages in one feature project
 
 - `install_necessary_packages` - contains all the .zip files that need to be installed via the install new software view before using the tools in the project.
 
 - `main` - this folder contains the MDDOAI itself. Under this folder there also is:
-
-	- `transformations` - a folder responsible to translate from one model to another.
+  - `transformations` - a folder responsible to translate from one model to another.
 
 - `meta_models` - this folder contains meta-models used by this project that are modeled using the EMF (Eclipse Modelling Framework).
 
@@ -352,9 +410,32 @@ The project folder structure consists of these folders:
 - `update_site` - this folder contains the reference to the feature from the feature folder and it is responsible for building the update site.
 
 ## Coverage reports
+
 - [E2E](https://modeldrivendevopsai.github.io/mddoai/e2eJacocoTestReport/html/)
 - [Integration](https://modeldrivendevopsai.github.io/mddoai/integrationJacocoTestReport/html/)
 - [Unit](https://modeldrivendevopsai.github.io/mddoai/unitJacocoTestReport/html/)
+- [Overall](https://modeldrivendevopsai.github.io/mddoai/test/html/index.html)
+
+## Release
+
+Releases are automated via the [Release workflow](.github/workflows/release.yml):
+
+1. Go to **Actions → Release → Run workflow**
+2. Select bump type (`minor` by default)
+3. Optional: enable **dry run** to preview without publishing
+4. Click **Run workflow**
+
+The workflow is enforced to run only from `main`. GitHub still shows a branch selector in the UI, but non-main runs fail immediately.
+
+When **dry run** is enabled, the workflow computes the next version and generates release notes, then writes a summary of what would be created. It does not push a tag, does not create a GitHub Release, and does not call the CI/CD publish workflow.
+
+When **dry run** is disabled, the workflow auto-increments the version, generates AI release notes from merged PRs (using GitHub's release-notes API), pushes the semver tag, creates the GitHub Release, then calls the CI/CD pipeline directly to build, test, and publish the Docker image. No extra secrets or setup required.
+
+## AI Agents
+
+This project uses GitHub Copilot agents for PR review, code quality checks, test case generation, and transformation debugging. See [docs/agents.md](docs/agents.md) for usage, invocation commands, and design rationale.
+
+---
 
 ## Draw.io diagrams
 
@@ -363,6 +444,7 @@ View - Use Draw.io to open the file "drawio diagrams.xml"
 Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready. The PR approver should always restore the merged branch. This URL should open draw.io directly - https://app.diagrams.net/#Hmodeldrivendevopsai%2Fmddoai%2Fdraw.io-diagrams%2Fdrawio%20diagrams.xml#%7B
 
 ## License
+
 
 This project is licensed under the **Eclipse Public License 2.0 (EPL-2.0)**.  
 You may obtain a copy of the license at:
@@ -374,3 +456,4 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
 See the License for the specific language governing permissions and  
 limitations under the License.
+

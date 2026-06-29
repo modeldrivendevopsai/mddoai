@@ -14,7 +14,7 @@ import org.eclipse.emf.ecore.EObject;
  * </p>
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getJunit <em>Junit</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverage_report <em>Coverage report</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverageReport <em>Coverage Report</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getDotenv <em>Dotenv</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCobertura <em>Cobertura</em>}</li>
  * </ul>
@@ -47,26 +47,26 @@ public interface Report extends EObject {
 	void setJunit(String value);
 
 	/**
-	 * Returns the value of the '<em><b>Coverage report</b></em>' attribute.
+	 * Returns the value of the '<em><b>Coverage Report</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Coverage report</em>' attribute.
-	 * @see #setCoverage_report(String)
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getReport_Coverage_report()
+	 * @return the value of the '<em>Coverage Report</em>' attribute.
+	 * @see #setCoverageReport(String)
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getReport_CoverageReport()
 	 * @model
 	 * @generated
 	 */
-	String getCoverage_report();
+	String getCoverageReport();
 
 	/**
-	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverage_report <em>Coverage report</em>}' attribute.
+	 * Sets the value of the '{@link com.mddoai.metamodel.gitlab.gitlabMM.Report#getCoverageReport <em>Coverage Report</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Coverage report</em>' attribute.
-	 * @see #getCoverage_report()
+	 * @param value the new value of the '<em>Coverage Report</em>' attribute.
+	 * @see #getCoverageReport()
 	 * @generated
 	 */
-	void setCoverage_report(String value);
+	void setCoverageReport(String value);
 
 	/**
 	 * Returns the value of the '<em><b>Dotenv</b></em>' attribute.

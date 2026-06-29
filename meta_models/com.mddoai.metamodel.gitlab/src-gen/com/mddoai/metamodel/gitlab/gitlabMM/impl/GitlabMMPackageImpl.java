@@ -7,7 +7,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Artifact;
 import com.mddoai.metamodel.gitlab.gitlabMM.Axis;
 import com.mddoai.metamodel.gitlab.gitlabMM.BeforeScript;
 import com.mddoai.metamodel.gitlab.gitlabMM.Cache;
-import com.mddoai.metamodel.gitlab.gitlabMM.Comand;
+import com.mddoai.metamodel.gitlab.gitlabMM.Command;
 import com.mddoai.metamodel.gitlab.gitlabMM.Default;
 import com.mddoai.metamodel.gitlab.gitlabMM.Dependencies;
 import com.mddoai.metamodel.gitlab.gitlabMM.Dependency;
@@ -15,6 +15,7 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Docker;
 import com.mddoai.metamodel.gitlab.gitlabMM.Environment;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMFactory;
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Image;
 import com.mddoai.metamodel.gitlab.gitlabMM.Job;
 import com.mddoai.metamodel.gitlab.gitlabMM.Key;
@@ -28,15 +29,14 @@ import com.mddoai.metamodel.gitlab.gitlabMM.Path;
 import com.mddoai.metamodel.gitlab.gitlabMM.Pipeline;
 import com.mddoai.metamodel.gitlab.gitlabMM.Report;
 import com.mddoai.metamodel.gitlab.gitlabMM.Retry;
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
 import com.mddoai.metamodel.gitlab.gitlabMM.Script;
 import com.mddoai.metamodel.gitlab.gitlabMM.Service;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tag;
 import com.mddoai.metamodel.gitlab.gitlabMM.Tags;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variable;
 import com.mddoai.metamodel.gitlab.gitlabMM.Variables;
-
 import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
+
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EPackage;
@@ -84,7 +84,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	private EClass comandEClass = null;
+	private EClass commandEClass = null;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -168,7 +168,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	private EClass rule_EClass = null;
+	private EClass gitlabRuleEClass = null;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -465,6 +465,46 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
+	public EReference getJob_Tags() {
+		return (EReference) jobEClass.getEStructuralFeatures().get(5);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getJob_Only() {
+		return (EReference) jobEClass.getEStructuralFeatures().get(6);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getJob_Dependencies() {
+		return (EReference) jobEClass.getEStructuralFeatures().get(7);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getJob_When() {
+		return (EAttribute) jobEClass.getEStructuralFeatures().get(8);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public EReference getJob_Image() {
 		return (EReference) jobEClass.getEStructuralFeatures().get(9);
 	}
@@ -605,46 +645,6 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EReference getJob_Tags() {
-		return (EReference) jobEClass.getEStructuralFeatures().get(5);
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EReference getJob_Only() {
-		return (EReference) jobEClass.getEStructuralFeatures().get(6);
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EReference getJob_Dependencies() {
-		return (EReference) jobEClass.getEStructuralFeatures().get(7);
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EAttribute getJob_When() {
-		return (EAttribute) jobEClass.getEStructuralFeatures().get(8);
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
 	public EClass getArtifact() {
 		return artifactEClass;
 	}
@@ -705,7 +705,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getArtifact_Expose_as() {
+	public EAttribute getArtifact_ExposeAs() {
 		return (EAttribute) artifactEClass.getEStructuralFeatures().get(5);
 	}
 
@@ -755,7 +755,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getReport_Coverage_report() {
+	public EAttribute getReport_CoverageReport() {
 		return (EAttribute) reportEClass.getEStructuralFeatures().get(1);
 	}
 
@@ -785,8 +785,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EClass getComand() {
-		return comandEClass;
+	public EClass getCommand() {
+		return commandEClass;
 	}
 
 	/**
@@ -795,8 +795,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getComand_Comand() {
-		return (EAttribute) comandEClass.getEStructuralFeatures().get(0);
+	public EAttribute getCommand_Command() {
+		return (EAttribute) commandEClass.getEStructuralFeatures().get(0);
 	}
 
 	/**
@@ -1055,8 +1055,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EClass getRule_() {
-		return rule_EClass;
+	public EClass getGitlabRule() {
+		return gitlabRuleEClass;
 	}
 
 	/**
@@ -1065,8 +1065,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getRule__If_() {
-		return (EAttribute) rule_EClass.getEStructuralFeatures().get(0);
+	public EAttribute getGitlabRule_GitlabIf() {
+		return (EAttribute) gitlabRuleEClass.getEStructuralFeatures().get(0);
 	}
 
 	/**
@@ -1075,8 +1075,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getRule__When() {
-		return (EAttribute) rule_EClass.getEStructuralFeatures().get(1);
+	public EAttribute getGitlabRule_When() {
+		return (EAttribute) gitlabRuleEClass.getEStructuralFeatures().get(1);
 	}
 
 	/**
@@ -1085,8 +1085,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getRule__Changes() {
-		return (EAttribute) rule_EClass.getEStructuralFeatures().get(2);
+	public EAttribute getGitlabRule_Changes() {
+		return (EAttribute) gitlabRuleEClass.getEStructuralFeatures().get(2);
 	}
 
 	/**
@@ -1095,8 +1095,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getRule__Exists() {
-		return (EAttribute) rule_EClass.getEStructuralFeatures().get(3);
+	public EAttribute getGitlabRule_Exists() {
+		return (EAttribute) gitlabRuleEClass.getEStructuralFeatures().get(3);
 	}
 
 	/**
@@ -1105,8 +1105,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getRule__AllowFailure() {
-		return (EAttribute) rule_EClass.getEStructuralFeatures().get(4);
+	public EAttribute getGitlabRule_AllowFailure() {
+		return (EAttribute) gitlabRuleEClass.getEStructuralFeatures().get(4);
 	}
 
 	/**
@@ -1115,8 +1115,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EReference getRule__Variables() {
-		return (EReference) rule_EClass.getEStructuralFeatures().get(5);
+	public EReference getGitlabRule_Variables() {
+		return (EReference) gitlabRuleEClass.getEStructuralFeatures().get(5);
 	}
 
 	/**
@@ -1195,7 +1195,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getImage_Pull_policy() {
+	public EAttribute getImage_PullPolicy() {
 		return (EAttribute) imageEClass.getEStructuralFeatures().get(4);
 	}
 
@@ -1325,7 +1325,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getService_Pull_policy() {
+	public EAttribute getService_PullPolicy() {
 		return (EAttribute) serviceEClass.getEStructuralFeatures().get(6);
 	}
 
@@ -1425,7 +1425,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getKey_Files_commits() {
+	public EAttribute getKey_FilesCommits() {
 		return (EAttribute) keyEClass.getEStructuralFeatures().get(2);
 	}
 
@@ -1545,7 +1545,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getEnvironment_On_stop() {
+	public EAttribute getEnvironment_OnStop() {
 		return (EAttribute) environmentEClass.getEStructuralFeatures().get(2);
 	}
 
@@ -1565,7 +1565,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 	 * @generated
 	 */
 	@Override
-	public EAttribute getEnvironment_Auto_stop_in() {
+	public EAttribute getEnvironment_AutoStopIn() {
 		return (EAttribute) environmentEClass.getEStructuralFeatures().get(4);
 	}
 
@@ -1887,8 +1887,8 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		createEAttribute(reportEClass, REPORT__DOTENV);
 		createEAttribute(reportEClass, REPORT__COBERTURA);
 
-		comandEClass = createEClass(COMAND);
-		createEAttribute(comandEClass, COMAND__COMAND);
+		commandEClass = createEClass(COMMAND);
+		createEAttribute(commandEClass, COMMAND__COMMAND);
 
 		beforeScriptEClass = createEClass(BEFORE_SCRIPT);
 		createEReference(beforeScriptEClass, BEFORE_SCRIPT__COMMANDS);
@@ -1926,13 +1926,13 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		pathEClass = createEClass(PATH);
 		createEAttribute(pathEClass, PATH__PATH);
 
-		rule_EClass = createEClass(RULE_);
-		createEAttribute(rule_EClass, RULE___IF_);
-		createEAttribute(rule_EClass, RULE___WHEN);
-		createEAttribute(rule_EClass, RULE___CHANGES);
-		createEAttribute(rule_EClass, RULE___EXISTS);
-		createEAttribute(rule_EClass, RULE___ALLOW_FAILURE);
-		createEReference(rule_EClass, RULE___VARIABLES);
+		gitlabRuleEClass = createEClass(GITLAB_RULE);
+		createEAttribute(gitlabRuleEClass, GITLAB_RULE__GITLAB_IF);
+		createEAttribute(gitlabRuleEClass, GITLAB_RULE__WHEN);
+		createEAttribute(gitlabRuleEClass, GITLAB_RULE__CHANGES);
+		createEAttribute(gitlabRuleEClass, GITLAB_RULE__EXISTS);
+		createEAttribute(gitlabRuleEClass, GITLAB_RULE__ALLOW_FAILURE);
+		createEReference(gitlabRuleEClass, GITLAB_RULE__VARIABLES);
 
 		workflowEClass = createEClass(WORKFLOW);
 		createEReference(workflowEClass, WORKFLOW__RULES);
@@ -2107,7 +2107,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEReference(getJob_Cache(), this.getCache(), null, "cache", null, 0, 1, Job.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
 				IS_ORDERED);
-		initEReference(getJob_Rules(), this.getRule_(), null, "rules", null, 0, -1, Job.class, !IS_TRANSIENT,
+		initEReference(getJob_Rules(), this.getGitlabRule(), null, "rules", null, 0, -1, Job.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
 				IS_ORDERED);
 		initEReference(getJob_Needs(), this.getNeed(), null, "needs", null, 0, -1, Job.class, !IS_TRANSIENT,
@@ -2143,7 +2143,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getArtifact_ExpireIn(), ecorePackage.getEString(), "expireIn", null, 0, 1, Artifact.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getArtifact_Expose_as(), ecorePackage.getEString(), "expose_as", null, 0, 1, Artifact.class,
+		initEAttribute(getArtifact_ExposeAs(), ecorePackage.getEString(), "exposeAs", null, 0, 1, Artifact.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getArtifact_Untracked(), ecorePackage.getEBoolean(), "untracked", null, 0, 1, Artifact.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -2153,7 +2153,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEClass(reportEClass, Report.class, "Report", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getReport_Junit(), ecorePackage.getEString(), "junit", null, 1, 1, Report.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getReport_Coverage_report(), ecorePackage.getEString(), "coverage_report", null, 0, 1,
+		initEAttribute(getReport_CoverageReport(), ecorePackage.getEString(), "coverageReport", null, 0, 1,
 				Report.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE,
 				!IS_DERIVED, IS_ORDERED);
 		initEAttribute(getReport_Dotenv(), ecorePackage.getEString(), "dotenv", null, 0, 1, Report.class, !IS_TRANSIENT,
@@ -2161,18 +2161,18 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEAttribute(getReport_Cobertura(), ecorePackage.getEString(), "cobertura", null, 0, 1, Report.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-		initEClass(comandEClass, Comand.class, "Comand", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEAttribute(getComand_Comand(), ecorePackage.getEString(), "comand", null, 1, 1, Comand.class, !IS_TRANSIENT,
-				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEClass(commandEClass, Command.class, "Command", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEAttribute(getCommand_Command(), ecorePackage.getEString(), "command", null, 1, 1, Command.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(beforeScriptEClass, BeforeScript.class, "BeforeScript", !IS_ABSTRACT, !IS_INTERFACE,
 				IS_GENERATED_INSTANCE_CLASS);
-		initEReference(getBeforeScript_Commands(), this.getComand(), null, "commands", null, 1, -1, BeforeScript.class,
+		initEReference(getBeforeScript_Commands(), this.getCommand(), null, "commands", null, 1, -1, BeforeScript.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(scriptEClass, Script.class, "Script", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEReference(getScript_Commands(), this.getComand(), null, "commands", null, 1, -1, Script.class,
+		initEReference(getScript_Commands(), this.getCommand(), null, "commands", null, 1, -1, Script.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
@@ -2228,26 +2228,28 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEAttribute(getPath_Path(), ecorePackage.getEString(), "path", null, 1, 1, Path.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-		initEClass(rule_EClass, Rule_.class, "Rule_", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEAttribute(getRule__If_(), ecorePackage.getEString(), "if_", null, 0, 1, Rule_.class, !IS_TRANSIENT,
-				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getRule__When(), ecorePackage.getEString(), "when", null, 0, 1, Rule_.class, !IS_TRANSIENT,
-				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getRule__Changes(), ecorePackage.getEString(), "changes", null, 0, -1, Rule_.class,
+		initEClass(gitlabRuleEClass, GitlabRule.class, "GitlabRule", !IS_ABSTRACT, !IS_INTERFACE,
+				IS_GENERATED_INSTANCE_CLASS);
+		initEAttribute(getGitlabRule_GitlabIf(), ecorePackage.getEString(), "gitlabIf", null, 0, 1, GitlabRule.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getRule__Exists(), ecorePackage.getEString(), "exists", null, 0, -1, Rule_.class, !IS_TRANSIENT,
-				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getRule__AllowFailure(), ecorePackage.getEBoolean(), "allowFailure", null, 0, 1, Rule_.class,
+		initEAttribute(getGitlabRule_When(), ecorePackage.getEString(), "when", null, 0, 1, GitlabRule.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEReference(getRule__Variables(), this.getVariables(), null, "variables", null, 0, 1, Rule_.class,
+		initEAttribute(getGitlabRule_Changes(), ecorePackage.getEString(), "changes", null, 0, -1, GitlabRule.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getGitlabRule_Exists(), ecorePackage.getEString(), "exists", null, 0, -1, GitlabRule.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getGitlabRule_AllowFailure(), ecorePackage.getEBoolean(), "allowFailure", null, 0, 1,
+				GitlabRule.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE,
+				!IS_DERIVED, IS_ORDERED);
+		initEReference(getGitlabRule_Variables(), this.getVariables(), null, "variables", null, 0, 1, GitlabRule.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(workflowEClass, Workflow.class, "Workflow", !IS_ABSTRACT, !IS_INTERFACE,
 				IS_GENERATED_INSTANCE_CLASS);
-		initEReference(getWorkflow_Rules(), this.getRule_(), null, "rules", null, 0, -1, Workflow.class, !IS_TRANSIENT,
-				!IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED,
-				IS_ORDERED);
+		initEReference(getWorkflow_Rules(), this.getGitlabRule(), null, "rules", null, 0, -1, Workflow.class,
+				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
+				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(imageEClass, Image.class, "Image", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getImage_Name(), ecorePackage.getEString(), "name", null, 1, 1, Image.class, !IS_TRANSIENT,
@@ -2260,7 +2262,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEReference(getImage_Kubernetes(), this.getKubernetes(), null, "kubernetes", null, 0, 1, Image.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getImage_Pull_policy(), ecorePackage.getEString(), "pull_policy", null, 0, -1, Image.class,
+		initEAttribute(getImage_PullPolicy(), ecorePackage.getEString(), "pullPolicy", null, 0, -1, Image.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(dockerEClass, Docker.class, "Docker", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -2281,7 +2283,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getService_Entrypoint(), ecorePackage.getEString(), "entrypoint", null, 0, -1, Service.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEReference(getService_Commands(), this.getComand(), null, "commands", null, 0, -1, Service.class,
+		initEReference(getService_Commands(), this.getCommand(), null, "commands", null, 0, -1, Service.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getService_Docker(), this.getDocker(), null, "docker", null, 0, 1, Service.class, !IS_TRANSIENT,
@@ -2290,7 +2292,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 		initEReference(getService_Kubernetes(), this.getKubernetes(), null, "kubernetes", null, 0, 1, Service.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getService_Pull_policy(), ecorePackage.getEString(), "pull_policy", null, 0, -1, Service.class,
+		initEAttribute(getService_PullPolicy(), ecorePackage.getEString(), "pullPolicy", null, 0, -1, Service.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(cacheEClass, Cache.class, "Cache", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -2310,7 +2312,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getKey_Files(), ecorePackage.getEString(), "files", null, 0, -1, Key.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getKey_Files_commits(), ecorePackage.getEString(), "files_commits", null, 0, -1, Key.class,
+		initEAttribute(getKey_FilesCommits(), ecorePackage.getEString(), "filesCommits", null, 0, -1, Key.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getKey_Prefix(), ecorePackage.getEString(), "prefix", null, 0, 1, Key.class, !IS_TRANSIENT,
 				!IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -2335,11 +2337,11 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getEnvironment_Url(), ecorePackage.getEString(), "url", null, 0, 1, Environment.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getEnvironment_On_stop(), ecorePackage.getEString(), "on_stop", null, 0, 1, Environment.class,
+		initEAttribute(getEnvironment_OnStop(), ecorePackage.getEString(), "onStop", null, 0, 1, Environment.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getEnvironment_Action(), ecorePackage.getEString(), "action", null, 0, 1, Environment.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getEnvironment_Auto_stop_in(), ecorePackage.getEString(), "auto_stop_in", null, 0, 1,
+		initEAttribute(getEnvironment_AutoStopIn(), ecorePackage.getEString(), "autoStopIn", null, 0, 1,
 				Environment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE,
 				!IS_DERIVED, IS_ORDERED);
 		initEReference(getEnvironment_Kubernetes(), this.getKubernetes(), null, "kubernetes", null, 0, 1,
@@ -2348,7 +2350,7 @@ public class GitlabMMPackageImpl extends EPackageImpl implements GitlabMMPackage
 
 		initEClass(afterScriptEClass, AfterScript.class, "AfterScript", !IS_ABSTRACT, !IS_INTERFACE,
 				IS_GENERATED_INSTANCE_CLASS);
-		initEReference(getAfterScript_Commands(), this.getComand(), null, "commands", null, 0, -1, AfterScript.class,
+		initEReference(getAfterScript_Commands(), this.getCommand(), null, "commands", null, 0, -1, AfterScript.class,
 				!IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE,
 				IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 

@@ -28,7 +28,7 @@ import org.eclipse.emf.ecore.util.EDataTypeUniqueEList;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.KeyImpl#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.KeyImpl#getFiles <em>Files</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.KeyImpl#getFiles_commits <em>Files commits</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.KeyImpl#getFilesCommits <em>Files Commits</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.KeyImpl#getPrefix <em>Prefix</em>}</li>
  * </ul>
  *
@@ -66,14 +66,14 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 	protected EList<String> files;
 
 	/**
-	 * The cached value of the '{@link #getFiles_commits() <em>Files commits</em>}' attribute list.
+	 * The cached value of the '{@link #getFilesCommits() <em>Files Commits</em>}' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getFiles_commits()
+	 * @see #getFilesCommits()
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<String> files_commits;
+	protected EList<String> filesCommits;
 
 	/**
 	 * The default value of the '{@link #getPrefix() <em>Prefix</em>}' attribute.
@@ -156,11 +156,11 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 	 * @generated
 	 */
 	@Override
-	public EList<String> getFiles_commits() {
-		if (files_commits == null) {
-			files_commits = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.KEY__FILES_COMMITS);
+	public EList<String> getFilesCommits() {
+		if (filesCommits == null) {
+			filesCommits = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.KEY__FILES_COMMITS);
 		}
-		return files_commits;
+		return filesCommits;
 	}
 
 	/**
@@ -199,7 +199,7 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 		case GitlabMMPackage.KEY__FILES:
 			return getFiles();
 		case GitlabMMPackage.KEY__FILES_COMMITS:
-			return getFiles_commits();
+			return getFilesCommits();
 		case GitlabMMPackage.KEY__PREFIX:
 			return getPrefix();
 		}
@@ -223,8 +223,8 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 			getFiles().addAll((Collection<? extends String>) newValue);
 			return;
 		case GitlabMMPackage.KEY__FILES_COMMITS:
-			getFiles_commits().clear();
-			getFiles_commits().addAll((Collection<? extends String>) newValue);
+			getFilesCommits().clear();
+			getFilesCommits().addAll((Collection<? extends String>) newValue);
 			return;
 		case GitlabMMPackage.KEY__PREFIX:
 			setPrefix((String) newValue);
@@ -248,7 +248,7 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 			getFiles().clear();
 			return;
 		case GitlabMMPackage.KEY__FILES_COMMITS:
-			getFiles_commits().clear();
+			getFilesCommits().clear();
 			return;
 		case GitlabMMPackage.KEY__PREFIX:
 			setPrefix(PREFIX_EDEFAULT);
@@ -270,7 +270,7 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 		case GitlabMMPackage.KEY__FILES:
 			return files != null && !files.isEmpty();
 		case GitlabMMPackage.KEY__FILES_COMMITS:
-			return files_commits != null && !files_commits.isEmpty();
+			return filesCommits != null && !filesCommits.isEmpty();
 		case GitlabMMPackage.KEY__PREFIX:
 			return PREFIX_EDEFAULT == null ? prefix != null : !PREFIX_EDEFAULT.equals(prefix);
 		}
@@ -292,8 +292,8 @@ public class KeyImpl extends MinimalEObjectImpl.Container implements Key {
 		result.append(name);
 		result.append(", files: ");
 		result.append(files);
-		result.append(", files_commits: ");
-		result.append(files_commits);
+		result.append(", filesCommits: ");
+		result.append(filesCommits);
 		result.append(", prefix: ");
 		result.append(prefix);
 		result.append(')');

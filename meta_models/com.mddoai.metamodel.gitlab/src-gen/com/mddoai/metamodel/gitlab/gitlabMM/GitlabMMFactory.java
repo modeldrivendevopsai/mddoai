@@ -58,13 +58,13 @@ public interface GitlabMMFactory extends EFactory {
 	Report createReport();
 
 	/**
-	 * Returns a new object of class '<em>Comand</em>'.
+	 * Returns a new object of class '<em>Command</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return a new object of class '<em>Comand</em>'.
+	 * @return a new object of class '<em>Command</em>'.
 	 * @generated
 	 */
-	Comand createComand();
+	Command createCommand();
 
 	/**
 	 * Returns a new object of class '<em>Before Script</em>'.
@@ -166,13 +166,13 @@ public interface GitlabMMFactory extends EFactory {
 	Path createPath();
 
 	/**
-	 * Returns a new object of class '<em>Rule </em>'.
+	 * Returns a new object of class '<em>Gitlab Rule</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return a new object of class '<em>Rule </em>'.
+	 * @return a new object of class '<em>Gitlab Rule</em>'.
 	 * @generated
 	 */
-	Rule_ createRule_();
+	GitlabRule createGitlabRule();
 
 	/**
 	 * Returns a new object of class '<em>Workflow</em>'.

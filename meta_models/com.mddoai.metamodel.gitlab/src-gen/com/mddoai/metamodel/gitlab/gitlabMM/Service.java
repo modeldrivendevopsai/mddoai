@@ -21,7 +21,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getCommands <em>Commands</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getDocker <em>Docker</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getKubernetes <em>Kubernetes</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPull_policy <em>Pull policy</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Service#getPullPolicy <em>Pull Policy</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService()
@@ -87,7 +87,7 @@ public interface Service extends EObject {
 
 	/**
 	 * Returns the value of the '<em><b>Commands</b></em>' reference list.
-	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Comand}.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Command}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Commands</em>' reference list.
@@ -95,7 +95,7 @@ public interface Service extends EObject {
 	 * @model
 	 * @generated
 	 */
-	EList<Comand> getCommands();
+	EList<Command> getCommands();
 
 	/**
 	 * Returns the value of the '<em><b>Docker</b></em>' containment reference.
@@ -142,15 +142,15 @@ public interface Service extends EObject {
 	void setKubernetes(Kubernetes value);
 
 	/**
-	 * Returns the value of the '<em><b>Pull policy</b></em>' attribute list.
+	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute list.
 	 * The list contents are of type {@link java.lang.String}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Pull policy</em>' attribute list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_Pull_policy()
+	 * @return the value of the '<em>Pull Policy</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getService_PullPolicy()
 	 * @model
 	 * @generated
 	 */
-	EList<String> getPull_policy();
+	EList<String> getPullPolicy();
 
 } // Service

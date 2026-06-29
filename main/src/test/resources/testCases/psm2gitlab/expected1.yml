@@ -11,6 +11,11 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
     - if: $CI_COMMIT_BRANCH
 
+default:
+  image: docker:latest
+  services:
+    - name: docker:dind
+
 stages:
   - build
   - unitTest
@@ -18,7 +23,7 @@ stages:
   - push
 
 variables:
-  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/chatbot-app-image
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
   IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
 
 build:

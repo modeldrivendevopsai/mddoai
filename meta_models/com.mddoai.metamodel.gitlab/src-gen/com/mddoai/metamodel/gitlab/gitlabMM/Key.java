@@ -17,7 +17,7 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getName <em>Name</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getFiles <em>Files</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getFiles_commits <em>Files commits</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getFilesCommits <em>Files Commits</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Key#getPrefix <em>Prefix</em>}</li>
  * </ul>
  *
@@ -61,16 +61,16 @@ public interface Key extends EObject {
 	EList<String> getFiles();
 
 	/**
-	 * Returns the value of the '<em><b>Files commits</b></em>' attribute list.
+	 * Returns the value of the '<em><b>Files Commits</b></em>' attribute list.
 	 * The list contents are of type {@link java.lang.String}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Files commits</em>' attribute list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getKey_Files_commits()
+	 * @return the value of the '<em>Files Commits</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getKey_FilesCommits()
 	 * @model
 	 * @generated
 	 */
-	EList<String> getFiles_commits();
+	EList<String> getFilesCommits();
 
 	/**
 	 * Returns the value of the '<em><b>Prefix</b></em>' attribute.

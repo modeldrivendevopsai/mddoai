@@ -94,9 +94,9 @@ public class GitlabMMSwitch<T> extends Switch<T> {
 				result = defaultCase(theEObject);
 			return result;
 		}
-		case GitlabMMPackage.COMAND: {
-			Comand comand = (Comand) theEObject;
-			T result = caseComand(comand);
+		case GitlabMMPackage.COMMAND: {
+			Command command = (Command) theEObject;
+			T result = caseCommand(command);
 			if (result == null)
 				result = defaultCase(theEObject);
 			return result;
@@ -178,9 +178,9 @@ public class GitlabMMSwitch<T> extends Switch<T> {
 				result = defaultCase(theEObject);
 			return result;
 		}
-		case GitlabMMPackage.RULE_: {
-			Rule_ rule_ = (Rule_) theEObject;
-			T result = caseRule_(rule_);
+		case GitlabMMPackage.GITLAB_RULE: {
+			GitlabRule gitlabRule = (GitlabRule) theEObject;
+			T result = caseGitlabRule(gitlabRule);
 			if (result == null)
 				result = defaultCase(theEObject);
 			return result;
@@ -356,17 +356,17 @@ public class GitlabMMSwitch<T> extends Switch<T> {
 	}
 
 	/**
-	 * Returns the result of interpreting the object as an instance of '<em>Comand</em>'.
+	 * Returns the result of interpreting the object as an instance of '<em>Command</em>'.
 	 * <!-- begin-user-doc -->
 	 * This implementation returns null;
 	 * returning a non-null result will terminate the switch.
 	 * <!-- end-user-doc -->
 	 * @param object the target of the switch.
-	 * @return the result of interpreting the object as an instance of '<em>Comand</em>'.
+	 * @return the result of interpreting the object as an instance of '<em>Command</em>'.
 	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
 	 * @generated
 	 */
-	public T caseComand(Comand object) {
+	public T caseCommand(Command object) {
 		return null;
 	}
 
@@ -536,17 +536,17 @@ public class GitlabMMSwitch<T> extends Switch<T> {
 	}
 
 	/**
-	 * Returns the result of interpreting the object as an instance of '<em>Rule </em>'.
+	 * Returns the result of interpreting the object as an instance of '<em>Gitlab Rule</em>'.
 	 * <!-- begin-user-doc -->
 	 * This implementation returns null;
 	 * returning a non-null result will terminate the switch.
 	 * <!-- end-user-doc -->
 	 * @param object the target of the switch.
-	 * @return the result of interpreting the object as an instance of '<em>Rule </em>'.
+	 * @return the result of interpreting the object as an instance of '<em>Gitlab Rule</em>'.
 	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
 	 * @generated
 	 */
-	public T caseRule_(Rule_ object) {
+	public T caseGitlabRule(GitlabRule object) {
 		return null;
 	}
 

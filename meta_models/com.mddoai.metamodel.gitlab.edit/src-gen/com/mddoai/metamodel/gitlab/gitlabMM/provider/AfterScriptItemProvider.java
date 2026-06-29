@@ -151,7 +151,7 @@ public class AfterScriptItemProvider extends ItemProviderAdapter implements IEdi
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.AFTER_SCRIPT__COMMANDS,
-				GitlabMMFactory.eINSTANCE.createComand()));
+				GitlabMMFactory.eINSTANCE.createCommand()));
 	}
 
 	/**

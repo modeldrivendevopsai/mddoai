@@ -19,7 +19,7 @@ public interface KeyValidator {
 
 	boolean validateFiles(EList<String> value);
 
-	boolean validateFiles_commits(EList<String> value);
+	boolean validateFilesCommits(EList<String> value);
 
 	boolean validatePrefix(String value);
 }

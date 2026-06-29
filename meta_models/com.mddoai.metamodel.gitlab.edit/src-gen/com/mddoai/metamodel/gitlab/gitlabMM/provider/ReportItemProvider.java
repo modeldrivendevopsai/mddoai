@@ -54,7 +54,7 @@ public class ReportItemProvider extends ItemProviderAdapter implements IEditingD
 			super.getPropertyDescriptors(object);
 
 			addJunitPropertyDescriptor(object);
-			addCoverage_reportPropertyDescriptor(object);
+			addCoverageReportPropertyDescriptor(object);
 			addDotenvPropertyDescriptor(object);
 			addCoberturaPropertyDescriptor(object);
 		}
@@ -77,16 +77,16 @@ public class ReportItemProvider extends ItemProviderAdapter implements IEditingD
 	}
 
 	/**
-	 * This adds a property descriptor for the Coverage report feature.
+	 * This adds a property descriptor for the Coverage Report feature.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	protected void addCoverage_reportPropertyDescriptor(Object object) {
+	protected void addCoverageReportPropertyDescriptor(Object object) {
 		itemPropertyDescriptors
 				.add(createItemPropertyDescriptor(((ComposeableAdapterFactory) adapterFactory).getRootAdapterFactory(),
-						getResourceLocator(), getString("_UI_Report_coverage_report_feature"),
-						getString("_UI_PropertyDescriptor_description", "_UI_Report_coverage_report_feature",
+						getResourceLocator(), getString("_UI_Report_coverageReport_feature"),
+						getString("_UI_PropertyDescriptor_description", "_UI_Report_coverageReport_feature",
 								"_UI_Report_type"),
 						GitlabMMPackage.Literals.REPORT__COVERAGE_REPORT, true, false, false,
 						ItemPropertyDescriptor.GENERIC_VALUE_IMAGE, null, null));

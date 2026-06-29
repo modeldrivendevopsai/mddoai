@@ -87,8 +87,8 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 		}
 
 		@Override
-		public Adapter caseComand(Comand object) {
-			return createComandAdapter();
+		public Adapter caseCommand(Command object) {
+			return createCommandAdapter();
 		}
 
 		@Override
@@ -147,8 +147,8 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 		}
 
 		@Override
-		public Adapter caseRule_(Rule_ object) {
-			return createRule_Adapter();
+		public Adapter caseGitlabRule(GitlabRule object) {
+			return createGitlabRuleAdapter();
 		}
 
 		@Override
@@ -302,16 +302,16 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 	}
 
 	/**
-	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Comand <em>Comand</em>}'.
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Command <em>Command</em>}'.
 	 * <!-- begin-user-doc -->
 	 * This default implementation returns null so that we can easily ignore cases;
 	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
 	 * <!-- end-user-doc -->
 	 * @return the new adapter.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Comand
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Command
 	 * @generated
 	 */
-	public Adapter createComandAdapter() {
+	public Adapter createCommandAdapter() {
 		return null;
 	}
 
@@ -470,16 +470,16 @@ public class GitlabMMAdapterFactory extends AdapterFactoryImpl {
 	}
 
 	/**
-	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_ <em>Rule </em>}'.
+	 * Creates a new adapter for an object of class '{@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule <em>Gitlab Rule</em>}'.
 	 * <!-- begin-user-doc -->
 	 * This default implementation returns null so that we can easily ignore cases;
 	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
 	 * <!-- end-user-doc -->
 	 * @return the new adapter.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.Rule_
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule
 	 * @generated
 	 */
-	public Adapter createRule_Adapter() {
+	public Adapter createGitlabRuleAdapter() {
 		return null;
 	}
 

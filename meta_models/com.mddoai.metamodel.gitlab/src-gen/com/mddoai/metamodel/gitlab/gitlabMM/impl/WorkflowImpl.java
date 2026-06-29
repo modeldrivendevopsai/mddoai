@@ -3,7 +3,7 @@
 package com.mddoai.metamodel.gitlab.gitlabMM.impl;
 
 import com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage;
-import com.mddoai.metamodel.gitlab.gitlabMM.Rule_;
+import com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule;
 import com.mddoai.metamodel.gitlab.gitlabMM.Workflow;
 
 import java.util.Collection;
@@ -42,7 +42,7 @@ public class WorkflowImpl extends MinimalEObjectImpl.Container implements Workfl
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<Rule_> rules;
+	protected EList<GitlabRule> rules;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -69,9 +69,9 @@ public class WorkflowImpl extends MinimalEObjectImpl.Container implements Workfl
 	 * @generated
 	 */
 	@Override
-	public EList<Rule_> getRules() {
+	public EList<GitlabRule> getRules() {
 		if (rules == null) {
-			rules = new EObjectContainmentEList<Rule_>(Rule_.class, this, GitlabMMPackage.WORKFLOW__RULES);
+			rules = new EObjectContainmentEList<GitlabRule>(GitlabRule.class, this, GitlabMMPackage.WORKFLOW__RULES);
 		}
 		return rules;
 	}
@@ -115,7 +115,7 @@ public class WorkflowImpl extends MinimalEObjectImpl.Container implements Workfl
 		switch (featureID) {
 		case GitlabMMPackage.WORKFLOW__RULES:
 			getRules().clear();
-			getRules().addAll((Collection<? extends Rule_>) newValue);
+			getRules().addAll((Collection<? extends GitlabRule>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);

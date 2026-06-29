@@ -25,7 +25,7 @@ import org.eclipse.emf.ecore.EObject;
 public interface Workflow extends EObject {
 	/**
 	 * Returns the value of the '<em><b>Rules</b></em>' containment reference list.
-	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.Rule_}.
+	 * The list contents are of type {@link com.mddoai.metamodel.gitlab.gitlabMM.GitlabRule}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Rules</em>' containment reference list.
@@ -33,6 +33,6 @@ public interface Workflow extends EObject {
 	 * @model containment="true"
 	 * @generated
 	 */
-	EList<Rule_> getRules();
+	EList<GitlabRule> getRules();
 
 } // Workflow

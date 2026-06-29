@@ -15,7 +15,7 @@ public interface ReportValidator {
 
 	boolean validateJunit(String value);
 
-	boolean validateCoverage_report(String value);
+	boolean validateCoverageReport(String value);
 
 	boolean validateDotenv(String value);
 

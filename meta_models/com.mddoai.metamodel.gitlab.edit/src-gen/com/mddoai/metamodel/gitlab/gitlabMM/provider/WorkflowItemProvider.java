@@ -151,7 +151,7 @@ public class WorkflowItemProvider extends ItemProviderAdapter implements IEditin
 		super.collectNewChildDescriptors(newChildDescriptors, object);
 
 		newChildDescriptors.add(createChildParameter(GitlabMMPackage.Literals.WORKFLOW__RULES,
-				GitlabMMFactory.eINSTANCE.createRule_()));
+				GitlabMMFactory.eINSTANCE.createGitlabRule()));
 	}
 
 	/**

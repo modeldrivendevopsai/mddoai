@@ -28,7 +28,7 @@ public interface ArtifactValidator {
 
 	boolean validateExpireIn(String value);
 
-	boolean validateExpose_as(String value);
+	boolean validateExposeAs(String value);
 
 	boolean validateUntracked(boolean value);
 

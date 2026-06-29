@@ -34,7 +34,7 @@ import org.eclipse.emf.ecore.util.EDataTypeUniqueEList;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ImageImpl#getEntrypoint <em>Entrypoint</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ImageImpl#getDocker <em>Docker</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ImageImpl#getKubernetes <em>Kubernetes</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ImageImpl#getPull_policy <em>Pull policy</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.impl.ImageImpl#getPullPolicy <em>Pull Policy</em>}</li>
  * </ul>
  *
  * @generated
@@ -91,14 +91,14 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 	protected Kubernetes kubernetes;
 
 	/**
-	 * The cached value of the '{@link #getPull_policy() <em>Pull policy</em>}' attribute list.
+	 * The cached value of the '{@link #getPullPolicy() <em>Pull Policy</em>}' attribute list.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getPull_policy()
+	 * @see #getPullPolicy()
 	 * @generated
 	 * @ordered
 	 */
-	protected EList<String> pull_policy;
+	protected EList<String> pullPolicy;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -264,11 +264,11 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 	 * @generated
 	 */
 	@Override
-	public EList<String> getPull_policy() {
-		if (pull_policy == null) {
-			pull_policy = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.IMAGE__PULL_POLICY);
+	public EList<String> getPullPolicy() {
+		if (pullPolicy == null) {
+			pullPolicy = new EDataTypeUniqueEList<String>(String.class, this, GitlabMMPackage.IMAGE__PULL_POLICY);
 		}
-		return pull_policy;
+		return pullPolicy;
 	}
 
 	/**
@@ -304,7 +304,7 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 		case GitlabMMPackage.IMAGE__KUBERNETES:
 			return getKubernetes();
 		case GitlabMMPackage.IMAGE__PULL_POLICY:
-			return getPull_policy();
+			return getPullPolicy();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -332,8 +332,8 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 			setKubernetes((Kubernetes) newValue);
 			return;
 		case GitlabMMPackage.IMAGE__PULL_POLICY:
-			getPull_policy().clear();
-			getPull_policy().addAll((Collection<? extends String>) newValue);
+			getPullPolicy().clear();
+			getPullPolicy().addAll((Collection<? extends String>) newValue);
 			return;
 		}
 		super.eSet(featureID, newValue);
@@ -360,7 +360,7 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 			setKubernetes((Kubernetes) null);
 			return;
 		case GitlabMMPackage.IMAGE__PULL_POLICY:
-			getPull_policy().clear();
+			getPullPolicy().clear();
 			return;
 		}
 		super.eUnset(featureID);
@@ -383,7 +383,7 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 		case GitlabMMPackage.IMAGE__KUBERNETES:
 			return kubernetes != null;
 		case GitlabMMPackage.IMAGE__PULL_POLICY:
-			return pull_policy != null && !pull_policy.isEmpty();
+			return pullPolicy != null && !pullPolicy.isEmpty();
 		}
 		return super.eIsSet(featureID);
 	}
@@ -403,8 +403,8 @@ public class ImageImpl extends MinimalEObjectImpl.Container implements Image {
 		result.append(name);
 		result.append(", entrypoint: ");
 		result.append(entrypoint);
-		result.append(", pull_policy: ");
-		result.append(pull_policy);
+		result.append(", pullPolicy: ");
+		result.append(pullPolicy);
 		result.append(')');
 		return result.toString();
 	}

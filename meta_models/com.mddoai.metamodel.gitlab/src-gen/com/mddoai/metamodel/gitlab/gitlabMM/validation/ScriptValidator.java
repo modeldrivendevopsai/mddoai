@@ -4,7 +4,7 @@
  */
 package com.mddoai.metamodel.gitlab.gitlabMM.validation;
 
-import com.mddoai.metamodel.gitlab.gitlabMM.Comand;
+import com.mddoai.metamodel.gitlab.gitlabMM.Command;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -17,5 +17,5 @@ import org.eclipse.emf.common.util.EList;
 public interface ScriptValidator {
 	boolean validate();
 
-	boolean validateCommands(EList<Comand> value);
+	boolean validateCommands(EList<Command> value);
 }

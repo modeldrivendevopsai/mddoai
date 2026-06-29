@@ -19,7 +19,7 @@ import org.eclipse.emf.ecore.EObject;
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getEntrypoint <em>Entrypoint</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getDocker <em>Docker</em>}</li>
  *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getKubernetes <em>Kubernetes</em>}</li>
- *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPull_policy <em>Pull policy</em>}</li>
+ *   <li>{@link com.mddoai.metamodel.gitlab.gitlabMM.Image#getPullPolicy <em>Pull Policy</em>}</li>
  * </ul>
  *
  * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage()
@@ -106,15 +106,15 @@ public interface Image extends EObject {
 	void setKubernetes(Kubernetes value);
 
 	/**
-	 * Returns the value of the '<em><b>Pull policy</b></em>' attribute list.
+	 * Returns the value of the '<em><b>Pull Policy</b></em>' attribute list.
 	 * The list contents are of type {@link java.lang.String}.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Pull policy</em>' attribute list.
-	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_Pull_policy()
+	 * @return the value of the '<em>Pull Policy</em>' attribute list.
+	 * @see com.mddoai.metamodel.gitlab.gitlabMM.GitlabMMPackage#getImage_PullPolicy()
 	 * @model
 	 * @generated
 	 */
-	EList<String> getPull_policy();
+	EList<String> getPullPolicy();
 
 } // Image
