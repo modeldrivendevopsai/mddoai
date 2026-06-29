@@ -1,0 +1,15 @@
+services:
+  ai-layer:
+    build: ./ai-layer
+    env_file:
+      - path: ./ai-layer/.env
+        required: false
+    expose:
+      - "8000"
+
+  chat-ui:
+    build: ./chat-ui
+    ports:
+      - "8080:80"
+    depends_on:
+      - ai-layer
