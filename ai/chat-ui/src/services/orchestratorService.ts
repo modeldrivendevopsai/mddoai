@@ -1,28 +1,23 @@
-import type { OrchestratorResponse } from "@/types"
-import mockData from "@/mock/orchestrator.json"
-
-interface MockTurn {
-  turn: number
-  message: string
-  status?: "pending" | "complete"
-}
-
-const turns = (mockData as { turns: MockTurn[] }).turns
-
-let turnIndex = 0
+import type { Message, OrchestratorResponse } from "@/types"
 
 export async function sendMessage(
-  _message: string
+  messages: Message[]
 ): Promise<OrchestratorResponse> {
-  const turn = turns[Math.min(turnIndex, turns.length - 1)]
-  turnIndex += 1
+  const payload = messages.map(({ role, content }) => ({ role, content }))
 
-  return {
-    message: turn.message,
-    status: turn.status ?? "pending",
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: payload }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Chat request failed: ${res.status}`)
   }
-}
 
-export function resetTurnIndex(): void {
-  turnIndex = 0
+  const data = await res.json()
+  return {
+    message: data.content,
+    status: "complete",
+  }
 }

@@ -14,7 +14,7 @@ import {
   PromptInputAction,
 } from "@/components/ui/prompt-input"
 import { cn } from "@/lib/utils"
-import { sendMessage, resetTurnIndex } from "@/services/orchestratorService"
+import { sendMessage } from "@/services/orchestratorService"
 import type { Message } from "@/types"
 
 const STORAGE_KEY = "mddoai-conversation"
@@ -67,7 +67,6 @@ export default function ConversationScreen() {
     localStorage.removeItem(STORAGE_KEY)
     setMessages([])
     setIsComplete(false)
-    resetTurnIndex()
   }
 
   const handleThemeToggle = () => {
@@ -90,11 +89,12 @@ export default function ConversationScreen() {
       content,
       timestamp: Date.now(),
     }
-    setMessages((prev) => [...prev, userMessage])
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
     setValue("")
     setIsLoading(true)
 
-    const response = await sendMessage(content)
+    const response = await sendMessage(updatedMessages)
     const assistantMessage: Message = {
       id: crypto.randomUUID(),
       role: "assistant",
