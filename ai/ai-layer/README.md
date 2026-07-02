@@ -75,19 +75,10 @@ print(response.choices[0].message.content)
 pytest
 ```
 
+Run from `ai-layer/` — `pytest.ini` sets `pythonpath = .` so `from router.router import chat` resolves; running `pytest` from a different working directory will fail to import.
+
 No real API calls are made — `litellm.completion` is mocked in tests.
 
 ## Structure
 
-```
-ai-layer/
-  main.py             FastAPI app — /health and /chat endpoints
-  router/
-    config.py         provider list and priority order
-    logger.py         JSON stdout logging per call
-    router.py         chat() — builds the LiteLLM router, exposes one function
-  tests/
-    test_router.py    fallback behaviour tests
-  requirements.txt
-  .env.example
-```
+FastAPI app and routes are in `main.py`; the provider list, priority order, and LiteLLM router setup are in `router/`. See those files directly for current details.
