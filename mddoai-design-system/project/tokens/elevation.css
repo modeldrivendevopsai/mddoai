@@ -1,0 +1,28 @@
+/* MDDOAI — Elevation: shadows, borders & motion.
+   Restrained, technical feel. Shadows are cool-tinted and soft;
+   the brand purple gets a dedicated glow for primary emphasis. */
+
+:root {
+  /* ---- Shadows ---- */
+  --shadow-xs:  0 1px 2px rgba(24, 24, 40, 0.06);
+  --shadow-sm:  0 1px 3px rgba(24, 24, 40, 0.08), 0 1px 2px rgba(24, 24, 40, 0.04);
+  --shadow-md:  0 4px 12px rgba(24, 24, 40, 0.08), 0 2px 4px rgba(24, 24, 40, 0.05);
+  --shadow-lg:  0 12px 28px rgba(24, 24, 40, 0.12), 0 4px 8px rgba(24, 24, 40, 0.06);
+  --shadow-xl:  0 24px 56px rgba(24, 24, 40, 0.16), 0 8px 16px rgba(24, 24, 40, 0.08);
+
+  /* Purple glow for primary buttons / focus states */
+  --glow-brand: 0 6px 20px rgba(104, 74, 235, 0.35);
+  --ring-brand: 0 0 0 3px rgba(104, 74, 235, 0.28);
+
+  /* Border widths */
+  --border-hairline: 1px;
+  --border-thick:    2px;
+
+  /* ---- Motion ---- */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+  --duration-fast:   120ms; /* @kind other */
+  --duration-base:   200ms; /* @kind other */
+  --duration-slow:   360ms; /* @kind other */
+}
