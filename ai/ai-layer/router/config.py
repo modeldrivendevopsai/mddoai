@@ -8,14 +8,17 @@ load_dotenv()
 
 
 def _get_oauth_token():
-    """Return the Claude OAuth token from env or ~/.claude/credentials.json, whichever is set."""
+    """Return Claude OAuth token from env or ~/.claude/.credentials.json (written by `claude login`)."""
     token = os.getenv("CLAUDE_CODE_OAUTH_TOKEN")
     if token:
         return token
-    creds_path = Path.home() / ".claude" / "credentials.json"
+    # .credentials.json is the hidden dot-file `claude login` creates; the access token
+    # lives at claudeAiOauth.accessToken inside it.
+    creds_path = Path.home() / ".claude" / ".credentials.json"
     if creds_path.exists():
         try:
-            return json.loads(creds_path.read_text()).get("oauth_token")
+            data = json.loads(creds_path.read_text())
+            return data.get("claudeAiOauth", {}).get("accessToken")
         except (json.JSONDecodeError, OSError):
             return None
     return None
