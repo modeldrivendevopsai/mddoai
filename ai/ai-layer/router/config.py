@@ -30,7 +30,7 @@ MODELS = [
     {"name": "mistral-small",      "model": "mistral/mistral-small-2506",   "key": os.getenv("MISTRAL_API_KEY"),   "tier": "free"},
     {"name": "cerebras-120b",      "model": "cerebras/gpt-oss-120b",        "key": os.getenv("CEREBRAS_API_KEY"),  "tier": "free"},
     {"name": "groq-llama",         "model": "groq/llama-3.3-70b-versatile", "key": os.getenv("GROQ_API_KEY"),      "tier": "free"},
-    # Claude Pro/Max subscription — token from env or ~/.claude/credentials.json
+    # Claude Pro/Max subscription — token from env or ~/.claude/.credentials.json
     {"name": "claude-subscription","model": "anthropic/claude-haiku-4-5",   "key": _get_oauth_token(),             "tier": "subscription"},
     {"name": "claude",             "model": "anthropic/claude-sonnet-4-6",  "key": os.getenv("ANTHROPIC_API_KEY"), "tier": "commercial"},
 ]
