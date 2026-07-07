@@ -1,12 +1,15 @@
-# MDDOAI Project Guide
+# CLAUDE.md — ai/
 
-## Codebase Overview
+All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder, separate from the Java/Eclipse engine at the repo root.
 
-MDDOAI (Model-Driven DevOps AI) is an enterprise platform for AI-driven infrastructure automation and deployment orchestration. The project includes core services, API routers, and a comprehensive design system.
+## Folder boundaries
 
-- **Core**: TypeScript/Node.js backend services and CLI tooling
-- **API**: Router and service wrapper patterns for scalable endpoint management
-- **Design System**: MDDOAI brand system with React components, tokens, and UI kits
+- Work on `chat-ui/` (the React frontend) only touches files inside `ai/chat-ui/`.
+- Work on `ai-layer/` (the FastAPI backend) only touches files inside `ai/ai-layer/`.
+- Neither touches the Java/Eclipse code at the repo root.
+- Shared infrastructure that spans both services (the Caddy gateway config, the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside either service.
+
+See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`chat-ui/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 
 ## Design System Skill
 

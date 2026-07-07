@@ -1,0 +1,29 @@
+services:
+  ai-layer:
+    build: ./ai-layer
+    env_file:
+      - path: ./ai-layer/.env
+        required: false
+    expose:
+      - "8000"
+
+  chat-ui-build:
+    build: ./chat-ui
+    volumes:
+      - static-assets:/output
+
+  caddy:
+    image: caddy:2-alpine
+    volumes:
+      - static-assets:/usr/share/caddy
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    ports:
+      - "8080:80"
+    depends_on:
+      ai-layer:
+        condition: service_started
+      chat-ui-build:
+        condition: service_completed_successfully
+
+volumes:
+  static-assets:

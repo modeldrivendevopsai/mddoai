@@ -16,6 +16,7 @@ for key in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY", "GROQ_API_K
     os.environ.setdefault(key, f"test-{key.lower()}")
 
 from router.config import AVAILABLE  # noqa: E402
+from router import router as router_module  # noqa: E402
 
 
 def make_router():
@@ -90,3 +91,34 @@ def test_providers_1_to_3_fail_groq_handles_it():
 
     assert is_groq(response.model), f"Expected Groq, got {response.model}"
     assert not any(is_commercial(m) for m in called), "Commercial Claude should not have been called"
+
+
+def test_chat_starts_from_requested_model():
+    names = [m["name"] for m in AVAILABLE]
+    requested = names[2]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[2]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model=requested)
+
+    assert mock_router.completion.call_args.kwargs["model"] == requested
+
+
+def test_chat_ignores_invalid_model_and_uses_default():
+    names = [m["name"] for m in AVAILABLE]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[0]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model="not-a-real-provider")
+
+    assert mock_router.completion.call_args.kwargs["model"] == names[0]
+
+
+def test_chat_explicit_auto_uses_default():
+    names = [m["name"] for m in AVAILABLE]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[0]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model="auto")
+
+    assert mock_router.completion.call_args.kwargs["model"] == names[0]

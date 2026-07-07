@@ -19,9 +19,16 @@ _router = Router(
 )
 
 
-def chat(messages: list[dict], **kwargs):
-    """Call the LLM. Tries free providers first, falls back to commercial Claude if all fail."""
-    response = _router.completion(model=_names[0], messages=messages, **kwargs)
+AUTO = "auto"
+
+
+def chat(messages: list[dict], model: str | None = None, **kwargs):
+    """Call the LLM. `model="auto"` (or omitted/unrecognized) runs the full default
+    priority chain starting at _names[0]; naming a specific provider starts there
+    instead. Either way, litellm falls back through the remaining providers on failure."""
+    requested_a_specific_provider = model is not None and model != AUTO and model in _names
+    starting_model = model if requested_a_specific_provider else _names[0]
+    response = _router.completion(model=starting_model, messages=messages, **kwargs)
     tier = _tier.get(response.model, "free")
-    log_call(response.model or _names[0], tier, response.usage)
+    log_call(response.model or starting_model, tier, response.usage)
     return response
