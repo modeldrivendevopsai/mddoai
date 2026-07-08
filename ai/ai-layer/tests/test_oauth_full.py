@@ -22,6 +22,8 @@ from unittest.mock import patch as mock_patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from conftest import reload_router_modules
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 results: list[tuple[str, bool, str]] = []
@@ -49,9 +51,7 @@ def reload_config(env_patch, home_dir=None):
         else:
             os.environ[k] = v
 
-    for mod in list(sys.modules):
-        if mod.startswith("router"):
-            del sys.modules[mod]
+    reload_router_modules()
 
     if home_dir is not None:
         with mock_patch("pathlib.Path.home", return_value=Path(home_dir)):
@@ -95,6 +95,16 @@ check(
     sub is not None and sub["key"] == OAUTH_TOKEN,
     f"key={sub['key'] if sub else 'N/A'}",
 )
+check(
+    "1a2 claude-subscription model is anthropic/claude-haiku-4-5",
+    sub is not None and sub["model"] == "anthropic/claude-haiku-4-5",
+    f"model={sub['model'] if sub else 'N/A'}",
+)
+check(
+    "1a3 claude-subscription tier is subscription",
+    sub is not None and sub["tier"] == "subscription",
+    f"tier={sub['tier'] if sub else 'N/A'}",
+)
 
 # 1b: env var absent -> reads file
 home_dir = make_creds_home(FILE_TOKEN)
@@ -124,13 +134,7 @@ check(
 
 print("\n=== Section 2: Token format ===")
 
-_litellm_params_src = """
-def _litellm_params(m):
-    return {"model": m["model"], "api_key": m["key"]}
-"""
-_ns: dict = {}
-exec(_litellm_params_src, _ns)
-_litellm_params = _ns["_litellm_params"]
+from router.router import _litellm_params  # the real function, not a duplicate
 
 raw_token = "sk-ant-oat01-rawtoken"
 entry = {"name": "claude-subscription", "model": "anthropic/claude-haiku-4-5", "key": raw_token}
@@ -166,38 +170,47 @@ check(
 )
 
 # ── Section 4: Error handling ────────────────────────────────────────────────
+# These call the real router.router.chat(), with only _router.completion mocked,
+# so they exercise the actual exception-handling code, not a copy of it.
 
 print("\n=== Section 4: Error handling ===")
 
-# Reconstruct the error-routing logic from router.py in isolation
-# (avoids importing litellm at module level)
-_error_logic_src = """
-def handle_auth_error(e, has_subscription):
-    if has_subscription:
-        msg = str(e).lower()
-        if "expired" in msg or "expir" in msg:
-            raise RuntimeError(
-                "Your Claude OAuth token has expired. Run `claude setup-token` to generate "
-                "a new one and update CLAUDE_CODE_OAUTH_TOKEN in your .env file."
-            ) from e
-        raise RuntimeError(
-            "Claude OAuth authentication failed — the token may be malformed or revoked. "
-            "Verify the token starts with 'sk-ant-oat' and run `claude setup-token` to "
-            "generate a fresh one, then update CLAUDE_CODE_OAUTH_TOKEN in your .env file."
-        ) from e
-    raise e
-"""
-exec(_error_logic_src, _ns)
-handle_auth_error = _ns["handle_auth_error"]
+import litellm as _litellm_for_errors
 
 
-class FakeAuthError(Exception):
-    pass
+def _reload_router_with_subscription():
+    """Fresh import of router.router configured with a subscription entry.
+
+    Reuses reload_config() (defined above for Section 1) for the module-clearing
+    and env-patching, instead of duplicating that logic.
+    """
+    reload_config({
+        "CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-forerrortest",
+        "GOOGLE_API_KEY": None, "MISTRAL_API_KEY": None,
+        "CEREBRAS_API_KEY": None, "GROQ_API_KEY": None, "ANTHROPIC_API_KEY": None,
+    })
+    import router.router as rr
+    return rr
+
+
+def _call_chat_with_auth_error(message: str):
+    """Call the real chat() with _router.completion raising a real AuthenticationError
+    attributed to the subscription model."""
+    rr = _reload_router_with_subscription()
+
+    def raise_it(*args, **kwargs):
+        raise _litellm_for_errors.AuthenticationError(
+            message=message, llm_provider="anthropic", model=rr._subscription_model
+        )
+
+    with mock_patch.object(rr, "_router") as mock_router:
+        mock_router.completion.side_effect = raise_it
+        rr.chat([{"role": "user", "content": "hi"}])
 
 
 # 4a: expired token
 try:
-    handle_auth_error(FakeAuthError("authentication_error: token expired"), has_subscription=True)
+    _call_chat_with_auth_error("authentication_error: token expired")
     check("4a  Expired token -> RuntimeError mentioning claude setup-token", False, "no exception raised")
 except RuntimeError as rt:
     check(
@@ -208,7 +221,7 @@ except RuntimeError as rt:
 
 # 4b: invalid/revoked token
 try:
-    handle_auth_error(FakeAuthError("invalid_api_key: bad token"), has_subscription=True)
+    _call_chat_with_auth_error("invalid_api_key: bad token")
     check("4b  Invalid token -> RuntimeError mentioning token prefix check", False, "no exception raised")
 except RuntimeError as rt:
     check(
@@ -217,19 +230,30 @@ except RuntimeError as rt:
         str(rt)[:80],
     )
 
-# 4c: no subscription -> original error re-raised unchanged
+# 4c: a DIFFERENT provider's auth error, even with a subscription configured,
+# must be re-raised unchanged, not misattributed to OAuth
 try:
-    handle_auth_error(FakeAuthError("invalid_api_key"), has_subscription=False)
-    check("4c  No subscription -> original error re-raised", False, "no exception raised")
-except FakeAuthError:
-    check("4c  No subscription -> original AuthenticationError re-raised unchanged", True)
+    rr = _reload_router_with_subscription()
+
+    def raise_other_provider_error(*args, **kwargs):
+        raise _litellm_for_errors.AuthenticationError(
+            message="invalid_api_key", llm_provider="gemini", model="gemini-2.5-flash"
+        )
+
+    with mock_patch.object(rr, "_router") as mock_router:
+        mock_router.completion.side_effect = raise_other_provider_error
+        rr.chat([{"role": "user", "content": "hi"}])
+    check("4c  Different provider's auth error -> re-raised, not misattributed to OAuth",
+          False, "no exception raised")
+except _litellm_for_errors.AuthenticationError:
+    check("4c  Different provider's auth error -> re-raised, not misattributed to OAuth", True)
 except RuntimeError as rt:
-    check("4c  No subscription -> original AuthenticationError re-raised unchanged", False,
+    check("4c  Different provider's auth error -> re-raised, not misattributed to OAuth", False,
           f"got RuntimeError instead: {rt}")
 
 # 4d: expired detection is case-insensitive
 try:
-    handle_auth_error(FakeAuthError("Token Expiration: credential has expiry"), has_subscription=True)
+    _call_chat_with_auth_error("Token Expiration: credential has expiry")
     check("4d  Expiry keyword is case-insensitive", False, "no exception raised")
 except RuntimeError as rt:
     check(

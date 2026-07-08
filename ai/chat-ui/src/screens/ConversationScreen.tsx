@@ -14,8 +14,8 @@ import {
   PromptInputAction,
 } from "@/components/ui/prompt-input"
 import { cn } from "@/lib/utils"
-import { sendMessage } from "@/services/orchestratorService"
-import type { Message } from "@/types"
+import { sendMessage, getProviders } from "@/services/orchestratorService"
+import type { Message, Provider } from "@/types"
 
 const STORAGE_KEY = "mddoai-conversation"
 
@@ -58,10 +58,19 @@ export default function ConversationScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [isDark, setIsDark] = useState(true)
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [selectedModel, setSelectedModel] = useState("auto")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, isComplete }))
   }, [messages, isComplete])
+
+  useEffect(() => {
+    getProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]))
+  }, [])
 
   const handleNewConversation = () => {
     localStorage.removeItem(STORAGE_KEY)
@@ -93,17 +102,24 @@ export default function ConversationScreen() {
     setMessages(updatedMessages)
     setValue("")
     setIsLoading(true)
+    setError(null)
 
-    const response = await sendMessage(updatedMessages)
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: response.message,
-      timestamp: Date.now(),
+    try {
+      const response = await sendMessage(updatedMessages, selectedModel)
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: response.message,
+        timestamp: Date.now(),
+        model: response.model,
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+      setIsComplete(response.status === "complete")
+    } catch {
+      setError("Something went wrong reaching the AI layer. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsComplete(response.status === "complete")
-    setIsLoading(false)
   }
 
   return (
@@ -297,6 +313,7 @@ export default function ConversationScreen() {
                     style={{ color: "var(--muted)" }}
                   >
                     {formatTimestamp(message.timestamp)}
+                    {message.role === "assistant" && message.model ? ` · ${message.model}` : ""}
                   </span>
                 </div>
               ))}
@@ -334,6 +351,28 @@ export default function ConversationScreen() {
 
       {/* Input bar */}
       <div className="border-t border-border p-4">
+        {error && (
+          <p className="mx-auto w-full max-w-2xl text-xs text-destructive" style={{ marginBottom: 8 }}>
+            {error}
+          </p>
+        )}
+        {providers.length > 0 && (
+          <div className="mx-auto flex w-full max-w-2xl justify-end" style={{ marginBottom: 8 }}>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              aria-label="Select provider"
+              className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground"
+            >
+              <option value="auto">Auto</option>
+              {providers.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name} ({p.tier})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <PromptInput
           value={value}
           onValueChange={setValue}

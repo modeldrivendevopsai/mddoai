@@ -8,7 +8,15 @@ load_dotenv()
 
 
 def _get_oauth_token():
-    """Return Claude OAuth token from env or ~/.claude/.credentials.json (written by `claude login`)."""
+    """Return Claude OAuth token from env or ~/.claude/.credentials.json (written by `claude login`).
+
+    Read once at process startup, not per-request. CLAUDE_CODE_OAUTH_TOKEN (from
+    `claude setup-token`) is long-lived (about a year) so this is fine for it. The
+    ~/.claude/.credentials.json accessToken (from `claude login`) is short-lived
+    (~60 minutes) and is refreshed on disk by the CLI as needed — a long-running
+    server process here will NOT pick up that refresh and will start failing auth
+    about an hour after startup. Restart the process to pick up a refreshed token.
+    """
     token = os.getenv("CLAUDE_CODE_OAUTH_TOKEN")
     if token:
         return token
@@ -18,8 +26,10 @@ def _get_oauth_token():
     if creds_path.exists():
         try:
             data = json.loads(creds_path.read_text())
-            return data.get("claudeAiOauth", {}).get("accessToken")
-        except (json.JSONDecodeError, OSError):
+            # `.get(..., {})`'s default only applies if the key is absent, not if it's
+            # present with value null — guard against a corrupted/partial credentials file.
+            return (data.get("claudeAiOauth") or {}).get("accessToken")
+        except (json.JSONDecodeError, OSError, AttributeError):
             return None
     return None
 

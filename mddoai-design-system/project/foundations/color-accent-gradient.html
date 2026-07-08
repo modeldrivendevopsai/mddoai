@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Accent & gradient" subtitle="Violet accent (arrow / sparkle) + brand gradient" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-mono); background: var(--surface-card); }
+  .wrap { display: flex; gap: 14px; padding: 20px; align-items: stretch; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .chip { height: 60px; border-radius: 8px; display: flex; align-items: flex-end; padding: 8px; box-sizing: border-box; color: #fff; font-size: 11px; }
+  .grad { flex: 1; border-radius: 8px; background: var(--gradient-brand); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box; color: #fff; font-size: 12px; letter-spacing: 0.02em; }
+  .small { display: flex; gap: 8px; }
+  .small .chip { width: 86px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="col small">
+      <div class="chip" style="background:var(--violet-400)">violet-400</div>
+      <div class="chip" style="background:var(--violet-500)">violet-500</div>
+      <div class="chip" style="background:var(--violet-600)">violet-600</div>
+    </div>
+    <div class="grad">--gradient-brand &nbsp;·&nbsp; #684aeb → #a45eed</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!-- @dsCard group="Brand" viewport="700x200" name="Logo — light & dark" subtitle="The mark: DevOps loop + transformation arrow + AI sparkle" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-display); }
+  .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 22px 24px; }
+  .panel { border-radius: var(--radius-lg); padding: 22px; display: flex; align-items: center; gap: 16px; }
+  .light { background: var(--surface-page); border: 1px solid var(--border-subtle); }
+  .dark { background: var(--surface-inverse); }
+  .panel img { height: 56px; width: auto; }
+  .word { font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
+  .light .word { color: var(--text-strong); }
+  .dark .word { color: #fff; }
+  .light .sub { color: var(--text-muted); }
+  .dark .sub { color: var(--text-on-inverse-muted); }
+  .sub { font-family: var(--font-mono); font-size: 10px; margin-top: 3px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel light">
+      <img src="../assets/logo/MDDOAI-transparent-2048.png" alt="MDDOAI mark" />
+      <div><div class="word">MDDOAI</div><div class="sub">on light surfaces</div></div>
+    </div>
+    <div class="panel dark">
+      <img src="../assets/logo/MDDOAI-white-2048.png" alt="MDDOAI mark white" />
+      <div><div class="word">MDDOAI</div><div class="sub">on dark surfaces</div></div>
+    </div>
+  </div>
+</body>
+</html>

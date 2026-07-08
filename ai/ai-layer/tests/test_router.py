@@ -5,25 +5,21 @@ Tests verify:
   1. All free providers exhausted → commercial Claude is called.
   2. Providers 1-3 fail → Groq handles it, commercial Claude is not called.
 """
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
 from litellm import Router
 from litellm.exceptions import RateLimitError
 
-# Fake keys must be set before importing router modules so all five providers appear available.
-for key in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
-    os.environ.setdefault(key, f"test-{key.lower()}")
+from conftest import reload_router_modules
 
-# Other test modules in this directory reload router.config under their own patched
-# env vars, leaving a stale cached module in sys.modules. Drop it so the import below
-# re-executes config.py against the env vars set above.
-for _mod in list(sys.modules):
-    if _mod.startswith("router"):
-        del sys.modules[_mod]
+# conftest.py sets fake provider keys at import time. Other test modules in this
+# directory reload router.config under their own patched env vars, leaving a stale
+# cached module in sys.modules — drop it so the import below re-executes config.py
+# against conftest's env vars.
+reload_router_modules()
 
 from router.config import AVAILABLE  # noqa: E402
+from router import router as router_module  # noqa: E402
 
 
 def make_router():
@@ -98,3 +94,34 @@ def test_providers_1_to_3_fail_groq_handles_it():
 
     assert is_groq(response.model), f"Expected Groq, got {response.model}"
     assert not any(is_commercial(m) for m in called), "Commercial Claude should not have been called"
+
+
+def test_chat_starts_from_requested_model():
+    names = [m["name"] for m in AVAILABLE]
+    requested = names[2]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[2]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model=requested)
+
+    assert mock_router.completion.call_args.kwargs["model"] == requested
+
+
+def test_chat_ignores_invalid_model_and_uses_default():
+    names = [m["name"] for m in AVAILABLE]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[0]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model="not-a-real-provider")
+
+    assert mock_router.completion.call_args.kwargs["model"] == names[0]
+
+
+def test_chat_explicit_auto_uses_default():
+    names = [m["name"] for m in AVAILABLE]
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.return_value = ok_response(AVAILABLE[0]["model"])
+        router_module.chat([{"role": "user", "content": "hi"}], model="auto")
+
+    assert mock_router.completion.call_args.kwargs["model"] == names[0]

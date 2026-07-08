@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x150" name="Radii" subtitle="Modest & technical — sm/md for cards, pill for chips" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-mono); }
+  .wrap { padding: 22px 24px; display: flex; gap: 18px; align-items: flex-end; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .box { width: 72px; height: 56px; background: var(--brand-subtle); border: 1px solid var(--border-brand); }
+  .lbl { font-size: 10px; color: var(--text-muted); }
+  .pillbox { width: 72px; height: 32px; border-radius: var(--radius-pill); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="item"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="lbl">xs · 3</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="lbl">sm · 6</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><span class="lbl">md · 10</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="lbl">lg · 14</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="lbl">xl · 20</span></div>
+    <div class="item"><div class="box pillbox" style="border-radius:var(--radius-pill)"></div><span class="lbl">pill</span></div>
+  </div>
+</body>
+</html>

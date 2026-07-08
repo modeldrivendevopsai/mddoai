@@ -1,0 +1,8 @@
+/* MDDOAI Design System — global entry point.
+   Consumers link THIS file. Keep it as @import lines only. */
+
+@import url("./fonts/fonts.css");
+@import url("./tokens/colors.css");
+@import url("./tokens/typography.css");
+@import url("./tokens/spacing.css");
+@import url("./tokens/elevation.css");
