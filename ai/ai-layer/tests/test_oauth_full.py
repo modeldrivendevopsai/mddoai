@@ -10,6 +10,7 @@ Sections
 5  Fallback chain        (fallbacks dict structure)
 6  Edge cases            (malformed file, null field, empty-string env)
 7  .env.example          (documents auto-detection)
+8  Token refresh          (per-call refresh replaces the key in place, no duplicates)
 """
 
 import json
@@ -337,6 +338,27 @@ check(
     get_token_from_home(d6b) is None,
 )
 
+# 6b2: claudeAiOauth itself (not just accessToken) is null — dict.get(k, {}) only
+# substitutes the default when k is ABSENT, not when it's present with value null,
+# so this previously crashed with AttributeError on `.get("accessToken")`.
+d6b2 = tempfile.mkdtemp()
+dot_claude_6b2 = Path(d6b2) / ".claude"
+dot_claude_6b2.mkdir()
+(dot_claude_6b2 / ".credentials.json").write_text(json.dumps({"claudeAiOauth": None}))
+try:
+    result_6b2 = get_token_from_home(d6b2)
+    check(
+        "6b2 claudeAiOauth itself is null -> no crash, claude-subscription absent",
+        result_6b2 is None,
+        f"result={result_6b2!r}",
+    )
+except AttributeError as exc:
+    check(
+        "6b2 claudeAiOauth itself is null -> no crash, claude-subscription absent",
+        False,
+        f"crashed: {exc}",
+    )
+
 # 6c: malformed JSON
 d6c = tempfile.mkdtemp()
 dot_claude_6c = Path(d6c) / ".claude"
@@ -390,6 +412,67 @@ check(
 check(
     "7d  .env.example mentions claude setup-token command",
     "claude setup-token" in env_text,
+)
+
+# ── Section 8: Token refresh ─────────────────────────────────────────────────
+# _refresh_subscription_token() re-reads the token on every chat() call so a
+# long-running process picks up the CLI's background refresh instead of using
+# whatever was cached at startup. These check it actually replaces the key in
+# place, rather than accumulating duplicate deployments litellm would then
+# load-balance across non-deterministically.
+
+print("\n=== Section 8: Token refresh ===")
+
+rr8 = _reload_router_with_subscription()
+
+gemini_key_before = next(
+    (d["litellm_params"].get("api_key") for d in rr8._router.get_model_list()
+     if d["model_name"] == "gemini-flash"),
+    None,
+)
+
+with mock_patch.object(rr8, "_get_oauth_token", return_value="sk-ant-oat01-refreshed"):
+    rr8._refresh_subscription_token()
+
+sub_deployments = [d for d in rr8._router.get_model_list() if d["model_name"] == "claude-subscription"]
+check(
+    "8a  Refresh updates the subscription key in place",
+    len(sub_deployments) == 1 and sub_deployments[0]["litellm_params"].get("api_key") == "sk-ant-oat01-refreshed",
+    f"deployments={[d['litellm_params'].get('api_key') for d in sub_deployments]}",
+)
+
+with mock_patch.object(rr8, "_get_oauth_token", return_value="sk-ant-oat01-refreshed-again"):
+    rr8._refresh_subscription_token()
+    rr8._refresh_subscription_token()
+
+sub_deployments_after = [d for d in rr8._router.get_model_list() if d["model_name"] == "claude-subscription"]
+check(
+    "8b  Repeated refreshes don't accumulate duplicate deployments",
+    len(sub_deployments_after) == 1,
+    f"deployment count={len(sub_deployments_after)}",
+)
+
+gemini_key_after = next(
+    (d["litellm_params"].get("api_key") for d in rr8._router.get_model_list()
+     if d["model_name"] == "gemini-flash"),
+    None,
+)
+check(
+    "8c  Refreshing the subscription key leaves other providers untouched",
+    gemini_key_after == gemini_key_before,
+    f"before={gemini_key_before!r} after={gemini_key_after!r}",
+)
+
+with mock_patch.object(rr8, "_get_oauth_token", return_value=None):
+    pre_refresh = [d["litellm_params"].get("api_key") for d in rr8._router.get_model_list()
+                   if d["model_name"] == "claude-subscription"]
+    rr8._refresh_subscription_token()
+    post_refresh = [d["litellm_params"].get("api_key") for d in rr8._router.get_model_list()
+                    if d["model_name"] == "claude-subscription"]
+check(
+    "8d  A falsy fresh token (e.g. file briefly unreadable) doesn't clobber the last-known-good key",
+    pre_refresh == post_refresh,
+    f"pre={pre_refresh} post={post_refresh}",
 )
 
 # ── Summary ───────────────────────────────────────────────────────────────────
