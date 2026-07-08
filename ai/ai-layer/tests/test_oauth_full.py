@@ -108,8 +108,11 @@ check(
 )
 
 # 1c: neither -> claude-subscription absent from AVAILABLE (no crash)
+# Must patch Path.home() to an empty dir too, otherwise this reads whatever
+# real ~/.claude/.credentials.json happens to exist on the machine running the test.
+empty_home = tempfile.mkdtemp()
 cfg = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": None,
-                     "ANTHROPIC_API_KEY": None})
+                     "ANTHROPIC_API_KEY": None}, home_dir=empty_home)
 names = [m["name"] for m in cfg.AVAILABLE]
 check(
     "1c  No token anywhere -> claude-subscription silently absent from AVAILABLE",
