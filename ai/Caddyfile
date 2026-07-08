@@ -1,0 +1,14 @@
+:80 {
+    encode gzip
+
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy ai-layer:8000
+    }
+
+    handle {
+        root * /usr/share/caddy
+        file_server
+        try_files {path} /index.html
+    }
+}
