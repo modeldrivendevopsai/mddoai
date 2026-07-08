@@ -4,7 +4,7 @@ Verifies router/config.py and router/router.py OAuth token integration.
 Checks:
   1-4  config.py: AVAILABLE list composition and model/tier metadata
   5-7  _litellm_params: raw key pass-through (no Bearer prefix), model preservation
-  8    _get_oauth_token: reads ~/.claude/.credentials.json → claudeAiOauth.accessToken
+  8    _get_oauth_token: reads ~/.claude/.credentials.json -> claudeAiOauth.accessToken
 """
 import importlib
 import json
@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 OAUTH_TOKEN  = "sk-ant-oat01-testtoken"
 REGULAR_KEY  = "sk-ant-api03-regularkey"
@@ -33,7 +34,7 @@ for var in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY",
             "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
     os.environ.pop(var, None)
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 for mod in list(sys.modules):
     if mod.startswith("router"):
@@ -116,13 +117,13 @@ check(
     f"model={p_oauth['model']!r}",
 )
 
-# ── 8. _get_oauth_token reads .credentials.json → claudeAiOauth.accessToken ───
+# ── 8. _get_oauth_token reads .credentials.json -> claudeAiOauth.accessToken ───
 
 FAKE_TOKEN = "sk-ant-oat01-from-creds-file"
 creds_data = {"claudeAiOauth": {"accessToken": FAKE_TOKEN, "refreshToken": "rt-dummy"}}
 
 with tempfile.TemporaryDirectory() as tmpdir:
-    # Mirror the real layout: $HOME/.claude/.credentials.json
+    # Mirror the real layout: <home>/.claude/.credentials.json
     dot_claude = Path(tmpdir) / ".claude"
     dot_claude.mkdir()
     creds_path = dot_claude / ".credentials.json"
@@ -131,29 +132,35 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # Unset env var so the file fallback is exercised
     os.environ.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
 
-    # Reload config with env var cleared and HOME patched to tmpdir
-    old_home = os.environ.get("HOME")
-    os.environ["HOME"] = tmpdir
+    # Reload config with env var cleared and Path.home() patched to tmpdir.
+    # Patching pathlib.Path.home directly (rather than the HOME env var) works
+    # cross-platform, since Path.home() reads USERPROFILE on Windows and HOME
+    # on Unix internally.
     for mod in list(sys.modules):
         if mod.startswith("router"):
             del sys.modules[mod]
-    import router.config as cfg2
-    if old_home is not None:
-        os.environ["HOME"] = old_home
-    else:
-        del os.environ["HOME"]
+    with patch("pathlib.Path.home", return_value=Path(tmpdir)):
+        import router.config as cfg2
 
     sub2 = next((m for m in cfg2.AVAILABLE if m["name"] == "claude-subscription"), None)
     check(
-        "_get_oauth_token auto-detects ~/.claude/.credentials.json → claudeAiOauth.accessToken",
+        "_get_oauth_token auto-detects ~/.claude/.credentials.json -> claudeAiOauth.accessToken",
         sub2 is not None and sub2["key"] == FAKE_TOKEN,
         f"key={sub2['key'] if sub2 else 'N/A'!r}",
     )
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
-print()
 total  = len(results)
 passed = sum(results)
-print(f"Result: {passed}/{total} checks passed")
-sys.exit(0 if passed == total else 1)
+
+
+def test_oauth_checks():
+    """Entry point for pytest: fails if any check above did not pass."""
+    print(f"\nResult: {passed}/{total} checks passed")
+    assert passed == total, f"{total - passed}/{total} checks failed"
+
+
+if __name__ == "__main__":
+    print(f"\nResult: {passed}/{total} checks passed")
+    sys.exit(0 if passed == total else 1)

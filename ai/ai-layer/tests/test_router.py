@@ -6,6 +6,7 @@ Tests verify:
   2. Providers 1-3 fail → Groq handles it, commercial Claude is not called.
 """
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 from litellm import Router
@@ -14,6 +15,13 @@ from litellm.exceptions import RateLimitError
 # Fake keys must be set before importing router modules so all five providers appear available.
 for key in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
     os.environ.setdefault(key, f"test-{key.lower()}")
+
+# Other test modules in this directory reload router.config under their own patched
+# env vars, leaving a stale cached module in sys.modules. Drop it so the import below
+# re-executes config.py against the env vars set above.
+for _mod in list(sys.modules):
+    if _mod.startswith("router"):
+        del sys.modules[_mod]
 
 from router.config import AVAILABLE  # noqa: E402
 

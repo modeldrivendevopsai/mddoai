@@ -18,8 +18,9 @@ import sys
 import tempfile
 import types
 from pathlib import Path
+from unittest.mock import patch as mock_patch
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,23 +35,29 @@ def check(label: str, passed: bool, detail: str = "") -> None:
 
 
 def reload_config(env_patch, home_dir=None):
-    """Reload router.config under a patched environment."""
+    """Reload router.config under a patched environment.
+
+    home_dir, when given, patches pathlib.Path.home() directly rather than the
+    HOME env var so credential-file detection is exercised identically on
+    Windows (which has no HOME) and Unix.
+    """
     saved = {k: os.environ.get(k) for k in env_patch}
-    saved_home = os.environ.get("HOME")
 
     for k, v in env_patch.items():
         if v is None:
             os.environ.pop(k, None)
         else:
             os.environ[k] = v
-    if home_dir is not None:
-        os.environ["HOME"] = home_dir
 
     for mod in list(sys.modules):
         if mod.startswith("router"):
             del sys.modules[mod]
 
-    import router.config as cfg
+    if home_dir is not None:
+        with mock_patch("pathlib.Path.home", return_value=Path(home_dir)):
+            import router.config as cfg
+    else:
+        import router.config as cfg
 
     # Restore
     for k, saved_v in saved.items():
@@ -58,11 +65,6 @@ def reload_config(env_patch, home_dir=None):
             os.environ.pop(k, None)
         else:
             os.environ[k] = saved_v
-    if home_dir is not None:
-        if saved_home is None:
-            os.environ.pop("HOME", None)
-        else:
-            os.environ["HOME"] = saved_home
 
     return cfg
 
@@ -89,28 +91,28 @@ cfg = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": OAUTH_TOKEN,
                      "ANTHROPIC_API_KEY": None})
 sub = next((m for m in cfg.AVAILABLE if m["name"] == "claude-subscription"), None)
 check(
-    "1a  CLAUDE_CODE_OAUTH_TOKEN env var → used as subscription key",
+    "1a  CLAUDE_CODE_OAUTH_TOKEN env var -> used as subscription key",
     sub is not None and sub["key"] == OAUTH_TOKEN,
     f"key={sub['key'] if sub else 'N/A'}",
 )
 
-# 1b: env var absent → reads file
+# 1b: env var absent -> reads file
 home_dir = make_creds_home(FILE_TOKEN)
 cfg = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": None,
                      "ANTHROPIC_API_KEY": None}, home_dir=home_dir)
 sub = next((m for m in cfg.AVAILABLE if m["name"] == "claude-subscription"), None)
 check(
-    "1b  No env var → reads ~/.claude/.credentials.json → claudeAiOauth.accessToken",
+    "1b  No env var -> reads ~/.claude/.credentials.json -> claudeAiOauth.accessToken",
     sub is not None and sub["key"] == FILE_TOKEN,
     f"key={sub['key'] if sub else 'N/A'}",
 )
 
-# 1c: neither → claude-subscription absent from AVAILABLE (no crash)
+# 1c: neither -> claude-subscription absent from AVAILABLE (no crash)
 cfg = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": None,
                      "ANTHROPIC_API_KEY": None})
 names = [m["name"] for m in cfg.AVAILABLE]
 check(
-    "1c  No token anywhere → claude-subscription silently absent from AVAILABLE",
+    "1c  No token anywhere -> claude-subscription silently absent from AVAILABLE",
     "claude-subscription" not in names,
     f"names={names}",
 )
@@ -155,7 +157,7 @@ cfg = reload_config({
 names = [m["name"] for m in cfg.AVAILABLE]
 has_both = "claude-subscription" in names and "claude" in names
 check(
-    "3a  Both tokens present → claude-subscription before claude in AVAILABLE",
+    "3a  Both tokens present -> claude-subscription before claude in AVAILABLE",
     has_both and names.index("claude-subscription") < names.index("claude"),
     f"order={names}",
 )
@@ -193,10 +195,10 @@ class FakeAuthError(Exception):
 # 4a: expired token
 try:
     handle_auth_error(FakeAuthError("authentication_error: token expired"), has_subscription=True)
-    check("4a  Expired token → RuntimeError mentioning claude setup-token", False, "no exception raised")
+    check("4a  Expired token -> RuntimeError mentioning claude setup-token", False, "no exception raised")
 except RuntimeError as rt:
     check(
-        "4a  Expired token → RuntimeError mentioning `claude setup-token`",
+        "4a  Expired token -> RuntimeError mentioning `claude setup-token`",
         "claude setup-token" in str(rt) and "expired" in str(rt).lower(),
         str(rt)[:80],
     )
@@ -204,22 +206,22 @@ except RuntimeError as rt:
 # 4b: invalid/revoked token
 try:
     handle_auth_error(FakeAuthError("invalid_api_key: bad token"), has_subscription=True)
-    check("4b  Invalid token → RuntimeError mentioning token prefix check", False, "no exception raised")
+    check("4b  Invalid token -> RuntimeError mentioning token prefix check", False, "no exception raised")
 except RuntimeError as rt:
     check(
-        "4b  Invalid/revoked token → RuntimeError mentioning 'sk-ant-oat' prefix",
+        "4b  Invalid/revoked token -> RuntimeError mentioning 'sk-ant-oat' prefix",
         "sk-ant-oat" in str(rt),
         str(rt)[:80],
     )
 
-# 4c: no subscription → original error re-raised unchanged
+# 4c: no subscription -> original error re-raised unchanged
 try:
     handle_auth_error(FakeAuthError("invalid_api_key"), has_subscription=False)
-    check("4c  No subscription → original error re-raised", False, "no exception raised")
+    check("4c  No subscription -> original error re-raised", False, "no exception raised")
 except FakeAuthError:
-    check("4c  No subscription → original AuthenticationError re-raised unchanged", True)
+    check("4c  No subscription -> original AuthenticationError re-raised unchanged", True)
 except RuntimeError as rt:
-    check("4c  No subscription → original AuthenticationError re-raised unchanged", False,
+    check("4c  No subscription -> original AuthenticationError re-raised unchanged", False,
           f"got RuntimeError instead: {rt}")
 
 # 4d: expired detection is case-insensitive
@@ -292,7 +294,7 @@ dot_claude_6a = Path(d6a) / ".claude"
 dot_claude_6a.mkdir()
 (dot_claude_6a / ".credentials.json").write_text(json.dumps({"someOtherKey": "value"}))
 check(
-    "6a  credentials file missing claudeAiOauth → no crash, claude-subscription absent",
+    "6a  credentials file missing claudeAiOauth -> no crash, claude-subscription absent",
     get_token_from_home(d6a) is None,
 )
 
@@ -304,7 +306,7 @@ dot_claude_6b.mkdir()
     json.dumps({"claudeAiOauth": {"accessToken": None, "refreshToken": "rt"}})
 )
 check(
-    "6b  claudeAiOauth.accessToken is null → no crash, claude-subscription absent",
+    "6b  claudeAiOauth.accessToken is null -> no crash, claude-subscription absent",
     get_token_from_home(d6b) is None,
 )
 
@@ -314,34 +316,34 @@ dot_claude_6c = Path(d6c) / ".claude"
 dot_claude_6c.mkdir()
 (dot_claude_6c / ".credentials.json").write_text("{not valid json!!!")
 check(
-    "6c  malformed JSON in credentials file → no crash, claude-subscription absent",
+    "6c  malformed JSON in credentials file -> no crash, claude-subscription absent",
     get_token_from_home(d6c) is None,
 )
 
-# 6d: CLAUDE_CODE_OAUTH_TOKEN="" (empty string) → falls through to file
+# 6d: CLAUDE_CODE_OAUTH_TOKEN="" (empty string) -> falls through to file
 d6d = make_creds_home("sk-ant-oat01-fromfile-edge")
 cfg_6d = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": "",
                          "ANTHROPIC_API_KEY": None}, home_dir=d6d)
 sub_6d = next((m for m in cfg_6d.AVAILABLE if m["name"] == "claude-subscription"), None)
 check(
-    "6d  CLAUDE_CODE_OAUTH_TOKEN='' (empty string) → falls through to credentials file",
+    "6d  CLAUDE_CODE_OAUTH_TOKEN='' (empty string) -> falls through to credentials file",
     sub_6d is not None and sub_6d["key"] == "sk-ant-oat01-fromfile-edge",
     f"key={sub_6d['key'] if sub_6d else 'N/A'}",
 )
 
-# 6e: No HOME directory at all (HOME unset, no file) → no crash
+# 6e: No HOME directory at all (HOME unset, no file) -> no crash
 try:
     cfg_6e = reload_config({"CLAUDE_CODE_OAUTH_TOKEN": None, "ANTHROPIC_API_KEY": None},
                             home_dir="/nonexistent-dir-that-does-not-exist")
-    check("6e  HOME points to non-existent dir → no crash", True)
+    check("6e  HOME points to non-existent dir -> no crash", True)
 except Exception as exc:
-    check("6e  HOME points to non-existent dir → no crash", False, str(exc)[:60])
+    check("6e  HOME points to non-existent dir -> no crash", False, str(exc)[:60])
 
 # ── Section 7: .env.example accuracy ────────────────────────────────────────
 
 print("\n=== Section 7: .env.example accuracy ===")
 
-env_example_path = Path(__file__).parent / ".env.example"
+env_example_path = Path(__file__).resolve().parent.parent / ".env.example"
 env_text = env_example_path.read_text()
 
 check(
@@ -365,15 +367,25 @@ check(
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
-print()
 total  = len(results)
 passed = sum(1 for _, p, _ in results if p)
 failed = [(label, detail) for label, p, detail in results if not p]
 
-if failed:
-    print("FAILURES:")
-    for label, detail in failed:
-        print(f"  [FAIL] {label}" + (f"  ({detail})" if detail else ""))
 
-print(f"\nResult: {passed}/{total} checks passed")
-sys.exit(0 if passed == total else 1)
+def test_oauth_full_checks():
+    """Entry point for pytest: fails if any check above did not pass."""
+    if failed:
+        print("\nFAILURES:")
+        for label, detail in failed:
+            print(f"  [FAIL] {label}" + (f"  ({detail})" if detail else ""))
+    print(f"\nResult: {passed}/{total} checks passed")
+    assert passed == total, f"{total - passed}/{total} checks failed"
+
+
+if __name__ == "__main__":
+    if failed:
+        print("FAILURES:")
+        for label, detail in failed:
+            print(f"  [FAIL] {label}" + (f"  ({detail})" if detail else ""))
+    print(f"\nResult: {passed}/{total} checks passed")
+    sys.exit(0 if passed == total else 1)
