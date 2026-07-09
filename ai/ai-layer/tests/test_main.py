@@ -8,6 +8,7 @@ Tests verify:
   4. /chat rejects an unrecognized model with 400 before calling chat().
   5. /chat accepts "auto" and passes it straight through.
   6. /chat converts a downstream exception into a 500.
+  7. /orchestrate returns content+model on success (orchestrator.orchestrate is mocked).
 """
 from unittest.mock import MagicMock, patch
 
@@ -82,3 +83,14 @@ def test_chat_returns_500_on_downstream_error():
 
     assert response.status_code == 500
     assert response.json()["detail"] == "all providers exhausted"
+
+
+def test_orchestrate_endpoint_returns_content_and_model():
+    with patch.object(main, "orchestrate", return_value="hello") as mock_orchestrate:
+        response = client.post("/orchestrate", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["content"] == "hello"
+    assert "model" in body
+    mock_orchestrate.assert_called_once_with([{"role": "user", "content": "hi"}])

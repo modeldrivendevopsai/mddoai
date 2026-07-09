@@ -1,7 +1,22 @@
-from router.router import chat
+import logging
+import sys
+from pathlib import Path
+
+# router.router lives in the sibling ai-layer/ service, not inside this module,
+# so it has to be added to sys.path explicitly before the import below resolves.
+_AI_LAYER_DIR = Path(__file__).resolve().parent.parent / "ai-layer"
+if str(_AI_LAYER_DIR) not in sys.path:
+    sys.path.insert(0, str(_AI_LAYER_DIR))
+
+from router.router import chat  # noqa: E402
+
+logger = logging.getLogger(__name__)
+
+MAX_ATTEMPTS = 3
 
 _PIPELINE_KEYWORDS = ("pipeline", "ci/cd", "deploy", "build", "test stages", "generate")
 _PLATFORM_KEYWORDS = ("platform", "teamcity", "gitlab", "github actions", "bamboo", "azure devops")
+_ERROR_MARKERS = ("i cannot", "i don't know", "i do not know", "error")
 
 _SYSTEM_PROMPTS = {
     "pipeline_generation": (
@@ -32,9 +47,32 @@ def classify_intent(text: str) -> str:
     return "general_question"
 
 
+def is_good_enough(response: str) -> bool:
+    """Non-empty and free of obvious refusal/error markers."""
+    if not response or not response.strip():
+        return False
+    lowered = response.lower()
+    return not any(marker in lowered for marker in _ERROR_MARKERS)
+
+
 def orchestrate(messages: list[dict]) -> str:
     intent = classify_intent(_latest_user_message(messages))
     system_prompt = _SYSTEM_PROMPTS[intent]
     enriched_messages = [{"role": "system", "content": system_prompt}] + messages
-    response = chat(enriched_messages)
-    return response.choices[0].message.content
+
+    last_content = ""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        response = chat(enriched_messages)
+        last_content = response.choices[0].message.content
+        if is_good_enough(last_content):
+            return last_content
+        logger.warning(
+            "orchestrate attempt %d/%d did not pass the quality check (prompt: %r)",
+            attempt, MAX_ATTEMPTS, system_prompt,
+        )
+
+    return (
+        f"{last_content}\n\n"
+        f"[This response did not pass automatic quality checks after {MAX_ATTEMPTS} attempts "
+        "— human curation of the prompt is recommended.]"
+    )

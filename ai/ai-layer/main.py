@@ -1,8 +1,18 @@
+import sys
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from orchestrator import orchestrate
 from router.config import AVAILABLE
 from router.router import AUTO, chat
+
+# orchestrator.py lives in the sibling ai/orchestrator/ module, not inside ai-layer,
+# so it has to be added to sys.path explicitly before the import below resolves.
+_ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
+if str(_ORCHESTRATOR_DIR) not in sys.path:
+    sys.path.insert(0, str(_ORCHESTRATOR_DIR))
+
+from orchestrator import orchestrate  # noqa: E402
 
 app = FastAPI(title="MDDOAI AI Layer")
 
