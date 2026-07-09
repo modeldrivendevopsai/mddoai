@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from orchestrator import orchestrate
 from router.config import AVAILABLE
 from router.router import AUTO, chat
 
@@ -42,5 +43,14 @@ def chat_endpoint(request: ChatRequest):
     try:
         response = chat(request.messages, model=request.model)
         return {"content": response.choices[0].message.content, "model": response.model}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/orchestrate", response_model=ChatResponse)
+def orchestrate_endpoint(request: ChatRequest):
+    try:
+        content = orchestrate(request.messages)
+        return {"content": content, "model": "orchestrator"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
