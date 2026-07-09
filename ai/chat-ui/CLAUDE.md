@@ -56,31 +56,9 @@ See `src/types/index.ts` for the current `Message` and `OrchestratorResponse` sh
 
 ## Design System
 
-**Aesthetic:** Sharp, minimal, developer-tool. Reference: Linear, Vercel, Raycast.
+Follow the MDDOAI Design System for all UI work here — see `ai/CLAUDE.md`. No local brand/color/typography rules in this file; that's the single source of truth.
 
-Design tokens (colors, fonts) live in `src/index.css` as CSS variables — that file is the source of truth, not a copy here. Layout is header on top, scrollable conversation in the middle, input bar pinned to the bottom.
-
-### Rules
-
-- `border-radius` 4px max — sharp corners
-- Borders not shadows: `border: 1px solid var(--border)`
-- Input bar: pinned bottom, top border only
-- User messages: right-aligned, `var(--user-msg)` background
-- Assistant messages: left-aligned, no background, text only
-- Timestamps: `var(--muted)`, hover only
-- Send button: icon only, no label
-
-### Do NOT
-
-- Use gradients
-- Use purple, indigo, or blue accents
-- Use glow or pulse animations
-- Use pill-shaped message bubbles
-- Use drop shadows
-- Use white backgrounds
-- Use emojis anywhere in the UI
-- Use robot icons or AI iconography
-- Add tabs or multiple content sections — the slide-out history panel is the one exception, single conversation thread otherwise
+Layout is header on top, scrollable conversation in the middle, input bar pinned to the bottom. The slide-out history panel is the one exception to "single conversation thread" — no other tabs or extra content sections.
 
 ---
 

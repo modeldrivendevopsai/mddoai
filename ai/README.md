@@ -24,3 +24,5 @@ Served at [http://localhost:8080](http://localhost:8080). Stop with `docker comp
 `chat-ui`'s build output reaches `caddy` through a shared Docker volume — the `chat-ui-build` container builds once, copies its output into the volume, and exits; `caddy` waits for that to finish before starting.
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
+
+`ai-layer`'s container also gets read-only access to your host's `~/.claude` — see `docker-compose.yml` for why (the Claude Pro/Max subscription auto-detect path needs it; without the mount, the container has no way to see it since containers don't share the host's home directory).

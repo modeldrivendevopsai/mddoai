@@ -4,6 +4,11 @@ services:
     env_file:
       - path: ./ai-layer/.env
         required: false
+    volumes:
+      # Read-only access to the host's Claude Code credentials, so the
+      # CLAUDE_CODE_OAUTH_TOKEN auto-detect fallback (~/.claude/.credentials.json)
+      # has something to read — the container's own $HOME has no such file.
+      - ${HOME}/.claude:/root/.claude:ro
     expose:
       - "8000"
 

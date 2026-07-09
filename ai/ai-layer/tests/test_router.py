@@ -5,15 +5,18 @@ Tests verify:
   1. All free providers exhausted → commercial Claude is called.
   2. Providers 1-3 fail → Groq handles it, commercial Claude is not called.
 """
-import os
 from unittest.mock import MagicMock, patch
 
 from litellm import Router
 from litellm.exceptions import RateLimitError
 
-# Fake keys must be set before importing router modules so all five providers appear available.
-for key in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
-    os.environ.setdefault(key, f"test-{key.lower()}")
+from conftest import reload_router_modules
+
+# conftest.py sets fake provider keys at import time. Other test modules in this
+# directory reload router.config under their own patched env vars, leaving a stale
+# cached module in sys.modules — drop it so the import below re-executes config.py
+# against conftest's env vars.
+reload_router_modules()
 
 from router.config import AVAILABLE  # noqa: E402
 from router import router as router_module  # noqa: E402

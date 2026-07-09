@@ -9,14 +9,15 @@ Tests verify:
   5. /chat accepts "auto" and passes it straight through.
   6. /chat converts a downstream exception into a 500.
 """
-import os
 from unittest.mock import MagicMock, patch
 
-# Fake keys must be set before importing app modules so all five providers appear available.
-for key in ("GOOGLE_API_KEY", "MISTRAL_API_KEY", "CEREBRAS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"):
-    os.environ.setdefault(key, f"test-{key.lower()}")
+from fastapi.testclient import TestClient
 
-from fastapi.testclient import TestClient  # noqa: E402
+from conftest import reload_router_modules
+
+# conftest.py sets fake provider keys at import time. Force a fresh import here too,
+# in case another test module already reloaded router.config under different env vars.
+reload_router_modules()
 
 import main  # noqa: E402
 

@@ -10,7 +10,8 @@ LLM router for MDDOAI. Exposes a FastAPI service that agents and the chat-ui cal
 | 2 | Mistral | `mistral/mistral-small-2506` |
 | 3 | Cerebras | `cerebras/gpt-oss-120b` |
 | 4 | Groq | `groq/llama-3.3-70b-versatile` |
-| 5 (commercial fallback) | Anthropic | `anthropic/claude-sonnet-4-6` |
+| 5 (Claude Pro/Max subscription) | Anthropic | `anthropic/claude-haiku-4-5` |
+| 6 (commercial fallback) | Anthropic | `anthropic/claude-sonnet-4-6` |
 
 Providers with no API key set are skipped silently at startup.
 
@@ -39,6 +40,13 @@ curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
+**GET /providers** — list the currently configured providers (name + tier), for a UI to build a selector from.
+
+```bash
+curl http://localhost:8000/providers
+# [{"name": "gemini-flash", "tier": "free"}, ...]
+```
+
 **POST /chat** — send a message and get a response.
 
 ```bash
@@ -48,7 +56,7 @@ curl -X POST http://localhost:8000/chat \
 # {"content": "...", "model": "gemini/gemini-2.5-flash"}
 ```
 
-Request body: `{ "messages": [{"role": "user"|"assistant"|"system", "content": "..."}] }`
+Request body: `{ "messages": [...], "model": "..." }` — `model` is optional; omit it or pass `"auto"` for the default priority order, or name one of the providers from `/providers` to start there instead (still falls back through the rest on failure). See `router/router.py`'s `chat()` for the exact behavior.
 
 Response: `{ "content": "...", "model": "provider/model-name" }`
 
