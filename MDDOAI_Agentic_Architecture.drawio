@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="1178" dy="748" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="1664" dy="1055" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" value="Base (always visible)" visible="0" />
@@ -78,16 +78,15 @@
             <mxPoint x="190.99999999999886" y="435" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e_inttest_success" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" target="row4" value="Success">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="e_inttest_success" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" value="Success">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="850" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="e_gen_expert" edge="1" parent="layerPhase0" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" target="expert" value="generate">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="970" y="423.5537190082646" as="sourcePoint" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="row4" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;strokeColor=#6F0000;fillColor=#a20025;fontColor=#ffffff;" value="Grounding Agent&#xa;Takes finished feature, breaks into artifacts, sends to RAG to memorize" vertex="1">
-          <mxGeometry height="60" width="880" x="120" y="850" as="geometry" />
         </mxCell>
         <mxCell id="expert" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Expert Agents" vertex="1">
           <mxGeometry height="400" width="270" x="1030" y="230" as="geometry" />
@@ -153,8 +152,10 @@
             <mxPoint x="970" y="410" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e_validation_success" edge="1" parent="layerPhase1" source="validation" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;" target="row4" value="Success (automated)">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="e_validation_success" edge="1" parent="layerPhase1" source="validation" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;" value="Success (automated)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="562.0930232558139" y="850" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="ctxcluster" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;strokeColor=#888888;fillColor=#F2F2F2;" value="Context Services Cluster" vertex="1">
           <mxGeometry height="400" width="260" x="1350" y="230" as="geometry" />
@@ -168,11 +169,12 @@
         <mxCell id="e_rag_graph" edge="1" parent="layerPhase1" source="ragagent" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;" target="graphrag">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_ground_rag" edge="1" parent="layerPhase1" source="row4" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;rounded=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" target="ragagent">
+        <mxCell id="e_ground_rag" edge="1" parent="layerPhase1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;rounded=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" target="ragagent">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1480" y="900" />
             </Array>
+            <mxPoint x="1000" y="880" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="e_rag_pim" edge="1" parent="layerPhase1" source="ragagent" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.15;entryX=1;entryY=0.5;" target="pim" value="splits metamodel">
@@ -199,6 +201,9 @@
         <mxCell id="GL-uriySzJIIhjQ2wKux-7" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Generation Agent (iterator)" vertex="1">
           <mxGeometry height="50" width="820" x="150" y="385" as="geometry" />
         </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-9" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;strokeColor=#6F0000;fillColor=#a20025;fontColor=#ffffff;" value="Grounding Agent&#xa;Takes finished feature, breaks into artifacts, sends to RAG to memorize" vertex="1">
+          <mxGeometry height="60" width="880" x="130" y="860" as="geometry" />
+        </mxCell>
         <mxCell id="layerPhase2" parent="0" value="Phase 2" visible="0" />
         <mxCell id="projinput" parent="layerPhase2" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Plain-language description / Repo scan" vertex="1">
           <mxGeometry height="35" width="230" x="1050" y="185" as="geometry" />
@@ -209,9 +214,6 @@
         <mxCell id="layerPhase3" parent="0" value="Phase 3" visible="0" />
         <mxCell id="communityrepo" parent="layerPhase3" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Community Repo (opt-in PR)&#xa;Contributes validated platform artifacts back for review" vertex="1">
           <mxGeometry height="60" width="430" x="120" y="930" as="geometry" />
-        </mxCell>
-        <mxCell id="e_row4_community" edge="1" parent="layerPhase3" source="row4" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;" target="communityrepo" value="opens PR (opt-in)">
-          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="sharedaccess" parent="layerPhase3" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Cross-user Shared Access&#xa;Graph-RAG available to all users immediately" vertex="1">
           <mxGeometry height="50" width="260" x="1350" y="650" as="geometry" />
