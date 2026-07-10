@@ -130,7 +130,7 @@
             <mxPoint x="1350" y="755" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="layerPhase1" parent="0" value="Phase 1" />
+        <mxCell id="layerPhase1" parent="0" value="Phase 1" visible="0" />
         <mxCell id="docdb" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Documentation Version DB&#xa;Stores retrieved doc versions &amp; diffs vs PIM" vertex="1">
           <mxGeometry height="50" width="260" x="710" y="255" as="geometry" />
         </mxCell>
