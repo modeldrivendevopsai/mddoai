@@ -68,11 +68,6 @@
         <mxCell id="inttest" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#ffffff;" value="Integration Test Agent&#xa;Executes the generated artifact and checks that it builds and runs" vertex="1">
           <mxGeometry height="90" width="820" x="150" y="460" as="geometry" />
         </mxCell>
-        <mxCell id="e_gen_inttest" edge="1" parent="layerPhase0" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;" target="inttest">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="560" y="435" as="sourcePoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="e_inttest_fail" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=10;fontColor=#1B3A5C;exitX=0.05;exitY=0;entryX=0.05;entryY=1;rounded=1;" value="Fail - manual prompt fix (human, MVP)">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="190.99999999999886" y="435" as="targetPoint" />
@@ -81,11 +76,6 @@
         <mxCell id="e_inttest_success" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" value="Success">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="560" y="850" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e_gen_expert" edge="1" parent="layerPhase0" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" target="expert" value="generate">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="970" y="423.5537190082646" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="expert" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Expert Agents" vertex="1">
@@ -114,6 +104,25 @@
         </mxCell>
         <mxCell id="panel0" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontSize=13;fontStyle=1;fillColor=none;" value="Phase 0 - MVP &lt;span style=&quot;font-weight: normal; font-size: 10px; color: rgb(127, 96, 0);&quot;&gt;(In development)&lt;/span&gt;&lt;br&gt;&lt;ul style=&quot;margin-left:-18px;font-weight:normal;font-size:11px;&quot;&gt;&lt;li&gt;View supported CI/CD platforms&lt;/li&gt;&lt;li&gt;Provide platform documentation URL&lt;/li&gt;&lt;li&gt;Generate pipeline via Chat&lt;/li&gt;&lt;li&gt;View generated ECORE/ATL/Acceleo artifacts&lt;/li&gt;&lt;li&gt;Download generated pipeline file&lt;/li&gt;&lt;li&gt;View round count &amp;amp; constraint log&lt;/li&gt;&lt;li&gt;Loop checked only by Integration Test Agent - no automated judge/validator yet&lt;/li&gt;&lt;/ul&gt;" vertex="1">
           <mxGeometry height="170" width="290" x="210" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-11" parent="layerPhase0" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="DevOps engineer" vertex="1">
+          <mxGeometry height="60" width="30" x="545" y="353" as="geometry" />
+        </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-13" edge="1" parent="layerPhase0" source="GL-uriySzJIIhjQ2wKux-11" style="endArrow=classic;html=1;rounded=1;exitX=0;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=1;entryDx=0;entryDy=0;curved=0;strokeColor=default;" target="chat" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="390" />
+              <mxPoint x="110" y="210" />
+            </Array>
+            <mxPoint x="640" y="500" as="sourcePoint" />
+            <mxPoint x="970" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-14" edge="1" parent="layerPhase0" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" target="GL-uriySzJIIhjQ2wKux-11" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="190" y="440" as="sourcePoint" />
+            <mxPoint x="190" y="440" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="layerPhase1" parent="0" value="Phase 1" />
         <mxCell id="docdb" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Documentation Version DB&#xa;Stores retrieved doc versions &amp; diffs vs PIM" vertex="1">
@@ -203,6 +212,18 @@
         </mxCell>
         <mxCell id="GL-uriySzJIIhjQ2wKux-9" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;strokeColor=#6F0000;fillColor=#a20025;fontColor=#ffffff;" value="Grounding Agent&#xa;Takes finished feature, breaks into artifacts, sends to RAG to memorize" vertex="1">
           <mxGeometry height="60" width="880" x="130" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-15" edge="1" parent="layerPhase1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="435" as="sourcePoint" />
+            <mxPoint x="560" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GL-uriySzJIIhjQ2wKux-23" edge="1" parent="layerPhase1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" value="generate">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="970" y="427.55" as="sourcePoint" />
+            <mxPoint x="1030" y="429.99628099173543" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="layerPhase2" parent="0" value="Phase 2" visible="0" />
         <mxCell id="projinput" parent="layerPhase2" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Plain-language description / Repo scan" vertex="1">
