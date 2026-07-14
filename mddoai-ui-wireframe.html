@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MDDOAI UI Wireframe</title>
+<style>
+  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+  body { display: flex; gap: 80px; padding: 60px; background: #ffffff; align-items: flex-start; flex-wrap: wrap; max-width: 2600px; }
+  .screen { flex-shrink: 0; }
+  .frame-label { font-size: 14px; font-weight: bold; color: #333333; margin-bottom: 10px; }
+  .frame { width: 1160px; height: 820px; border: 1px solid #000000; background: #ffffff; position: relative; overflow: hidden; }
+  .header { height: 60px; background: #f5f5f5; border-bottom: 1px solid #000000; display: flex; align-items: center; padding: 0 20px; font-size: 18px; font-weight: bold; }
+  .header.done { background: #dfffe0; }
+  .subtitle { text-align: center; color: #666666; font-size: 14px; padding: 20px 0 0 0; }
+  .row { display: flex; gap: 40px; padding: 40px; }
+  .card { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 20px; font-size: 14px; }
+  .card h3 { margin-top: 0; font-size: 16px; }
+  .btn { display: inline-block; border: 1px solid #000000; border-radius: 4px; padding: 8px 16px; background: #ffffff; font-size: 13px; margin-top: 12px; }
+  .link { color: #1a4fd6; font-size: 12px; text-decoration: underline; cursor: pointer; }
+  .section { padding: 0 40px; }
+  .section h3 { font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #cccccc; }
+  th { font-weight: bold; }
+  .two-col { display: flex; gap: 20px; padding: 20px 40px; }
+  .panel { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 20px; font-size: 13px; }
+  .panel-mono { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 20px; font-size: 13px; font-family: "Courier New", monospace; white-space: pre-wrap; }
+  .chat-box { margin: 0 40px; border: 1px solid #000000; border-radius: 8px; padding: 20px; font-size: 13px; }
+  .field { border: 1px solid #999999; border-radius: 4px; padding: 8px 12px; background: #ffffff; font-size: 13px; margin-top: 8px; }
+  .modal-bg { background: #eeeeee; height: calc(100% - 60px); position: relative; }
+  .modal-note { text-align: center; color: #999999; font-size: 12px; font-style: italic; padding: 10px 0; }
+  .modal-box { position: absolute; top: 250px; left: 330px; width: 500px; border: 1px solid #000000; border-radius: 8px; background: #ffffff; padding: 24px; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .modal-actions { margin-top: 16px; display: flex; gap: 12px; }
+  .three-col { display: flex; gap: 20px; padding: 20px; height: calc(100% - 60px); }
+  .col { flex: 1; border: 1px solid #000000; border-radius: 8px; padding: 16px; font-size: 12px; background: #f5f5f5; }
+  .col-title { font-weight: bold; font-size: 13px; margin-bottom: 10px; }
+  .pipeline-col { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 20px; }
+  .stage-node { width: 200px; padding: 16px; border: 1px solid #000000; border-radius: 8px; text-align: center; font-size: 13px; }
+  .stage-done { background: #dfffe0; }
+  .stage-active { background: #fff6cc; }
+  .stage-pending { background: #f0f0f0; }
+  .arrow { font-size: 18px; color: #333333; }
+  .msg { margin-bottom: 12px; }
+  .msg b { display: block; font-size: 11px; color: #666666; }
+  .coverage-detail { margin: 10px 40px 0 40px; border: 1px dashed #999999; border-radius: 8px; padding: 16px; font-size: 12px; background: #ffffff; }
+  .coverage-detail .cov-title { font-weight: bold; font-size: 13px; margin-bottom: 8px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+  .tag-full { background: #dfffe0; }
+  .tag-partial { background: #fff6cc; }
+  .tag-none { background: #ffe0e0; }
+</style>
+</head>
+<body>
+
+<div class="screen">
+  <div class="frame-label">1 &mdash; Start</div>
+  <div class="frame">
+    <div class="header">MDDOAI</div>
+    <div class="subtitle">Choose how you want to start</div>
+    <div class="row">
+      <div class="card">
+        <h3>Generate a Pipeline</h3>
+        <p>Upload a SWArch file, pick a supported platform, get a pipeline back.</p>
+        <div class="btn">Start</div>
+      </div>
+      <div class="card">
+        <h3>Integrate a New Platform</h3>
+        <p>Describe a platform or upload its docs, MDDOAI generates support for it.</p>
+        <div class="btn">Start</div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Supported Platforms</h3>
+      <table>
+        <tr><th>Platform</th><th>Status</th><th>PIM Coverage</th></tr>
+        <tr><td>GitLab CI</td><td>Supported</td><td>4/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
+        <tr><td>Bamboo</td><td>In Progress</td><td>1/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
+      </table>
+    </div>
+    <div class="coverage-detail">
+      <div class="cov-title">GitLab CI &mdash; concept breakdown (example of "view breakdown" expanded)</div>
+      <table>
+        <tr><td>Pipeline <span class="tag tag-full">Full</span></td><td>Job <span class="tag tag-full">Full</span></td><td>Matrix <span class="tag tag-full">Full</span></td></tr>
+        <tr><td>Agent <span class="tag tag-full">Full</span></td><td>Services <span class="tag tag-partial">Partial</span></td><td>Trigger <span class="tag tag-partial">Partial</span></td></tr>
+        <tr><td>Parameters <span class="tag tag-none">None</span></td><td>Steps <span class="tag tag-partial">Partial</span></td><td>Expressions <span class="tag tag-full">Full</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="frame-label">2 &mdash; New Platform Integration</div>
+  <div class="frame">
+    <div class="header">&larr;&nbsp;&nbsp;Integrate a New Platform</div>
+    <div class="two-col">
+      <div class="panel">
+        <b>Platform name</b>
+        <div class="field">e.g. TeamCity</div>
+        <br>
+        <b>Documentation URL</b>
+        <div class="field">https://...</div>
+        <p style="text-align:center; color:#999999; margin:8px 0;">&mdash; or &mdash;</p>
+        <b>Upload documentation</b>
+        <div class="field">drop PDF here, or browse</div>
+        <div class="btn">Start Integration</div>
+      </div>
+      <div class="panel">
+        <b>What happens next</b>
+        <p>MDDOAI reads the documentation, then works through PSM &rarr; ATL &rarr; Acceleo &rarr; Generation/Test one stage at a time, showing you each result to approve or correct before moving on.</p>
+        <p style="color:#999999;">If we can't reach the URL or parse the docs, you'll be notified here before anything starts.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="frame-label">3 &mdash; Generate Pipeline</div>
+  <div class="frame">
+    <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="two-col">
+      <div class="panel">
+        <b>Upload SWArch file</b>
+        <div class="field">drop file here, or browse</div>
+        <br>
+        <b>Platform</b>
+        <div class="field">GitLab CI &#9662;</div>
+        <div class="btn">Generate</div>
+      </div>
+      <div class="panel-mono">Pipeline result
+-------------------------
+stages:
+  - build
+  - test
+  - deploy
+...
+-------------------------
+
+<span style="font-family:Arial;" class="btn">Download .gitlab-ci.yml</span></div>
+    </div>
+    <div class="chat-box">
+      <b>Something not right? Tell us what's wrong and we'll fix it.</b>
+      <div class="field">e.g. "the deploy stage is missing the service ports" &nbsp;&nbsp;&nbsp;&nbsp;<span class="btn">Send</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="frame-label">4 &mdash; Escalation</div>
+  <div class="frame">
+    <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="modal-bg">
+      <div class="modal-note">(background: Generate Pipeline screen, dimmed)</div>
+      <div class="modal-box">
+        <b>Gap found in ATL stage for GitLab CI</b>
+        <p>"the deploy stage is missing the service ports"</p>
+        <p>This looks like a gap in GitLab CI's transformation rules, not just this one pipeline. We'll fix it at the platform level so every future GitLab pipeline gets it too, then regenerate yours automatically.</p>
+        <div class="modal-actions">
+          <div class="btn">Fix it</div>
+          <div class="btn">Cancel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="frame-label">5 &mdash; Active Generation</div>
+  <div class="frame">
+    <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4)</div>
+    <div class="three-col">
+      <div class="col">
+        <div class="col-title">Chat</div>
+        <div class="msg"><b>You</b>the deploy stage is missing service ports</div>
+        <div class="msg"><b>Orchestrator</b>found it, this is a gap in the ATL stage. Opening it for review &rarr;</div>
+        <div class="field" style="margin-top:20px;">type a message...</div>
+      </div>
+      <div class="col" style="background:#ffffff;">
+        <div class="col-title" style="text-align:center;">Pipeline</div>
+        <div class="pipeline-col">
+          <div class="stage-node stage-done">PSM<br>( done )</div>
+          <div class="arrow">&darr;</div>
+          <div class="stage-node stage-active">ATL<br>( active &ndash; reviewing )</div>
+          <div class="arrow">&darr;</div>
+          <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+          <div class="arrow">&darr;</div>
+          <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-title">ATL stage output</div>
+        <div class="panel-mono" style="font-size:11px; padding:10px;">rule Job2Job {
+  ...
+  -- ports not mapped
+}</div>
+        <div class="col-title" style="margin-top:12px;">Prompt / constraints used</div>
+        <p>"map each PIM service port to a GitLab job port entry"</p>
+        <div class="btn">Approve</div>
+        <div style="margin-top:16px;">
+          <b>Curate a fix</b>
+          <div class="field"></div>
+          <div class="btn">Retry this stage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen">
+  <div class="frame-label">6 &mdash; Completed</div>
+  <div class="frame">
+    <div class="header done">GitLab CI integration complete</div>
+    <div class="two-col">
+      <div class="panel-mono">Pipeline result
+-------------------------
+stages:
+  - build
+  - test
+  - deploy
+    ports: [8080]
+...
+-------------------------
+
+<span style="font-family:Arial;" class="btn">Download .gitlab-ci.yml</span></div>
+      <div class="panel">
+        <b>Round count &amp; constraint log</b>
+        <table>
+          <tr><th>Stage</th><th>Rounds</th><th>Constraints learned</th><th>vs. last run</th></tr>
+          <tr><td>PSM</td><td>1</td><td>0</td><td>same</td></tr>
+          <tr><td>ATL</td><td>3</td><td>2</td><td>&darr; from 6</td></tr>
+          <tr><td>Acceleo</td><td>2</td><td>1</td><td>&darr; from 4</td></tr>
+        </table>
+        <p style="color:#666666; margin-top:10px;">Fewer rounds than last time, saved constraints are paying off.</p>
+      </div>
+    </div>
+    <div class="section">
+      <div class="btn">Back to start</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

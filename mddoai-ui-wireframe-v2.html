@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MDDOAI UI Wireframe v2</title>
+<style>
+  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+  body { padding: 60px; background: #ffffff; }
+  .scenario { margin-bottom: 100px; }
+  .scenario-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #000000; padding-bottom: 8px; }
+  .scenario-sub { font-size: 13px; color: #666666; margin-bottom: 24px; }
+  .scenario-row { display: flex; gap: 60px; align-items: flex-start; }
+  .screen { flex-shrink: 0; }
+  .frame-label { font-size: 13px; font-weight: bold; color: #333333; margin-bottom: 10px; }
+  .frame { width: 1080px; height: 800px; border: 1px solid #000000; background: #ffffff; position: relative; overflow: hidden; }
+  .header { height: 56px; background: #f5f5f5; border-bottom: 1px solid #000000; display: flex; align-items: center; padding: 0 20px; font-size: 16px; font-weight: bold; }
+  .header.done { background: #dfffe0; }
+  .exit-link { position: absolute; right: 20px; font-size: 12px; color: #1a4fd6; text-decoration: underline; cursor: pointer; font-weight: normal; }
+  .subtitle { text-align: center; color: #666666; font-size: 14px; padding: 16px 0 0 0; }
+  .row { display: flex; gap: 30px; padding: 30px; }
+  .card { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 18px; font-size: 13px; }
+  .card h3 { margin-top: 0; font-size: 15px; }
+  .btn { display: inline-block; border: 1px solid #000000; border-radius: 4px; padding: 7px 14px; background: #ffffff; font-size: 12px; margin-top: 10px; }
+  .btn.disabled { color: #999999; border-color: #cccccc; }
+  .link { color: #1a4fd6; font-size: 12px; text-decoration: underline; cursor: pointer; }
+  .section { padding: 0 30px; }
+  .section h3 { font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #cccccc; }
+  th { font-weight: bold; }
+  .two-col { display: flex; gap: 16px; padding: 16px 30px; }
+  .panel { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 16px; font-size: 12px; }
+  .panel-mono { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 16px; font-size: 12px; font-family: "Courier New", monospace; white-space: pre-wrap; }
+  .chat-box { margin: 0 30px; border: 1px solid #000000; border-radius: 8px; padding: 16px; font-size: 12px; }
+  .field { border: 1px solid #999999; border-radius: 4px; padding: 7px 10px; background: #ffffff; font-size: 12px; margin-top: 6px; }
+  .modal-bg { background: #eeeeee; height: calc(100% - 56px); position: relative; }
+  .modal-note { text-align: center; color: #999999; font-size: 12px; font-style: italic; padding: 10px 0; }
+  .modal-box { position: absolute; top: 230px; left: 290px; width: 500px; border: 1px solid #000000; border-radius: 8px; background: #ffffff; padding: 22px; font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .modal-actions { margin-top: 14px; display: flex; gap: 12px; }
+  .modal-actions-note { font-size: 11px; color: #999999; margin-top: 6px; }
+  .three-col { display: flex; gap: 16px; padding: 16px; height: calc(100% - 56px); }
+  .col { flex: 1; border: 1px solid #000000; border-radius: 8px; padding: 14px; font-size: 11px; background: #f5f5f5; }
+  .col-title { font-weight: bold; font-size: 12px; margin-bottom: 8px; }
+  .pipeline-col { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 16px; }
+  .stage-node { width: 190px; padding: 12px; border: 1px solid #000000; border-radius: 8px; text-align: center; font-size: 12px; }
+  .stage-done { background: #dfffe0; }
+  .stage-generating { background: #e0eaff; }
+  .stage-checking { background: #fff6cc; }
+  .stage-pending { background: #f0f0f0; }
+  .arrow { font-size: 16px; color: #333333; }
+  .msg { margin-bottom: 10px; }
+  .msg b { display: block; font-size: 10px; color: #666666; }
+  .coverage-detail { margin: 8px 30px 0 30px; border: 1px dashed #999999; border-radius: 8px; padding: 14px; font-size: 11px; background: #ffffff; }
+  .coverage-detail .cov-title { font-weight: bold; font-size: 12px; margin-bottom: 6px; }
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; }
+  .tag-full { background: #dfffe0; }
+  .tag-partial { background: #fff6cc; }
+  .tag-none { background: #ffe0e0; }
+  .spinner-box { text-align: center; padding: 60px 20px; color: #666666; font-size: 13px; }
+  .spinner-glyph { font-size: 28px; display: block; margin-bottom: 10px; }
+  .check-pass { background: #dfffe0; border: 1px solid #2a8f3f; border-radius: 6px; padding: 7px 10px; font-size: 11px; font-weight: bold; margin-bottom: 8px; }
+  .check-fail { background: #ffe0e0; border: 1px solid #b53030; border-radius: 6px; padding: 7px 10px; font-size: 11px; font-weight: bold; margin-bottom: 8px; }
+  .empty-state { text-align: center; padding: 80px 40px; color: #666666; }
+</style>
+</head>
+<body>
+
+<!-- ============ SCENARIO 0: START SCREEN STATES ============ -->
+<div class="scenario">
+  <div class="scenario-title">Scenario 0 &#58; Start screen states</div>
+  <div class="scenario-sub">The entry point, normal state and empty state (no platforms integrated yet)</div>
+  <div class="scenario-row">
+
+    <div class="screen">
+      <div class="frame-label">0a &#58; Start, normal</div>
+      <div class="frame">
+        <div class="header">MDDOAI</div>
+        <div class="subtitle">Choose how you want to start</div>
+        <div class="row">
+          <div class="card">
+            <h3>Generate a Pipeline</h3>
+            <p>Upload a SWArch file, pick a supported platform, get a pipeline back.</p>
+            <div class="btn">Start</div>
+          </div>
+          <div class="card">
+            <h3>Integrate a New Platform</h3>
+            <p>Describe a platform or upload its docs, MDDOAI generates support for it.</p>
+            <div class="btn">Start</div>
+          </div>
+        </div>
+        <div class="section">
+          <h3>Supported Platforms</h3>
+          <table>
+            <tr><th>Platform</th><th>Status</th><th>PIM Coverage</th></tr>
+            <tr><td>GitLab CI</td><td>Supported</td><td>4/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
+            <tr><td>Bamboo</td><td>In Progress &nbsp;<span class="link">resume &rarr;</span></td><td>1/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
+          </table>
+        </div>
+        <div class="coverage-detail">
+          <div class="cov-title">GitLab CI &#58; concept breakdown</div>
+          <table>
+            <tr><td>Pipeline <span class="tag tag-full">Full</span></td><td>Job <span class="tag tag-full">Full</span></td><td>Matrix <span class="tag tag-full">Full</span></td></tr>
+            <tr><td>Agent <span class="tag tag-full">Full</span></td><td>Services <span class="tag tag-partial">Partial</span></td><td>Trigger <span class="tag tag-partial">Partial</span></td></tr>
+            <tr><td>Parameters <span class="tag tag-none">None</span></td><td>Steps <span class="tag tag-partial">Partial</span></td><td>Expressions <span class="tag tag-full">Full</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">0b &#58; Start, empty state (no platforms yet)</div>
+      <div class="frame">
+        <div class="header">MDDOAI</div>
+        <div class="empty-state">
+          <p style="font-size:16px;">No platforms integrated yet.</p>
+          <p>Start by integrating your first CI/CD platform.</p>
+          <div class="btn">Integrate a New Platform</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SCENARIO A: GENERATE PIPELINE, HAPPY PATH ============ -->
+<div class="scenario">
+  <div class="scenario-title">Scenario A &#58; Generate Pipeline, happy path</div>
+  <div class="scenario-sub">Platform already supported, SWArch in &rarr; working pipeline out, first try</div>
+  <div class="scenario-row">
+
+    <div class="screen">
+      <div class="frame-label">A1 &#58; input</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Upload SWArch file</b>
+            <div class="field">drop file here, or browse</div>
+            <br>
+            <b>Platform</b>
+            <div class="field">GitLab CI &#9662;</div>
+            <div class="btn">Generate</div>
+          </div>
+          <div class="panel" style="color:#999999;">Result will appear here once generated.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">A2 &#58; generating</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Upload SWArch file</b>
+            <div class="field">hello-java-ci.swarch</div>
+            <br>
+            <b>Platform</b>
+            <div class="field">GitLab CI &#9662;</div>
+            <div class="btn disabled">Generating&hellip;</div>
+          </div>
+          <div class="panel">
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Running the existing GitLab CI transformation chain&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">A3 &#58; result</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Upload SWArch file</b>
+            <div class="field">hello-java-ci.swarch</div>
+            <br>
+            <b>Platform</b>
+            <div class="field">GitLab CI &#9662;</div>
+            <div class="btn">Generate</div>
+          </div>
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...
+<span style="font-family:Arial;" class="btn">Download .gitlab-ci.yml</span></div>
+        </div>
+        <div class="chat-box">
+          <b>Something not right? Tell us what's wrong and we'll fix it.</b>
+          <div class="field">type here...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SCENARIO B: GENERATE PIPELINE, FALSE ALARM ============ -->
+<div class="scenario">
+  <div class="scenario-title">Scenario B &#58; Generate Pipeline, reported issue turns out NOT to be a platform gap</div>
+  <div class="scenario-sub">The more common case: something's wrong on the user's side, not MDDOAI's</div>
+  <div class="scenario-row">
+
+    <div class="screen">
+      <div class="frame-label">B1 &#58; result (same as A3)</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Upload SWArch file</b>
+            <div class="field">hello-java-ci.swarch</div>
+            <br>
+            <b>Platform</b>
+            <div class="field">GitLab CI &#9662;</div>
+            <div class="btn">Generate</div>
+          </div>
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...
+<span style="font-family:Arial;" class="btn">Download .gitlab-ci.yml</span></div>
+        </div>
+        <div class="chat-box">
+          <b>Something not right? Tell us what's wrong and we'll fix it.</b>
+          <div class="field">type here...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">B2 &#58; feedback sent</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...</div>
+          <div class="panel" style="color:#999999;">&nbsp;</div>
+        </div>
+        <div class="chat-box">
+          <div class="msg"><b>You</b>the test stage isn't running my unit tests</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">B3 &#58; investigating</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...</div>
+          <div class="panel" style="color:#999999;">&nbsp;</div>
+        </div>
+        <div class="chat-box">
+          <div class="msg"><b>You</b>the test stage isn't running my unit tests</div>
+          <div class="msg"><b>Orchestrator</b><span class="spinner-glyph" style="font-size:14px; display:inline;">&#9696;</span> checking whether this is specific to your file or a gap in GitLab CI support&hellip;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">B4 &#58; not a platform gap</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...</div>
+          <div class="panel" style="color:#999999;">&nbsp;</div>
+        </div>
+        <div class="chat-box">
+          <div class="msg"><b>You</b>the test stage isn't running my unit tests</div>
+          <div class="msg"><b>Orchestrator</b>Your SWArch file has <code>unit_test="false"</code>. That's why it's skipped, this isn't a GitLab CI gap. Set it to true and regenerate.</div>
+          <div class="btn">Upload corrected file</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SCENARIO C: GENERATE PIPELINE ESCALATES TO A SCOPED PLATFORM FIX ============ -->
+<div class="scenario">
+  <div class="scenario-title">Scenario C &#58; Generate Pipeline, reported issue IS a real platform gap, escalates and gets fixed</div>
+  <div class="scenario-sub">Full loop: hit a gap &rarr; confirm it's platform-level &rarr; fix scoped to one stage &rarr; regenerate</div>
+  <div class="scenario-row">
+
+    <div class="screen">
+      <div class="frame-label">C1 &#58; feedback sent</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...</div>
+          <div class="panel" style="color:#999999;">&nbsp;</div>
+        </div>
+        <div class="chat-box">
+          <div class="msg"><b>You</b>the deploy stage is missing the service ports</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C2 &#58; investigating</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+...</div>
+          <div class="panel" style="color:#999999;">&nbsp;</div>
+        </div>
+        <div class="chat-box">
+          <div class="msg"><b>You</b>the deploy stage is missing the service ports</div>
+          <div class="msg"><b>Orchestrator</b><span class="spinner-glyph" style="font-size:14px; display:inline;">&#9696;</span> checking whether this is specific to your file or a gap in GitLab CI support&hellip;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C3 &#58; escalation confirmed</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="modal-bg">
+          <div class="modal-note">(background: Generate Pipeline screen, dimmed)</div>
+          <div class="modal-box">
+            <b>Gap found in ATL stage for GitLab CI</b>
+            <p>Your SWArch file does declare service ports, this is a real gap in GitLab CI's transformation rules, not a one-off. We'll fix it at the platform level so every future GitLab pipeline gets it too, then regenerate yours automatically.</p>
+            <div class="modal-actions">
+              <div class="btn">Fix it</div>
+              <div class="btn">Cancel</div>
+            </div>
+            <div class="modal-actions-note">Cancel leaves the gap unfixed for now, your pipeline keeps its current output, you can still download it as-is.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C4 &#58; ATL stage generating</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Fixing the ATL stage to map service ports.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-generating">ATL<br>( generating&hellip; )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Generating&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C5 &#58; ATL check failed</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>First attempt didn't pass the automated check, take a look.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-fail">Automated check: FAILED &#58; ports not mapped</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">rule Job2Job {
+  ...
+  -- ports not mapped
+}</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the Job2Job mapping rule"</p>
+            <div class="btn disabled">Approve</div>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the Job2Job mapping rule</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C6 &#58; curating the fix</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>You</b>added the port mapping constraint, retrying</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-fail">Automated check: FAILED &#58; ports not mapped</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <div style="margin-top:8px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field" style="background:#fffbe0;">generate the Job2Job mapping rule <u>+ map each PIM service port to a GitLab job port entry</u></div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C7 &#58; ATL check passed, approved</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Retried with your constraint, check passed this time.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-pass">Automated check: PASSED</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">rule Job2Job {
+  ...
+  ports: [8080]
+}</div>
+            <div class="btn">Approve</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the Job2Job mapping rule + map each PIM service port to a GitLab job port entry"</p>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the Job2Job mapping rule + map each PIM service port to a GitLab job port entry</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C8 &#58; scoped fix complete</div>
+      <div class="frame">
+        <div class="header done">ATL stage fix applied &#58; GitLab CI</div>
+        <div class="two-col">
+          <div class="panel" style="color:#333333;">
+            <p>This was a targeted fix to one stage, not a full platform integration.</p>
+            <div class="btn">Regenerate my pipeline</div>
+          </div>
+          <div class="panel">
+            <b>Round count &amp; constraint log</b>
+            <table>
+              <tr><th>Stage</th><th>Rounds</th><th>Constraints learned</th><th>vs. last run</th></tr>
+              <tr><td>ATL</td><td>2</td><td>1</td><td>&darr; from 6 (original build)</td></tr>
+            </table>
+            <p style="color:#666666; margin-top:8px;"><span class="link">View chat history</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">C9 &#58; pipeline regenerated</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Upload SWArch file</b>
+            <div class="field">hello-java-ci.swarch</div>
+            <br>
+            <b>Platform</b>
+            <div class="field">GitLab CI &#9662;</div>
+            <div class="btn">Generate</div>
+          </div>
+          <div class="panel-mono">stages:
+  - build
+  - test
+  - deploy
+    ports: [8080]
+...
+<span style="font-family:Arial;" class="btn">Download .gitlab-ci.yml</span></div>
+        </div>
+        <div class="chat-box" style="color:#2a8f3f;">
+          Fixed, ports are now included. Anything else not right?
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SCENARIO D: NEW PLATFORM INTEGRATION, FULL BUILD ============ -->
+<div class="scenario">
+  <div class="scenario-title">Scenario D &#58; Integrate a New Platform, full build from scratch (TeamCity)</div>
+  <div class="scenario-sub">All 4 stages, first-ever run for this platform, one retry shown on ATL to demonstrate the pattern</div>
+  <div class="scenario-row">
+
+    <div class="screen">
+      <div class="frame-label">D1 &#58; input</div>
+      <div class="frame">
+        <div class="header">&larr;&nbsp;&nbsp;Integrate a New Platform</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Platform name</b>
+            <div class="field">TeamCity</div>
+            <br>
+            <b>Documentation URL</b>
+            <div class="field">https://www.jetbrains.com/help/teamcity/</div>
+            <p style="text-align:center; color:#999999; margin:6px 0;">or</p>
+            <b>Upload documentation</b>
+            <div class="field">drop PDF here, or browse</div>
+            <div class="btn">Start Integration</div>
+          </div>
+          <div class="panel">
+            <b>What happens next</b>
+            <p>MDDOAI reads the documentation, then works through PSM &rarr; ATL &rarr; Acceleo &rarr; Generation/Test one stage at a time, showing you each result to approve or correct before moving on.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D2 &#58; PSM stage generating</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Reading TeamCity docs, generating the PSM metamodel.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-generating">PSM<br>( generating&hellip; )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">ATL<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">PSM stage output</div>
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Generating&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D3 &#58; PSM check passed, approved</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>PSM metamodel generated, loads cleanly in EMF.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-checking">PSM<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">ATL<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">PSM stage output</div>
+            <div class="check-pass">Automated check: PASSED &#58; loads in EMF</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">class Build {
+  attr steps: Step[*]
+  ...
+}</div>
+            <div class="btn">Approve</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the PSM metamodel from the TeamCity docs"</p>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the PSM metamodel from the TeamCity docs</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D4 &#58; ATL stage generating</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>PSM approved, generating the ATL transformation.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-generating">ATL<br>( generating&hellip; )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Generating&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D5 &#58; ATL check failed</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Didn't pass the check, `def` was used as a variable name, that's reserved.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-fail">Automated check: FAILED &#58; compile error</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">helper def: buildId ...
+-- 'def' is reserved</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the Build2Build mapping rule"</p>
+            <div class="btn disabled">Approve</div>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the Build2Build mapping rule</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D6 &#58; curating the fix</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>You</b>added the reserved-word constraint, retrying</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-fail">Automated check: FAILED &#58; compile error</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <div style="margin-top:8px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field" style="background:#fffbe0;">generate the Build2Build mapping rule <u>+ never use 'def' or 'rule' as variable names, they're reserved</u></div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D7 &#58; ATL check passed, approved</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Retried with your constraint, check passed.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-pass">Automated check: PASSED</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">helper buildId: ...</div>
+            <div class="btn">Approve</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the Build2Build mapping rule + never use 'def' or 'rule' as variable names, they're reserved"</p>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the Build2Build mapping rule + never use 'def' or 'rule' as variable names, they're reserved</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D8 &#58; Acceleo stage generating</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>ATL approved, generating the Acceleo code template.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">ATL<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-generating">Acceleo<br>( generating&hellip; )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">Acceleo stage output</div>
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Generating&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D9 &#58; Acceleo check passed, approved</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Clean first try, no reserved-word issues this time.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">ATL<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">Acceleo<br>( reviewing )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">Acceleo stage output</div>
+            <div class="check-pass">Automated check: PASSED &#58; compiles</div>
+            <div class="panel-mono" style="font-size:10px; padding:8px;">[template public generate]
+steps: [build] ...</div>
+            <div class="btn">Approve</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate the Acceleo template from the approved ATL rules"</p>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate the Acceleo template from the approved ATL rules</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D10 &#58; Generation + Test running</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Acceleo approved, running generation and the integration test.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">ATL<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">Acceleo<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-generating">Generation + Test<br>( running&hellip; )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">Generation + Test output</div>
+            <div class="spinner-box"><span class="spinner-glyph">&#9696;</span>Generating a sample pipeline and validating it&hellip;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D11 &#58; last stage passed, approved</div>
+      <div class="frame">
+        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="three-col">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>Sample pipeline generated and validated successfully. This was the last stage.</div>
+          </div>
+          <div class="col" style="background:#ffffff;">
+            <div class="col-title" style="text-align:center;">Pipeline</div>
+            <div class="pipeline-col">
+              <div class="stage-node stage-done">PSM<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">ATL<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-done">Acceleo<br>( done )</div>
+              <div class="arrow">&darr;</div>
+              <div class="stage-node stage-checking">Generation + Test<br>( reviewing )</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="col-title">Generation + Test output</div>
+            <div class="check-pass">Automated check: PASSED &#58; sample pipeline is valid</div>
+            <div class="btn">Approve &amp; finish</div>
+            <div class="col-title" style="margin-top:10px;">Prompt / constraint used</div>
+            <p>"generate and validate a sample pipeline from the approved artifacts"</p>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">generate and validate a sample pipeline from the approved artifacts</div>
+              <div class="btn">Retry this stage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="frame-label">D12 &#58; completed, first run</div>
+      <div class="frame">
+        <div class="header done">TeamCity integration complete</div>
+        <div class="two-col">
+          <div class="panel-mono">Sample pipeline
+-------------------------
+steps:
+  - build
+  - test
+...
+-------------------------
+
+<span style="font-family:Arial;" class="btn">Download sample</span></div>
+          <div class="panel">
+            <b>Round count &amp; constraint log</b>
+            <table>
+              <tr><th>Stage</th><th>Rounds</th><th>Constraints learned</th><th>vs. last run</th></tr>
+              <tr><td>PSM</td><td>1</td><td>0</td><td>first run</td></tr>
+              <tr><td>ATL</td><td>2</td><td>1</td><td>first run</td></tr>
+              <tr><td>Acceleo</td><td>1</td><td>0</td><td>first run</td></tr>
+              <tr><td>Gen + Test</td><td>1</td><td>0</td><td>first run</td></tr>
+            </table>
+            <p style="color:#666666; margin-top:8px;"><span class="link">View chat history</span></p>
+          </div>
+        </div>
+        <div class="section">
+          <div class="btn">Back to start</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
