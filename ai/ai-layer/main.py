@@ -12,7 +12,7 @@ _ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
 if str(_ORCHESTRATOR_DIR) not in sys.path:
     sys.path.insert(0, str(_ORCHESTRATOR_DIR))
 
-from orchestrator import orchestrate  # noqa: E402
+from orchestrator import current_stage, orchestrate, rerun_stage, reset_pipeline, run_stage, stage_result  # noqa: E402
 
 app = FastAPI(title="MDDOAI AI Layer")
 
@@ -30,6 +30,15 @@ class ChatResponse(BaseModel):
 class Provider(BaseModel):
     name: str
     tier: str
+
+
+class ReviewRequest(BaseModel):
+    approved: bool
+    correction: str | None = None
+
+
+class StartRequest(BaseModel):
+    platform_description: str
 
 
 @app.get("/health")
@@ -64,3 +73,37 @@ def orchestrate_endpoint(request: ChatRequest):
         return {"content": content, "model": "orchestrator"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/orchestrate/start")
+def orchestrate_start_endpoint(request: StartRequest):
+    reset_pipeline()
+    try:
+        return run_stage({"platform_description": request.platform_description})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/orchestrate/rerun/{stage_id}")
+def orchestrate_rerun_endpoint(stage_id: str):
+    if stage_id != current_stage():
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{stage_id}' is not the current pending stage (current: {current_stage()!r}).",
+        )
+    try:
+        return rerun_stage()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/review/{stage_id}")
+def review_endpoint(stage_id: str, request: ReviewRequest):
+    if stage_id != current_stage():
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{stage_id}' is not the current pending stage (current: {current_stage()!r}).",
+        )
+    if not request.approved and not request.correction:
+        raise HTTPException(status_code=400, detail="correction is required when approved is False.")
+    return stage_result(stage_id, request.approved, request.correction)
