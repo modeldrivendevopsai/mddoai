@@ -8,3 +8,5 @@
 build
 
 /plugins
+__pycache__/
+*.pyc
