@@ -8,14 +8,16 @@ Tests verify:
   4. /chat rejects an unrecognized model with 400 before calling chat().
   5. /chat accepts "auto" and passes it straight through.
   6. /chat converts a downstream exception into a 500.
-  7. /orchestrate returns content+model on success (orchestrator.orchestrate is mocked).
-  8. /orchestrate/start resets the pipeline and runs the psm stage (orchestrator.run_stage
+  7. /orchestrate/start resets the pipeline and runs the psm stage (orchestrator.run_stage
      and orchestrator.reset_pipeline are mocked).
-  9. /review/{stage_id} calls orchestrator.stage_result and returns its status shape
-     (advanced/complete/rerun) when stage_id matches the current pending stage.
-  10. /review/{stage_id} returns 400 without calling stage_result when stage_id doesn't
-      match the current pending stage, or when approved=False is missing a correction.
-  11. /orchestrate/rerun/{stage_id} calls orchestrator.rerun_stage and returns its
+  8. /review/{stage_id} calls orchestrator.stage_result and returns its status shape:
+     the next stage's {"stage", "output", "valid"} on approval (stage_result now runs
+     the next stage itself), {"status": "complete"} on approving the last stage, or
+     {"status": "rerun", "stage": ...} on rejection — all when stage_id matches the
+     current pending stage.
+  9. /review/{stage_id} returns 400 without calling stage_result when stage_id doesn't
+     match the current pending stage, or when approved=False is missing a correction.
+  10. /orchestrate/rerun/{stage_id} calls orchestrator.rerun_stage and returns its
       {"stage", "output", "valid"} shape when stage_id matches the current pending stage,
       returns 400 without calling rerun_stage when it doesn't, and converts a downstream
       error into a 500.
@@ -95,17 +97,6 @@ def test_chat_returns_500_on_downstream_error():
     assert response.json()["detail"] == "all providers exhausted"
 
 
-def test_orchestrate_endpoint_returns_content_and_model():
-    with patch.object(main, "orchestrate", return_value="hello") as mock_orchestrate:
-        response = client.post("/orchestrate", json={"messages": [{"role": "user", "content": "hi"}]})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["content"] == "hello"
-    assert "model" in body
-    mock_orchestrate.assert_called_once_with([{"role": "user", "content": "hi"}])
-
-
 def test_orchestrate_start_resets_pipeline_and_runs_psm_stage():
     with patch.object(main, "reset_pipeline") as mock_reset, patch.object(
         main, "run_stage", return_value={"stage": "psm", "output": "PSM description", "valid": True}
@@ -158,14 +149,14 @@ def test_orchestrate_rerun_endpoint_returns_500_on_downstream_error():
     assert response.json()["detail"] == "all providers exhausted"
 
 
-def test_review_endpoint_returns_advanced_status():
+def test_review_endpoint_returns_next_stage_output_on_approval():
     with patch.object(main, "current_stage", return_value="psm"), patch.object(
-        main, "stage_result", return_value={"status": "advanced", "next_stage": "atl"}
+        main, "stage_result", return_value={"stage": "atl", "output": "ATL rules", "valid": True}
     ) as mock_stage_result:
         response = client.post("/review/psm", json={"approved": True})
 
     assert response.status_code == 200
-    assert response.json() == {"status": "advanced", "next_stage": "atl"}
+    assert response.json() == {"stage": "atl", "output": "ATL rules", "valid": True}
     mock_stage_result.assert_called_once_with("psm", True, None)
 
 

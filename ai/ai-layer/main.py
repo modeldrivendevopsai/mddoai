@@ -12,7 +12,7 @@ _ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
 if str(_ORCHESTRATOR_DIR) not in sys.path:
     sys.path.insert(0, str(_ORCHESTRATOR_DIR))
 
-from orchestrator import current_stage, orchestrate, rerun_stage, reset_pipeline, run_stage, stage_result  # noqa: E402
+from orchestrator import current_stage, rerun_stage, reset_pipeline, run_stage, stage_result  # noqa: E402
 
 app = FastAPI(title="MDDOAI AI Layer")
 
@@ -62,15 +62,6 @@ def chat_endpoint(request: ChatRequest):
     try:
         response = chat(request.messages, model=request.model)
         return {"content": response.choices[0].message.content, "model": response.model}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/orchestrate", response_model=ChatResponse)
-def orchestrate_endpoint(request: ChatRequest):
-    try:
-        content = orchestrate(request.messages)
-        return {"content": content, "model": "orchestrator"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -2,21 +2,20 @@
 Orchestrator unit tests. No real API calls — orchestrator.chat is mocked.
 
 Tests verify:
-  1. Intent classification for pipeline_generation, platform_question, general_question.
-  2. is_good_enough() rejects empty/error-marker responses and accepts good ones.
-  3. orchestrate() returns the first good response without retrying.
-  4. orchestrate() retries up to MAX_ATTEMPTS on low-quality responses, then returns the
-     last response with a human-curation note.
-  5. orchestrate() stops retrying as soon as a later attempt succeeds.
-  6. The stage agents (psm/atl/acceleo/generation) call chat() with a stage-specific
+  1. is_good_enough() rejects empty/error-marker responses and accepts good ones.
+  2. The stage agents (psm/atl/acceleo/generation) call chat() with a stage-specific
      system prompt and return the response content.
-  7. Orchestrator.run_stage() looks up the right agent, validates its output, and
+  3. Orchestrator.run_stage() looks up the right agent, validates its output, and
      reports the current stage.
-  8. Orchestrator.advance_stage()/stage_result() move through STAGES and handle
+  4. Orchestrator.advance_stage()/stage_result() move through STAGES and handle
      approval vs. rejection (constraint recording) correctly.
-  9. run_stage()/rerun_stage() pick up constraints recorded via add_constraint() since
+  5. run_stage()/rerun_stage() pick up constraints recorded via add_constraint() since
      the last run — verifying corrections are actually threaded into the agent's prompt,
      not just stored and left unused.
+  6. stage_result() on approval automatically runs the next stage's agent (not just
+     advancing the pointer), threading the approved stage's output into the next
+     stage's context under the right f"{stage_id}_output" key, and accumulating
+     outputs across approvals so the final generation stage sees all three.
 """
 from unittest.mock import MagicMock, patch
 
@@ -27,19 +26,6 @@ def ok_response(content):
     r = MagicMock()
     r.choices = [MagicMock(message=MagicMock(content=content))]
     return r
-
-
-def test_classify_intent_pipeline_generation():
-    text = "Can you help me generate a CI/CD pipeline to deploy my app?"
-    assert orchestrator.classify_intent(text) == "pipeline_generation"
-
-
-def test_classify_intent_platform_question():
-    assert orchestrator.classify_intent("Does this support TeamCity or GitLab?") == "platform_question"
-
-
-def test_classify_intent_general_question():
-    assert orchestrator.classify_intent("What is DevOps anyway?") == "general_question"
 
 
 def test_is_good_enough_rejects_empty():
@@ -57,34 +43,16 @@ def test_is_good_enough_accepts_valid_response():
     assert orchestrator.is_good_enough("Here are the pipeline stages you need: build, test, deploy.")
 
 
-def test_orchestrate_returns_first_good_response_without_retrying():
-    with patch.object(orchestrator, "chat", return_value=ok_response("Here's your pipeline plan.")) as mock_chat:
-        result = orchestrator.orchestrate([{"role": "user", "content": "generate a pipeline"}])
-
-    assert result == "Here's your pipeline plan."
-    assert mock_chat.call_count == 1
-
-
-def test_orchestrate_retries_on_low_quality_then_returns_note():
-    with patch.object(orchestrator, "chat", return_value=ok_response("I cannot help with that.")) as mock_chat:
-        result = orchestrator.orchestrate([{"role": "user", "content": "generate a pipeline"}])
-
-    assert mock_chat.call_count == orchestrator.MAX_ATTEMPTS
-    assert "I cannot help with that." in result
-    assert "human curation" in result.lower()
-
-
-def test_orchestrate_succeeds_on_a_later_attempt():
-    responses = [
-        ok_response("I cannot help."),
-        ok_response("I cannot help."),
-        ok_response("Here's the answer."),
-    ]
-    with patch.object(orchestrator, "chat", side_effect=responses) as mock_chat:
-        result = orchestrator.orchestrate([{"role": "user", "content": "generate a pipeline"}])
-
-    assert result == "Here's the answer."
-    assert mock_chat.call_count == 3
+def test_is_good_enough_accepts_technical_content_that_mentions_error_handling():
+    # "error" as a bare substring must not trip the refusal check — legitimate
+    # generated content (e.g. an Acceleo template) routinely discusses error
+    # handling as a concept, distinct from the agent itself reporting a failure.
+    content = (
+        "The template defines an onDependencyFailure block that invokes the "
+        "errorHandler class, catching IOError and surfacing an error code to "
+        "the pipeline's error-handling policy."
+    )
+    assert orchestrator.is_good_enough(content)
 
 
 # --- Stage-based pipeline tests ---------------------------------------------
@@ -239,12 +207,37 @@ def test_add_constraint_records_correction_for_stage():
     assert o.constraints["psm"] == ["Use kebab-case job names", "Include a lint stage"]
 
 
-def test_stage_result_approved_advances_to_next_stage():
+def test_stage_result_approved_runs_next_stage_and_returns_its_output():
     o = orchestrator.Orchestrator()
-    result = o.stage_result("psm", approved=True)
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")):
+        o.run_stage({"platform_description": "A GitLab CI platform"})
 
-    assert result == {"status": "advanced", "next_stage": "atl"}
+    with patch.object(orchestrator, "chat", return_value=ok_response("ATL rules")) as mock_chat:
+        result = o.stage_result("psm", approved=True)
+
     assert o.current_stage == "atl"
+    assert result == {"stage": "atl", "output": "ATL rules", "valid": True}
+    user_content = mock_chat.call_args.args[0][1]["content"]
+    assert user_content.startswith("PSM description")
+
+
+def test_stage_result_approved_threads_output_under_stage_output_key_and_accumulates():
+    o = orchestrator.Orchestrator()
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")):
+        o.run_stage({"platform_description": "A GitLab CI platform"})
+    with patch.object(orchestrator, "chat", return_value=ok_response("ATL rules")):
+        o.stage_result("psm", approved=True)
+    with patch.object(orchestrator, "chat", return_value=ok_response("Acceleo template")):
+        o.stage_result("atl", approved=True)
+
+    with patch.object(orchestrator, "chat", return_value=ok_response("Final summary")) as mock_chat:
+        result = o.stage_result("acceleo", approved=True)
+
+    assert result == {"stage": "generation", "output": "Final summary", "valid": True}
+    user_content = mock_chat.call_args.args[0][1]["content"]
+    assert "PSM description" in user_content
+    assert "ATL rules" in user_content
+    assert "Acceleo template" in user_content
 
 
 def test_stage_result_approved_on_last_stage_returns_complete():
@@ -279,7 +272,8 @@ def test_module_level_wrappers_delegate_to_default_orchestrator():
         orchestrator.add_constraint("atl", "Name rules after the mapped concept")
         assert orchestrator._default.constraints["atl"] == ["Name rules after the mapped concept"]
 
-        stage_result = orchestrator.stage_result("atl", approved=True)
-        assert stage_result == {"status": "advanced", "next_stage": "acceleo"}
+        with patch.object(orchestrator, "chat", return_value=ok_response("Acceleo template")):
+            stage_result = orchestrator.stage_result("atl", approved=True)
+        assert stage_result == {"stage": "acceleo", "output": "Acceleo template", "valid": True}
     finally:
         orchestrator._default = original

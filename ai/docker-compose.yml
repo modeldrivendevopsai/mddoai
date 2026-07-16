@@ -1,6 +1,8 @@
 services:
   ai-layer:
-    build: ./ai-layer
+    build:
+      context: .
+      dockerfile: ai-layer/Dockerfile
     env_file:
       - path: ./ai-layer/.env
         required: false
