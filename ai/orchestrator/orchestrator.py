@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 from pathlib import Path
@@ -210,3 +211,235 @@ def reset_pipeline() -> None:
     dropping any progress and constraints from a prior run."""
     global _default
     _default = Orchestrator()
+
+
+def start_pipeline(platform_description: str) -> dict:
+    """Reset the pipeline and start fresh at the psm stage for a new platform
+    description. Same behavior POST /orchestrate/start uses."""
+    reset_pipeline()
+    return run_stage({"platform_description": platform_description})
+
+
+# --- Outer judgment layer ----------------------------------------------------
+#
+# Maps a free-form human message ("the ATL stage output is wrong, please fix it
+# with X") onto the pipeline functions above via real LLM tool calling — not
+# keyword matching. The LLM decides which tool(s) to call and with what
+# arguments; judge() just executes whatever it decides and reports the result.
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "run_stage",
+            "description": (
+                "Start or continue the CURRENT pending pipeline stage using the given context. "
+                "Use this to kick off the pipeline from scratch (context should include "
+                "'platform_description') or to re-run the current stage with fresh/updated "
+                "input. Do NOT use this for approving, rejecting, or redoing existing output — "
+                "use stage_result or rerun_stage for that."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "type": "object",
+                        "description": (
+                            "Input for the current stage's agent. For the psm stage this should "
+                            "include 'platform_description'. Later stages build their context "
+                            "automatically and rarely need this supplied manually."
+                        ),
+                    }
+                },
+                "required": ["context"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "rerun_stage",
+            "description": (
+                "Re-run the CURRENT pending stage's agent, reusing the context from its last "
+                "run and folding in any constraints recorded via add_constraint since then. Use "
+                "this when the user wants the current stage redone right now — e.g. 'redo the "
+                "ATL stage', or immediately after calling add_constraint to apply a correction "
+                "the user just gave."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "stage_result",
+            "description": (
+                "Record a human review decision for a named stage. approved=true advances the "
+                "pipeline and immediately runs the next stage — use this when the user "
+                "approves/accepts a stage's output. approved=false with a correction records "
+                "the correction for later (it does NOT rerun immediately) — use this only when "
+                "the user explicitly rejects a stage without asking for an immediate redo; if "
+                "they want it fixed right now, prefer add_constraint followed by rerun_stage "
+                "instead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "stage_id": {
+                        "type": "string",
+                        "enum": STAGES,
+                        "description": "Which stage this decision applies to.",
+                    },
+                    "approved": {
+                        "type": "boolean",
+                        "description": "true to approve and advance, false to reject.",
+                    },
+                    "correction": {
+                        "type": ["string", "null"],
+                        "description": "Required when approved is false: the human's correction.",
+                    },
+                },
+                "required": ["stage_id", "approved"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_constraint",
+            "description": (
+                "Record a correction against a stage without rerunning it yet. The correction "
+                "is automatically folded into that stage's prompt the next time it runs (via "
+                "rerun_stage, or the pipeline advancing into it). Call this immediately before "
+                "rerun_stage when the user gives feedback and wants a stage fixed now — e.g. "
+                "'the ATL rules are wrong, use kebab-case names' -> "
+                "add_constraint('atl', 'Use kebab-case rule names') then rerun_stage()."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "stage": {
+                        "type": "string",
+                        "enum": STAGES,
+                        "description": "Which stage this correction applies to.",
+                    },
+                    "constraint": {
+                        "type": "string",
+                        "description": "The human's correction/instruction for this stage.",
+                    },
+                },
+                "required": ["stage", "constraint"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "start_pipeline",
+            "description": (
+                "Reset the pipeline and start fresh at the psm stage for a NEW platform "
+                "description, discarding all progress, approved stages, and recorded "
+                "constraints from the current run. Use this when the user wants to start over "
+                "or switch to a different platform entirely — e.g. 'let's do this for GitLab "
+                "instead' or 'start over with a new platform' — NOT for continuing or redoing "
+                "the current pipeline (use run_stage or rerun_stage for that)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "platform_description": {
+                        "type": "string",
+                        "description": "Description of the new CI/CD platform to generate a pipeline for.",
+                    }
+                },
+                "required": ["platform_description"],
+            },
+        },
+    },
+]
+
+_JUDGE_SYSTEM_PROMPT_TEMPLATE = """You are the MDDOAI Orchestrator judge. MDDOAI turns a CI/CD \
+platform description into generated pipeline tooling through four fixed stages, always in \
+this order:
+
+  1. psm        — a PSM (Platform-Specific Model) description of the platform.
+  2. atl        — the ATL transformation rules needed to build that PSM.
+  3. acceleo    — the Acceleo code-generation template for that ATL.
+  4. generation — a final summary tying all three stages together.
+
+The current pending stage — the one whose output a human is reviewing right now — is: \
+{current_stage}.
+
+You have five tools that operate on this pipeline: run_stage, rerun_stage, stage_result, \
+add_constraint, start_pipeline (see their descriptions for what each does). Given the user's \
+message, decide which tool(s) to call, and in what order, to carry out their request:
+  - Feedback the user wants applied immediately ("fix X", "the ATL output is wrong, do Y \
+instead") -> call add_constraint for that stage, then rerun_stage.
+  - A plain redo with no specific correction ("redo the psm stage") -> call rerun_stage alone.
+  - Approval ("looks good", "approve the acceleo stage") -> call stage_result(approved=true).
+  - A rejection that should just be recorded, not rerun yet -> call \
+stage_result(approved=false, correction=...).
+  - Starting over or switching to a different platform entirely ("let's do this for GitLab \
+instead", "start over with a new platform") -> call start_pipeline with the new platform \
+description. Do NOT use rerun_stage or run_stage for this — those act on the current \
+in-progress pipeline, not a fresh one.
+  - Anything that doesn't map to a pipeline action -> don't call any tool; ask a clarifying \
+question in your reply instead."""
+
+
+def _dispatch_tool(name: str, arguments: dict):
+    if name == "run_stage":
+        return run_stage(arguments.get("context", {}))
+    if name == "rerun_stage":
+        return rerun_stage()
+    if name == "stage_result":
+        return stage_result(arguments["stage_id"], arguments["approved"], arguments.get("correction"))
+    if name == "add_constraint":
+        add_constraint(arguments["stage"], arguments["constraint"])
+        return None
+    if name == "start_pipeline":
+        return start_pipeline(arguments["platform_description"])
+    raise ValueError(f"Unknown tool: {name}")
+
+
+def judge(user_message: str) -> dict:
+    """Let the LLM decide which pipeline tool(s) to call for a free-form human
+    message, execute them, and report what happened."""
+    stage = current_stage()
+    stage_description = stage if stage is not None else "none — the pipeline hasn't been started"
+    system_prompt = _JUDGE_SYSTEM_PROMPT_TEMPLATE.format(current_stage=stage_description)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+    response = chat(messages, tools=TOOLS, tool_choice="auto")
+    message = response.choices[0].message
+    tool_calls = message.tool_calls or []
+
+    if not tool_calls:
+        return {
+            "tool_called": None,
+            "result": None,
+            "message": message.content or (
+                "I couldn't map that to a pipeline action — could you clarify which stage and "
+                "what you'd like done?"
+            ),
+        }
+
+    steps = []
+    for call in tool_calls:
+        try:
+            arguments = json.loads(call.function.arguments or "{}")
+        except json.JSONDecodeError:
+            arguments = {}
+        try:
+            result = _dispatch_tool(call.function.name, arguments)
+        except Exception as e:
+            result = {"error": str(e)}
+        steps.append({"tool": call.function.name, "arguments": arguments, "result": result})
+
+    return {
+        "tool_called": steps[-1]["tool"],
+        "result": steps[-1]["result"],
+        "steps": steps,
+    }

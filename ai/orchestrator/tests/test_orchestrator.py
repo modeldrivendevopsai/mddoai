@@ -16,7 +16,17 @@ Tests verify:
      advancing the pointer), threading the approved stage's output into the next
      stage's context under the right f"{stage_id}_output" key, and accumulating
      outputs across approvals so the final generation stage sees all three.
+  7. judge() calls chat() with TOOLS/tool_choice="auto" and the current stage baked into
+     the system prompt, dispatches whatever tool call(s) the LLM returns to the real
+     functions (including a multi-call add_constraint -> rerun_stage sequence and a
+     start_pipeline call), reports {"tool_called", "result", "steps"} on success,
+     {"tool_called": None, ...} with a clarification message when the LLM calls no tool,
+     and doesn't crash on a hallucinated/unknown tool name.
+  8. start_pipeline() resets the pipeline (dropping prior progress/constraints) and runs
+     the psm stage fresh for a new platform description — same behavior POST
+     /orchestrate/start uses.
 """
+import json
 from unittest.mock import MagicMock, patch
 
 import orchestrator
@@ -24,7 +34,20 @@ import orchestrator
 
 def ok_response(content):
     r = MagicMock()
-    r.choices = [MagicMock(message=MagicMock(content=content))]
+    r.choices = [MagicMock(message=MagicMock(content=content, tool_calls=None))]
+    return r
+
+
+def tool_call(name, arguments):
+    call = MagicMock()
+    call.function.name = name
+    call.function.arguments = json.dumps(arguments)
+    return call
+
+
+def tool_response(tool_calls, content=None):
+    r = MagicMock()
+    r.choices = [MagicMock(message=MagicMock(content=content, tool_calls=tool_calls))]
     return r
 
 
@@ -275,5 +298,186 @@ def test_module_level_wrappers_delegate_to_default_orchestrator():
         with patch.object(orchestrator, "chat", return_value=ok_response("Acceleo template")):
             stage_result = orchestrator.stage_result("atl", approved=True)
         assert stage_result == {"stage": "acceleo", "output": "Acceleo template", "valid": True}
+    finally:
+        orchestrator._default = original
+
+
+# --- judge() tests ------------------------------------------------------------
+
+
+def test_judge_calls_chat_with_tools_and_current_stage_in_system_prompt():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        with patch.object(orchestrator, "chat", return_value=ok_response("PSM output")):
+            orchestrator.run_stage({"platform_description": "A GitLab CI platform"})
+        with patch.object(orchestrator, "chat", return_value=ok_response("ATL output")):
+            orchestrator.stage_result("psm", approved=True)  # advances current_stage to "atl"
+
+        with patch.object(orchestrator, "chat", return_value=ok_response("Sure, one moment.")) as mock_chat:
+            orchestrator.judge("what's the status?")
+
+        messages, kwargs = mock_chat.call_args.args, mock_chat.call_args.kwargs
+        assert kwargs["tools"] == orchestrator.TOOLS
+        assert kwargs["tool_choice"] == "auto"
+        assert messages[0][0]["role"] == "system"
+        assert "is: atl" in messages[0][0]["content"]
+        assert messages[0][1] == {"role": "user", "content": "what's the status?"}
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_returns_clarification_when_llm_calls_no_tool():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        response = tool_response(None, content="Could you clarify which stage you mean?")
+        with patch.object(orchestrator, "chat", return_value=response) as mock_chat:
+            result = orchestrator.judge("hello there")
+
+        assert mock_chat.call_count == 1
+        assert result == {
+            "tool_called": None,
+            "result": None,
+            "message": "Could you clarify which stage you mean?",
+        }
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_falls_back_to_generic_clarification_when_llm_gives_no_text_either():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        response = tool_response(None, content=None)
+        with patch.object(orchestrator, "chat", return_value=response):
+            result = orchestrator.judge("???")
+
+        assert result["tool_called"] is None
+        assert "clarify" in result["message"].lower()
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_dispatches_single_rerun_stage_tool_call():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        with patch.object(orchestrator, "chat", return_value=ok_response("PSM v1")):
+            orchestrator.run_stage({"platform_description": "A GitLab CI platform"})
+
+        judge_response = tool_response([tool_call("rerun_stage", {})])
+        agent_response = ok_response("PSM v2")
+        with patch.object(orchestrator, "chat", side_effect=[judge_response, agent_response]) as mock_chat:
+            result = orchestrator.judge("redo the psm stage")
+
+        assert mock_chat.call_count == 2
+        assert result == {
+            "tool_called": "rerun_stage",
+            "result": {"stage": "psm", "output": "PSM v2", "valid": True},
+            "steps": [{"tool": "rerun_stage", "arguments": {}, "result": {"stage": "psm", "output": "PSM v2", "valid": True}}],
+        }
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_dispatches_add_constraint_then_rerun_stage_for_inline_correction():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        with patch.object(orchestrator, "chat", return_value=ok_response("PSM output")):
+            orchestrator.run_stage({"platform_description": "A GitLab CI platform"})
+        with patch.object(orchestrator, "chat", return_value=ok_response("ATL output v1")):
+            orchestrator.stage_result("psm", approved=True)  # auto-runs the atl stage
+
+        assert orchestrator.current_stage() == "atl"
+
+        judge_response = tool_response([
+            tool_call("add_constraint", {"stage": "atl", "constraint": "Add a lint step"}),
+            tool_call("rerun_stage", {}),
+        ])
+        agent_response = ok_response("ATL output v2 (lint step added)")
+        with patch.object(orchestrator, "chat", side_effect=[judge_response, agent_response]) as mock_chat:
+            result = orchestrator.judge("the ATL stage output is wrong, please redo it with a lint step added")
+
+        assert mock_chat.call_count == 2
+        assert orchestrator._default.constraints["atl"] == ["Add a lint step"]
+        assert [s["tool"] for s in result["steps"]] == ["add_constraint", "rerun_stage"]
+        assert result["steps"][0]["result"] is None
+        assert result["tool_called"] == "rerun_stage"
+        assert result["result"] == {
+            "stage": "atl",
+            "output": "ATL output v2 (lint step added)",
+            "valid": True,
+        }
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_dispatches_stage_result_approve_tool_call():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        with patch.object(orchestrator, "chat", return_value=ok_response("PSM output")):
+            orchestrator.run_stage({"platform_description": "A GitLab CI platform"})
+
+        judge_response = tool_response([tool_call("stage_result", {"stage_id": "psm", "approved": True})])
+        atl_agent_response = ok_response("ATL output")
+        with patch.object(orchestrator, "chat", side_effect=[judge_response, atl_agent_response]):
+            result = orchestrator.judge("the psm output looks good, approve it")
+
+        assert result["tool_called"] == "stage_result"
+        assert result["result"] == {"stage": "atl", "output": "ATL output", "valid": True}
+        assert orchestrator.current_stage() == "atl"
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_dispatches_start_pipeline_tool_call():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        # Get some way into an in-progress run first, so we can confirm
+        # start_pipeline actually resets it rather than continuing it.
+        with patch.object(orchestrator, "chat", return_value=ok_response("PSM output (TeamCity)")):
+            orchestrator.run_stage({"platform_description": "TeamCity: A CI/CD platform using Kotlin DSL"})
+        orchestrator.add_constraint("psm", "Use kebab-case job names")
+
+        judge_response = tool_response(
+            [tool_call("start_pipeline", {"platform_description": "GitLab CI with YAML pipelines"})]
+        )
+        new_psm_response = ok_response("PSM output (GitLab)")
+        with patch.object(orchestrator, "chat", side_effect=[judge_response, new_psm_response]) as mock_chat:
+            result = orchestrator.judge("let's do this for GitLab instead")
+
+        assert mock_chat.call_count == 2
+        assert result == {
+            "tool_called": "start_pipeline",
+            "result": {"stage": "psm", "output": "PSM output (GitLab)", "valid": True},
+            "steps": [{
+                "tool": "start_pipeline",
+                "arguments": {"platform_description": "GitLab CI with YAML pipelines"},
+                "result": {"stage": "psm", "output": "PSM output (GitLab)", "valid": True},
+            }],
+        }
+        # New Orchestrator instance: prior progress/constraints are gone.
+        assert orchestrator.current_stage() == "psm"
+        assert orchestrator._default.constraints == {}
+        agent_call_user_content = mock_chat.call_args.args[0][1]["content"]
+        assert agent_call_user_content == "GitLab CI with YAML pipelines"
+    finally:
+        orchestrator._default = original
+
+
+def test_judge_records_error_for_unknown_tool_call_without_crashing():
+    original = orchestrator._default
+    orchestrator._default = orchestrator.Orchestrator()
+    try:
+        judge_response = tool_response([tool_call("delete_everything", {})])
+        with patch.object(orchestrator, "chat", return_value=judge_response):
+            result = orchestrator.judge("do something weird")
+
+        assert result["tool_called"] == "delete_everything"
+        assert result["result"] == {"error": "Unknown tool: delete_everything"}
     finally:
         orchestrator._default = original

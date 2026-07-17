@@ -12,7 +12,7 @@ _ORCHESTRATOR_DIR = Path(__file__).resolve().parent.parent / "orchestrator"
 if str(_ORCHESTRATOR_DIR) not in sys.path:
     sys.path.insert(0, str(_ORCHESTRATOR_DIR))
 
-from orchestrator import current_stage, rerun_stage, reset_pipeline, run_stage, stage_result  # noqa: E402
+from orchestrator import current_stage, judge, rerun_stage, reset_pipeline, run_stage, stage_result  # noqa: E402
 
 app = FastAPI(title="MDDOAI AI Layer")
 
@@ -39,6 +39,10 @@ class ReviewRequest(BaseModel):
 
 class StartRequest(BaseModel):
     platform_description: str
+
+
+class JudgeRequest(BaseModel):
+    message: str
 
 
 @app.get("/health")
@@ -84,6 +88,14 @@ def orchestrate_rerun_endpoint(stage_id: str):
         )
     try:
         return rerun_stage()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/orchestrate/judge")
+def orchestrate_judge_endpoint(request: JudgeRequest):
+    try:
+        return judge(request.message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

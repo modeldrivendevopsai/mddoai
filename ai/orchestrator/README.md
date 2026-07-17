@@ -6,6 +6,11 @@ stage's agent, with a human reviewing and approving each stage's output before t
 runs. Used by `ai-layer/main.py`'s `POST /orchestrate/start`,
 `POST /orchestrate/rerun/{stage_id}`, and `POST /review/{stage_id}`.
 
+On top of that, `judge()` is an outer layer that lets an LLM decide *which* of the pipeline
+functions to call for a free-form human message ("the ATL stage output is wrong, please fix
+it with X"), using real tool/function calling rather than keyword matching. Used by
+`POST /orchestrate/judge`.
+
 ## Stage-based pipeline generation
 
 The pipeline turns a platform description into generated CI/CD tooling through four fixed
@@ -94,6 +99,46 @@ function API below.
 `reset_pipeline()` replaces the default `Orchestrator`, discarding progress and constraints —
 used to start a fresh run.
 
+## The judgment layer (`judge()`)
+
+`run_stage()`, `rerun_stage()`, `stage_result()`, `add_constraint()`, and `start_pipeline()`
+(below) are the primitives above; something still has to decide *which one* a free-form human
+message maps to. `judge(user_message)` does that with real LLM tool/function calling — not
+keyword matching — so "the ATL stage output is wrong, please fix it with X" gets correctly
+mapped to two tool calls in sequence, not just a single guess.
+
+`judge()` sends the message to `chat()` along with `TOOLS` (an OpenAI-style tool schema list)
+and `tool_choice="auto"`, plus a system prompt that describes the four-stage pipeline and the
+current pending stage (via `current_stage()`) so the LLM has situational context. The five
+tools it can choose from:
+
+- **`run_stage(context)`** — start/continue the current stage with new input.
+- **`rerun_stage()`** — redo the current stage, reusing its last context plus any constraints.
+- **`stage_result(stage_id, approved, correction=None)`** — record a review decision;
+  approving advances the pipeline and runs the next stage immediately.
+- **`add_constraint(stage, constraint)`** — record a correction without rerunning yet;
+  typically followed immediately by `rerun_stage()` when the user wants a fix applied now.
+- **`start_pipeline(platform_description)`** — reset the pipeline and start fresh at `psm`
+  for a *different* platform, discarding all current progress and constraints. The system
+  prompt steers phrases like "let's do this for GitLab instead" or "start over with a new
+  platform" here, and explicitly *away* from `run_stage`/`rerun_stage`, which act on the
+  current in-progress pipeline rather than starting a new one.
+
+`judge()` executes whichever tool call(s) the LLM returns, in order, against these real
+functions (via `_dispatch_tool()`), and reports:
+
+- **One or more tool calls** → `{"tool_called": <last tool's name>, "result": <last tool's
+  result>, "steps": [{"tool", "arguments", "result"}, ...]}` — `steps` holds every call made
+  (so a two-call `add_constraint` → `rerun_stage` sequence is fully visible), while
+  `tool_called`/`result` always reflect the final, most-actionable step.
+- **No tool call** (the model couldn't map the message to a pipeline action, or the request
+  was genuinely ambiguous — e.g. "reject this" with no stated reason) → `{"tool_called": None,
+  "result": None, "message": <the model's own clarifying question, or a generic fallback>}`.
+  No state is mutated in this case.
+
+A hallucinated/unknown tool name doesn't crash `judge()` — that step's `"result"` becomes
+`{"error": "Unknown tool: <name>"}` instead.
+
 ## API endpoints (`ai-layer/main.py`)
 
 ### `POST /orchestrate/start`
@@ -180,6 +225,56 @@ returns `{"status": "complete"}`. If any review instead rejects a stage, call
 and review its output again before moving on — `/orchestrate/start` is *not* called again,
 since that would reset the whole pipeline.
 
+### `POST /orchestrate/judge`
+
+Lets an LLM decide which pipeline action a free-form human message maps to (see
+[The judgment layer](#the-judgment-layer-judge) above), executes it, and returns whatever
+`judge()` returns directly — no response transformation.
+
+Request:
+```json
+{ "message": "the ATL stage output is wrong, please redo it with a lint step added" }
+```
+
+Response — here the model called `add_constraint` then `rerun_stage`, so `atl` was
+regenerated with the correction folded in:
+```json
+{
+  "tool_called": "rerun_stage",
+  "result": {
+    "stage": "atl",
+    "output": "Rule PIMJobToBuildType: matches PIM!Job -> TeamCity!BuildType, ... (lint step added)",
+    "valid": true
+  },
+  "steps": [
+    {
+      "tool": "add_constraint",
+      "arguments": { "stage": "atl", "constraint": "Add a lint step to validate the ATL transformation rules" },
+      "result": null
+    },
+    {
+      "tool": "rerun_stage",
+      "arguments": {},
+      "result": { "stage": "atl", "output": "... (lint step added)", "valid": true }
+    }
+  ]
+}
+```
+
+Request (ambiguous — no stated correction):
+```json
+{ "message": "reject this, it's not good enough" }
+```
+
+Response — the model asked for clarification instead of guessing, and nothing was mutated:
+```json
+{
+  "tool_called": null,
+  "result": null,
+  "message": "I need a bit more information to record your rejection properly: what's the correction or reason?"
+}
+```
+
 ## Setup
 
 ```bash
@@ -215,8 +310,23 @@ result = stage_result("generation", approved=True)
 print(result)  # {"status": "complete"}
 ```
 
-`ai-layer/main.py`'s `POST /orchestrate/start`, `POST /orchestrate/rerun/{stage_id}`, and
-`POST /review/{stage_id}` call `run_stage()`/`rerun_stage()`/`stage_result()` directly.
+Or let the LLM decide which action a free-form message maps to, instead of calling the
+primitives above directly:
+
+```python
+from orchestrator import judge
+
+result = judge("the ATL stage output is wrong, please redo it with a lint step added")
+print(result["tool_called"])  # "rerun_stage"
+print(result["steps"])        # [{"tool": "add_constraint", ...}, {"tool": "rerun_stage", ...}]
+
+result = judge("let's do this for GitLab instead")
+print(result["tool_called"])  # "start_pipeline" — resets the pipeline for the new platform
+```
+
+`ai-layer/main.py`'s `POST /orchestrate/start`, `POST /orchestrate/rerun/{stage_id}`,
+`POST /review/{stage_id}`, and `POST /orchestrate/judge` call
+`run_stage()`/`rerun_stage()`/`stage_result()`/`judge()` directly.
 
 ## Test
 
@@ -226,9 +336,10 @@ pytest
 ```
 
 No real API calls are made — `chat()` is mocked in every test. `orchestrator/tests/` covers
-`orchestrator.py` itself (the agents, `validate()`, and the `Orchestrator` state machine);
-`ai-layer/tests/test_main.py` covers the three endpoints above, with `orchestrator`'s functions
-mocked so no orchestrator logic actually runs there — to exercise both suites together:
+`orchestrator.py` itself (the agents, `validate()`, `judge()`, and the `Orchestrator` state
+machine); `ai-layer/tests/test_main.py` covers the four endpoints above, with `orchestrator`'s
+functions mocked so no orchestrator logic actually runs there — to exercise both suites
+together:
 
 ```bash
 cd ai-layer

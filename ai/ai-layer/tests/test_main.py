@@ -21,6 +21,8 @@ Tests verify:
       {"stage", "output", "valid"} shape when stage_id matches the current pending stage,
       returns 400 without calling rerun_stage when it doesn't, and converts a downstream
       error into a 500.
+  11. /orchestrate/judge calls orchestrator.judge(message) and returns whatever it returns
+      directly, and converts a downstream error into a 500.
 """
 from unittest.mock import MagicMock, patch
 
@@ -144,6 +146,47 @@ def test_orchestrate_rerun_endpoint_returns_500_on_downstream_error():
         main, "rerun_stage", side_effect=RuntimeError("all providers exhausted")
     ):
         response = client.post("/orchestrate/rerun/psm")
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "all providers exhausted"
+
+
+def test_orchestrate_judge_endpoint_returns_judge_result_directly():
+    judge_result = {
+        "tool_called": "rerun_stage",
+        "result": {"stage": "atl", "output": "ATL v2", "valid": True},
+        "steps": [
+            {"tool": "add_constraint", "arguments": {"stage": "atl", "constraint": "Add a lint step"}, "result": None},
+            {"tool": "rerun_stage", "arguments": {}, "result": {"stage": "atl", "output": "ATL v2", "valid": True}},
+        ],
+    }
+    with patch.object(main, "judge", return_value=judge_result) as mock_judge:
+        response = client.post(
+            "/orchestrate/judge",
+            json={"message": "the ATL stage output is wrong, please redo it with a lint step added"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == judge_result
+    mock_judge.assert_called_once_with("the ATL stage output is wrong, please redo it with a lint step added")
+
+
+def test_orchestrate_judge_endpoint_returns_no_action_result_directly():
+    no_action_result = {
+        "tool_called": None,
+        "result": None,
+        "message": "I couldn't map that to a pipeline action — could you clarify which stage and what you'd like done?",
+    }
+    with patch.object(main, "judge", return_value=no_action_result):
+        response = client.post("/orchestrate/judge", json={"message": "hello there"})
+
+    assert response.status_code == 200
+    assert response.json() == no_action_result
+
+
+def test_orchestrate_judge_endpoint_returns_500_on_downstream_error():
+    with patch.object(main, "judge", side_effect=RuntimeError("all providers exhausted")):
+        response = client.post("/orchestrate/judge", json={"message": "redo the psm stage"})
 
     assert response.status_code == 500
     assert response.json()["detail"] == "all providers exhausted"
