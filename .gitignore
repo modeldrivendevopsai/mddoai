@@ -7,5 +7,6 @@
 # Ignore Gradle build output directory
 build
 
-/plugins__pycache__/
+/plugins
+__pycache__/
 *.pyc
