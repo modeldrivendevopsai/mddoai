@@ -5,11 +5,9 @@
 <title>MDDOAI UI Wireframe v2</title>
 <style>
   * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-  body { padding: 60px; background: #ffffff; }
-  .scenario { margin-bottom: 100px; }
-  .scenario-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #000000; padding-bottom: 8px; }
-  .scenario-sub { font-size: 13px; color: #666666; margin-bottom: 24px; }
-  .scenario-row { display: flex; gap: 60px; align-items: flex-start; }
+  body { display: flex; flex-wrap: wrap; gap: 60px; padding: 60px; background: #ffffff; align-items: flex-start; }
+  .scenario-title { flex-basis: 100%; font-size: 20px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #000000; padding-bottom: 8px; margin-top: 40px; }
+  .scenario-sub { flex-basis: 100%; font-size: 13px; color: #666666; margin-bottom: 0; }
   .screen { flex-shrink: 0; }
   .frame-label { font-size: 13px; font-weight: bold; color: #333333; margin-bottom: 10px; }
   .frame { width: 1080px; height: 800px; border: 1px solid #000000; background: #ffffff; position: relative; overflow: hidden; }
@@ -17,9 +15,6 @@
   .header.done { background: #dfffe0; }
   .exit-link { position: absolute; right: 20px; font-size: 12px; color: #1a4fd6; text-decoration: underline; cursor: pointer; font-weight: normal; }
   .subtitle { text-align: center; color: #666666; font-size: 14px; padding: 16px 0 0 0; }
-  .row { display: flex; gap: 30px; padding: 30px; }
-  .card { flex: 1; border: 1px solid #000000; border-radius: 8px; background: #f5f5f5; padding: 18px; font-size: 13px; }
-  .card h3 { margin-top: 0; font-size: 15px; }
   .btn { display: inline-block; border: 1px solid #000000; border-radius: 4px; padding: 7px 14px; background: #ffffff; font-size: 12px; margin-top: 10px; }
   .btn.disabled { color: #999999; border-color: #cccccc; }
   .link { color: #1a4fd6; font-size: 12px; text-decoration: underline; cursor: pointer; }
@@ -38,16 +33,8 @@
   .modal-box { position: absolute; top: 230px; left: 290px; width: 500px; border: 1px solid #000000; border-radius: 8px; background: #ffffff; padding: 22px; font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
   .modal-actions { margin-top: 14px; display: flex; gap: 12px; }
   .modal-actions-note { font-size: 11px; color: #999999; margin-top: 6px; }
-  .three-col { display: flex; gap: 16px; padding: 16px; height: calc(100% - 56px); }
   .col { flex: 1; border: 1px solid #000000; border-radius: 8px; padding: 14px; font-size: 11px; background: #f5f5f5; }
   .col-title { font-weight: bold; font-size: 12px; margin-bottom: 8px; }
-  .pipeline-col { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 16px; }
-  .stage-node { width: 190px; padding: 12px; border: 1px solid #000000; border-radius: 8px; text-align: center; font-size: 12px; }
-  .stage-done { background: #dfffe0; }
-  .stage-generating { background: #e0eaff; }
-  .stage-checking { background: #fff6cc; }
-  .stage-pending { background: #f0f0f0; }
-  .arrow { font-size: 16px; color: #333333; }
   .msg { margin-bottom: 10px; }
   .msg b { display: block; font-size: 10px; color: #666666; }
   .coverage-detail { margin: 8px 30px 0 30px; border: 1px dashed #999999; border-radius: 8px; padding: 14px; font-size: 11px; background: #ffffff; }
@@ -60,43 +47,86 @@
   .spinner-glyph { font-size: 28px; display: block; margin-bottom: 10px; }
   .check-pass { background: #dfffe0; border: 1px solid #2a8f3f; border-radius: 6px; padding: 7px 10px; font-size: 11px; font-weight: bold; margin-bottom: 8px; }
   .check-fail { background: #ffe0e0; border: 1px solid #b53030; border-radius: 6px; padding: 7px 10px; font-size: 11px; font-weight: bold; margin-bottom: 8px; }
-  .empty-state { text-align: center; padding: 80px 40px; color: #666666; }
+  .check-fail-pim { background: #ffe9c2; border: 1px solid #a15c00; border-radius: 6px; padding: 7px 10px; font-size: 11px; font-weight: bold; margin-bottom: 8px; }
+
+  /* frame becomes a column flex container so the stepper + below-stepper panels can share height cleanly */
+  .frame { display: flex; flex-direction: column; }
+  .frame > .header { flex: 0 0 auto; }
+
+  /* horizontal stage stepper, replaces the old vertical pipeline column */
+  .stepper-row { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 20px; border-bottom: 1px solid #000000; background: #ffffff; flex-wrap: wrap; }
+  .stepper-node { min-width: 110px; padding: 8px 12px; border: 1px solid #000000; border-radius: 16px; text-align: center; font-size: 11px; }
+  .stepper-arrow { font-size: 14px; color: #333333; }
+  .stepper-done { background: #dfffe0; }
+  .stepper-generating { background: #e0eaff; }
+  .stepper-checking { background: #fff6cc; }
+  .stepper-pending { background: #f0f0f0; }
+  .below-stepper { flex: 1 1 auto; display: flex; gap: 16px; padding: 16px; overflow: auto; }
+
+  /* start-screen cycle diagram: one pill shape, split in half, each half is one entry point */
+  .loop-wrap { padding: 18px 30px 0 30px; }
+  .loop-arrow-label { text-align: center; font-size: 11px; color: #555555; padding: 4px 0; }
+  .loop-pill { display: flex; border: 1px solid #000000; border-radius: 8px; overflow: hidden; background: #f5f5f5; }
+  .loop-half { flex: 1; padding: 20px 30px; }
+  .loop-half.right { border-left: 1px solid #000000; }
+
+  /* two-color path system: blue = pipelines, purple = platform/MDE artifacts */
+  .header-pipeline { background: #e8f0ff; }
+  .header-platform { background: #f3ecff; }
+  .header-bridge { background: linear-gradient(90deg, #e8f0ff 0%, #e8f0ff 50%, #f3ecff 50%, #f3ecff 100%); }
+  /* lighter tone of the same path color on panels below the header, darker header / lighter body, same family */
+  .frame:has(.header-pipeline) .panel, .frame:has(.header-pipeline) .panel-mono, .frame:has(.header-pipeline) .chat-box, .frame:has(.header-pipeline) .col { background: #f3f8ff; }
+  .frame:has(.header-platform) .panel, .frame:has(.header-platform) .panel-mono, .frame:has(.header-platform) .chat-box, .frame:has(.header-platform) .col { background: #faf7ff; }
+
+  /* horizontal coverage bar, inline in front of each platform name */
+  .gauge-mini { display: inline-block; width: 40px; height: 10px; border: 1px solid #000000; border-radius: 5px; background: #e2e2e2; position: relative; overflow: hidden; vertical-align: middle; margin-right: 8px; }
+  .gauge-mini-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #2fae57; }
+  .gauge-mini-fill.low { background: #d64545; }
 </style>
 </head>
 <body>
 
 <!-- ============ SCENARIO 0: START SCREEN STATES ============ -->
-<div class="scenario">
-  <div class="scenario-title">Scenario 0 &#58; Start screen states</div>
-  <div class="scenario-sub">The entry point, normal state and empty state (no platforms integrated yet)</div>
-  <div class="scenario-row">
+<div class="scenario-title">Scenario 0 &#58; Start screen states</div>
+<div class="scenario-sub">The entry point, normal state and empty state (no platforms integrated yet)</div>
 
-    <div class="screen">
+    <div class="screen screen-0a">
       <div class="frame-label">0a &#58; Start, normal</div>
-      <div class="frame">
+      <div class="frame" id="screen-0a">
         <div class="header">MDDOAI</div>
         <div class="subtitle">Choose how you want to start</div>
-        <div class="row">
-          <div class="card">
-            <h3>Generate a Pipeline</h3>
-            <p>Upload a SWArch file, pick a supported platform, get a pipeline back.</p>
-            <div class="btn">Start</div>
+        <div class="loop-wrap">
+          <div class="loop-arrow-label">gap found in a CI/CD pipeline &rarr; escalates to platform work</div>
+          <div class="loop-pill">
+            <div class="loop-half">
+              <h3>Generate a CI/CD Pipeline</h3>
+              <p>Upload a SWArch file, pick a supported CI/CD platform, get a CI/CD pipeline back.</p>
+              <div class="btn">Start</div>
+            </div>
+            <div class="loop-half right">
+              <h3>Add or Update a CI/CD Platform</h3>
+              <p>Describe a CI/CD platform or upload its docs, MDDOAI generates or updates support for it.</p>
+              <div class="btn">Start</div>
+            </div>
           </div>
-          <div class="card">
-            <h3>Integrate a New Platform</h3>
-            <p>Describe a platform or upload its docs, MDDOAI generates support for it.</p>
-            <div class="btn">Start</div>
-          </div>
+          <div class="loop-arrow-label">regenerate the pipeline with it &larr; platform fixed</div>
         </div>
         <div class="section">
-          <h3>Supported Platforms</h3>
+          <h3>Supported CI/CD Platforms</h3>
           <table>
-            <tr><th>Platform</th><th>Status</th><th>PIM Coverage</th></tr>
-            <tr><td>GitLab CI</td><td>Supported</td><td>4/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
-            <tr><td>Bamboo</td><td>In Progress &nbsp;<span class="link">resume &rarr;</span></td><td>1/9 full &nbsp;<span class="link">view breakdown</span></td></tr>
+            <tr><th>Platform</th><th>Status</th><th></th></tr>
+            <tr><td><span class="gauge-mini"><span class="gauge-mini-fill" style="width:44%;"></span></span>GitLab CI</td><td>Supported</td><td><span class="link">view breakdown</span></td></tr>
+            <tr><td><span class="gauge-mini"><span class="gauge-mini-fill low" style="width:11%;"></span></span>Bamboo</td><td>In Progress &nbsp;<span class="link">resume &rarr;</span></td><td><span class="link">view breakdown</span></td></tr>
           </table>
         </div>
-        <div class="coverage-detail">
+      </div>
+    </div>
+
+    <div class="screen screen-0b">
+      <div class="frame-label">0b &#58; "view breakdown" &#58; platform coverage detail</div>
+      <div class="frame" id="screen-0b">
+        <div class="header header-platform">&larr;&nbsp;&nbsp;GitLab CI &#58; PIM coverage breakdown</div>
+        <div class="coverage-detail" style="margin-top:20px;">
           <div class="cov-title">GitLab CI &#58; concept breakdown</div>
           <table>
             <tr><td>Pipeline <span class="tag tag-full">Full</span></td><td>Job <span class="tag tag-full">Full</span></td><td>Matrix <span class="tag tag-full">Full</span></td></tr>
@@ -104,41 +134,46 @@
             <tr><td>Parameters <span class="tag tag-none">None</span></td><td>Steps <span class="tag tag-partial">Partial</span></td><td>Expressions <span class="tag tag-full">Full</span></td></tr>
           </table>
         </div>
+        <div class="section" style="padding-top:16px; color:#666666; font-size:12px;">Only shown when the user asks for it, kept off the first screen.</div>
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">0b &#58; Start, empty state (no platforms yet)</div>
-      <div class="frame">
-        <div class="header">MDDOAI</div>
-        <div class="empty-state">
-          <p style="font-size:16px;">No platforms integrated yet.</p>
-          <p>Start by integrating your first CI/CD platform.</p>
-          <div class="btn">Integrate a New Platform</div>
+<!-- ============ SCENARIO A: GENERATE PIPELINE, HAPPY PATH ============ -->
+<div class="scenario-title">Scenario A &#58; Generate Pipeline, happy path</div>
+<div class="scenario-sub">Platform already supported, SWArch in &rarr; working pipeline out, first try</div>
+
+    <div class="screen screen-a0">
+      <div class="frame-label">a0 &#58; pipelines workspace</div>
+      <div class="frame" id="screen-a0">
+        <div class="header header-pipeline">CI/CD Pipelines &nbsp;<span class="link" style="margin-left:8px;">&larr; Start</span></div>
+        <div class="section" style="padding-top:16px;">
+          <h3>Your pipelines</h3>
+          <table>
+            <tr><th>SWArch input</th><th>Platform(s)</th><th>Output pipeline(s)</th><th>Last generated</th><th></th></tr>
+            <tr><td>hello-java-ci.swarch</td><td>GitLab CI</td><td>.gitlab-ci.yml</td><td>2 days ago</td><td><span class="link">open</span></td></tr>
+            <tr><td>payments-service.swarch</td><td>Bamboo</td><td>bamboo-spec.yml</td><td>1 week ago</td><td><span class="link">open</span></td></tr>
+          </table>
+        </div>
+        <div class="section" style="padding-top:20px;">
+          <div class="btn">+ New pipeline</div>
         </div>
       </div>
     </div>
 
-  </div>
-</div>
-
-<!-- ============ SCENARIO A: GENERATE PIPELINE, HAPPY PATH ============ -->
-<div class="scenario">
-  <div class="scenario-title">Scenario A &#58; Generate Pipeline, happy path</div>
-  <div class="scenario-sub">Platform already supported, SWArch in &rarr; working pipeline out, first try</div>
-  <div class="scenario-row">
-
-    <div class="screen">
-      <div class="frame-label">A1 &#58; input</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-a1">
+      <div class="frame-label">a1 &#58; input</div>
+      <div class="frame" id="screen-a1">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel">
             <b>Upload SWArch file</b>
             <div class="field">drop file here, or browse</div>
             <br>
-            <b>Platform</b>
-            <div class="field">GitLab CI &#9662;</div>
+            <b>Platform(s)</b> <span style="color:#999999; font-weight:normal;">&#58; select one or more</span>
+            <div class="field">&#9744; GitLab CI &nbsp;&nbsp; &#9744; Bamboo</div>
+            <br>
+            <b>Save output to</b>
+            <div class="field">./ci-output/ &nbsp; <span class="link">browse</span></div>
             <div class="btn">Generate</div>
           </div>
           <div class="panel" style="color:#999999;">Result will appear here once generated.</div>
@@ -146,17 +181,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">A2 &#58; generating</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-a2">
+      <div class="frame-label">a2 &#58; generating</div>
+      <div class="frame" id="screen-a2">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel">
             <b>Upload SWArch file</b>
             <div class="field">hello-java-ci.swarch</div>
             <br>
-            <b>Platform</b>
-            <div class="field">GitLab CI &#9662;</div>
+            <b>Platform(s)</b>
+            <div class="field">&#9745; GitLab CI &nbsp;&nbsp; &#9744; Bamboo</div>
+            <br>
+            <b>Save output to</b>
+            <div class="field">./ci-output/</div>
             <div class="btn disabled">Generating&hellip;</div>
           </div>
           <div class="panel">
@@ -166,17 +204,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">A3 &#58; result</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-a3">
+      <div class="frame-label">a3 &#58; result</div>
+      <div class="frame" id="screen-a3">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel">
             <b>Upload SWArch file</b>
             <div class="field">hello-java-ci.swarch</div>
             <br>
-            <b>Platform</b>
-            <div class="field">GitLab CI &#9662;</div>
+            <b>Platform(s)</b>
+            <div class="field">&#9745; GitLab CI &nbsp;&nbsp; &#9744; Bamboo</div>
+            <br>
+            <b>Save output to</b>
+            <div class="field">./ci-output/</div>
             <div class="btn">Generate</div>
           </div>
           <div class="panel-mono">stages:
@@ -193,26 +234,25 @@
       </div>
     </div>
 
-  </div>
-</div>
 
 <!-- ============ SCENARIO B: GENERATE PIPELINE, FALSE ALARM ============ -->
-<div class="scenario">
-  <div class="scenario-title">Scenario B &#58; Generate Pipeline, reported issue turns out NOT to be a platform gap</div>
-  <div class="scenario-sub">The more common case: something's wrong on the user's side, not MDDOAI's</div>
-  <div class="scenario-row">
+<div class="scenario-title">Scenario B &#58; Generate Pipeline, reported issue turns out NOT to be a platform gap</div>
+<div class="scenario-sub">The more common case: something's wrong on the user's side, not MDDOAI's</div>
 
-    <div class="screen">
-      <div class="frame-label">B1 &#58; result (same as A3)</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-b1">
+      <div class="frame-label">b1 &#58; result (same as A3)</div>
+      <div class="frame" id="screen-b1">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel">
             <b>Upload SWArch file</b>
             <div class="field">hello-java-ci.swarch</div>
             <br>
-            <b>Platform</b>
-            <div class="field">GitLab CI &#9662;</div>
+            <b>Platform(s)</b>
+            <div class="field">&#9745; GitLab CI &nbsp;&nbsp; &#9744; Bamboo</div>
+            <br>
+            <b>Save output to</b>
+            <div class="field">./ci-output/</div>
             <div class="btn">Generate</div>
           </div>
           <div class="panel-mono">stages:
@@ -229,10 +269,10 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">B2 &#58; feedback sent</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-b2">
+      <div class="frame-label">b2 &#58; feedback sent</div>
+      <div class="frame" id="screen-b2">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel-mono">stages:
   - build
@@ -247,10 +287,10 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">B3 &#58; investigating</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-b3">
+      <div class="frame-label">b3 &#58; investigating</div>
+      <div class="frame" id="screen-b3">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel-mono">stages:
   - build
@@ -266,10 +306,10 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">B4 &#58; not a platform gap</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-b4">
+      <div class="frame-label">b4 &#58; not a platform gap</div>
+      <div class="frame" id="screen-b4">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel-mono">stages:
   - build
@@ -286,19 +326,15 @@
       </div>
     </div>
 
-  </div>
-</div>
 
 <!-- ============ SCENARIO C: GENERATE PIPELINE ESCALATES TO A SCOPED PLATFORM FIX ============ -->
-<div class="scenario">
-  <div class="scenario-title">Scenario C &#58; Generate Pipeline, reported issue IS a real platform gap, escalates and gets fixed</div>
-  <div class="scenario-sub">Full loop: hit a gap &rarr; confirm it's platform-level &rarr; fix scoped to one stage &rarr; regenerate</div>
-  <div class="scenario-row">
+<div class="scenario-title">Scenario C &#58; Generate Pipeline, reported issue IS a real platform gap, escalates and gets fixed</div>
+<div class="scenario-sub">Full loop: hit a gap &rarr; confirm it's platform-level &rarr; fix scoped to one stage &rarr; regenerate</div>
 
-    <div class="screen">
-      <div class="frame-label">C1 &#58; feedback sent</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-c1">
+      <div class="frame-label">c1 &#58; feedback sent</div>
+      <div class="frame" id="screen-c1">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel-mono">stages:
   - build
@@ -313,10 +349,10 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C2 &#58; investigating</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-c2">
+      <div class="frame-label">c2 &#58; investigating</div>
+      <div class="frame" id="screen-c2">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel-mono">stages:
   - build
@@ -332,12 +368,12 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C3 &#58; escalation confirmed</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-c3">
+      <div class="frame-label">c3 &#58; escalation confirmed</div>
+      <div class="frame" id="screen-c3">
+        <div class="header header-bridge">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="modal-bg">
-          <div class="modal-note">(background: Generate Pipeline screen, dimmed)</div>
+          <div class="modal-note">(background: Generate CI/CD Pipeline screen, dimmed)</div>
           <div class="modal-box">
             <b>Gap found in ATL stage for GitLab CI</b>
             <p>Your SWArch file does declare service ports, this is a real gap in GitLab CI's transformation rules, not a one-off. We'll fix it at the platform level so every future GitLab pipeline gets it too, then regenerate yours automatically.</p>
@@ -351,26 +387,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C4 &#58; ATL stage generating</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-c4">
+      <div class="frame-label">c4 &#58; ATL stage generating</div>
+      <div class="frame" id="screen-c4">
+        <div class="header header-bridge">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-generating">ATL &#58; generating&hellip;</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Fixing the ATL stage to map service ports.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-generating">ATL<br>( generating&hellip; )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -380,26 +410,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C5 &#58; ATL check failed</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-c5">
+      <div class="frame-label">c5 &#58; ATL check failed</div>
+      <div class="frame" id="screen-c5">
+        <div class="header header-bridge">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>First attempt didn't pass the automated check, take a look.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -421,26 +445,51 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C6 &#58; curating the fix</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-c5b">
+      <div class="frame-label">c5b &#58; ATL check failed, PIM gap (not a prompt problem)</div>
+      <div class="frame" id="screen-c5b">
+        <div class="header header-bridge">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
+          <div class="col">
+            <div class="col-title">Chat</div>
+            <div class="msg"><b>Orchestrator</b>This isn't a prompt issue, the CI/CD PIM itself has no concept for what the docs describe.</div>
+          </div>
+          <div class="col">
+            <div class="col-title">ATL stage output</div>
+            <div class="check-fail-pim">Automated check: FAILED &#58; PIM gap, not a prompt problem</div>
+            <p>"external runner" object not recognized. This concept doesn't exist in the CI/CD PIM yet. Add it to the CI/CD PIM first (in Eclipse), or curate the prompt below with an explanation and a mapping to an existing concept.</p>
+            <div class="btn disabled">Approve</div>
+            <div style="margin-top:14px;">
+              <b>Curate the prompt/constraint for this stage</b>
+              <div class="field">explain the mapping, e.g. "treat external runner as an Agent with a fixed label"</div>
+              <div class="btn">Curate prompt instead</div>
+              <div class="btn" style="margin-left:8px;">I've updated the PIM, retry</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-c6">
+      <div class="frame-label">c6 &#58; curating the fix</div>
+      <div class="frame" id="screen-c6">
+        <div class="header header-bridge">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>You</b>added the port mapping constraint, retrying</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -456,26 +505,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C7 &#58; ATL check passed, approved</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-c7">
+      <div class="frame-label">c7 &#58; ATL check passed, approved</div>
+      <div class="frame" id="screen-c7">
+        <div class="header header-bridge">Platform Integration &nbsp;&rsaquo;&nbsp; GitLab CI &nbsp;&rsaquo;&nbsp; ATL stage <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Retried with your constraint, check passed this time.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -497,9 +540,9 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C8 &#58; scoped fix complete</div>
-      <div class="frame">
+    <div class="screen screen-c8">
+      <div class="frame-label">c8 &#58; scoped fix complete</div>
+      <div class="frame" id="screen-c8">
         <div class="header done">ATL stage fix applied &#58; GitLab CI</div>
         <div class="two-col">
           <div class="panel" style="color:#333333;">
@@ -518,17 +561,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">C9 &#58; pipeline regenerated</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Generate Pipeline</div>
+    <div class="screen screen-c9">
+      <div class="frame-label">c9 &#58; pipeline regenerated</div>
+      <div class="frame" id="screen-c9">
+        <div class="header header-pipeline">&larr;&nbsp;&nbsp;Generate CI/CD Pipeline</div>
         <div class="two-col">
           <div class="panel">
             <b>Upload SWArch file</b>
             <div class="field">hello-java-ci.swarch</div>
             <br>
-            <b>Platform</b>
-            <div class="field">GitLab CI &#9662;</div>
+            <b>Platform(s)</b>
+            <div class="field">&#9745; GitLab CI &nbsp;&nbsp; &#9744; Bamboo</div>
+            <br>
+            <b>Save output to</b>
+            <div class="field">./ci-output/</div>
             <div class="btn">Generate</div>
           </div>
           <div class="panel-mono">stages:
@@ -545,19 +591,41 @@
       </div>
     </div>
 
-  </div>
-</div>
 
 <!-- ============ SCENARIO D: NEW PLATFORM INTEGRATION, FULL BUILD ============ -->
-<div class="scenario">
-  <div class="scenario-title">Scenario D &#58; Integrate a New Platform, full build from scratch (TeamCity)</div>
-  <div class="scenario-sub">All 4 stages, first-ever run for this platform, one retry shown on ATL to demonstrate the pattern</div>
-  <div class="scenario-row">
+<div class="scenario-title">Scenario D &#58; Add or Update a Platform, full build from scratch (TeamCity)</div>
+<div class="scenario-sub">All 4 stages, first-ever run for this platform, one retry shown on ATL to demonstrate the pattern</div>
 
-    <div class="screen">
-      <div class="frame-label">D1 &#58; input</div>
-      <div class="frame">
-        <div class="header">&larr;&nbsp;&nbsp;Integrate a New Platform</div>
+    <div class="screen screen-d0">
+      <div class="frame-label">d0 &#58; platform workspace</div>
+      <div class="frame" id="screen-d0">
+        <div class="header header-platform">CI/CD Platforms &nbsp;<span class="link" style="margin-left:8px;">&larr; Start</span></div>
+        <div class="section" style="padding-top:16px;">
+          <h3>Recent activity</h3>
+          <table>
+            <tr><th>Platform</th><th>Last change</th><th>What happened</th></tr>
+            <tr><td>GitLab CI</td><td>2 days ago</td><td>ATL stage fix, service ports (Scenario C)</td></tr>
+            <tr><td>Bamboo</td><td>3 weeks ago</td><td>Integration started, in progress</td></tr>
+          </table>
+        </div>
+        <div class="section" style="padding-top:16px;">
+          <h3>Supported platforms, in detail</h3>
+          <table>
+            <tr><th>Platform</th><th>Status</th><th>PIM Coverage</th><th></th></tr>
+            <tr><td>GitLab CI</td><td>Supported</td><td>4/9 full &nbsp;<span class="link">view breakdown</span></td><td><span class="btn" style="margin:0;">Update this platform</span></td></tr>
+            <tr><td>Bamboo</td><td>In Progress</td><td>1/9 full &nbsp;<span class="link">view breakdown</span></td><td><span class="btn" style="margin:0;">Resume</span></td></tr>
+          </table>
+        </div>
+        <div class="section" style="padding-top:20px;">
+          <div class="btn">+ Add a new platform</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-d1">
+      <div class="frame-label">d1 &#58; input (new platform)</div>
+      <div class="frame" id="screen-d1">
+        <div class="header header-platform">&larr;&nbsp;&nbsp;Add a CI/CD Platform</div>
         <div class="two-col">
           <div class="panel">
             <b>Platform name</b>
@@ -578,26 +646,42 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D2 &#58; PSM stage generating</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d1b">
+      <div class="frame-label">d1b &#58; starting, progress visible immediately</div>
+      <div class="frame" id="screen-d1b">
+        <div class="header header-platform">&larr;&nbsp;&nbsp;Add a CI/CD Platform</div>
+        <div class="two-col">
+          <div class="panel">
+            <b>Platform name</b>
+            <div class="field">TeamCity</div>
+            <br>
+            <b>Documentation URL</b>
+            <div class="field">https://www.jetbrains.com/help/teamcity/</div>
+            <div class="btn disabled">Starting&hellip;</div>
+          </div>
+          <div class="panel">
+            <b>Progress</b>
+            <p style="color:#666666;">&#9696; Reading documentation&hellip; this can take a while for large doc sites.</p>
+            <p style="color:#999999; font-size:11px;">You'll be moved to the stage-by-stage review screen once the PSM stage starts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen-d2">
+      <div class="frame-label">d2 &#58; PSM stage generating</div>
+      <div class="frame" id="screen-d2">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-generating">PSM &#58; generating&hellip;</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Reading TeamCity docs, generating the PSM metamodel.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-generating">PSM<br>( generating&hellip; )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">ATL<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">PSM stage output</div>
@@ -607,26 +691,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D3 &#58; PSM check passed, approved</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d3">
+      <div class="frame-label">d3 &#58; PSM check passed, approved</div>
+      <div class="frame" id="screen-d3">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; PSM stage (1 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-checking">PSM &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>PSM metamodel generated, loads cleanly in EMF.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-checking">PSM<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">ATL<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">PSM stage output</div>
@@ -648,26 +726,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D4 &#58; ATL stage generating</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d4">
+      <div class="frame-label">d4 &#58; ATL stage generating</div>
+      <div class="frame" id="screen-d4">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-generating">ATL &#58; generating&hellip;</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>PSM approved, generating the ATL transformation.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-generating">ATL<br>( generating&hellip; )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -677,26 +749,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D5 &#58; ATL check failed</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d5">
+      <div class="frame-label">d5 &#58; ATL check failed</div>
+      <div class="frame" id="screen-d5">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Didn't pass the check, `def` was used as a variable name, that's reserved.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -716,26 +782,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D6 &#58; curating the fix</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d6">
+      <div class="frame-label">d6 &#58; curating the fix</div>
+      <div class="frame" id="screen-d6">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>You</b>added the reserved-word constraint, retrying</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -751,26 +811,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D7 &#58; ATL check passed, approved</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d7">
+      <div class="frame-label">d7 &#58; ATL check passed, approved</div>
+      <div class="frame" id="screen-d7">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; ATL stage (2 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">ATL &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Retried with your constraint, check passed.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">ATL<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Acceleo<br>( pending )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">ATL stage output</div>
@@ -789,26 +843,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D8 &#58; Acceleo stage generating</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d8">
+      <div class="frame-label">d8 &#58; Acceleo stage generating</div>
+      <div class="frame" id="screen-d8">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-generating">Acceleo &#58; generating&hellip;</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>ATL approved, generating the Acceleo code template.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">ATL<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-generating">Acceleo<br>( generating&hellip; )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">Acceleo stage output</div>
@@ -818,26 +866,20 @@
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D9 &#58; Acceleo check passed, approved</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d9">
+      <div class="frame-label">d9 &#58; Acceleo check passed, approved</div>
+      <div class="frame" id="screen-d9">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Acceleo stage (3 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">Acceleo &#58; reviewing</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-pending">Generation + Test</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Clean first try, no reserved-word issues this time.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">ATL<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">Acceleo<br>( reviewing )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-pending">Generation + Test<br>( pending )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">Acceleo stage output</div>
@@ -857,26 +899,20 @@ steps: [build] ...</div>
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D10 &#58; Generation + Test running</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d10">
+      <div class="frame-label">d10 &#58; Generation + Test running</div>
+      <div class="frame" id="screen-d10">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-generating">Generation + Test &#58; running&hellip;</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Acceleo approved, running generation and the integration test.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">ATL<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">Acceleo<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-generating">Generation + Test<br>( running&hellip; )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">Generation + Test output</div>
@@ -886,26 +922,20 @@ steps: [build] ...</div>
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D11 &#58; last stage passed, approved</div>
-      <div class="frame">
-        <div class="header">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
-        <div class="three-col">
+    <div class="screen screen-d11">
+      <div class="frame-label">d11 &#58; last stage passed, approved</div>
+      <div class="frame" id="screen-d11">
+        <div class="header header-platform">Platform Integration &nbsp;&rsaquo;&nbsp; TeamCity &nbsp;&rsaquo;&nbsp; Generation + Test (4 of 4) <span class="exit-link">Exit integration</span></div>
+        <div class="stepper-row">
+          <div class="stepper-node stepper-done">PSM</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">ATL</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-done">Acceleo</div><div class="stepper-arrow">&rarr;</div>
+          <div class="stepper-node stepper-checking">Generation + Test &#58; reviewing</div>
+        </div>
+        <div class="below-stepper">
           <div class="col">
             <div class="col-title">Chat</div>
             <div class="msg"><b>Orchestrator</b>Sample pipeline generated and validated successfully. This was the last stage.</div>
-          </div>
-          <div class="col" style="background:#ffffff;">
-            <div class="col-title" style="text-align:center;">Pipeline</div>
-            <div class="pipeline-col">
-              <div class="stage-node stage-done">PSM<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">ATL<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-done">Acceleo<br>( done )</div>
-              <div class="arrow">&darr;</div>
-              <div class="stage-node stage-checking">Generation + Test<br>( reviewing )</div>
-            </div>
           </div>
           <div class="col">
             <div class="col-title">Generation + Test output</div>
@@ -923,9 +953,9 @@ steps: [build] ...</div>
       </div>
     </div>
 
-    <div class="screen">
-      <div class="frame-label">D12 &#58; completed, first run</div>
-      <div class="frame">
+    <div class="screen screen-d12">
+      <div class="frame-label">d12 &#58; completed, first run</div>
+      <div class="frame" id="screen-d12">
         <div class="header done">TeamCity integration complete</div>
         <div class="two-col">
           <div class="panel-mono">Sample pipeline
@@ -954,9 +984,6 @@ steps:
         </div>
       </div>
     </div>
-
-  </div>
-</div>
 
 </body>
 </html>
