@@ -23,11 +23,18 @@ Tests verify:
      {"tool_called": None, ...} with a clarification message when the LLM calls no tool,
      and doesn't crash on a hallucinated/unknown tool name.
   8. start_pipeline() resets the pipeline (dropping prior progress/constraints) and runs
-     the psm stage fresh for a new platform description — same behavior POST
-     /orchestrate/start uses.
+     the psm stage fresh for a new platform description — same behavior POST /start uses.
+  9. chat() — the HTTP client that replaced the old direct `from router.router import chat`
+     import — POSTs to AI_LAYER_URL/chat with the right payload (omitting tools/tool_choice
+     when not given), and wraps the JSON response so response.choices[0].message.content and
+     .tool_calls (and each tool_call's .function.name/.arguments) work exactly like the
+     litellm response object this replaced.
 """
 import json
 from unittest.mock import MagicMock, patch
+
+import httpx
+import pytest
 
 import orchestrator
 
@@ -481,3 +488,75 @@ def test_judge_records_error_for_unknown_tool_call_without_crashing():
         assert result["result"] == {"error": "Unknown tool: delete_everything"}
     finally:
         orchestrator._default = original
+
+
+# --- chat() HTTP client tests -------------------------------------------------
+#
+# chat() no longer imports router.router directly; it POSTs to ai-layer's /chat
+# endpoint. These tests mock httpx.post itself (the actual network boundary),
+# rather than mocking chat() as the tests above do for the agents/judge().
+
+
+def _fake_httpx_response(content=None, model="gemini/gemini-2.5-flash", tool_calls=None):
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = {"content": content, "model": model, "tool_calls": tool_calls}
+    return resp
+
+
+def test_chat_posts_to_ai_layer_url_with_messages_and_model():
+    messages = [{"role": "user", "content": "hi"}]
+    with patch("orchestrator.httpx.post", return_value=_fake_httpx_response("hello")) as mock_post:
+        result = orchestrator.chat(messages, model="auto")
+
+    mock_post.assert_called_once_with(
+        f"{orchestrator.AI_LAYER_URL}/chat",
+        json={"messages": messages, "model": "auto"},
+        timeout=120.0,
+    )
+    assert result.choices[0].message.content == "hello"
+    assert result.model == "gemini/gemini-2.5-flash"
+
+
+def test_chat_omits_tools_and_tool_choice_when_not_provided():
+    with patch("orchestrator.httpx.post", return_value=_fake_httpx_response("hello")) as mock_post:
+        orchestrator.chat([{"role": "user", "content": "hi"}])
+
+    sent_payload = mock_post.call_args.kwargs["json"]
+    assert "tools" not in sent_payload
+    assert "tool_choice" not in sent_payload
+
+
+def test_chat_includes_tools_and_tool_choice_when_provided():
+    with patch("orchestrator.httpx.post", return_value=_fake_httpx_response("hello")) as mock_post:
+        orchestrator.chat([{"role": "user", "content": "hi"}], tools=orchestrator.TOOLS, tool_choice="auto")
+
+    sent_payload = mock_post.call_args.kwargs["json"]
+    assert sent_payload["tools"] == orchestrator.TOOLS
+    assert sent_payload["tool_choice"] == "auto"
+
+
+def test_chat_wraps_tool_calls_into_navigable_objects():
+    tool_calls = [{"function": {"name": "rerun_stage", "arguments": "{}"}}]
+    with patch("orchestrator.httpx.post", return_value=_fake_httpx_response(None, tool_calls=tool_calls)):
+        result = orchestrator.chat([{"role": "user", "content": "hi"}])
+
+    message = result.choices[0].message
+    assert message.content is None
+    assert message.tool_calls[0].function.name == "rerun_stage"
+    assert message.tool_calls[0].function.arguments == "{}"
+
+
+def test_chat_returns_no_tool_calls_when_response_has_none():
+    with patch("orchestrator.httpx.post", return_value=_fake_httpx_response("hello", tool_calls=None)):
+        result = orchestrator.chat([{"role": "user", "content": "hi"}])
+
+    assert result.choices[0].message.tool_calls is None
+
+
+def test_chat_raises_when_ai_layer_returns_an_error_status():
+    resp = MagicMock()
+    resp.raise_for_status.side_effect = httpx.HTTPStatusError("500", request=MagicMock(), response=MagicMock())
+    with patch("orchestrator.httpx.post", return_value=resp):
+        with pytest.raises(httpx.HTTPStatusError):
+            orchestrator.chat([{"role": "user", "content": "hi"}])

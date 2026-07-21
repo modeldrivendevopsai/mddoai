@@ -1,17 +1,62 @@
 import json
 import logging
-import sys
-from pathlib import Path
+import os
 
-# router.router lives in the sibling ai-layer/ service, not inside this module,
-# so it has to be added to sys.path explicitly before the import below resolves.
-_AI_LAYER_DIR = Path(__file__).resolve().parent.parent / "ai-layer"
-if str(_AI_LAYER_DIR) not in sys.path:
-    sys.path.insert(0, str(_AI_LAYER_DIR))
+import httpx
+from dotenv import load_dotenv
 
-from router.router import chat  # noqa: E402
+load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://localhost:8000")
+
+
+class _ToolCallFunction:
+    def __init__(self, name: str, arguments: str):
+        self.name = name
+        self.arguments = arguments
+
+
+class _ToolCall:
+    def __init__(self, data: dict):
+        self.function = _ToolCallFunction(data["function"]["name"], data["function"]["arguments"])
+
+
+class _Message:
+    def __init__(self, content: str | None, tool_calls: list[dict] | None):
+        self.content = content
+        self.tool_calls = [_ToolCall(tc) for tc in tool_calls] if tool_calls else None
+
+
+class _Choice:
+    def __init__(self, message: _Message):
+        self.message = message
+
+
+class _ChatResult:
+    def __init__(self, data: dict):
+        self.model = data.get("model")
+        self.choices = [_Choice(_Message(data.get("content"), data.get("tool_calls")))]
+
+
+def chat(
+    messages: list[dict],
+    model: str | None = None,
+    tools: list[dict] | None = None,
+    tool_choice: str | None = None,
+):
+    """POST to ai-layer's /chat endpoint and wrap the JSON response so callers can
+    keep using response.choices[0].message.{content,tool_calls}, same as the direct
+    litellm call this replaced."""
+    payload = {"messages": messages, "model": model}
+    if tools is not None:
+        payload["tools"] = tools
+    if tool_choice is not None:
+        payload["tool_choice"] = tool_choice
+    response = httpx.post(f"{AI_LAYER_URL}/chat", json=payload, timeout=120.0)
+    response.raise_for_status()
+    return _ChatResult(response.json())
 
 _ERROR_MARKERS = ("i cannot", "i don't know", "i do not know", "an error occurred", "sorry, an error")
 

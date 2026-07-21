@@ -1,15 +1,16 @@
 # orchestrator
 
 Stage-based pipeline generation for MDDOAI: walks a platform description through a fixed
-PSM → ATL → Acceleo → generation pipeline, calling the `ai-layer` router's `chat()` for each
-stage's agent, with a human reviewing and approving each stage's output before the next one
-runs. Used by `ai-layer/main.py`'s `POST /orchestrate/start`,
-`POST /orchestrate/rerun/{stage_id}`, and `POST /review/{stage_id}`.
+PSM → ATL → Acceleo → generation pipeline, with a human reviewing and approving each stage's
+output before the next one runs. It's a standalone FastAPI service — independent of
+`ai-layer` at the code level — that gets its LLM completions by calling `ai-layer`'s
+`POST /chat` endpoint over HTTP, the same way any other client of that service would. Used by
+this service's own `POST /start` and `POST /rerun/{stage_id}` (see [API endpoints](#api-endpoints-mainpy) below).
 
 On top of that, `judge()` is an outer layer that lets an LLM decide *which* of the pipeline
 functions to call for a free-form human message ("the ATL stage output is wrong, please fix
-it with X"), using real tool/function calling rather than keyword matching. Used by
-`POST /orchestrate/judge`.
+it with X"), using real tool/function calling — via `ai-layer`'s `/chat` `tools`/`tool_choice`
+support — rather than keyword matching. Used by `POST /judge`.
 
 ## Stage-based pipeline generation
 
@@ -139,9 +140,11 @@ functions (via `_dispatch_tool()`), and reports:
 A hallucinated/unknown tool name doesn't crash `judge()` — that step's `"result"` becomes
 `{"error": "Unknown tool: <name>"}` instead.
 
-## API endpoints (`ai-layer/main.py`)
+## API endpoints (`main.py`)
 
-### `POST /orchestrate/start`
+The service starts at [http://localhost:8001](http://localhost:8001) (port 8000 is `ai-layer`'s).
+
+### `POST /start`
 
 Resets the pipeline and runs the first stage (`psm`) against a platform description.
 
@@ -199,12 +202,12 @@ Response:
 { "status": "rerun", "stage": "psm" }
 ```
 
-### `POST /orchestrate/rerun/{stage_id}`
+### `POST /rerun/{stage_id}`
 
 Re-runs the current pending stage's agent, reusing the same context passed to its last
 `run_stage()` call and picking up any constraints recorded against it since then via
 `add_constraint()`. `stage_id` must match the pipeline's current pending stage (`400`
-otherwise) — unlike `/orchestrate/start`, this does *not* reset `current_stage_index` or
+otherwise) — unlike `/start`, this does *not* reset `current_stage_index` or
 `constraints`, so earlier approved stages and recorded corrections are preserved. No request
 body is needed.
 
@@ -217,15 +220,15 @@ Response:
 }
 ```
 
-A typical run is: `POST /orchestrate/start` → review the `psm` output → `POST /review/psm`.
+A typical run is: `POST /start` → review the `psm` output → `POST /review/psm`.
 If approved, the response *is* the freshly generated `atl` output — review that and
 `POST /review/atl`, and so on through `acceleo` and `generation`, until approving `generation`
 returns `{"status": "complete"}`. If any review instead rejects a stage, call
-`POST /orchestrate/rerun/{stage_id}` (the recorded correction is folded into the agent's input)
-and review its output again before moving on — `/orchestrate/start` is *not* called again,
+`POST /rerun/{stage_id}` (the recorded correction is folded into the agent's input)
+and review its output again before moving on — `/start` is *not* called again,
 since that would reset the whole pipeline.
 
-### `POST /orchestrate/judge`
+### `POST /judge`
 
 Lets an LLM decide which pipeline action a free-form human message maps to (see
 [The judgment layer](#the-judgment-layer-judge) above), executes it, and returns whatever
@@ -279,11 +282,22 @@ Response — the model asked for clarification instead of guessing, and nothing 
 
 ```bash
 pip install -r requirements.txt
+cp .env.example .env
+# AI_LAYER_URL defaults to http://localhost:8000 if unset — override only if ai-layer
+# runs somewhere else (e.g. a different port, or a Docker Compose service name).
 ```
 
-This module imports `router.router.chat` from the sibling `ai-layer/` service, so it must be
-run alongside a checkout that has `ai-layer/` configured (`.env` with at least one provider
-key — see `ai-layer/README.md`).
+This service is independent of `ai-layer` at the code level — it has no import on
+`router.*` and doesn't need `ai-layer`'s source tree or `.env` present. It does need an
+`ai-layer` instance actually *running* and reachable at `AI_LAYER_URL`, since every stage
+agent and `judge()` get their LLM completions by POSTing to its `/chat` endpoint (see
+`ai-layer/README.md` for running that service).
+
+## Run
+
+```bash
+uvicorn main:app --reload --port 8001
+```
 
 ## Use
 
@@ -324,9 +338,9 @@ result = judge("let's do this for GitLab instead")
 print(result["tool_called"])  # "start_pipeline" — resets the pipeline for the new platform
 ```
 
-`ai-layer/main.py`'s `POST /orchestrate/start`, `POST /orchestrate/rerun/{stage_id}`,
-`POST /review/{stage_id}`, and `POST /orchestrate/judge` call
-`run_stage()`/`rerun_stage()`/`stage_result()`/`judge()` directly.
+This service's own `POST /start`, `POST /rerun/{stage_id}`, `POST /review/{stage_id}`, and
+`POST /judge` call `run_stage()`/`rerun_stage()`/`stage_result()`/`judge()` directly (see
+`main.py`).
 
 ## Test
 
@@ -335,13 +349,17 @@ cd orchestrator
 pytest
 ```
 
-No real API calls are made — `chat()` is mocked in every test. `orchestrator/tests/` covers
-`orchestrator.py` itself (the agents, `validate()`, `judge()`, and the `Orchestrator` state
-machine); `ai-layer/tests/test_main.py` covers the four endpoints above, with `orchestrator`'s
-functions mocked so no orchestrator logic actually runs there — to exercise both suites
-together:
+No real network calls are made — `httpx.post` (the only thing that talks to `ai-layer`) is
+mocked in every test, standing in for `ai-layer`'s `/chat` responses.
 
-```bash
-cd ai-layer
-python -m pytest ../orchestrator/tests/ tests/
-```
+`tests/test_orchestrator.py` covers `orchestrator.py` itself: the agents, `validate()`,
+`judge()`, the `Orchestrator` state machine, and the HTTP `chat()` client (payload shape,
+`tools`/`tool_choice` passthrough, and unwrapping `content`/`tool_calls` from the JSON
+response). `tests/test_main.py` covers the four endpoints above — these mock only
+`httpx.post`, letting the real `orchestrator.py` logic run underneath `main.py`'s routes, so
+the tests exercise the actual wiring between the two rather than mocking across that seam.
+
+`ai-layer`'s own test suite is separate (`cd ai-layer && pytest`) and covers only its own
+`/health`, `/providers`, and `/chat` endpoints — the two suites are independent and should be
+run from their own directories, not together (both projects have their own `main.py`, and
+running them in one pytest session causes a module-name collision).

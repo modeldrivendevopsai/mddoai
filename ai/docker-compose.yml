@@ -1,8 +1,7 @@
 services:
   ai-layer:
     build:
-      context: .
-      dockerfile: ai-layer/Dockerfile
+      context: ./ai-layer
     env_file:
       - path: ./ai-layer/.env
         required: false
@@ -13,6 +12,20 @@ services:
       - ${HOME}/.claude:/root/.claude:ro
     expose:
       - "8000"
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+    env_file:
+      - path: ./orchestrator/.env
+        required: false
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+    depends_on:
+      ai-layer:
+        condition: service_started
+    expose:
+      - "8001"
 
   chat-ui-build:
     build: ./chat-ui

@@ -8,21 +8,12 @@ Tests verify:
   4. /chat rejects an unrecognized model with 400 before calling chat().
   5. /chat accepts "auto" and passes it straight through.
   6. /chat converts a downstream exception into a 500.
-  7. /orchestrate/start resets the pipeline and runs the psm stage (orchestrator.run_stage
-     and orchestrator.reset_pipeline are mocked).
-  8. /review/{stage_id} calls orchestrator.stage_result and returns its status shape:
-     the next stage's {"stage", "output", "valid"} on approval (stage_result now runs
-     the next stage itself), {"status": "complete"} on approving the last stage, or
-     {"status": "rerun", "stage": ...} on rejection — all when stage_id matches the
-     current pending stage.
-  9. /review/{stage_id} returns 400 without calling stage_result when stage_id doesn't
-     match the current pending stage, or when approved=False is missing a correction.
-  10. /orchestrate/rerun/{stage_id} calls orchestrator.rerun_stage and returns its
-      {"stage", "output", "valid"} shape when stage_id matches the current pending stage,
-      returns 400 without calling rerun_stage when it doesn't, and converts a downstream
-      error into a 500.
-  11. /orchestrate/judge calls orchestrator.judge(message) and returns whatever it returns
-      directly, and converts a downstream error into a 500.
+  7. /chat forwards tools/tool_choice to chat() only when provided, and serializes any
+     tool_calls on the response message into plain dicts (the shape orchestrator's HTTP
+     client — the sole consumer of this contract — expects back).
+
+Orchestrator's endpoints (/start, /rerun/{stage_id}, /judge, /review/{stage_id}) now live
+in the standalone orchestrator service — see orchestrator/tests/test_main.py.
 """
 from unittest.mock import MagicMock, patch
 
@@ -42,7 +33,10 @@ client = TestClient(main.app)
 def ok_response(model):
     r = MagicMock()
     r.model = model
-    r.choices = [MagicMock(message=MagicMock(content="hello"))]
+    # tool_calls=None explicitly — MagicMock() would otherwise auto-vivify a truthy
+    # mock attribute, which chat_endpoint's `if message.tool_calls:` would wrongly
+    # treat as "the model called a tool".
+    r.choices = [MagicMock(message=MagicMock(content="hello", tool_calls=None))]
     return r
 
 
@@ -64,7 +58,7 @@ def test_chat_returns_content_and_model_on_success():
         response = client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
 
     assert response.status_code == 200
-    assert response.json() == {"content": "hello", "model": "gemini/gemini-2.5-flash"}
+    assert response.json() == {"content": "hello", "model": "gemini/gemini-2.5-flash", "tool_calls": None}
     mock_chat.assert_called_once_with([{"role": "user", "content": "hi"}], model=None)
 
 
@@ -99,146 +93,52 @@ def test_chat_returns_500_on_downstream_error():
     assert response.json()["detail"] == "all providers exhausted"
 
 
-def test_orchestrate_start_resets_pipeline_and_runs_psm_stage():
-    with patch.object(main, "reset_pipeline") as mock_reset, patch.object(
-        main, "run_stage", return_value={"stage": "psm", "output": "PSM description", "valid": True}
-    ) as mock_run_stage:
-        response = client.post("/orchestrate/start", json={"platform_description": "A GitLab CI platform"})
-
-    assert response.status_code == 200
-    assert response.json() == {"stage": "psm", "output": "PSM description", "valid": True}
-    mock_reset.assert_called_once_with()
-    mock_run_stage.assert_called_once_with({"platform_description": "A GitLab CI platform"})
-
-
-def test_orchestrate_start_returns_500_on_downstream_error():
-    with patch.object(main, "reset_pipeline"), patch.object(
-        main, "run_stage", side_effect=RuntimeError("all providers exhausted")
-    ):
-        response = client.post("/orchestrate/start", json={"platform_description": "A GitLab CI platform"})
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "all providers exhausted"
-
-
-def test_orchestrate_rerun_endpoint_returns_stage_output():
-    with patch.object(main, "current_stage", return_value="psm"), patch.object(
-        main, "rerun_stage", return_value={"stage": "psm", "output": "PSM v2", "valid": True}
-    ) as mock_rerun_stage:
-        response = client.post("/orchestrate/rerun/psm")
-
-    assert response.status_code == 200
-    assert response.json() == {"stage": "psm", "output": "PSM v2", "valid": True}
-    mock_rerun_stage.assert_called_once_with()
-
-
-def test_orchestrate_rerun_endpoint_rejects_mismatched_stage_id_without_calling_rerun_stage():
-    with patch.object(main, "current_stage", return_value="atl"), patch.object(main, "rerun_stage") as mock_rerun_stage:
-        response = client.post("/orchestrate/rerun/psm")
-
-    assert response.status_code == 400
-    assert "psm" in response.json()["detail"]
-    mock_rerun_stage.assert_not_called()
-
-
-def test_orchestrate_rerun_endpoint_returns_500_on_downstream_error():
-    with patch.object(main, "current_stage", return_value="psm"), patch.object(
-        main, "rerun_stage", side_effect=RuntimeError("all providers exhausted")
-    ):
-        response = client.post("/orchestrate/rerun/psm")
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "all providers exhausted"
-
-
-def test_orchestrate_judge_endpoint_returns_judge_result_directly():
-    judge_result = {
-        "tool_called": "rerun_stage",
-        "result": {"stage": "atl", "output": "ATL v2", "valid": True},
-        "steps": [
-            {"tool": "add_constraint", "arguments": {"stage": "atl", "constraint": "Add a lint step"}, "result": None},
-            {"tool": "rerun_stage", "arguments": {}, "result": {"stage": "atl", "output": "ATL v2", "valid": True}},
-        ],
-    }
-    with patch.object(main, "judge", return_value=judge_result) as mock_judge:
+def test_chat_passes_tools_and_tool_choice_through_to_router_chat():
+    tools = [{"type": "function", "function": {"name": "foo", "parameters": {}}}]
+    with patch.object(main, "chat", return_value=ok_response("gemini/gemini-2.5-flash")) as mock_chat:
         response = client.post(
-            "/orchestrate/judge",
-            json={"message": "the ATL stage output is wrong, please redo it with a lint step added"},
+            "/chat",
+            json={
+                "messages": [{"role": "user", "content": "hi"}],
+                "tools": tools,
+                "tool_choice": "auto",
+            },
         )
 
     assert response.status_code == 200
-    assert response.json() == judge_result
-    mock_judge.assert_called_once_with("the ATL stage output is wrong, please redo it with a lint step added")
+    mock_chat.assert_called_once_with(
+        [{"role": "user", "content": "hi"}], model=None, tools=tools, tool_choice="auto"
+    )
 
 
-def test_orchestrate_judge_endpoint_returns_no_action_result_directly():
-    no_action_result = {
-        "tool_called": None,
-        "result": None,
-        "message": "I couldn't map that to a pipeline action — could you clarify which stage and what you'd like done?",
-    }
-    with patch.object(main, "judge", return_value=no_action_result):
-        response = client.post("/orchestrate/judge", json={"message": "hello there"})
+def test_chat_omits_tools_and_tool_choice_kwargs_when_not_provided():
+    with patch.object(main, "chat", return_value=ok_response("gemini/gemini-2.5-flash")) as mock_chat:
+        client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
 
-    assert response.status_code == 200
-    assert response.json() == no_action_result
+    mock_chat.assert_called_once_with([{"role": "user", "content": "hi"}], model=None)
 
 
-def test_orchestrate_judge_endpoint_returns_500_on_downstream_error():
-    with patch.object(main, "judge", side_effect=RuntimeError("all providers exhausted")):
-        response = client.post("/orchestrate/judge", json={"message": "redo the psm stage"})
+def test_chat_serializes_tool_calls_in_response():
+    response_with_tool_call = MagicMock()
+    response_with_tool_call.model = "gemini/gemini-2.5-flash"
+    tool_call = MagicMock()
+    tool_call.function.name = "rerun_stage"
+    tool_call.function.arguments = "{}"
+    response_with_tool_call.choices = [MagicMock(message=MagicMock(content=None, tool_calls=[tool_call]))]
 
-    assert response.status_code == 500
-    assert response.json()["detail"] == "all providers exhausted"
-
-
-def test_review_endpoint_returns_next_stage_output_on_approval():
-    with patch.object(main, "current_stage", return_value="psm"), patch.object(
-        main, "stage_result", return_value={"stage": "atl", "output": "ATL rules", "valid": True}
-    ) as mock_stage_result:
-        response = client.post("/review/psm", json={"approved": True})
-
-    assert response.status_code == 200
-    assert response.json() == {"stage": "atl", "output": "ATL rules", "valid": True}
-    mock_stage_result.assert_called_once_with("psm", True, None)
-
-
-def test_review_endpoint_returns_complete_status():
-    with patch.object(main, "current_stage", return_value="generation"), patch.object(
-        main, "stage_result", return_value={"status": "complete"}
-    ):
-        response = client.post("/review/generation", json={"approved": True})
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "complete"}
-
-
-def test_review_endpoint_returns_rerun_status_with_correction():
-    with patch.object(main, "current_stage", return_value="psm"), patch.object(
-        main, "stage_result", return_value={"status": "rerun", "stage": "psm"}
-    ) as mock_stage_result:
+    with patch.object(main, "chat", return_value=response_with_tool_call):
         response = client.post(
-            "/review/psm", json={"approved": False, "correction": "Missing artifact retention policy"}
+            "/chat",
+            json={
+                "messages": [{"role": "user", "content": "hi"}],
+                "tools": [{"type": "function", "function": {"name": "rerun_stage", "parameters": {}}}],
+                "tool_choice": "auto",
+            },
         )
 
     assert response.status_code == 200
-    assert response.json() == {"status": "rerun", "stage": "psm"}
-    mock_stage_result.assert_called_once_with("psm", False, "Missing artifact retention policy")
-
-
-def test_review_endpoint_rejects_mismatched_stage_id_without_calling_stage_result():
-    with patch.object(main, "current_stage", return_value="atl"), patch.object(main, "stage_result") as mock_stage_result:
-        response = client.post("/review/psm", json={"approved": True})
-
-    assert response.status_code == 400
-    assert "psm" in response.json()["detail"]
-    mock_stage_result.assert_not_called()
-
-
-def test_review_endpoint_rejects_missing_correction_when_not_approved():
-    with patch.object(main, "current_stage", return_value="psm"), patch.object(main, "stage_result") as mock_stage_result:
-        response = client.post("/review/psm", json={"approved": False})
-
-    assert response.status_code == 400
-    assert "correction" in response.json()["detail"].lower()
-    mock_stage_result.assert_not_called()
+    assert response.json() == {
+        "content": None,
+        "model": "gemini/gemini-2.5-flash",
+        "tool_calls": [{"function": {"name": "rerun_stage", "arguments": "{}"}}],
+    }
