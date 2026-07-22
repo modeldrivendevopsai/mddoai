@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Retrieval Pipeline" id="Z2Ao5AqI1rP8BDgZcMWw">
-    <mxGraphModel dx="1001" dy="1636" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1044" dy="1659" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -31,7 +31,7 @@
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-277" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4a7fb5;strokeColor=#2c5580;fontColor=#ffffff;fontSize=11;" value="Dedupe repeated paragraphs&#xa;(pass 2: AI cleanup rewrites each page&#xa;independently, which can introduce&#xa;new cross-page duplicates)" vertex="1">
           <mxGeometry height="75" width="260" x="350" y="665" as="geometry" />
         </mxCell>
-        <mxCell id="-LMUMcLEZWdutr3T6-Ux-278" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#707070;strokeColor=#454545;fontColor=#ffffff;fontSize=12;" value="pages[] + meta&#xa;(confidence, pending_links)" vertex="1">
+        <mxCell id="-LMUMcLEZWdutr3T6-Ux-278" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#707070;strokeColor=#454545;fontColor=#ffffff;fontSize=12;" value="pages[] in .md format + meta&lt;br&gt;(confidence, pending_links)" vertex="1">
           <mxGeometry height="65" width="260" x="350" y="770" as="geometry" />
         </mxCell>
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-279" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;fontColor=#ffffff;fontSize=11;" value="Target documentation site(s)&#xa;(real HTTP, headless Chromium)" vertex="1">
