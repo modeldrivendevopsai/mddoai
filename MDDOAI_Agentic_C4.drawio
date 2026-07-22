@@ -1,13 +1,13 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Retrieval Pipeline" id="Z2Ao5AqI1rP8BDgZcMWw">
-    <mxGraphModel dx="1848" dy="2089" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="890" dy="1576" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-269" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4f9768;strokeColor=#2d5c3d;fontColor=#ffffff;fontSize=12;fontStyle=1;" value="Orchestrator / Caller&#xa;configures: hint, max_pages, max_depth, exclude_urls, force_refresh" vertex="1">
           <mxGeometry height="90" width="380" x="340" y="-40" as="geometry" />
         </mxCell>
-        <mxCell id="-LMUMcLEZWdutr3T6-Ux-270" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;align=left;fontSize=13;fontStyle=1;spacingLeft=12;spacingTop=8;" value="Retrieval service" vertex="1">
+        <mxCell id="-LMUMcLEZWdutr3T6-Ux-270" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;align=left;fontSize=13;fontStyle=1;spacingLeft=12;spacingTop=8;" value="Retrieval Agent" vertex="1">
           <mxGeometry height="710" width="760" x="260" y="150" as="geometry" />
         </mxCell>
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-271" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4a7fb5;strokeColor=#2c5580;fontColor=#ffffff;fontSize=12;" value="Fetch page" vertex="1">
