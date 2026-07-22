@@ -76,6 +76,10 @@ async def fetch_endpoint(request: FetchRequest) -> FetchResult:
             max_depth=request.max_depth,
             exclude_urls=request.exclude_urls,
         )
+    except ValueError as e:
+        # A rejected URL (SSRF guard, bad scheme, unresolvable host) is a real,
+        # actionable answer for the caller, not an internal failure to hide.
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise _fail_with_500("POST /fetch", request.url, e)
     logger.info(
@@ -93,6 +97,8 @@ async def fetch_page_endpoint(request: FetchPageRequest) -> Page:
     logger.info("POST /fetch/page url=%s force_refresh=%s", request.url, request.force_refresh)
     try:
         page = await fetch_single_page(str(request.url), force_refresh=request.force_refresh)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise _fail_with_500("POST /fetch/page", request.url, e)
     logger.info("POST /fetch/page done url=%s success=%s", request.url, page["success"])

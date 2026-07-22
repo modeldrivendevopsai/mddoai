@@ -11,13 +11,8 @@ keyword-by-keyword schema for its pipeline definition file. GitLab CI's
 `rules`, `needs`, `artifacts`, ...) with its type and meaning. Some platforms keep this on
 one page, others scatter it across several. When a seed page doesn't contain everything on
 its own, the service crawls further, real multi-hop, not just links visible on the seed page,
-via `AdaptiveCrawler` (see Architecture).
-
-Tested against a spread of real CI/CD platforms, including at least one whose docs have no
-single consolidated reference page and scatter the schema across many independent topic pages,
-a deliberately hard case. Each is run end-to-end against the live site with real content-quality
-checks (fenced code blocks present, zero leftover cookie/nav chrome), not just page-count
-numbers, see Testing.
+via `AdaptiveCrawler` (see Architecture). See Testing for how this is verified against real
+platforms, including a deliberately hard case with no single consolidated reference page.
 
 ## Architecture
 
@@ -71,18 +66,22 @@ batch* until it stops.
    options are not used for this since both call an external LLM/embedding provider directly
    (confirmed in `EmbeddingStrategy`'s source), with no way to redirect that call through
    `ai-layer`, the same reason `LLMContentFilter` isn't used for cleanup.
-4. **Stopping** is `AdaptiveCrawler`'s own loop (unmodified), and it has more stop paths than
-   just "budget exhausted": each round it checks confidence/saturation against the query,
-   `max_pages`, and whether any candidate links are left; separately, after ranking, it also
-   stops if the top-ranked candidate's score falls below `min_gain_threshold` (a quality gate,
-   not a budget one) or if nothing survives scope/exclude filtering that round. Confidence and
-   saturation are deliberately pushed close to their maximum (see Design decisions) so they
-   rarely fire in practice, `max_pages`, exhausted candidates, and `min_gain_threshold` are the
-   stop paths that actually govern most real runs, not one single condition. This matters for
-   reading `meta`: a non-empty `pending_links` doesn't by itself mean the budget ran out, see
-   API for how to tell the difference. `max_pages` is also a soft cap, not a hard one:
-   `AdaptiveCrawler` checks it once per round but then crawls a whole batch (`top_k_links`
-   candidates) before checking again, so a run can return more pages than requested.
+4. **Stopping** is `AdaptiveCrawler`'s own loop (unmodified). It has more stop paths than just
+   "budget exhausted":
+   - confidence or saturation against the query reaches its threshold (deliberately pushed
+     close to maximum, see Design decisions, so this rarely fires in practice)
+   - `max_pages` is reached
+   - no candidate links are left
+   - after ranking, the top-ranked candidate's score falls below `min_gain_threshold` (a
+     quality gate, not a budget one)
+   - nothing survives scope/exclude filtering that round
+
+   In practice, `max_pages`, exhausted candidates, and `min_gain_threshold` are what actually
+   govern most real runs. This matters for reading `meta`: a non-empty `pending_links` doesn't
+   by itself mean the budget ran out, see API for how to tell the difference. `max_pages` is
+   also a soft cap, not a hard one: `AdaptiveCrawler` checks it once per round but then crawls a
+   whole batch (`top_k_links` candidates) before checking again, so a run can return more pages
+   than requested.
 
 Once `digest()` returns every successfully fetched page (`state.knowledge_base`),
 `fetch_documentation()` takes over for cleanup, sequentially, no more crawling:
@@ -136,7 +135,7 @@ flowchart TD
         Chat["/chat endpoint"] --> ProviderRouter["provider router<br/>fallback across providers"]
     end
 
-    ProviderRouter --> Providers[("Google, Mistral, Cerebras,<br/>Groq, Claude/Anthropic")]
+    ProviderRouter --> Providers[("free-tier providers,<br/>paid fallback")]
 ```
 
 ## API
@@ -215,10 +214,8 @@ entry of `/fetch`'s `pages` array.
 
 ## Configuration
 
-Every tuning value in the service (page/link/depth budgets and limits, timeouts, cache sizes,
-content-filter thresholds, chunking and concurrency, quality-floor and dedup thresholds, the
-statistical ranking query terms, and the two LLM system prompts) has its default in
-[`config.yaml`](config.yaml), checked in next to `retrieval.py`, so tuning it doesn't require
+Every tuning value in the service has its default in [`config.yaml`](config.yaml), checked in
+next to `retrieval.py`, grouped and commented by what each one controls, so tuning it doesn't require
 editing Python source. The numeric/threshold keys are additionally overridable per-deploy via
 an environment variable of the same name (`config.yaml`'s value is only the fallback default);
 `QUERY`, `LINK_RANKING_PROMPT`, and `CLEAN_CONTENT_PROMPT` have no environment variable
@@ -261,11 +258,14 @@ Cleanup is layered, each stage catches what the one before it structurally can't
    else byte-for-byte unchanged, catches what the heuristic can't. `LLMContentFilter`
    (Crawl4AI's own built-in option) is deliberately not used, it needs its own separate
    `provider`/`api_token`, bypassing `ai-layer`'s shared router entirely. Results are cached
-   in-process, keyed by a hash of the input chunk (not the URL, so it's naturally correct if a
-   URL's content genuinely changes, and just as naturally reusable if identical content happens
-   to repeat across different pages): a retry that re-visits pages it already cleaned skips
-   those LLM calls entirely. `force_refresh` bypasses this cache too, not just Crawl4AI's page
-   cache, so "give me a truly fresh result" means fresh all the way through.
+   in-process, keyed by a hash of the whole page's markdown (not the URL, so it's naturally
+   correct if a URL's content genuinely changes, and just as naturally reusable if a URL is
+   fetched again with byte-identical content): a retry that re-visits pages it already cleaned
+   skips those LLM calls entirely. The cache key is computed once per page before chunking, so
+   two different pages that happen to share one duplicate paragraph don't get a cache hit for
+   it, only a whole page matching a previously-seen page does. `force_refresh` bypasses this
+   cache too, not just Crawl4AI's page cache, so "give me a truly fresh result" means fresh all
+   the way through.
 4. **`dedupe_pages()`** (deterministic, across all fetched pages), called **twice**: once
    before `clean_page_content` (cheap, so an obvious cross-page repeat never reaches an LLM
    call at all, reducing cleanup cost) and once after (a safety net for whatever cleanup left
@@ -362,20 +362,9 @@ zombie Chromium/zygote processes, and a `HEALTHCHECK`.
 
 ## Design decisions
 
-**Crawl4AI** (Apache 2.0) over two alternatives:
-
-- **trafilatura**, the original candidate for this issue, does a plain HTTP fetch plus static
-  HTML parsing. It handles static doc sites fine but returns a near-empty page on JS-rendered
-  SPA docs. Its `focused_crawler()` is also not AI-based, it's a heuristic URL filter that
-  prioritizes navigation-looking pages, not semantic relevance.
-- **Firecrawl** handles JS and page selection well, but its self-hostable core is AGPL-3.0
-  (only the SDKs are MIT), the same license category already ruled out for other tools on this
-  project.
-- **GcrawlAI**, a newer entrant, was checked and ruled out: a small, young project whose
-  architecture (Postgres, Redis, Celery, a separate frontend) means adopting it would mean
-  standing up a distributed app to replace what's currently one library call.
-- **Crawl4AI** drives a real headless browser (Playwright), so it renders JS-heavy docs
-  correctly.
+**Crawl4AI** (Apache 2.0) drives the fetch: it runs a real headless browser (Playwright), so it
+renders JS-heavy documentation sites correctly, and its permissive license keeps it safe to
+embed directly as a library rather than needing to run as a separate hosted service.
 
 **`wait_for` over `wait_until="networkidle"`.** Playwright's own docs mark `networkidle`
 explicitly **DISCOURAGED**: *"consider operation to be finished when there are no network
@@ -444,23 +433,19 @@ the real service against real platform documentation sites with real content-qua
 
 ## Known limitations
 
-- **PDF documentation is not yet handled.** The issue asks for both web pages and PDF
-  documents; this module only implements the web-page path. `pdfplumber` is the candidate
-  from earlier research for the PDF path, not yet built.
-- **Not yet called by anything.** The Orchestrator's PSM stage currently accepts a plain
-  text platform description, not a URL, so nothing in the pipeline invokes this service yet.
-- **No structured output normalization.** The issue AC asks for "clean text output in a
-  consistent structured format"; each page currently returns markdown as-is, with no
-  normalization pass across pages.
+- **Web pages only, not PDF documents.** Some platforms publish their configuration reference
+  as a PDF rather than a web page; this module fetches and cleans HTML/JS-rendered pages only.
+- **No cross-page output normalization.** Each page's markdown is fetched and cleaned
+  independently; there's no pass that normalizes structure or format across the pages in one
+  response.
 - **`max_pages`/`max_depth` are soft budgets, not hard caps.** `AdaptiveCrawler` checks its
   stopping condition once per round, not once per page, then crawls up to `TOP_K_LINKS` more
   pages before checking again, so a crawl can overshoot the requested `max_pages` by up to
-  `TOP_K_LINKS - 1` pages. Not fixed, a library behavior, not something worth patching around
-  for a budget that was never meant to be exact.
-- **The in-process content-cleanup cache (and Crawl4AI's own page cache) are per-container,
-  not shared.** If `retrieval` ever runs as more than one replica, a cache hit on one instance
-  is a cache miss on another. Not a problem at the current single-instance scale; worth
-  revisiting (a shared cache, e.g. Redis) if that changes.
-- **`_LLMRankedStrategy`'s ranking has only been spot-checked for run-to-run consistency, not
-  proven stable across many runs.** Results have looked consistently good in live testing but
-  haven't been re-run many times against the same seed URL to statistically confirm stability.
+  `TOP_K_LINKS - 1` pages. This is a library behavior, not something this project patches
+  around, the budget was never meant to be exact.
+- **The in-process content-cleanup cache (and Crawl4AI's own page cache) are per-container, not
+  shared.** If this service runs as more than one replica, a cache hit on one instance is a
+  cache miss on another; a shared cache (e.g. Redis) would be needed to fix that.
+- **Ranking consistency across runs has not been statistically validated.** There's no
+  repeated-run analysis confirming `_LLMRankedStrategy` picks the same pages every time
+  against the same seed URL.

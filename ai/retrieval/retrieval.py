@@ -196,7 +196,15 @@ class FetchResult(TypedDict):
 
 def _validate_fetchable_url(url: str) -> None:
     """Raises ValueError unless url is a public http(s) address, blocking SSRF
-    against internal services, localhost, and cloud metadata endpoints."""
+    against internal services, localhost, and cloud metadata endpoints.
+
+    This resolves the hostname once, here, and the actual fetch happens
+    separately afterward via a real browser with no pinning to the IP checked
+    here, so a short-TTL DNS record (rebinding) or an HTTP redirect on the
+    fetch itself could still reach a target this check would have rejected.
+    Not exploitable today: nothing forwards caller-controlled URLs into this
+    service from outside its own docker-compose network. Worth closing before
+    that changes (e.g. an orchestrator forwarding a user-supplied URL)."""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError(f"refusing to fetch non-http(s) URL: {url!r}")
@@ -516,6 +524,11 @@ async def fetch_documentation(
     levers; compare pages_crawled/depth_reached against max_pages/max_depth to
     tell which case it is. Empty pending_links means it ran out of in-scope
     candidates entirely."""
+    _validate_fetchable_url(seed_url)  # unguarded: an SSRF rejection here is a real error, not a
+    # graceful failure. Without this, a rejected seed_url would only surface once digest() calls
+    # _crawl_with_preview() for it internally, where the same check is caught by that method's
+    # broad except (correct there, for hop-level candidate links, wrong for the one caller-supplied
+    # URL) and silently turned into "zero pages crawled" instead of a real error.
     cache_mode = CacheMode.BYPASS if force_refresh else CacheMode.ENABLED
     effective_query = f"{_QUERY} {hint}" if hint else _QUERY
     async with AsyncWebCrawler() as crawler:
