@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Retrieval Pipeline" id="Z2Ao5AqI1rP8BDgZcMWw">
-    <mxGraphModel dx="890" dy="1576" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1001" dy="1636" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -82,7 +82,7 @@
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-294" edge="1" parent="1" source="-LMUMcLEZWdutr3T6-Ux-269" style="html=1;fontSize=11;exitX=0.35;exitY=1;entryX=0.5;entryY=0;" target="-LMUMcLEZWdutr3T6-Ux-271" value="POST /fetch">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="-LMUMcLEZWdutr3T6-Ux-295" edge="1" parent="1" source="-LMUMcLEZWdutr3T6-Ux-269" style="html=1;dashed=1;fontSize=10;exitX=0.65;exitY=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="-LMUMcLEZWdutr3T6-Ux-270" value="POST /fetch/page (1 URL)">
+        <mxCell id="-LMUMcLEZWdutr3T6-Ux-295" edge="1" parent="1" source="-LMUMcLEZWdutr3T6-Ux-269" style="html=1;dashed=1;fontSize=10;exitX=0.65;exitY=1;entryX=0.872;entryY=0.059;entryDx=0;entryDy=0;entryPerimeter=0;" target="-LMUMcLEZWdutr3T6-Ux-271" value="POST /fetch/page (1 URL)">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="-LMUMcLEZWdutr3T6-Ux-296" edge="1" parent="1" source="-LMUMcLEZWdutr3T6-Ux-272" style="html=1;dashed=1;fontSize=9;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" target="-LMUMcLEZWdutr3T6-Ux-276" value="fetch/page skips ranking + dedupe">
