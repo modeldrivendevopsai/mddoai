@@ -7,15 +7,18 @@ import os
 import re
 import socket
 from collections.abc import Sequence
+from pathlib import Path
 from typing import TypedDict
 from urllib.parse import urlparse
 
 import httpx
+import yaml
 from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
 from crawl4ai.adaptive_crawler import AdaptiveConfig, AdaptiveCrawler, CrawlState, LinkPreviewConfig, StatisticalStrategy
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.models import CrawlResult, Link
+from crawl4ai.utils import normalize_url
 
 # retrieval runs in its own container (needs a real browser via Playwright), so
 # LLM calls go through ai-layer's shared /chat over HTTP, not an in-process import.
@@ -25,54 +28,62 @@ logger = logging.getLogger(__name__)
 
 
 # --- Configuration -----------------------------------------------------------
-# Every value below is overridable via an environment variable of the same
-# name; the literal is only the default. These are operational tuning knobs,
-# not per-request params, unlike hint/max_depth/exclude_urls (see
-# fetch_documentation) a caller has no principled basis to pick a different
-# value per call.
+# Tuning defaults live in config.yaml, checked in next to this module, so
+# changing them doesn't require editing Python source. Every numeric/threshold
+# key is still overridable per-deploy via an environment variable of the same
+# name; the config.yaml value is only the fallback default. These are
+# operational tuning knobs, not per-request params, unlike hint/max_depth/
+# exclude_urls (see fetch_documentation) a caller has no principled basis to
+# pick a different value per call. QUERY and the two *_PROMPT keys have no
+# environment variable equivalent, edit config.yaml directly for those.
 
-_MAX_LINKS = int(os.environ.get("MAX_LINKS", "250"))
-_LINK_PREVIEW_CONCURRENCY = int(os.environ.get("LINK_PREVIEW_CONCURRENCY", "5"))
-_SHORTLIST_SIZE = int(os.environ.get("SHORTLIST_SIZE", "100"))
+with open(Path(__file__).with_name("config.yaml"), encoding="utf-8") as _f:
+    _config = yaml.safe_load(_f)
 
-_WAIT_FOR_MIN_CHARS = int(os.environ.get("WAIT_FOR_MIN_CHARS", "1000"))
-_DELAY_BEFORE_RETURN_HTML = float(os.environ.get("DELAY_BEFORE_RETURN_HTML", "1.0"))
+_MAX_LINKS = int(os.environ.get("MAX_LINKS", _config["MAX_LINKS"]))
+_LINK_PREVIEW_CONCURRENCY = int(os.environ.get("LINK_PREVIEW_CONCURRENCY", _config["LINK_PREVIEW_CONCURRENCY"]))
+_SHORTLIST_SIZE = int(os.environ.get("SHORTLIST_SIZE", _config["SHORTLIST_SIZE"]))
 
-_CONTENT_FILTER_THRESHOLD = float(os.environ.get("CONTENT_FILTER_THRESHOLD", "0.48"))
-_MIN_WORD_THRESHOLD = int(os.environ.get("MIN_WORD_THRESHOLD", "5"))
+_WAIT_FOR_MIN_CHARS = int(os.environ.get("WAIT_FOR_MIN_CHARS", _config["WAIT_FOR_MIN_CHARS"]))
+_DELAY_BEFORE_RETURN_HTML = float(os.environ.get("DELAY_BEFORE_RETURN_HTML", _config["DELAY_BEFORE_RETURN_HTML"]))
 
-_MIN_USABLE_CONTENT_CHARS = int(os.environ.get("MIN_USABLE_CONTENT_CHARS", "200"))
+_CONTENT_FILTER_THRESHOLD = float(os.environ.get("CONTENT_FILTER_THRESHOLD", _config["CONTENT_FILTER_THRESHOLD"]))
+_MIN_WORD_THRESHOLD = int(os.environ.get("MIN_WORD_THRESHOLD", _config["MIN_WORD_THRESHOLD"]))
 
-_CLEAN_CHUNK_SIZE = int(os.environ.get("CLEAN_CHUNK_SIZE", "12000"))
-_CLEAN_CONCURRENCY = int(os.environ.get("CLEAN_CONCURRENCY", "4"))
-_CLEAN_CACHE_MAX_SIZE = int(os.environ.get("CLEAN_CACHE_MAX_SIZE", "500"))
-_CLEAN_MAX_GROWTH_RATIO = float(os.environ.get("CLEAN_MAX_GROWTH_RATIO", "1.15"))
-_CLEAN_MIN_OUTPUT_CHARS = int(os.environ.get("CLEAN_MIN_OUTPUT_CHARS", "20"))
-_CLEAN_MIN_INPUT_CHARS_FOR_GUARD = int(os.environ.get("CLEAN_MIN_INPUT_CHARS_FOR_GUARD", "100"))
+_MIN_USABLE_CONTENT_CHARS = int(os.environ.get("MIN_USABLE_CONTENT_CHARS", _config["MIN_USABLE_CONTENT_CHARS"]))
 
-_DEDUPE_MIN_PARAGRAPH_CHARS = int(os.environ.get("DEDUPE_MIN_PARAGRAPH_CHARS", "40"))
+_CLEAN_CHUNK_SIZE = int(os.environ.get("CLEAN_CHUNK_SIZE", _config["CLEAN_CHUNK_SIZE"]))
+_CLEAN_CONCURRENCY = int(os.environ.get("CLEAN_CONCURRENCY", _config["CLEAN_CONCURRENCY"]))
+_CLEAN_CACHE_MAX_SIZE = int(os.environ.get("CLEAN_CACHE_MAX_SIZE", _config["CLEAN_CACHE_MAX_SIZE"]))
+_CLEAN_MAX_GROWTH_RATIO = float(os.environ.get("CLEAN_MAX_GROWTH_RATIO", _config["CLEAN_MAX_GROWTH_RATIO"]))
+_CLEAN_MIN_OUTPUT_CHARS = int(os.environ.get("CLEAN_MIN_OUTPUT_CHARS", _config["CLEAN_MIN_OUTPUT_CHARS"]))
+_CLEAN_MIN_INPUT_CHARS_FOR_GUARD = int(
+    os.environ.get("CLEAN_MIN_INPUT_CHARS_FOR_GUARD", _config["CLEAN_MIN_INPUT_CHARS_FOR_GUARD"])
+)
 
-_AI_LAYER_TIMEOUT = float(os.environ.get("AI_LAYER_TIMEOUT", "60.0"))
+_DEDUPE_MIN_PARAGRAPH_CHARS = int(os.environ.get("DEDUPE_MIN_PARAGRAPH_CHARS", _config["DEDUPE_MIN_PARAGRAPH_CHARS"]))
 
-_CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.99"))
-_SATURATION_THRESHOLD = float(os.environ.get("SATURATION_THRESHOLD", "0.99"))
+_AI_LAYER_TIMEOUT = float(os.environ.get("AI_LAYER_TIMEOUT", _config["AI_LAYER_TIMEOUT"]))
+
+_CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", _config["CONFIDENCE_THRESHOLD"]))
+_SATURATION_THRESHOLD = float(os.environ.get("SATURATION_THRESHOLD", _config["SATURATION_THRESHOLD"]))
 
 # AdaptiveCrawler's own per-round tuning: how many links it fetches per round,
 # the score below which it stops entirely, and the weights StatisticalStrategy
 # scores candidates with. Previously left at the library's defaults while
 # confidence/saturation were externalized; these are just as behaviorally
 # significant, so they get the same treatment.
-_TOP_K_LINKS = int(os.environ.get("TOP_K_LINKS", "3"))
-_MIN_GAIN_THRESHOLD = float(os.environ.get("MIN_GAIN_THRESHOLD", "0.1"))
-_RELEVANCE_WEIGHT = float(os.environ.get("RELEVANCE_WEIGHT", "0.5"))
-_NOVELTY_WEIGHT = float(os.environ.get("NOVELTY_WEIGHT", "0.3"))
-_AUTHORITY_WEIGHT = float(os.environ.get("AUTHORITY_WEIGHT", "0.2"))
-_LINK_PREVIEW_TIMEOUT = float(os.environ.get("LINK_PREVIEW_TIMEOUT", "5.0"))
+_TOP_K_LINKS = int(os.environ.get("TOP_K_LINKS", _config["TOP_K_LINKS"]))
+_MIN_GAIN_THRESHOLD = float(os.environ.get("MIN_GAIN_THRESHOLD", _config["MIN_GAIN_THRESHOLD"]))
+_RELEVANCE_WEIGHT = float(os.environ.get("RELEVANCE_WEIGHT", _config["RELEVANCE_WEIGHT"]))
+_NOVELTY_WEIGHT = float(os.environ.get("NOVELTY_WEIGHT", _config["NOVELTY_WEIGHT"]))
+_AUTHORITY_WEIGHT = float(os.environ.get("AUTHORITY_WEIGHT", _config["AUTHORITY_WEIGHT"]))
+_LINK_PREVIEW_TIMEOUT = float(os.environ.get("LINK_PREVIEW_TIMEOUT", _config["LINK_PREVIEW_TIMEOUT"]))
 
-DEFAULT_MAX_PAGES = int(os.environ.get("DEFAULT_MAX_PAGES", "15"))
-MAX_PAGES_LIMIT = int(os.environ.get("MAX_PAGES_LIMIT", "20"))
-DEFAULT_MAX_DEPTH = int(os.environ.get("DEFAULT_MAX_DEPTH", "5"))
-MAX_DEPTH_LIMIT = int(os.environ.get("MAX_DEPTH_LIMIT", "10"))
+DEFAULT_MAX_PAGES = int(os.environ.get("DEFAULT_MAX_PAGES", _config["DEFAULT_MAX_PAGES"]))
+MAX_PAGES_LIMIT = int(os.environ.get("MAX_PAGES_LIMIT", _config["MAX_PAGES_LIMIT"]))
+DEFAULT_MAX_DEPTH = int(os.environ.get("DEFAULT_MAX_DEPTH", _config["DEFAULT_MAX_DEPTH"]))
+MAX_DEPTH_LIMIT = int(os.environ.get("MAX_DEPTH_LIMIT", _config["MAX_DEPTH_LIMIT"]))
 
 
 def _require_positive(name: str, value: int | float) -> None:
@@ -110,11 +121,8 @@ _CONTENT_FILTER_KWARGS = dict(
 )
 
 # What AdaptiveCrawler's statistical strategy scores link/page relevance against:
-# terms to overweight, not a chat prompt.
-_QUERY = (
-    "pipeline configuration syntax reference stages jobs triggers runners agents "
-    "artifacts environment variables schema keyword"
-)
+# terms to overweight, not a chat prompt. Defined in config.yaml.
+_QUERY = _config["QUERY"]
 
 
 def _base_run_config_kwargs(cache_mode: CacheMode) -> dict:
@@ -201,17 +209,10 @@ def _scope_prefixes(seed_url: str) -> list[str]:
     return result
 
 
-_LINK_RANKING_PROMPT = (
-    "You are choosing which candidate links to follow next while crawling a CI/CD platform's "
-    "documentation site. The goal is NOT general documentation, it's the platform's actual "
-    "configuration syntax reference: the keyword-by-keyword schema for its pipeline "
-    "definition file (e.g. GitLab CI's yaml reference at docs.gitlab.com/ci/yaml/, which lists "
-    "every field like `stages`, `rules`, `needs`, `artifacts`, with its type and meaning). "
-    "Given a list of candidate links (each with its link text/title), return a JSON array of "
-    "hrefs (a subset of the candidates, in priority order, most relevant first) most likely to "
-    "be syntax/schema reference pages, not a project overview, board/repo/test product pages, "
-    "tutorials, or release notes. Respond with ONLY a JSON array of strings, no other text."
-)
+# System prompt for _llm_rank_links. Defined in config.yaml, its final two
+# sentences are load-bearing for _llm_rank_links's response parsing, see the
+# comment above LINK_RANKING_PROMPT in that file before editing it.
+_LINK_RANKING_PROMPT = _config["LINK_RANKING_PROMPT"]
 
 
 async def _llm_rank_links(links: list[Link], hint: str | None = None) -> list[str]:
@@ -367,15 +368,10 @@ def _result_to_page(result: CrawlResult) -> Page:
     }
 
 
-_CLEAN_CONTENT_PROMPT = (
-    "You are cleaning already-mostly-filtered documentation markdown. Remove any remaining "
-    "site chrome: cookie/consent notices, \"sign in\"/\"skip to content\" prompts, footer "
-    "legal text, and repeated navigation menus. Do NOT summarize, paraphrase, or rewrite "
-    "anything else, every sentence, code block, YAML example, and table that isn't chrome "
-    "must be returned byte-for-byte as given. If a page has no chrome left to remove, return "
-    "it completely unchanged. Respond with ONLY the cleaned markdown, no preamble, no "
-    "explanation, no code fence wrapping the whole response."
-)
+# System prompt for _clean_chunk. Defined in config.yaml, its byte-for-byte
+# fidelity requirement is load-bearing, see the comment above
+# CLEAN_CONTENT_PROMPT in that file before editing it.
+_CLEAN_CONTENT_PROMPT = _config["CLEAN_CONTENT_PROMPT"]
 
 # Keyed by a hash of the input markdown, not the URL: the same content is the
 # same cleanup result regardless of which page it came from.
@@ -481,14 +477,19 @@ async def fetch_documentation(
     exclude_urls: list[str] | None = None,
 ) -> FetchResult:
     """Crawls seed_url via AdaptiveCrawler for CI/CD pipeline syntax reference
-    content, following links across pages (not just the seed) until max_pages,
-    max_depth, or no in-scope candidates remain. hint steers link ranking
+    content, following links across pages (not just the seed). Stops on
+    max_pages, max_depth, no in-scope candidates left, or AdaptiveCrawler's own
+    confidence/saturation/min_gain_threshold gates. hint steers link ranking
     toward something specific; exclude_urls rules out known-bad pages; both are
     retry levers for a caller (human or orchestrator) that inspected a prior
     response and knows what to correct. Returns pages plus a meta block
-    (confidence, pending_links, ...) so a caller can tell which retry fits: a
-    non-empty pending_links means the budget ran out with real candidates
-    left; an empty one means it ran out of in-scope pages to try."""
+    (confidence, pending_links, ...): non-empty pending_links means real
+    candidates are still available, but not necessarily because a budget ran
+    out, min_gain_threshold can also stop the crawl with candidates left,
+    where raising max_pages does nothing and hint/exclude_urls are the actual
+    levers; compare pages_crawled/depth_reached against max_pages/max_depth to
+    tell which case it is. Empty pending_links means it ran out of in-scope
+    candidates entirely."""
     cache_mode = CacheMode.BYPASS if force_refresh else CacheMode.ENABLED
     effective_query = f"{_QUERY} {hint}" if hint else _QUERY
     async with AsyncWebCrawler() as crawler:
@@ -527,7 +528,16 @@ async def fetch_documentation(
     # pending_links once a queued link actually gets fetched. Without this filter,
     # meta.pending_links would tell a caller pages are still unexplored when full
     # data for them already exists in the pages list returned in this same response.
-    crawled_urls = {p["url"] for p in pages}
+    #
+    # Every discovered link href is normalized by crawl4ai (host lowercased,
+    # tracking params dropped, query sorted) before it ever reaches pending_links,
+    # but a page's own result.url is not, it's whatever string was passed to
+    # arun(). For every non-seed page that's the same already-normalized href, so
+    # it's a no-op; for the seed page specifically it's the caller's raw seed_url,
+    # so without normalizing here too, a self-link back to a seed URL given in a
+    # non-canonical form (tracking params, unsorted query, mixed-case host) could
+    # still slip past this filter.
+    crawled_urls = {normalize_url(p["url"], p["url"]) for p in pages}
     seen_hrefs: set[str] = set()
     pending_links: list[PendingLink] = []
     for link in state.pending_links:
@@ -537,7 +547,12 @@ async def fetch_documentation(
         pending_links.append({"href": link.href, "text": link.text, "title": link.title})
     meta: FetchMeta = {
         "confidence": state.metrics.get("confidence", 0.0),
-        "pages_crawled": state.metrics.get("pages_crawled", len(pages)),
+        # len(pages), not state.metrics["pages_crawled"] (== len(state.crawled_urls)
+        # internally): crawl4ai's own crawled_urls bookkeeping can undercount on a
+        # partial-batch fetch failure (a zip() of results against requested links
+        # misaligns if a middle one fails), pages is what this response actually
+        # returns, always the correct count for it.
+        "pages_crawled": len(pages),
         "depth_reached": state.metrics.get("depth_reached"),
         "pending_links": pending_links,
     }

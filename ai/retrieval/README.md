@@ -216,15 +216,26 @@ entry of `/fetch`'s `pages` array.
 ## Configuration
 
 Every tuning value in the service (page/link/depth budgets and limits, timeouts, cache sizes,
-content-filter thresholds, chunking and concurrency, quality-floor and dedup thresholds) is
-overridable via an environment variable of the same name, with a default already tuned against
-real sites. See the constant definitions at the top of `retrieval.py` (the crawl/ranking/cleanup
-internals) and `main.py` (`DEFAULT_MAX_PAGES`, `MAX_PAGES_LIMIT`, `DEFAULT_MAX_DEPTH`,
-`MAX_DEPTH_LIMIT`, `MAX_HINT_LENGTH`, the request-shaping bounds) for the authoritative list of
-names and current defaults, this file intentionally doesn't restate exact numbers that live in
-code, to avoid the two drifting apart. None of these are per-request `/fetch` parameters: unlike
-`hint`/`max_depth`/`exclude_urls`, a caller has no principled basis to pick a different value
-per call, they're operational knobs, not retry levers.
+content-filter thresholds, chunking and concurrency, quality-floor and dedup thresholds, the
+statistical ranking query terms, and the two LLM system prompts) has its default in
+[`config.yaml`](config.yaml), checked in next to `retrieval.py`, so tuning it doesn't require
+editing Python source. The numeric/threshold keys are additionally overridable per-deploy via
+an environment variable of the same name (`config.yaml`'s value is only the fallback default);
+`QUERY`, `LINK_RANKING_PROMPT`, and `CLEAN_CONTENT_PROMPT` have no environment variable
+equivalent, edit `config.yaml` directly for those. `retrieval.py` loads `config.yaml` at import
+time into the same module-level constants it always had (`_MAX_LINKS`, `DEFAULT_MAX_PAGES`,
+etc., the latter two plus `MAX_PAGES_LIMIT`/`MAX_DEPTH_LIMIT` are imported into `main.py` for
+request validation; `main.py` also has its own `MAX_HINT_LENGTH` env var for the request-shaping
+bound that isn't in `config.yaml`). This file intentionally doesn't restate exact numbers that
+live in `config.yaml`, to avoid the two drifting apart. None of these are per-request `/fetch`
+parameters: unlike `hint`/`max_depth`/`exclude_urls`, a caller has no principled basis to pick a
+different value per call, they're operational knobs, not retry levers.
+
+The two prompt keys have load-bearing constraints beyond their obvious meaning, noted as
+comments directly above each key in `config.yaml`: `LINK_RANKING_PROMPT`'s instruction to
+respond with only a JSON array is what `_llm_rank_links`'s regex parsing depends on, and
+`CLEAN_CONTENT_PROMPT`'s byte-for-byte fidelity requirement is what `_clean_chunk`'s
+length-growth guard depends on. Read those comments before editing either prompt.
 
 ## Content filtering
 
@@ -397,7 +408,7 @@ skip re-crawling entirely when the caller already knows the one exact page that'
 
 ## Testing
 
-`pytest` runs this module's unit tests (`tests/test_retrieval.py`, `tests/test_main.py`), all
+`pytest` runs this module's unit tests (`tests/test_retrieval_unit.py`, `tests/test_main.py`), all
 mocked, no network, browser, or LLM calls (DNS resolution for `_validate_fetchable_url` is
 mocked too via an autouse fixture, so a fake test URL never depends on real DNS). Coverage
 includes: SSRF rejection (loopback, private ranges, link-local/cloud metadata, unresolvable
@@ -412,10 +423,18 @@ result is rejected), cross-page deduplication (both passes), the content-length 
 (both checks), the single-page `/fetch/page` path (including its own graceful-failure
 handling), and the FastAPI endpoints' request handling.
 
-One integration test (`tests/test_js_rendering.py`, marked `integration`, excluded from the
-default run, run explicitly with `pytest -m integration`) launches a real browser against a
-local static-HTML fixture that injects content via a delayed script, mimicking a JS-rendered
-SPA, verifying the wait-config behavior actually works, not just checked by hand once.
+Two integration tests, both marked `integration`, excluded from the default run, run explicitly
+with `pytest -m integration`, since both hit something real:
+
+- `tests/test_js_rendering.py` launches a real browser against a local static-HTML fixture that
+  injects content via a delayed script, mimicking a JS-rendered SPA, verifying the wait-config
+  behavior actually works, not just checked by hand once.
+- `tests/test_e2e.py` runs `fetch_documentation()` and `fetch_single_page()` for real, real
+  browser, real network, real `ai-layer` LLM calls for ranking and cleanup, against a live
+  documentation site, then checks the actual response: real syntax keywords present, no leftover
+  chrome, content over a real-page-sized floor. The mocked unit tests above exercise this
+  module's own logic in isolation; this is what catches an actual crawl4ai/Playwright/ai-layer
+  integration break, the kind of thing mocking can't.
 
 Every architectural piece (config injection, scope resolution, shortlist width, `wait_for`,
 confidence/saturation calibration, the quality floor, link budget) has been verified by running
@@ -434,9 +453,10 @@ the real service against real platform documentation sites with real content-qua
   consistent structured format"; each page currently returns markdown as-is, with no
   normalization pass across pages.
 - **`max_pages`/`max_depth` are soft budgets, not hard caps.** `AdaptiveCrawler` checks its
-  stopping condition once per round, not once per page, and fetches a small batch of pages per
-  round, so a crawl can overshoot the requested `max_pages` by a couple of pages. Not fixed, a
-  library behavior, not something worth patching around for an off-by-a-few-pages budget.
+  stopping condition once per round, not once per page, then crawls up to `TOP_K_LINKS` more
+  pages before checking again, so a crawl can overshoot the requested `max_pages` by up to
+  `TOP_K_LINKS - 1` pages. Not fixed, a library behavior, not something worth patching around
+  for a budget that was never meant to be exact.
 - **The in-process content-cleanup cache (and Crawl4AI's own page cache) are per-container,
   not shared.** If `retrieval` ever runs as more than one replica, a cache hit on one instance
   is a cache miss on another. Not a problem at the current single-instance scale; worth

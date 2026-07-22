@@ -724,6 +724,27 @@ async def test_fetch_documentation_excludes_already_crawled_urls_from_pending_li
 
 
 @pytest.mark.asyncio
+async def test_fetch_documentation_normalizes_seed_url_before_excluding_from_pending_links():
+    # flagged on independent review: crawl4ai normalizes every discovered link
+    # href (tracking params dropped, query sorted) before it reaches
+    # pending_links, but a page's own result.url is never normalized, it's
+    # whatever string was passed to arun(). For the seed page that's the
+    # caller's raw seed_url, so a self-link back to it in already-normalized
+    # form would slip past an exact-string-only already-crawled filter
+    raw_seed = "https://docs.example.com/?utm_source=x&b=2&a=1"
+    normalized_self_link = make_link("https://docs.example.com/?a=1&b=2", text="home")
+    still_pending = make_link("https://docs.example.com/rules", text="rules")
+    state = make_fake_state([make_crawl_result(url=raw_seed)],
+                             pending_links=[normalized_self_link, still_pending])
+    patcher, _ = patch_adaptive_crawler(state)
+    with patch_crawler(), patcher, patch_clean_passthrough():
+        result = await retrieval.fetch_documentation(raw_seed)
+
+    hrefs = [link["href"] for link in result["meta"]["pending_links"]]
+    assert hrefs == ["https://docs.example.com/rules"]
+
+
+@pytest.mark.asyncio
 async def test_fetch_documentation_dedupes_before_cleanup_so_llm_never_sees_the_repeat():
     boilerplate = "this cookie notice paragraph is long enough to count as real content by length alone"
     # padded well past _MIN_USABLE_CONTENT_CHARS so this test isn't entangled
