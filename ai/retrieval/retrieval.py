@@ -86,6 +86,15 @@ DEFAULT_MAX_DEPTH = int(os.environ.get("DEFAULT_MAX_DEPTH", _config["DEFAULT_MAX
 MAX_DEPTH_LIMIT = int(os.environ.get("MAX_DEPTH_LIMIT", _config["MAX_DEPTH_LIMIT"]))
 
 
+def _bool_env(name: str, default: bool) -> bool:
+    """os.environ values are always strings, so a plain bool(os.environ.get(...))
+    would treat the literal string "false" as truthy; this parses it properly."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 def _require_positive(name: str, value: int | float) -> None:
     if value <= 0:
         raise ValueError(f"{name} must be positive, got {value}")
@@ -120,6 +129,20 @@ _CONTENT_FILTER_KWARGS = dict(
     preserve_tags=["pre", "code", "table"],
 )
 
+# html2text options for DefaultMarkdownGenerator, the actual HTML -> Markdown
+# converter (see config.yaml's Markdown generation section for what each one
+# does and why MARKDOWN_SINGLE_LINE_BREAK specifically needs care).
+_MARKDOWN_OPTIONS = dict(
+    body_width=int(os.environ.get("MARKDOWN_BODY_WIDTH", _config["MARKDOWN_BODY_WIDTH"])),
+    ignore_emphasis=_bool_env("MARKDOWN_IGNORE_EMPHASIS", _config["MARKDOWN_IGNORE_EMPHASIS"]),
+    ignore_links=_bool_env("MARKDOWN_IGNORE_LINKS", _config["MARKDOWN_IGNORE_LINKS"]),
+    ignore_images=_bool_env("MARKDOWN_IGNORE_IMAGES", _config["MARKDOWN_IGNORE_IMAGES"]),
+    protect_links=_bool_env("MARKDOWN_PROTECT_LINKS", _config["MARKDOWN_PROTECT_LINKS"]),
+    single_line_break=_bool_env("MARKDOWN_SINGLE_LINE_BREAK", _config["MARKDOWN_SINGLE_LINE_BREAK"]),
+    mark_code=_bool_env("MARKDOWN_MARK_CODE", _config["MARKDOWN_MARK_CODE"]),
+    escape_snob=_bool_env("MARKDOWN_ESCAPE_SNOB", _config["MARKDOWN_ESCAPE_SNOB"]),
+)
+
 # What AdaptiveCrawler's statistical strategy scores link/page relevance against:
 # terms to overweight, not a chat prompt. Defined in config.yaml.
 _QUERY = _config["QUERY"]
@@ -130,7 +153,10 @@ def _base_run_config_kwargs(cache_mode: CacheMode) -> dict:
     single-page), so the content filter/wait/robots policy can't drift between
     the two call sites."""
     return dict(
-        markdown_generator=DefaultMarkdownGenerator(content_filter=PruningContentFilter(**_CONTENT_FILTER_KWARGS)),
+        markdown_generator=DefaultMarkdownGenerator(
+            content_filter=PruningContentFilter(**_CONTENT_FILTER_KWARGS),
+            options=_MARKDOWN_OPTIONS,
+        ),
         wait_for=_WAIT_FOR,
         delay_before_return_html=_DELAY_BEFORE_RETURN_HTML,
         cache_mode=cache_mode,

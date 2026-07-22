@@ -110,6 +110,59 @@ MIN_WORD_THRESHOLD: 5
 # minimum viable doc page.
 MIN_USABLE_CONTENT_CHARS: 200
 
+# --- Markdown generation (HTML -> Markdown conversion) -------------------------
+#
+# The actual HTML -> Markdown conversion (via html2text under the hood) is done
+# by crawl4ai's DefaultMarkdownGenerator, the same object PruningContentFilter
+# above is attached to (see _base_run_config_kwargs): one call does both the
+# conversion and the structural chrome-stripping, they aren't separate steps.
+# Every key below was, until now, silently left at html2text's own unmodified
+# defaults (confirmed against the installed source), this project never
+# touched or even exposed them before. None of these have a principled reason
+# to be non-default for this project yet, they're listed here so a human can
+# see and change them without reading crawl4ai's source, not because any of
+# them were found to need changing.
+
+# Disables line-wrapping (0 = don't wrap). html2text's own default.
+MARKDOWN_BODY_WIDTH: 0
+
+# Keeps bold/italic markdown (*emphasis*) instead of stripping it. html2text's
+# own default.
+MARKDOWN_IGNORE_EMPHASIS: false
+
+# Keeps links as markdown links `[text](url)` instead of stripping them to
+# plain text. Matters here specifically: _llm_rank_links's candidate list and
+# this project's own link-following both depend on hrefs surviving into the
+# markdown. html2text's own default, but not one to flip carelessly.
+MARKDOWN_IGNORE_LINKS: false
+
+# Keeps image markdown (![alt](url)) instead of stripping it. html2text's own
+# default.
+MARKDOWN_IGNORE_IMAGES: false
+
+# Wraps links in angle brackets to avoid line-wrap mangling; only matters
+# combined with a nonzero MARKDOWN_BODY_WIDTH, moot while that's 0. html2text's
+# own default.
+MARKDOWN_PROTECT_LINKS: false
+
+# Controls how many blank lines separate paragraphs in the output markdown.
+# Caution before changing this one specifically: dedupe_pages and
+# _clean_chunk's chunking (clean_page_content) both split the markdown on
+# "\n\n" to find paragraph boundaries, so changing how paragraph breaks are
+# emitted here could change what counts as a "paragraph" for both of those,
+# without either of them erroring, just silently deduping/chunking
+# differently. html2text's own default.
+MARKDOWN_SINGLE_LINE_BREAK: true
+
+# Wraps code blocks in markdown code-fence syntax rather than leaving them as
+# plain indented text; matters for this project's use case since YAML/syntax
+# examples are the actual content being retrieved. html2text's own default.
+MARKDOWN_MARK_CODE: true
+
+# Disables aggressive escaping of markdown special characters. html2text's own
+# default.
+MARKDOWN_ESCAPE_SNOB: false
+
 # --- AI cleanup pass (clean_page_content) --------------------------------------
 
 # Max characters per chunk sent to the AI cleanup LLM call (paragraphs are
