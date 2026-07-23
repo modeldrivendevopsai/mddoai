@@ -1,0 +1,38 @@
+# Version control
+.git
+
+# Build tooling — the image only needs the already-built build/ directory,
+# populated by CI's `gradle installDist` before `docker build` runs.
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+
+# Java sources and tests — not needed at runtime, only build/ is.
+# src/main/resources/ is NOT excluded: TransformerFactory.create() reads ATL
+# transformation files from there via a relative path at runtime
+# (./src/main/resources/transformations/**/*.asm), so it must ship in the image.
+src/main/java/
+src/test/
+/test
+
+# Eclipse project metadata
+.classpath
+.project
+.settings/
+bin/
+intermediate/
+
+# Vendored plugin jars — already bundled into build/install/*/lib by installDist
+libs/
+
+# Local scratch/test artifacts (not part of the shipped app)
+my-output/
+output/
+swarch-output/
+*.swarch
+*.pimmm
+*.ecore
+
+# OS / editor cruft
+.DS_Store

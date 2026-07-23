@@ -1,7 +1,11 @@
 node_modules
 dist
 dist-ssr
+coverage
 .git
+.env
+.env.*
 *.local
 .vscode
 .idea
+.DS_Store

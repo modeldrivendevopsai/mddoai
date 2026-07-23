@@ -43,6 +43,16 @@ def reload_config(env_patch, home_dir=None):
     home_dir, when given, patches pathlib.Path.home() directly rather than the
     HOME env var so credential-file detection is exercised identically on
     Windows (which has no HOME) and Unix.
+
+    router.config calls dotenv.load_dotenv() at import time; since python-dotenv
+    fills in only the env vars that are currently *absent* (it never overrides
+    ones already set), a real ai-layer/.env file on disk would otherwise silently
+    repopulate a key this test just cleared from os.environ -- e.g. a scenario
+    popping CLAUDE_CODE_OAUTH_TOKEN to simulate "no token" would have it
+    reappear from .env before _get_oauth_token() ever runs. Patching
+    load_dotenv() to a no-op for the reload makes every scenario's environment
+    fully determined by env_patch/home_dir, not by whatever's on disk on the
+    machine running the test.
     """
     saved = {k: os.environ.get(k) for k in env_patch}
 
@@ -54,11 +64,12 @@ def reload_config(env_patch, home_dir=None):
 
     reload_router_modules()
 
-    if home_dir is not None:
-        with mock_patch("pathlib.Path.home", return_value=Path(home_dir)):
+    with mock_patch("dotenv.load_dotenv"):
+        if home_dir is not None:
+            with mock_patch("pathlib.Path.home", return_value=Path(home_dir)):
+                import router.config as cfg
+        else:
             import router.config as cfg
-    else:
-        import router.config as cfg
 
     # Restore
     for k, saved_v in saved.items():
