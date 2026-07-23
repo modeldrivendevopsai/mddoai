@@ -1,9 +1,9 @@
 <mxfile host="app.diagrams.net" agent="Claude">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="1664" dy="1055" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="2002" dy="1072" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
-        <mxCell id="1" parent="0" value="Base (always visible)" visible="0" />
+        <mxCell id="1" parent="0" value="Base (always visible)" />
         <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=16;fontColor=#1B3A5C;" value="MDDOAI Multi-Agent Architecture by Delivery Phase" vertex="1">
           <mxGeometry height="30" width="1000" x="120" as="geometry" />
         </mxCell>
@@ -53,7 +53,7 @@
         <mxCell id="row2" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Retrieval and Parser Cluster" vertex="1">
           <mxGeometry height="100" width="880" x="120" y="230" as="geometry" />
         </mxCell>
-        <mxCell id="retr" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Retrieval Agent" vertex="1">
+        <mxCell id="retr" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#006EAF;fillColor=#1ba1e2;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Retrieval Agent" vertex="1">
           <mxGeometry height="50" width="190" x="150" y="270" as="geometry" />
         </mxCell>
         <mxCell id="docparser" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Documentation Parser Agent" vertex="1">
