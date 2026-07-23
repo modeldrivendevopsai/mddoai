@@ -8,8 +8,12 @@ gradle/
 gradlew
 gradlew.bat
 
-# Source and test code/output — not needed at runtime, only build/ is
-src/
+# Java sources and tests — not needed at runtime, only build/ is.
+# src/main/resources/ is NOT excluded: TransformerFactory.create() reads ATL
+# transformation files from there via a relative path at runtime
+# (./src/main/resources/transformations/**/*.asm), so it must ship in the image.
+src/main/java/
+src/test/
 /test
 
 # Eclipse project metadata
