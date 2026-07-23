@@ -1,0 +1,34 @@
+# Version control
+.git
+
+# Build tooling — the image only needs the already-built build/ directory,
+# populated by CI's `gradle installDist` before `docker build` runs.
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+
+# Source and test code/output — not needed at runtime, only build/ is
+src/
+/test
+
+# Eclipse project metadata
+.classpath
+.project
+.settings/
+bin/
+intermediate/
+
+# Vendored plugin jars — already bundled into build/install/*/lib by installDist
+libs/
+
+# Local scratch/test artifacts (not part of the shipped app)
+my-output/
+output/
+swarch-output/
+*.swarch
+*.pimmm
+*.ecore
+
+# OS / editor cruft
+.DS_Store
