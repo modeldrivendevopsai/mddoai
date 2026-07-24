@@ -12,6 +12,30 @@ services:
     expose:
       - "8000"
 
+  retrieval:
+    build: ./retrieval
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+    expose:
+      - "8010"
+    # crawl4ai hardcodes --no-sandbox and --disable-dev-shm-usage into every
+    # Chromium launch (confirmed in its browser_manager.py source), so the
+    # classic Docker+Chromium /dev/shm crash is already mostly mitigated
+    # before shm_size is even set, this is cheap extra insurance, not a fix
+    # for a live problem. init reaps zombie Chromium/zygote processes
+    # (Playwright's own Docker guidance). cap_drop/no-new-privileges are safe
+    # since --no-sandbox means Chromium needs no elevated capabilities anyway,
+    # confirmed by actually running the container with them.
+    shm_size: "1gb"
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      ai-layer:
+        condition: service_started
+
   chat-ui-build:
     build: ./chat-ui
     volumes:

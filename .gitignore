@@ -10,3 +10,15 @@ build
 /plugins
 __pycache__/
 *.pyc
+
+# Python virtual environments and caches
+venv/
+.venv/
+
+# crawl4ai / Playwright downloaded artifacts (ai/retrieval/)
+ai/retrieval/.playwright-browsers/
+ai/retrieval/.crawl4ai/
+ai/retrieval/global.yml
+
+# third-party doc content fetched during retrieval testing, not ours to redistribute
+ai/retrieval/samples/

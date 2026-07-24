@@ -1,0 +1,295 @@
+# Retrieval service tuning defaults.
+#
+# Every key here is loaded by retrieval.py at import time. The numeric/threshold
+# keys can still be overridden per-deploy by setting an environment variable of
+# the same name (see README's Configuration section); this file is just the
+# checked-in default, so tuning no longer requires editing retrieval.py itself.
+# QUERY and the two *_PROMPT keys have no environment variable equivalent
+# (multi-line prompt text doesn't fit a docker-compose `environment:` entry
+# sanely); edit them here directly.
+#
+# Provenance note, so "why this exact number" isn't a mystery: some values
+# below are crawl4ai's own library defaults, left untouched; some were
+# deliberately changed from the library default for a specific reason; the
+# rest are this project's own knobs (crawl4ai has no equivalent), mostly
+# round-number engineering guesses rather than values derived from
+# measurement. Each key below says which case it is, honestly, rather than
+# inventing a rationale that was never actually tested.
+
+# --- Link discovery / ranking -------------------------------------------------
+
+# Per-page cap on how many of a page's discovered links get preview data (a
+# short excerpt + BM25 context, via crawl4ai's LinkPreviewConfig) computed for.
+# Excess links beyond this are silently dropped before ranking ever sees them.
+# No crawl4ai default (this project's own ceiling); 250 is a round-number
+# margin above what a normal doc-site nav/sidebar has, not measured against a
+# real worst case. Raise it if a real site's sidebar/nav has more links than
+# this and pages are missing candidates as a result.
+MAX_LINKS: 250
+
+# How many of those per-page link previews are fetched in parallel (HEAD
+# requests, not full page loads). No crawl4ai default; 5 is a moderate
+# round-number pick, not load-tested against any real target site's rate
+# limits.
+LINK_PREVIEW_CONCURRENCY: 5
+
+# After MAX_LINKS candidates are statistically scored (BM25 + novelty), only
+# the top SHORTLIST_SIZE of them are ever shown to the LLM for judgment
+# (_LLMRankedStrategy.rank_links, the mechanical-funnel-then-LLM-judges design
+# from the retrieval.drawio diagram). No crawl4ai default (this project's own
+# two-stage design); 100 is a guess balancing "enough candidates for the LLM to
+# rescue an oddly-worded but relevant link" against the free-tier LLM context
+# limits discussed separately, not empirically tuned.
+SHORTLIST_SIZE: 100
+
+# crawl4ai's own AdaptiveConfig setting: how many top-ranked links get fetched
+# per hop. This is crawl4ai's unmodified library default (confirmed against
+# the installed package), never changed for this project.
+TOP_K_LINKS: 3
+
+# crawl4ai's own stop condition: the crawl stops once the top-ranked
+# candidate's score falls below this, even if max_pages/max_depth budget
+# remains (this is the gate that min_gain_threshold-vs-max_pages confusion in
+# the README's retry-advice section refers to). Also crawl4ai's unmodified
+# library default.
+MIN_GAIN_THRESHOLD: 0.1
+
+# The three weights crawl4ai's StatisticalStrategy combines into a link's
+# score: score = RELEVANCE_WEIGHT*relevance + NOVELTY_WEIGHT*novelty +
+# AUTHORITY_WEIGHT*authority. All three are crawl4ai's own unmodified library
+# defaults. Worth knowing before tuning AUTHORITY_WEIGHT specifically: as of
+# crawl4ai 0.9.2, `authority` is hardcoded to 1.0 inside the library, its own
+# `_calculate_authority()` method is fully implemented but never actually
+# called (confirmed by reading the installed source). Changing this weight
+# currently has zero effect on ranking until that's fixed upstream.
+RELEVANCE_WEIGHT: 0.5
+NOVELTY_WEIGHT: 0.3
+AUTHORITY_WEIGHT: 0.2
+
+# Per-link timeout (seconds) for the HEAD-preview fetch above. crawl4ai's own
+# unmodified library default.
+LINK_PREVIEW_TIMEOUT: 5.0
+
+# --- Page fetch / JS wait -----------------------------------------------------
+
+# The JS-render wait condition: crawl4ai waits until
+# `document.body.innerText.length > WAIT_FOR_MIN_CHARS` before capturing the
+# page (or times out trying). No crawl4ai default (this project's own
+# heuristic for "the page looks rendered"). 1000 has some real grounding:
+# checked by hand against TeamCity's real docs mid-project, an unrendered
+# capture was ~72 chars vs. ~7600+ once rendered, so 1000 sits well inside that
+# gap rather than being a pure guess. test_js_rendering.py exercises this
+# directly.
+WAIT_FOR_MIN_CHARS: 1000
+
+# Extra fixed delay (seconds) after the wait_for condition above resolves,
+# before the HTML is actually captured, catches JS that keeps mutating the DOM
+# briefly after the char-count threshold is first crossed. No crawl4ai
+# equivalent; 1.0s is a round-number safety margin, not measured.
+DELAY_BEFORE_RETURN_HTML: 1.0
+
+# --- Structural content filter (PruningContentFilter) -------------------------
+
+# PruningContentFilter's own block-scoring threshold: blocks scoring below
+# this are pruned as likely chrome (nav, footer, ads). This is
+# PruningContentFilter's unmodified library default (confirmed against the
+# installed source), never changed for this project.
+CONTENT_FILTER_THRESHOLD: 0.48
+
+# PruningContentFilter's minimum word count for a text block to survive at
+# all, blocks with fewer words (nav links, buttons) are dropped outright
+# regardless of score. The library's own default is actually None (no
+# minimum); this project deliberately set a minimum, though "5" specifically
+# wasn't derived from measurement, just picked as clearly-not-real-content.
+MIN_WORD_THRESHOLD: 5
+
+# Quality floor applied after every fetch: a page is only marked successful if
+# its filtered content is at least this many characters (_result_to_page);
+# shorter is treated as an empty/failed fetch rather than real content. No
+# crawl4ai default; 200 is a round-number floor, not measured against a real
+# minimum viable doc page.
+MIN_USABLE_CONTENT_CHARS: 200
+
+# --- Markdown generation (HTML -> Markdown conversion) -------------------------
+#
+# The actual HTML -> Markdown conversion (via html2text under the hood) is done
+# by crawl4ai's DefaultMarkdownGenerator, the same object PruningContentFilter
+# above is attached to (see _base_run_config_kwargs): one call does both the
+# conversion and the structural chrome-stripping, they aren't separate steps.
+# Every key below was, until now, silently left at html2text's own unmodified
+# defaults (confirmed against the installed source), this project never
+# touched or even exposed them before. None of these have a principled reason
+# to be non-default for this project yet, they're listed here so a human can
+# see and change them without reading crawl4ai's source, not because any of
+# them were found to need changing.
+
+# Disables line-wrapping (0 = don't wrap). html2text's own default.
+MARKDOWN_BODY_WIDTH: 0
+
+# Keeps bold/italic markdown (*emphasis*) instead of stripping it. html2text's
+# own default.
+MARKDOWN_IGNORE_EMPHASIS: false
+
+# Keeps links as markdown links `[text](url)` instead of stripping them to
+# plain text. Matters here specifically: _llm_rank_links's candidate list and
+# this project's own link-following both depend on hrefs surviving into the
+# markdown. html2text's own default, but not one to flip carelessly.
+MARKDOWN_IGNORE_LINKS: false
+
+# Keeps image markdown (![alt](url)) instead of stripping it. html2text's own
+# default.
+MARKDOWN_IGNORE_IMAGES: false
+
+# Wraps links in angle brackets to avoid line-wrap mangling; only matters
+# combined with a nonzero MARKDOWN_BODY_WIDTH, moot while that's 0. html2text's
+# own default.
+MARKDOWN_PROTECT_LINKS: false
+
+# Controls how many blank lines separate paragraphs in the output markdown.
+# Caution before changing this one specifically: dedupe_pages and
+# _clean_chunk's chunking (clean_page_content) both split the markdown on
+# "\n\n" to find paragraph boundaries, so changing how paragraph breaks are
+# emitted here could change what counts as a "paragraph" for both of those,
+# without either of them erroring, just silently deduping/chunking
+# differently. html2text's own default.
+MARKDOWN_SINGLE_LINE_BREAK: true
+
+# Wraps code blocks in markdown code-fence syntax rather than leaving them as
+# plain indented text; matters for this project's use case since YAML/syntax
+# examples are the actual content being retrieved. html2text's own default.
+MARKDOWN_MARK_CODE: true
+
+# Disables aggressive escaping of markdown special characters. html2text's own
+# default.
+MARKDOWN_ESCAPE_SNOB: false
+
+# --- AI cleanup pass (clean_page_content) --------------------------------------
+
+# Max characters per chunk sent to the AI cleanup LLM call (paragraphs are
+# grouped up to this size before starting a new chunk). Bigger chunks mean
+# fewer LLM calls per page, but a bigger prompt each time, which matters
+# against the free-tier providers' context/rate limits discussed separately.
+# No crawl4ai equivalent; a round-number guess, not tuned against any specific
+# provider's actual context window.
+CLEAN_CHUNK_SIZE: 12000
+
+# How many of those chunk-cleanup calls run in parallel per page. Round-number
+# choice, not load-tested against ai-layer's free providers' real rate limits.
+CLEAN_CONCURRENCY: 4
+
+# Max entries in the in-memory cleanup cache, keyed by content hash
+# (_clean_cache). Once full, the oldest entry is evicted (FIFO by insertion
+# order, not LRU) to make room. Round-number cap on memory use, not measured
+# against real traffic volume.
+CLEAN_CACHE_MAX_SIZE: 500
+
+# Guard against a runaway cleanup response: if the cleaned output is more than
+# this many times longer than the input chunk, it's discarded and the original
+# chunk is kept instead (_clean_chunk), real cleanup should only ever shrink
+# or barely change length. Round-number margin above 1.0, not measured.
+CLEAN_MAX_GROWTH_RATIO: 1.15
+
+# The other half of that guard: if cleanup returns fewer than this many
+# characters, it's treated as a suspiciously-empty response and the original
+# chunk is kept instead of the (likely broken) cleaned one.
+CLEAN_MIN_OUTPUT_CHARS: 20
+
+# CLEAN_MIN_OUTPUT_CHARS only fires if the input chunk was at least this long;
+# a chunk that was already short to begin with can legitimately clean down to
+# almost nothing, so the guard is skipped for it rather than false-triggering.
+CLEAN_MIN_INPUT_CHARS_FOR_GUARD: 100
+
+# --- Paragraph dedup (dedupe_pages) --------------------------------------------
+
+# dedupe_pages only drops a repeated paragraph if it's longer than this; short
+# repeats (headings, single lines like "Overview") are usually legitimate
+# structure, not boilerplate. Round-number choice, not measured.
+DEDUPE_MIN_PARAGRAPH_CHARS: 40
+
+# --- ai-layer HTTP call ---------------------------------------------------------
+
+# HTTP timeout (seconds) for every call to ai-layer's /chat, both link-ranking
+# and cleanup calls. A generous round number chosen to tolerate the router's
+# free-tier providers being slow under load, not measured against their actual
+# worst-case latency.
+AI_LAYER_TIMEOUT: 60.0
+
+# --- AdaptiveCrawler stop conditions ---------------------------------------------
+
+# crawl4ai's own stop condition: the crawl can stop once it's this confident
+# it already has sufficient coverage. crawl4ai's own default is 0.7; this
+# project deliberately raised it to 0.99, near-maximum, so the crawl keeps
+# going instead of stopping as soon as the library's own, more lenient notion
+# of "confident enough" is hit. The exact value 0.99 (vs. e.g. 0.9) wasn't
+# independently measured, "raise it well above the default" was the intent,
+# not a precisely derived number.
+CONFIDENCE_THRESHOLD: 0.99
+
+# Same pattern as CONFIDENCE_THRESHOLD: crawl4ai's own stop condition (stops
+# once new pages stop adding meaningfully new information), library default
+# 0.8, raised to 0.99 for the same "don't stop early" reason, same caveat that
+# 0.99 specifically isn't a measured value.
+SATURATION_THRESHOLD: 0.99
+
+# --- Crawl budget defaults/limits (also read by main.py for request validation) --
+
+# How many pages a crawl fetches if the caller's /fetch request doesn't
+# specify max_pages. Round-number choice meant to cover a typical CI/CD syntax
+# reference without a caller having to think about it.
+DEFAULT_MAX_PAGES: 15
+
+# Hard ceiling on what a caller can request via max_pages (main.py validates
+# every request against this); exists to stop one request from triggering a
+# runaway crawl. Round-number ceiling, not derived from a specific cost or
+# latency budget.
+MAX_PAGES_LIMIT: 20
+
+# Same pattern as DEFAULT_MAX_PAGES, but for hop depth instead of page count.
+DEFAULT_MAX_DEPTH: 5
+
+# Same pattern as MAX_PAGES_LIMIT, but for hop depth instead of page count.
+MAX_DEPTH_LIMIT: 10
+
+# --- Statistical ranking query terms --------------------------------------------
+
+# What AdaptiveCrawler's statistical strategy scores link/page relevance
+# against: terms to overweight, not a chat prompt. hint (a per-request,
+# caller-supplied field) is appended to this at call time, it doesn't replace
+# it. This is a deliberately hand-picked bag of CI/CD-specific vocabulary
+# (not a library default, crawl4ai has no equivalent), chosen because the
+# statistical strategy fits best when the query is specific technical terms
+# rather than a conceptual question (see crawl4ai's own adaptive-crawling
+# examples/README for that guidance).
+QUERY: >-
+  pipeline configuration syntax reference stages jobs triggers runners agents
+  artifacts environment variables schema keyword
+
+# --- LLM prompts (ai-layer /chat system prompts) --------------------------------
+
+# Used by _llm_rank_links to judge which candidate links look like real
+# syntax/schema pages. The final two sentences are load-bearing: the response
+# is parsed with a `\[.*\]` regex expecting exactly one JSON array and nothing
+# else, changing that contract will break parsing, not just ranking quality.
+LINK_RANKING_PROMPT: >-
+  You are choosing which candidate links to follow next while crawling a CI/CD platform's
+  documentation site. The goal is NOT general documentation, it's the platform's actual
+  configuration syntax reference: the keyword-by-keyword schema for its pipeline
+  definition file (e.g. GitLab CI's yaml reference at docs.gitlab.com/ci/yaml/, which lists
+  every field like `stages`, `rules`, `needs`, `artifacts`, with its type and meaning).
+  Given a list of candidate links (each with its link text/title), return a JSON array of
+  hrefs (a subset of the candidates, in priority order, most relevant first) most likely to
+  be syntax/schema reference pages, not a project overview, board/repo/test product pages,
+  tutorials, or release notes. Respond with ONLY a JSON array of strings, no other text.
+
+# Used by _clean_chunk for the AI cleanup pass over already-structurally-filtered
+# markdown. The byte-for-byte fidelity requirement is load-bearing: downstream
+# code compares output length against input length to detect a bad cleanup and
+# discard it, loosening this instruction will silently degrade page content.
+CLEAN_CONTENT_PROMPT: >-
+  You are cleaning already-mostly-filtered documentation markdown. Remove any remaining
+  site chrome: cookie/consent notices, "sign in"/"skip to content" prompts, footer
+  legal text, and repeated navigation menus. Do NOT summarize, paraphrase, or rewrite
+  anything else, every sentence, code block, YAML example, and table that isn't chrome
+  must be returned byte-for-byte as given. If a page has no chrome left to remove, return
+  it completely unchanged. Respond with ONLY the cleaned markdown, no preamble, no
+  explanation, no code fence wrapping the whole response.
