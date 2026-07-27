@@ -8,8 +8,12 @@ services:
     volumes:
       # Read-only access to the host's Claude Code credentials, so the
       # CLAUDE_CODE_OAUTH_TOKEN auto-detect fallback (~/.claude/.credentials.json)
-      # has something to read — the container's own $HOME has no such file.
-      - ${HOME}/.claude:/root/.claude:ro
+      # has something to read, the container's own $HOME has no such file.
+      # ${USERPROFILE} is the fallback for native Windows shells (PowerShell,
+      # cmd.exe), which don't set $HOME the way Linux/macOS/WSL/Git Bash do;
+      # confirmed via `docker compose config` that Compose resolves this
+      # nested default correctly and picks whichever one is actually set.
+      - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     expose:
       - "8000"
 
