@@ -443,6 +443,12 @@ View - Use Draw.io to open the file "drawio diagrams.xml"
 
 Edit - Use the long-living branch "draw.io-diagrams" to edit the diagram, and then make a pull request once ready. The PR approver should always restore the merged branch. This URL should open draw.io directly - https://app.diagrams.net/#Hmodeldrivendevopsai%2Fmddoai%2Fdraw.io-diagrams%2Fdrawio%20diagrams.xml#%7B
 
+## UI wireframes
+
+[https://www.figma.com/design/lVVIDdaZ88WfBAmwKKzsce/MDDOAI_Wireframes](https://www.figma.com/design/lVVIDdaZ88WfBAmwKKzsce/MDDOAI_Wireframes)
+
+View access is open to anyone with the link. To edit, leave a comment or request edit access first.
+
 ## License
 
 

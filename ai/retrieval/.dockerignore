@@ -1,0 +1,5 @@
+venv/
+.playwright-browsers/
+.crawl4ai/
+__pycache__/
+*.pyc
