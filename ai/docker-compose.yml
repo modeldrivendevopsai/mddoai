@@ -1,17 +1,35 @@
 services:
   ai-layer:
-    build: ./ai-layer
+    build:
+      context: ./ai-layer
     env_file:
       - path: ./ai-layer/.env
         required: false
     volumes:
       # Read-only access to the host's Claude Code credentials, so the
       # CLAUDE_CODE_OAUTH_TOKEN auto-detect fallback (~/.claude/.credentials.json)
-      # has something to read — the container's own $HOME has no such file.
-      - ${HOME}/.claude:/root/.claude:ro
+      # has something to read, the container's own $HOME has no such file.
+      # ${USERPROFILE} is the fallback for native Windows shells (PowerShell,
+      # cmd.exe), which don't set $HOME the way Linux/macOS/WSL/Git Bash do;
+      # confirmed via `docker compose config` that Compose resolves this
+      # nested default correctly and picks whichever one is actually set.
+      - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     expose:
       - "8000"
 
+  orchestrator:
+    build:
+      context: ./orchestrator
+    env_file:
+      - path: ./orchestrator/.env
+        required: false
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+    depends_on:
+      ai-layer:
+        condition: service_started
+    expose:
+      - "8001"
   retrieval:
     build: ./retrieval
     environment:

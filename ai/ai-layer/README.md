@@ -1,6 +1,6 @@
 # ai-layer
 
-LLM router for MDDOAI. Exposes a FastAPI service that agents and the chat-ui call. Free providers are tried first in priority order; commercial Claude is the last resort.
+LLM router for MDDOAI. Exposes a FastAPI service that agents (including the standalone `orchestrator` service — see `../orchestrator/README.md`) and the chat-ui call over HTTP. Free providers are tried first in priority order; commercial Claude is the last resort.
 
 ## Provider priority
 
@@ -47,34 +47,23 @@ curl http://localhost:8000/providers
 # [{"name": "gemini-flash", "tier": "free"}, ...]
 ```
 
-**POST /chat** — send a message and get a response.
+**POST /chat** — send a message and get a response. Also supports tool/function calling, so it can serve as the transport for other services (like `orchestrator`) that need an LLM to choose between tools rather than just returning text.
 
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Which CI/CD stages are needed?"}]}'
-# {"content": "...", "model": "gemini/gemini-2.5-flash"}
+# {"content": "...", "model": "gemini/gemini-2.5-flash", "tool_calls": null}
 ```
 
-Request body: `{ "messages": [...], "model": "..." }` — `model` is optional; omit it or pass `"auto"` for the default priority order, or name one of the providers from `/providers` to start there instead (still falls back through the rest on failure). See `router/router.py`'s `chat()` for the exact behavior.
+Request body: `{ "messages": [...], "model": "...", "tools": [...], "tool_choice": "..." }` — `model` is optional; omit it or pass `"auto"` for the default priority order, or name one of the providers from `/providers` to start there instead (still falls back through the rest on failure). `tools`/`tool_choice` are optional OpenAI-style tool schemas/choice strings, forwarded to `router.router.chat()` as-is only when present. See `router/router.py`'s `chat()` for the exact behavior.
 
-Response: `{ "content": "...", "model": "provider/model-name" }`
+Response: `{ "content": "..." | null, "model": "provider/model-name", "tool_calls": [{"function": {"name": "...", "arguments": "..."}}] | null }` — `content` is `null` when the model responded with only tool calls; `tool_calls` is `null` when it didn't call any.
 
 Every successful call also logs a JSON line to stdout:
 
 ```json
 {"timestamp": "2026-06-19T14:32:01Z", "model": "gemini/gemini-2.5-flash", "tier": "free", "input_tokens": 120, "output_tokens": 38, "total_tokens": 158}
-```
-
-## Calling the router directly (Python)
-
-Agents can import `chat()` without going through HTTP:
-
-```python
-from router.router import chat
-
-response = chat(messages=[{"role": "user", "content": "Describe the pipeline stages."}])
-print(response.choices[0].message.content)
 ```
 
 ## Test
