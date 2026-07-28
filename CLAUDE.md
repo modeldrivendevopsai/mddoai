@@ -65,7 +65,7 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 
 - Create or update documentation for any feature you add or change, as part of that same change, not as a followup.
 - State the current design only. Never reference a document's own edit history: no "this used to say X," no "previously Y, now Z," no meta-commentary about a rewrite. Write only what's true now, as if it was always written this way.
-- Avoid hardcoding anything likely to go stale: no exact prices, exact counts, or narrow enumerated lists that live in a system that changes.
+- Avoid hardcoding anything likely to go stale: no exact prices, exact counts, narrow enumerated lists, or absolute claims like "the only file that..." or "the whole app is..." about a part of a system that changes. Describe a file or service's role, not that it's uniquely or exclusively the one with that role, so the sentence stays true after the system grows.
 - Write for a colleague who has never done this task before, not someone who already knows the process.
 - Be clear: short sentences, one idea per sentence, active voice, plain words over jargon. Define jargon on first use.
 - Break up any sentence doing more than one job.

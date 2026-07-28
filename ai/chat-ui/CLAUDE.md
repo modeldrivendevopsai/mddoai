@@ -34,7 +34,7 @@ That's the whole flow. One conversation, one thread, no extra UI chrome.
 
 ## Architecture
 
-The entire app is one screen, `src/screens/ConversationScreen.tsx` — no router, no multi-page structure. `src/services/orchestratorService.ts` is the only file that talks to the network, and it only ever talks to the AI layer, never the Java backend or an LLM provider directly. For the full request path (Caddy gateway, ai-layer, provider routing), see `ai/README.md`.
+The entire app is one screen, no router, no multi-page structure. Network calls go through `src/services/`, never directly from a component, and only ever to the AI layer, never the Java backend or an LLM provider directly. For the full request path (Vite dev proxy, ai-layer, provider routing), see `ai/README.md`.
 
 See `ai/CLAUDE.md` for cross-service folder boundaries.
 
@@ -64,7 +64,7 @@ Layout is header on top, scrollable conversation in the middle, input bar pinned
 
 ## Docker
 
-This service's own Dockerfile only builds the static assets — a separate `caddy` gateway service serves them and proxies API calls to `ai-layer`. Run the whole stack from `ai/`: `docker compose up --build`. See `ai/README.md` for the full topology.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`, proxying API calls to `ai-layer` by its Compose service name. See `ai/README.md` for the full topology.
 
 ---
 
