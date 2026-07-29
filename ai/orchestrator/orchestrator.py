@@ -1,6 +1,8 @@
-import json
 import logging
 import os
+import threading
+import time
+from typing import Callable
 
 import httpx
 from dotenv import load_dotenv
@@ -10,34 +12,17 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://localhost:8000")
-
-
-class _ToolCallFunction:
-    def __init__(self, name: str, arguments: str):
-        self.name = name
-        self.arguments = arguments
-
-
-class _ToolCall:
-    def __init__(self, data: dict):
-        self.function = _ToolCallFunction(data["function"]["name"], data["function"]["arguments"])
-
-
-class _Message:
-    def __init__(self, content: str | None, tool_calls: list[dict] | None):
-        self.content = content
-        self.tool_calls = [_ToolCall(tc) for tc in tool_calls] if tool_calls else None
-
-
-class _Choice:
-    def __init__(self, message: _Message):
-        self.message = message
-
-
-class _ChatResult:
-    def __init__(self, data: dict):
-        self.model = data.get("model")
-        self.choices = [_Choice(_Message(data.get("content"), data.get("tool_calls")))]
+RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://localhost:8010")
+# retrieval's own AdaptiveCrawler stops early on a poor crawl (min_gain_threshold),
+# so a fetch that returns can still have found essentially nothing useful. This is
+# the floor below which that's treated as a hard failure, not a low-quality result
+# for a human to review, an engineering guess, not measured against a real corpus.
+_DOCS_MIN_CONFIDENCE = 0.15
+# Long fields (notably docs_agent's real fetched markdown) get cut to this length
+# before being fed into the reactor's prompt history, so re-sending history on
+# every subsequent narration call doesn't balloon the prompt. self.events keeps
+# the untruncated original, this only affects what the reactor sees.
+_REACTION_FIELD_MAX_CHARS = 2000
 
 
 def chat(
@@ -45,10 +30,11 @@ def chat(
     model: str | None = None,
     tools: list[dict] | None = None,
     tool_choice: str | None = None,
-):
-    """POST to ai-layer's /chat endpoint and wrap the JSON response so callers can
-    keep using response.choices[0].message.{content,tool_calls}, same as the direct
-    litellm call this replaced."""
+) -> dict:
+    """POST to ai-layer's /chat endpoint, returns its parsed JSON response
+    directly: {"model": ..., "content": str | None, "tool_calls": [{"function":
+    {"name": ..., "arguments": "..."}}] | None}. content is None when the
+    model responded with only tool calls."""
     payload = {"messages": messages, "model": model}
     if tools is not None:
         payload["tools"] = tools
@@ -56,7 +42,8 @@ def chat(
         payload["tool_choice"] = tool_choice
     response = httpx.post(f"{AI_LAYER_URL}/chat", json=payload, timeout=120.0)
     response.raise_for_status()
-    return _ChatResult(response.json())
+    return response.json()
+
 
 _ERROR_MARKERS = ("i cannot", "i don't know", "i do not know", "an error occurred", "sorry, an error")
 
@@ -71,12 +58,25 @@ def is_good_enough(response: str) -> bool:
 
 # --- Stage-based pipeline generation ---------------------------------------
 #
-# A PSM -> ATL -> Acceleo -> generation pipeline. Each stage has one agent
-# that makes a real LLM call; a human reviews the stage's output and either
-# approves it (advancing to the next stage) or rejects it with a correction
-# that's recorded as a constraint for the stage's next run.
+# A docs -> PSM -> ATL -> Acceleo -> generation pipeline. docs is a real call
+# to the retrieval service; the other four are placeholder LLM prompts stand-
+# ing in for future real agents. A human reviews each stage's output and
+# either approves it (advancing to the next stage) or rejects it with a
+# correction that's recorded as a constraint for the stage's next run.
 
-STAGES = ["psm", "atl", "acceleo", "generation"]
+STAGES = ["docs", "psm", "atl", "acceleo", "generation"]
+
+# One line per stage, used to build the Orchestrator's own narration/tool-
+# routing system prompt (see pipeline_tools.py) so that prompt never needs a
+# manual edit when a stage is added, only this dict does, alongside STAGES
+# and stage_agents below.
+STAGE_DESCRIPTIONS: dict[str, str] = {
+    "docs": "fetches the platform's real documentation (a real call to retrieval).",
+    "psm": "a PSM (Platform-Specific Model) description of the platform.",
+    "atl": "the ATL transformation rules needed to build that PSM.",
+    "acceleo": "the Acceleo code-generation template for that ATL.",
+    "generation": "a final summary tying all prior stages together.",
+}
 
 _STAGE_SYSTEM_PROMPTS = {
     "psm": (
@@ -114,15 +114,94 @@ def _constraints_note(context: dict, stage: str) -> str:
     return f"\n\nApply these corrections from prior review:\n{bullet_list}"
 
 
+# Retrieval's own two real capabilities (ai/retrieval's POST /fetch and POST
+# /fetch/page), called directly here by docs_agent (the docs stage's normal
+# path). reactions.py also wraps these as stage-scoped tools (so nudge() can
+# call them directly too, e.g. "just grab that one missing page" mapping onto
+# fetch_page precisely instead of the generic rerun_stage), reusing these same
+# functions, not duplicating the HTTP calls.
+
+
+def fetch_documentation(
+    url: str,
+    hint: str | None = None,
+    exclude_urls: list[str] | None = None,
+    max_pages: int | None = None,
+    max_depth: int | None = None,
+    force_refresh: bool | None = None,
+) -> dict:
+    """Calls retrieval's real POST /fetch. hint is retrieval's own retry lever
+    (see its fetch_documentation docstring: "a retry lever for a caller
+    (human or orchestrator)"), passed straight through, no translation
+    needed. Returns the raw FetchResult dict."""
+    payload = {"url": url}
+    if hint:
+        payload["hint"] = hint
+    for key, value in (
+        ("exclude_urls", exclude_urls),
+        ("max_pages", max_pages),
+        ("max_depth", max_depth),
+        ("force_refresh", force_refresh),
+    ):
+        if value is not None:
+            payload[key] = value
+    response = httpx.post(f"{RETRIEVAL_URL}/fetch", json=payload, timeout=180.0)
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_page(url: str, force_refresh: bool = False) -> dict:
+    """Calls retrieval's real POST /fetch/page: the targeted retry, pulling in
+    one specific known page directly rather than re-running a full crawl.
+    Returns the raw Page dict."""
+    response = httpx.post(
+        f"{RETRIEVAL_URL}/fetch/page", json={"url": url, "force_refresh": force_refresh}, timeout=60.0
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def docs_agent(context: dict) -> str:
+    """The docs stage's normal (non-tool-call) path: calls fetch_documentation
+    with whatever context supplies, formats the result as the stage's output
+    string, and fails hard if the crawl found essentially nothing. An
+    explicit context["hint"] (from a /rerun override) takes priority over the
+    constraints-derived one."""
+    seed_url = context.get("seed_url", "")
+    constraints = context.get("constraints", {}).get("docs", [])
+    hint = context.get("hint") or (" ".join(constraints) if constraints else None)
+
+    result = fetch_documentation(
+        seed_url,
+        hint=hint,
+        exclude_urls=context.get("exclude_urls"),
+        max_pages=context.get("max_pages"),
+        max_depth=context.get("max_depth"),
+        force_refresh=context.get("force_refresh"),
+    )
+    pages = [p for p in result["pages"] if p["success"]]
+    confidence = result["meta"]["confidence"]
+    if not pages or confidence < _DOCS_MIN_CONFIDENCE:
+        raise RuntimeError(
+            f"Fetch for {seed_url} found essentially nothing useful "
+            f"(confidence {confidence:.2f}, {len(pages)} usable page(s))."
+        )
+    content = "\n\n".join(f"# {p['url']}\n{p['markdown']}" for p in pages)
+    return f"Fetched {len(pages)} page(s) from {seed_url}, confidence {confidence:.2f}.\n\n{content}"
+
+
 def psm_agent(context: dict) -> str:
+    # docs_output (the real fetched documentation) is what a live run actually
+    # has once "docs" precedes "psm"; platform_description is the fallback for
+    # a caller (or a unit test) that invokes psm_agent directly without it.
     platform_description = context.get("platform_description", "")
-    user_content = platform_description + _constraints_note(context, "psm")
+    primary_input = context.get("docs_output") or platform_description
+    user_content = primary_input + _constraints_note(context, "psm")
     messages = [
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["psm"]},
         {"role": "user", "content": user_content},
     ]
-    response = chat(messages)
-    return response.choices[0].message.content
+    return chat(messages)["content"]
 
 
 def atl_agent(context: dict) -> str:
@@ -132,8 +211,7 @@ def atl_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["atl"]},
         {"role": "user", "content": user_content},
     ]
-    response = chat(messages)
-    return response.choices[0].message.content
+    return chat(messages)["content"]
 
 
 def acceleo_agent(context: dict) -> str:
@@ -143,8 +221,7 @@ def acceleo_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["acceleo"]},
         {"role": "user", "content": user_content},
     ]
-    response = chat(messages)
-    return response.choices[0].message.content
+    return chat(messages)["content"]
 
 
 def gen_agent(context: dict) -> str:
@@ -157,11 +234,11 @@ def gen_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["generation"]},
         {"role": "user", "content": user_content},
     ]
-    response = chat(messages)
-    return response.choices[0].message.content
+    return chat(messages)["content"]
 
 
 stage_agents = {
+    "docs": docs_agent,
     "psm": psm_agent,
     "atl": atl_agent,
     "acceleo": acceleo_agent,
@@ -173,6 +250,39 @@ def validate(output: str) -> bool:
     return is_good_enough(output)
 
 
+def _summarize_for_reaction(event: dict) -> dict:
+    """Truncates long string fields in event's data (notably docs_agent's real
+    fetched markdown) before it's fed into the reactor's prompt, so re-
+    sending history on every subsequent call doesn't balloon the prompt.
+    Builds a copy, self.events keeps the original untruncated."""
+    data = event.get("data")
+    if not isinstance(data, dict):
+        return event
+    summarized = {
+        key: (value[:_REACTION_FIELD_MAX_CHARS] + "... (truncated)")
+        if isinstance(value, str) and len(value) > _REACTION_FIELD_MAX_CHARS
+        else value
+        for key, value in data.items()
+    }
+    return {**event, "data": summarized}
+
+
+# record_event() reacts to every event it records (see Orchestrator.record_event
+# below), but this file has no knowledge of tool-calling or LLM reply-building,
+# that lives in tools.py/reactions.py. reactions.py wires its react_to_event()
+# in here via set_reactor() as an import-time side effect, so this file never
+# imports tools.py or reactions.py (avoiding a circular import: reactions.py
+# needs this file's pipeline operations to build its tool list). A late-bound
+# module global, not a constructor argument, so reset_pipeline()'s fresh
+# Orchestrator() instances don't each need it threaded through.
+_reactor: Callable[[dict, list[dict] | None], dict] | None = None
+
+
+def set_reactor(reactor: Callable[[dict, list[dict] | None], dict]) -> None:
+    global _reactor
+    _reactor = reactor
+
+
 class Orchestrator:
     """Tracks progress through STAGES and runs each stage's agent."""
 
@@ -181,6 +291,17 @@ class Orchestrator:
         self.constraints: dict[str, list[str]] = {}
         self.last_context: dict = {}
         self.last_output: str | None = None
+        self.events: list[dict] = []
+        # Set synchronously by run_stage_async(), before the background thread
+        # even starts, so a poller can never race a run that's already been
+        # triggered. Cleared by the thread itself in a finally block. A guard
+        # against a single impatient user double-clicking, not a task queue,
+        # this is single-session-only.
+        self.busy: bool = False
+        # The most recently started background thread, if any. Not used by
+        # the API itself (callers poll GET /events instead), only exposed so
+        # tests/tools can deterministically wait_for_idle() rather than sleep.
+        self._last_thread: threading.Thread | None = None
 
     @property
     def current_stage(self) -> str | None:
@@ -194,16 +315,27 @@ class Orchestrator:
         self.last_context = context
         # self.constraints is looked up fresh (not snapshotted at run_stage() call time),
         # so a correction recorded via add_constraint() after this call is picked up the
-        # next time run_stage()/rerun_stage() runs this same stage.
+        # next time run_stage()/rerun() runs this same stage.
         enriched_context = {**context, "constraints": self.constraints}
         output = agent(enriched_context)
         self.last_output = output
         return {"stage": stage, "output": output, "valid": validate(output)}
 
-    def rerun_stage(self) -> dict:
-        """Re-run the current stage with the same context passed to the last
-        run_stage() call, picking up any constraints recorded since then."""
-        return self.run_stage(self.last_context)
+    def rerun(self, overrides: dict | None = None) -> dict:
+        """Re-run the current stage in the background, reusing last_context
+        plus any given overrides (only meaningful for the docs stage) and
+        picking up constraints recorded since the last run. Used by both
+        /rerun and the rerun_stage tool, the only difference between a human
+        clicking Retry and an LLM deciding to call rerun_stage is who (if
+        anyone) supplies overrides."""
+        overrides = overrides or {}
+        if overrides and self.current_stage != "docs":
+            raise ValueError(
+                f"'{self.current_stage}' has no structured parameters to override, only 'docs' does."
+            )
+        context = {**self.last_context, **overrides}
+        self.run_stage_async(context)
+        return {"status": "started", "stage": self.current_stage}
 
     def add_constraint(self, stage: str, constraint: str) -> None:
         self.constraints.setdefault(stage, []).append(constraint)
@@ -212,16 +344,92 @@ class Orchestrator:
         self.current_stage_index += 1
         return self.current_stage
 
-    def stage_result(self, stage_id: str, approved: bool, correction: str | None = None) -> dict:
+    def _validate_review(self, stage_id: str, approved: bool, correction: str | None) -> None:
+        """A stale or hallucinated stage_id, or an approval=False with no
+        correction, can't silently corrupt pipeline state."""
+        if stage_id != self.current_stage:
+            raise ValueError(
+                f"'{stage_id}' is not the current pending stage (current: {self.current_stage!r})."
+            )
+        if not approved and not correction:
+            raise ValueError("correction is required when approved is False.")
+
+    def record_review(self, stage_id: str, approved: bool, correction: str | None = None) -> dict:
+        """Validates and records a review_approved/review_rejected event. On
+        approval, returns the next stage's context WITHOUT running it, so the
+        caller decides whether/when to start that run (review(), below,
+        starts it immediately; a caller that just wants the state transition
+        without triggering a run can call this directly)."""
+        self._validate_review(stage_id, approved, correction)
+        self.record_event("review_approved" if approved else "review_rejected", stage_id, {
+            "correction": correction,
+        })
         if approved:
             approved_output = self.last_output
             next_stage = self.advance_stage()
             if next_stage is None:
                 return {"status": "complete"}
             next_context = {**self.last_context, f"{stage_id}_output": approved_output}
-            return self.run_stage(next_context)
+            return {"status": "advanced", "stage": next_stage, "context": next_context}
         self.add_constraint(stage_id, correction)
         return {"status": "rerun", "stage": stage_id}
+
+    def review(self, stage_id: str, approved: bool, correction: str | None = None) -> dict:
+        """Records a review decision and, if it advances the pipeline, starts
+        the next stage running in the background right away. Used by both
+        /review and the stage_result tool, the only difference between a
+        human clicking Approve/Reject and an LLM deciding to call
+        stage_result is who's asking."""
+        result = self.record_review(stage_id, approved, correction)
+        if result["status"] == "advanced":
+            self.run_stage_async(result["context"])
+            return {"status": "started", "stage": result["stage"]}
+        return result
+
+    def record_event(self, event_type: str, stage: str | None, data: dict | None = None) -> dict:
+        """Appends event, then reacts to it via the wired-in reactor (see
+        set_reactor()) and appends that reply too, as its own "message"
+        event. The reaction is a side effect of recording, callers never
+        trigger it themselves. A narration failure (including no reactor
+        wired in at all, e.g. a bare Orchestrator() in a unit test) is
+        swallowed, with a fallback message recorded instead, so it can't mask
+        the real event, especially inside a background thread."""
+        event = {"type": event_type, "stage": stage, "data": data, "timestamp": time.time()}
+        self.events.append(event)
+        try:
+            if _reactor is None:
+                raise RuntimeError("no reactor wired in, see set_reactor()")
+            reply = _reactor(_summarize_for_reaction(event), self.events[:-1])
+            text = reply.get("message") or "(no reply)"
+        except Exception:
+            logger.exception("reactor failed for event %s", event_type)
+            text = "(narration unavailable)"
+        self.events.append({"type": "message", "stage": stage, "text": text, "timestamp": time.time()})
+        return event
+
+    def run_stage_async(self, context: dict) -> None:
+        """Starts the current stage's agent on a background thread and
+        returns immediately: calls and stops. The only way a stage ever
+        starts running, REST endpoints and nudge()'s tool dispatch both call
+        this directly, neither has its own copy of "run it in the
+        background." Setting busy here (before the thread even starts, not
+        inside it) means a poller can never observe a run that's already been
+        triggered as not-busy."""
+        self.busy = True
+        self._last_thread = threading.Thread(target=self._run_stage_worker, args=(context,), daemon=True)
+        self._last_thread.start()
+
+    def _run_stage_worker(self, context: dict) -> None:
+        stage = self.current_stage
+        try:
+            self.record_event("call_started", stage, context)
+            try:
+                result = self.run_stage(context)
+                self.record_event("call_completed", stage, result)
+            except Exception as e:
+                self.record_event("call_failed", stage, {"error": str(e)})
+        finally:
+            self.busy = False
 
 
 _default = Orchestrator()
@@ -231,8 +439,8 @@ def run_stage(context: dict) -> dict:
     return _default.run_stage(context)
 
 
-def rerun_stage() -> dict:
-    return _default.rerun_stage()
+def rerun_stage(overrides: dict | None = None) -> dict:
+    return _default.rerun(overrides)
 
 
 def add_constraint(stage: str, constraint: str) -> None:
@@ -243,8 +451,43 @@ def advance_stage() -> str | None:
     return _default.advance_stage()
 
 
-def stage_result(stage_id: str, approved: bool, correction: str | None = None) -> dict:
-    return _default.stage_result(stage_id, approved, correction)
+def record_review(stage_id: str, approved: bool, correction: str | None = None) -> dict:
+    return _default.record_review(stage_id, approved, correction)
+
+
+def review(stage_id: str, approved: bool, correction: str | None = None) -> dict:
+    return _default.review(stage_id, approved, correction)
+
+
+def run_stage_async(context: dict) -> None:
+    _default.run_stage_async(context)
+
+
+def start_stage_run(context: dict) -> dict:
+    """Start the current stage running in the background with the given
+    context, and report that it started. Used directly by /start (via
+    start_pipeline) and is the run_stage tool's impl."""
+    run_stage_async(context)
+    return {"status": "started", "stage": current_stage()}
+
+
+def events() -> list[dict]:
+    return _default.events
+
+
+def append_event(event: dict) -> None:
+    """Appends a raw event with no reaction triggered, unlike record_event().
+    Used by reactions.nudge() for the human's own message and the LLM's
+    reply, neither of which is itself something to react to."""
+    _default.events.append(event)
+
+
+def is_busy() -> bool:
+    return _default.busy
+
+
+def last_context() -> dict:
+    return dict(_default.last_context)
 
 
 def current_stage() -> str | None:
@@ -258,233 +501,18 @@ def reset_pipeline() -> None:
     _default = Orchestrator()
 
 
-def start_pipeline(platform_description: str) -> dict:
-    """Reset the pipeline and start fresh at the psm stage for a new platform
-    description. Same behavior POST /orchestrate/start uses."""
+def start_pipeline(platform_description: str, seed_url: str) -> dict:
+    """Reset the pipeline and start the docs stage running in the background.
+    Used directly by both /start and the start_pipeline tool."""
     reset_pipeline()
-    return run_stage({"platform_description": platform_description})
+    context = {"platform_description": platform_description, "seed_url": seed_url}
+    return start_stage_run(context)
 
 
-# --- Outer judgment layer ----------------------------------------------------
-#
-# Maps a free-form human message ("the ATL stage output is wrong, please fix it
-# with X") onto the pipeline functions above via real LLM tool calling — not
-# keyword matching. The LLM decides which tool(s) to call and with what
-# arguments; judge() just executes whatever it decides and reports the result.
-
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "run_stage",
-            "description": (
-                "Start or continue the CURRENT pending pipeline stage using the given context. "
-                "Use this to kick off the pipeline from scratch (context should include "
-                "'platform_description') or to re-run the current stage with fresh/updated "
-                "input. Do NOT use this for approving, rejecting, or redoing existing output — "
-                "use stage_result or rerun_stage for that."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "context": {
-                        "type": "object",
-                        "description": (
-                            "Input for the current stage's agent. For the psm stage this should "
-                            "include 'platform_description'. Later stages build their context "
-                            "automatically and rarely need this supplied manually."
-                        ),
-                    }
-                },
-                "required": ["context"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "rerun_stage",
-            "description": (
-                "Re-run the CURRENT pending stage's agent, reusing the context from its last "
-                "run and folding in any constraints recorded via add_constraint since then. Use "
-                "this when the user wants the current stage redone right now — e.g. 'redo the "
-                "ATL stage', or immediately after calling add_constraint to apply a correction "
-                "the user just gave."
-            ),
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "stage_result",
-            "description": (
-                "Record a human review decision for a named stage. approved=true advances the "
-                "pipeline and immediately runs the next stage — use this when the user "
-                "approves/accepts a stage's output. approved=false with a correction records "
-                "the correction for later (it does NOT rerun immediately) — use this only when "
-                "the user explicitly rejects a stage without asking for an immediate redo; if "
-                "they want it fixed right now, prefer add_constraint followed by rerun_stage "
-                "instead."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "stage_id": {
-                        "type": "string",
-                        "enum": STAGES,
-                        "description": "Which stage this decision applies to.",
-                    },
-                    "approved": {
-                        "type": "boolean",
-                        "description": "true to approve and advance, false to reject.",
-                    },
-                    "correction": {
-                        "type": ["string", "null"],
-                        "description": "Required when approved is false: the human's correction.",
-                    },
-                },
-                "required": ["stage_id", "approved"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "add_constraint",
-            "description": (
-                "Record a correction against a stage without rerunning it yet. The correction "
-                "is automatically folded into that stage's prompt the next time it runs (via "
-                "rerun_stage, or the pipeline advancing into it). Call this immediately before "
-                "rerun_stage when the user gives feedback and wants a stage fixed now — e.g. "
-                "'the ATL rules are wrong, use kebab-case names' -> "
-                "add_constraint('atl', 'Use kebab-case rule names') then rerun_stage()."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "stage": {
-                        "type": "string",
-                        "enum": STAGES,
-                        "description": "Which stage this correction applies to.",
-                    },
-                    "constraint": {
-                        "type": "string",
-                        "description": "The human's correction/instruction for this stage.",
-                    },
-                },
-                "required": ["stage", "constraint"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "start_pipeline",
-            "description": (
-                "Reset the pipeline and start fresh at the psm stage for a NEW platform "
-                "description, discarding all progress, approved stages, and recorded "
-                "constraints from the current run. Use this when the user wants to start over "
-                "or switch to a different platform entirely — e.g. 'let's do this for GitLab "
-                "instead' or 'start over with a new platform' — NOT for continuing or redoing "
-                "the current pipeline (use run_stage or rerun_stage for that)."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "platform_description": {
-                        "type": "string",
-                        "description": "Description of the new CI/CD platform to generate a pipeline for.",
-                    }
-                },
-                "required": ["platform_description"],
-            },
-        },
-    },
-]
-
-_JUDGE_SYSTEM_PROMPT_TEMPLATE = """You are the MDDOAI Orchestrator judge. MDDOAI turns a CI/CD \
-platform description into generated pipeline tooling through four fixed stages, always in \
-this order:
-
-  1. psm        — a PSM (Platform-Specific Model) description of the platform.
-  2. atl        — the ATL transformation rules needed to build that PSM.
-  3. acceleo    — the Acceleo code-generation template for that ATL.
-  4. generation — a final summary tying all three stages together.
-
-The current pending stage — the one whose output a human is reviewing right now — is: \
-{current_stage}.
-
-You have five tools that operate on this pipeline: run_stage, rerun_stage, stage_result, \
-add_constraint, start_pipeline (see their descriptions for what each does). Given the user's \
-message, decide which tool(s) to call, and in what order, to carry out their request:
-  - Feedback the user wants applied immediately ("fix X", "the ATL output is wrong, do Y \
-instead") -> call add_constraint for that stage, then rerun_stage.
-  - A plain redo with no specific correction ("redo the psm stage") -> call rerun_stage alone.
-  - Approval ("looks good", "approve the acceleo stage") -> call stage_result(approved=true).
-  - A rejection that should just be recorded, not rerun yet -> call \
-stage_result(approved=false, correction=...).
-  - Starting over or switching to a different platform entirely ("let's do this for GitLab \
-instead", "start over with a new platform") -> call start_pipeline with the new platform \
-description. Do NOT use rerun_stage or run_stage for this — those act on the current \
-in-progress pipeline, not a fresh one.
-  - Anything that doesn't map to a pipeline action -> don't call any tool; ask a clarifying \
-question in your reply instead."""
-
-
-def _dispatch_tool(name: str, arguments: dict):
-    if name == "run_stage":
-        return run_stage(arguments.get("context", {}))
-    if name == "rerun_stage":
-        return rerun_stage()
-    if name == "stage_result":
-        return stage_result(arguments["stage_id"], arguments["approved"], arguments.get("correction"))
-    if name == "add_constraint":
-        add_constraint(arguments["stage"], arguments["constraint"])
-        return None
-    if name == "start_pipeline":
-        return start_pipeline(arguments["platform_description"])
-    raise ValueError(f"Unknown tool: {name}")
-
-
-def judge(user_message: str) -> dict:
-    """Let the LLM decide which pipeline tool(s) to call for a free-form human
-    message, execute them, and report what happened."""
-    stage = current_stage()
-    stage_description = stage if stage is not None else "none — the pipeline hasn't been started"
-    system_prompt = _JUDGE_SYSTEM_PROMPT_TEMPLATE.format(current_stage=stage_description)
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_message},
-    ]
-    response = chat(messages, tools=TOOLS, tool_choice="auto")
-    message = response.choices[0].message
-    tool_calls = message.tool_calls or []
-
-    if not tool_calls:
-        return {
-            "tool_called": None,
-            "result": None,
-            "message": message.content or (
-                "I couldn't map that to a pipeline action — could you clarify which stage and "
-                "what you'd like done?"
-            ),
-        }
-
-    steps = []
-    for call in tool_calls:
-        try:
-            arguments = json.loads(call.function.arguments or "{}")
-        except json.JSONDecodeError:
-            arguments = {}
-        try:
-            result = _dispatch_tool(call.function.name, arguments)
-        except Exception as e:
-            result = {"error": str(e)}
-        steps.append({"tool": call.function.name, "arguments": arguments, "result": result})
-
-    return {
-        "tool_called": steps[-1]["tool"],
-        "result": steps[-1]["result"],
-        "steps": steps,
-    }
+def wait_for_idle(timeout: float = 5.0) -> None:
+    """Blocks until any in-flight background stage run finishes. Not used by
+    the API itself (a real client polls GET /events instead); exists so
+    tests can synchronize deterministically instead of sleeping/polling."""
+    thread = _default._last_thread
+    if thread is not None:
+        thread.join(timeout=timeout)

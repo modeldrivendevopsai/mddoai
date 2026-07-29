@@ -25,8 +25,11 @@ services:
         required: false
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
+      - RETRIEVAL_URL=http://retrieval:8010
     depends_on:
       ai-layer:
+        condition: service_started
+      retrieval:
         condition: service_started
     expose:
       - "8001"
