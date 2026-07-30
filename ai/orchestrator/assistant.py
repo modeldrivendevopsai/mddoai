@@ -45,9 +45,15 @@ def nudge(user_message: str) -> dict:
         "data": {"message": user_message},
         "timestamp": time.time(),
     }
-    history = list(orchestrator.events())
+    # Summarized before either is used to build a prompt (see
+    # orchestrator.summarize_for_reaction()'s own docstring for why history
+    # specifically can't skip this): record_event()'s automatic narration
+    # already does the same for every other event, nudge() is the other
+    # place that builds a prompt from real events, so it needs the same
+    # truncation, not just the current event.
+    history = orchestrator.summarize_history(orchestrator.events())
     orchestrator.append_event(event)
-    reply = react_to_event(event, history, use_tools=True)
+    reply = react_to_event(orchestrator.summarize_for_reaction(event), history, use_tools=True)
     text = reply.get("message") or f"Called {reply.get('tool_called')}."
     orchestrator.append_event(
         {"type": "message", "stage": stage, "text": text, "model": reply.get("model"), "timestamp": time.time()}

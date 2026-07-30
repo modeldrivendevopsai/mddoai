@@ -23,25 +23,33 @@ autonomously.
 
 ## Module layout
 
-Five Python modules, each with one job, arranged so a REST call (a human clicking a button)
+Six Python modules, each with one job, arranged so a REST call (a human clicking a button)
 and an LLM tool call (`/nudge`) end up running the exact same code, not two parallel
 implementations of "approve a stage" or "rerun a stage":
 
-- **`orchestrator.py`** — the pipeline state machine: `STAGES`, the five stage agents, the
-  event log, and the plain operations (`start_pipeline`, `review`, `rerun_stage`, ...) that
-  both `main.py`'s endpoints and `pipeline_tools.py`'s tools call directly. Has no concept of
-  "a tool" or LLM tool-calling at all; the only thing it exposes to the rest of the reply
-  mechanism is `set_reactor(fn)`, a blank hook some other module fills in.
+- **`orchestrator.py`** — the pipeline state machine: `STAGES`, the event log, shared
+  HTTP-client infra (`chat()`, `fetch_documentation()`, `fetch_page()`), and the plain
+  operations (`start_pipeline`, `review`, `rerun_stage`, ...) that both `main.py`'s endpoints
+  and `pipeline_tools.py`'s tools call directly. Has no concept of "a tool" or LLM tool-calling
+  at all; the only thing it exposes to the rest of the reply mechanism is `set_reactor(fn)`, a
+  blank hook some other module fills in. Does not import `stage_agents.py` at module level
+  (that would be circular, `stage_agents.py` needs this module already loaded), `run_stage()`
+  does a local, deferred import instead.
+- **`stage_agents.py`** — the six stage agents (`docs_agent`, `pim_agent`, `psm_agent`,
+  `atl_agent`, `acceleo_agent`, `gen_agent`), their prompts, and the `stage_agents` lookup dict.
+  Split out from `orchestrator.py` because this content is volatile in a way the state machine
+  isn't: every agent but `docs_agent` is an explicit placeholder standing in for a future real
+  per-stage implementation, each likely to be replaced on its own schedule.
 - **`tool_calling.py`** — a small, generic, reusable LLM tool-calling reply engine (a `Tool`
   dataclass bundling a schema with its real implementation, plus the code that turns a system
   prompt + a list of `Tool`s into a reply). Has zero knowledge of MDDOAI, pipelines, or stages,
   it would work unchanged in a different project.
 - **`pipeline_tools.py`** — MDDOAI's actual abilities: the system prompt and the 7 declared
-  `Tool`s, each one wrapping a real function from `orchestrator.py`. This is the file to open
-  to see what the Orchestrator can do.
+  `Tool`s, each one wrapping a real function from `orchestrator.py` or `stage_agents.py`. This
+  is the file to open to see what the Orchestrator can do.
 - **`assistant.py`** — the two entry points that actually produce a reply: `react_to_event()`
-  (narration) and `nudge()` (a human's free-form message). Composes the three modules above;
-  none of them import this file or each other except as described.
+  (narration) and `nudge()` (a human's free-form message). Composes the modules above; none of
+  them import this file or each other except as described.
 - **`main.py`** — the FastAPI routes. Imports plain operations from `orchestrator.py` for the
   button-driven endpoints, and `assistant.nudge` for the one `/nudge` endpoint. Explicitly
   wires `orchestrator.set_reactor(assistant.react_to_event)` at startup (not as a side effect
@@ -51,17 +59,19 @@ implementations of "approve a stage" or "rerun a stage":
 main.py ──imports──> orchestrator.py   (plain operations: start_pipeline, review, rerun_stage, ...)
 main.py ──imports──> assistant.py      (nudge)
 assistant.py ──imports──> orchestrator.py, pipeline_tools.py, tool_calling.py
-pipeline_tools.py ──imports──> orchestrator.py, tool_calling.py
-orchestrator.py, tool_calling.py       (import neither assistant.py nor pipeline_tools.py)
+pipeline_tools.py ──imports──> orchestrator.py, stage_agents.py, tool_calling.py
+stage_agents.py ──imports──> orchestrator.py
+orchestrator.py ──imports──> stage_agents.py locally, inside run_stage() only (breaks the cycle)
+tool_calling.py                        (imports none of the above)
 ```
 
 ## Stage-based pipeline generation
 
-The pipeline turns a platform description into generated CI/CD tooling through five fixed
+The pipeline turns a platform description into generated CI/CD tooling through six fixed
 stages, in order:
 
 ```python
-STAGES = ["docs", "psm", "atl", "acceleo", "generation"]
+STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"]
 ```
 
 Each stage has exactly one agent, looked up directly by stage name, no classification or
@@ -70,6 +80,7 @@ selection step:
 ```python
 stage_agents = {
     "docs": docs_agent,
+    "pim": pim_agent,
     "psm": psm_agent,
     "atl": atl_agent,
     "acceleo": acceleo_agent,
@@ -79,20 +90,25 @@ stage_agents = {
 
 ### The agents
 
-`docs_agent` is a real agent: it calls `retrieval`'s actual `POST /fetch` and returns the
-crawled documentation. `psm_agent`, `atl_agent`, `acceleo_agent`, and `gen_agent` are
-placeholders standing in for future real per-stage agents, each is a plain LLM prompt call
-`(context: dict) -> str`, not yet the real MDE toolchain.
+All six agents, their prompts, and the `stage_agents` dict above live in `stage_agents.py`, not
+`orchestrator.py`. `docs_agent` is a real agent: it calls `retrieval`'s actual `POST /fetch` and
+returns the crawled documentation. `pim_agent`, `psm_agent`, `atl_agent`, `acceleo_agent`, and
+`gen_agent` are placeholders standing in for future real per-stage agents, each is a plain LLM
+prompt call `(context: dict) -> str`, not yet the real MDE toolchain.
 
 - **`docs_agent(context)`** — reads `context["seed_url"]` (the platform's real documentation
-  URL). Calls `retrieval`'s `POST /fetch`, and raises if the crawl found essentially nothing
-  useful (confidence below `_DOCS_MIN_CONFIDENCE`, or zero pages fetched successfully).
-  Corrections fold into retrieval's own `hint` parameter directly, no translation needed,
-  retrieval's `/fetch` already accepts free text there as a retry lever.
-- **`psm_agent(context)`** — prefers `context["docs_output"]` (the real fetched
-  documentation) when present, falls back to `context["platform_description"]` for a direct
-  call without it (e.g. a unit test). Produces a PSM (Platform-Specific Model) description:
-  the platform's concepts (jobs, stages, triggers, artifacts, agents/runners) expressed in
+  URL). Calls `orchestrator.fetch_documentation()` (retrieval's `POST /fetch`), and raises if
+  the crawl found essentially nothing useful (confidence below `_DOCS_MIN_CONFIDENCE`, or zero
+  pages fetched successfully). Corrections fold into retrieval's own `hint` parameter directly,
+  no translation needed, retrieval's `/fetch` already accepts free text there as a retry lever.
+- **`pim_agent(context)`** — prefers `context["docs_output"]` (the real fetched documentation)
+  when present, falls back to `context["platform_description"]` for a direct call without it
+  (e.g. a unit test). Produces a PIM (Platform-Independent Model) description: the platform's
+  CI/CD concepts (jobs, stages, triggers, artifacts, agents/runners) expressed in MDDOAI's
+  platform-independent metamodel terms, without committing to any one platform's syntax yet.
+- **`psm_agent(context)`** — prefers `context["pim_output"]`, falls back to
+  `context["docs_output"]`, then `context["platform_description"]` for a direct call without
+  either. Produces a PSM (Platform-Specific Model) description: the same concepts expressed in
   MDDOAI's platform-specific metamodel terms.
 - **`atl_agent(context)`** — reads `context["psm_output"]`. Produces a description of the ATL
   (ATLAS Transformation Language) transformation rules needed to map the platform-independent

@@ -2,7 +2,9 @@
 This is the file to open to see what the orchestrator can do, tool_calling.py
 is just the generic engine these get plugged into (it has no idea these 7
 specifically exist); assistant.py is what actually calls
-tool_calling.build_reply() with this SYSTEM_PROMPT_TEMPLATE and TOOLS.
+tool_calling.build_reply() with this SYSTEM_PROMPT_TEMPLATE and TOOLS. The
+stage agents themselves (what actually runs when a tool advances a stage)
+live in stage_agents.py, only STAGE_DESCRIPTIONS is used here directly.
 
 Each Tool bundles its own schema and real Python implementation as a single
 object, so adding a new ability means adding one entry here, nothing else,
@@ -19,12 +21,14 @@ What's currently declared, at a glance:
     (real wrappers around retrieval's own POST /fetch and POST /fetch/page)
 """
 import orchestrator
+import stage_agents
 import tool_calling
 
-# Built from orchestrator.STAGES/STAGE_DESCRIPTIONS, not hand-copied here, so
-# adding a stage never leaves this prompt describing a stale pipeline.
+# Built from orchestrator.STAGES/stage_agents.STAGE_DESCRIPTIONS, not hand-
+# copied here, so adding a stage never leaves this prompt describing a stale
+# pipeline.
 _STAGE_LIST_TEXT = "\n".join(
-    f"  {i}. {stage}: {orchestrator.STAGE_DESCRIPTIONS[stage]}"
+    f"  {i}. {stage}: {stage_agents.STAGE_DESCRIPTIONS[stage]}"
     for i, stage in enumerate(orchestrator.STAGES, start=1)
 )
 

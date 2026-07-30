@@ -2,6 +2,7 @@ import logging
 import os
 import threading
 import time
+import uuid
 from typing import Callable
 
 import httpx
@@ -13,24 +14,11 @@ logger = logging.getLogger(__name__)
 
 AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://localhost:8000")
 RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://localhost:8010")
-# retrieval's own AdaptiveCrawler stops early on a poor crawl (min_gain_threshold),
-# so a fetch that returns can still have found essentially nothing useful. This is
-# the floor below which that's treated as a hard failure, not a low-quality result
-# for a human to review, an engineering guess, not measured against a real corpus.
-_DOCS_MIN_CONFIDENCE = 0.15
 # Long fields (notably docs_agent's real fetched markdown) get cut to this length
 # before being fed into the reactor's prompt history, so re-sending history on
 # every subsequent narration call doesn't balloon the prompt. self.events keeps
 # the untruncated original, this only affects what the reactor sees.
 _REACTION_FIELD_MAX_CHARS = 2000
-# Opt-in only (unset by default, so a real `docker compose up` still runs the
-# real crawl): when set, docs_agent() skips retrieval entirely and returns
-# canned output instantly. For iterating on the orchestrator UI/mechanics
-# (approve/reject/retry/nudge) without needing a real, valid documentation
-# URL or waiting on a real 90+ second crawl each time. Set in orchestrator's
-# own .env (gitignored, not docker-compose.yml's committed defaults), so it
-# never silently affects a real run.
-_STUB_DOCS = os.environ.get("ORCHESTRATOR_STUB_DOCS", "").strip().lower() in ("1", "true", "yes")
 
 
 def chat(
@@ -72,72 +60,22 @@ def is_good_enough(response: str) -> bool:
 # placeholder LLM prompts standing in for future real agents. A human
 # reviews each stage's output and either approves it (advancing to the next
 # stage) or rejects it with a correction that's recorded as a constraint for
-# the stage's next run.
+# the stage's next run. The agents themselves, their prompts, and the
+# stage_agents lookup dict live in stage_agents.py, not here, see
+# Orchestrator.run_stage()'s own comment for why.
 
 STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"]
 
-# One line per stage, used to build the Orchestrator's own narration/tool-
-# routing system prompt (see pipeline_tools.py) so that prompt never needs a
-# manual edit when a stage is added, only this dict does, alongside STAGES
-# and stage_agents below.
-STAGE_DESCRIPTIONS: dict[str, str] = {
-    "docs": "fetches the platform's real documentation (a real call to retrieval).",
-    "pim": "a PIM (Platform-Independent Model) description of the platform.",
-    "psm": "a PSM (Platform-Specific Model) description of the platform.",
-    "atl": "the ATL transformation rules needed to build that PSM.",
-    "acceleo": "the Acceleo code-generation template for that ATL.",
-    "generation": "a final summary tying all prior stages together.",
-}
-
-_STAGE_SYSTEM_PROMPTS = {
-    "pim": (
-        "You are the MDDOAI PIM (Platform-Independent Model) agent. Given a platform's real "
-        "documentation, produce a clear PIM-level description: express the platform's CI/CD "
-        "concepts (jobs, stages, triggers, artifacts, agents/runners) in MDDOAI's "
-        "platform-independent metamodel terms, without committing to any one platform's "
-        "specific syntax yet. Be precise and structured."
-    ),
-    "psm": (
-        "You are the MDDOAI PSM (Platform-Specific Model) agent. Given a PIM-level description "
-        "of a CI/CD platform, produce a clear PSM-level description: express the same concepts "
-        "(jobs, stages, triggers, artifacts, agents/runners) in MDDOAI's platform-specific "
-        "metamodel terms. Be precise and structured."
-    ),
-    "atl": (
-        "You are the MDDOAI ATL transformation agent. Given a PSM-level description, describe "
-        "the ATL (ATLAS Transformation Language) transformation rules needed to map the "
-        "platform-independent model to this PSM: name the rules, and describe their source "
-        "and target patterns and the mapping logic between them."
-    ),
-    "acceleo": (
-        "You are the MDDOAI Acceleo template agent. Given a description of ATL transformation "
-        "rules, describe the Acceleo code-generation template needed to turn the transformed "
-        "model into real pipeline configuration files: the template's structure, its key "
-        "generation blocks, and the output files it targets."
-    ),
-    "generation": (
-        "You are the MDDOAI generation summary agent. Given the PSM description, the ATL "
-        "transformation rules, and the Acceleo template plan produced in the prior stages, "
-        "produce a final, concise summary of the full pipeline generation plan, from the "
-        "original platform input through to the generated CI/CD configuration."
-    ),
-}
-
-
-def _constraints_note(context: dict, stage: str) -> str:
-    constraints = context.get("constraints", {}).get(stage, [])
-    if not constraints:
-        return ""
-    bullet_list = "\n".join(f"- {c}" for c in constraints)
-    return f"\n\nApply these corrections from prior review:\n{bullet_list}"
-
 
 # Retrieval's own two real capabilities (ai/retrieval's POST /fetch and POST
-# /fetch/page), called directly here by docs_agent (the docs stage's normal
+# /fetch/page), called by stage_agents.docs_agent (the docs stage's normal
 # path). pipeline_tools.py also wraps these as stage-scoped tools (so nudge() can
 # call them directly too, e.g. "just grab that one missing page" mapping onto
 # fetch_page precisely instead of the generic rerun_stage), reusing these same
-# functions, not duplicating the HTTP calls.
+# functions, not duplicating the HTTP calls. Kept here (not moved to
+# stage_agents.py with docs_agent) because they're shared HTTP-client
+# infrastructure, the same category as chat() above, not stage-specific
+# content, pipeline_tools.py's tool wrappers call these directly too.
 
 
 def fetch_documentation(
@@ -179,123 +117,23 @@ def fetch_page(url: str, force_refresh: bool = False) -> dict:
     return response.json()
 
 
-def docs_agent(context: dict) -> str:
-    """The docs stage's normal (non-tool-call) path: calls fetch_documentation
-    with whatever context supplies, formats the result as the stage's output
-    string, and fails hard if the crawl found essentially nothing. An
-    explicit context["hint"] (from a /rerun override) takes priority over the
-    constraints-derived one. Short-circuits to canned output when
-    ORCHESTRATOR_STUB_DOCS is set (see _STUB_DOCS), skipping retrieval
-    entirely, real fetch_documentation()/fetch_page() (the tool-call paths
-    nudge() can reach directly) are untouched either way."""
-    seed_url = context.get("seed_url", "")
-    if _STUB_DOCS:
-        return (
-            f"[STUBBED] ORCHESTRATOR_STUB_DOCS is set, skipped the real crawl of {seed_url}. "
-            f"This is placeholder output for testing the pipeline's mechanics, not real documentation."
-        )
-    constraints = context.get("constraints", {}).get("docs", [])
-    hint = context.get("hint") or (" ".join(constraints) if constraints else None)
-
-    result = fetch_documentation(
-        seed_url,
-        hint=hint,
-        exclude_urls=context.get("exclude_urls"),
-        max_pages=context.get("max_pages"),
-        max_depth=context.get("max_depth"),
-        force_refresh=context.get("force_refresh"),
-    )
-    pages = [p for p in result["pages"] if p["success"]]
-    confidence = result["meta"]["confidence"]
-    if not pages or confidence < _DOCS_MIN_CONFIDENCE:
-        raise RuntimeError(
-            f"Fetch for {seed_url} found essentially nothing useful "
-            f"(confidence {confidence:.2f}, {len(pages)} usable page(s))."
-        )
-    content = "\n\n".join(f"# {p['url']}\n{p['markdown']}" for p in pages)
-    return f"Fetched {len(pages)} page(s) from {seed_url}, confidence {confidence:.2f}.\n\n{content}"
-
-
-def pim_agent(context: dict) -> str:
-    # docs_output (the real fetched documentation) is what a live run actually
-    # has once "docs" precedes "pim"; platform_description is the fallback for
-    # a caller (or a unit test) that invokes pim_agent directly without it.
-    platform_description = context.get("platform_description", "")
-    primary_input = context.get("docs_output") or platform_description
-    user_content = primary_input + _constraints_note(context, "pim")
-    messages = [
-        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["pim"]},
-        {"role": "user", "content": user_content},
-    ]
-    return chat(messages, model=context.get("model"))["content"]
-
-
-def psm_agent(context: dict) -> str:
-    # pim_output is what a live run actually has once "pim" precedes "psm";
-    # docs_output/platform_description are fallbacks for a caller (or a unit
-    # test) that invokes psm_agent directly without a pim stage having run.
-    platform_description = context.get("platform_description", "")
-    primary_input = context.get("pim_output") or context.get("docs_output") or platform_description
-    user_content = primary_input + _constraints_note(context, "psm")
-    messages = [
-        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["psm"]},
-        {"role": "user", "content": user_content},
-    ]
-    return chat(messages, model=context.get("model"))["content"]
-
-
-def atl_agent(context: dict) -> str:
-    psm_output = context.get("psm_output", "")
-    user_content = psm_output + _constraints_note(context, "atl")
-    messages = [
-        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["atl"]},
-        {"role": "user", "content": user_content},
-    ]
-    return chat(messages, model=context.get("model"))["content"]
-
-
-def acceleo_agent(context: dict) -> str:
-    atl_output = context.get("atl_output", "")
-    user_content = atl_output + _constraints_note(context, "acceleo")
-    messages = [
-        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["acceleo"]},
-        {"role": "user", "content": user_content},
-    ]
-    return chat(messages, model=context.get("model"))["content"]
-
-
-def gen_agent(context: dict) -> str:
-    user_content = (
-        f"PSM description:\n{context.get('psm_output', '')}\n\n"
-        f"ATL transformation rules:\n{context.get('atl_output', '')}\n\n"
-        f"Acceleo template plan:\n{context.get('acceleo_output', '')}"
-    ) + _constraints_note(context, "generation")
-    messages = [
-        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["generation"]},
-        {"role": "user", "content": user_content},
-    ]
-    return chat(messages, model=context.get("model"))["content"]
-
-
-stage_agents = {
-    "docs": docs_agent,
-    "pim": pim_agent,
-    "psm": psm_agent,
-    "atl": atl_agent,
-    "acceleo": acceleo_agent,
-    "generation": gen_agent,
-}
-
-
 def validate(output: str) -> bool:
     return is_good_enough(output)
 
 
-def _summarize_for_reaction(event: dict) -> dict:
+def summarize_for_reaction(event: dict) -> dict:
     """Truncates long string fields in event's data (notably docs_agent's real
-    fetched markdown) before it's fed into the reactor's prompt, so re-
-    sending history on every subsequent call doesn't balloon the prompt.
-    Builds a copy, self.events keeps the original untruncated."""
+    fetched markdown) before it's fed into the reactor's prompt. Not
+    underscore-prefixed: called from both this file's own record_event()
+    (below) and assistant.nudge(), the only two places that build a prompt
+    from real events. Builds a copy, self.events (and GET /events) keep the
+    original untruncated.
+
+    Must be applied to every entry of a history list, not just "the current
+    event": a long field truncated only once, right when its own event is
+    recorded, still gets re-sent raw as part of history on every later call
+    for the rest of the run (docs's real fetched markdown, still sitting
+    untruncated in a call_completed event from ten calls ago, otherwise)."""
     data = event.get("data")
     if not isinstance(data, dict):
         return event
@@ -306,6 +144,11 @@ def _summarize_for_reaction(event: dict) -> dict:
         for key, value in data.items()
     }
     return {**event, "data": summarized}
+
+
+def summarize_history(events: list[dict]) -> list[dict]:
+    """summarize_for_reaction(), mapped over a whole event list."""
+    return [summarize_for_reaction(e) for e in events]
 
 
 # record_event() reacts to every event it records (see Orchestrator.record_event
@@ -328,7 +171,15 @@ def set_reactor(reactor: Callable[[dict, list[dict] | None], dict]) -> None:
 class Orchestrator:
     """Tracks progress through STAGES and runs each stage's agent."""
 
-    def __init__(self):
+    def __init__(self, run_id: str | None = None):
+        # A stable identity for this run, independent of process memory (a
+        # module-level Python variable has none). Not surfaced through any
+        # endpoint yet, and nothing keys real behavior off it today, MVP is
+        # still exactly one implicit "current" run (see _runs/_default
+        # below) — this exists so a future persistence layer or multi-run
+        # UI has something to address a run by without a rewrite, not
+        # because anything needs it right now.
+        self.run_id = run_id or uuid.uuid4().hex
         self.current_stage_index = 0
         self.constraints: dict[str, list[str]] = {}
         self.last_context: dict = {}
@@ -359,8 +210,15 @@ class Orchestrator:
         return STAGES[self.current_stage_index]
 
     def run_stage(self, context: dict) -> dict:
+        # Local, not top-of-file: stage_agents.py imports this module (for
+        # chat()/fetch_documentation()/fetch_page()), so a top-level import
+        # here would be circular. By the time run_stage() is actually called,
+        # every module has finished its own initial import, so this is just
+        # a sys.modules cache hit, not a real re-import.
+        import stage_agents
+
         stage = self.current_stage
-        agent = stage_agents[stage]
+        agent = stage_agents.stage_agents[stage]
         self.last_context = context
         # self.constraints is looked up fresh (not snapshotted at run_stage() call time),
         # so a correction recorded via add_constraint() after this call is picked up the
@@ -378,6 +236,13 @@ class Orchestrator:
         clicking Retry and an LLM deciding to call rerun_stage is who (if
         anyone) supplies overrides."""
         overrides = overrides or {}
+        # "only docs" is true today, not permanently: docs is the only stage
+        # wrapping a real API (retrieval's /fetch) with real typed
+        # parameters to override, pim/psm/atl/acceleo/generation are still
+        # placeholder chat() prompts with no structured shape of their own
+        # yet (see stage_agents.py). Whoever makes the next stage real needs
+        # to design ITS real override shape from ITS real API, the same way
+        # docs's was, then extend this guard, don't just delete it.
         if overrides and self.current_stage != "docs":
             raise ValueError(
                 f"'{self.current_stage}' has no structured parameters to override, only 'docs' does."
@@ -449,7 +314,7 @@ class Orchestrator:
         try:
             if _reactor is None:
                 raise RuntimeError("no reactor wired in, see set_reactor()")
-            reply = _reactor(_summarize_for_reaction(event), self.events[:-1])
+            reply = _reactor(summarize_for_reaction(event), summarize_history(self.events[:-1]))
             text = reply.get("message") or "(no reply)"
             model = reply.get("model")
         except Exception:
@@ -484,6 +349,24 @@ class Orchestrator:
 
 
 _default = Orchestrator()
+# Every Orchestrator that's ever been "the" current run, keyed by run_id.
+# MVP still only ever has exactly one real run at a time (_default), the
+# free functions below all still operate on that one implicitly, nothing in
+# main.py's endpoints changes shape. This is the seam a future multi-run
+# feature or persistence layer would need (real run identity, addressable in
+# a dict, not a single mutable module variable), kept in sync with _default
+# rather than replacing it, so the ~20 existing call sites (and tests) that
+# reference _default directly don't all need to change for a benefit nothing
+# uses yet. get_run()/current_run_id() below are that seam's read side.
+_runs: dict[str, "Orchestrator"] = {_default.run_id: _default}
+
+
+def get_run(run_id: str) -> "Orchestrator | None":
+    return _runs.get(run_id)
+
+
+def current_run_id() -> str:
+    return _default.run_id
 
 
 def run_stage(context: dict) -> dict:
@@ -569,9 +452,13 @@ def list_providers() -> list[dict]:
 
 def reset_pipeline() -> None:
     """Start a fresh pipeline run: replace the default Orchestrator instance,
-    dropping any progress and constraints from a prior run."""
+    dropping any progress and constraints from a prior run. _runs is kept to
+    exactly this one entry, not accumulated, MVP has no persistence and
+    nothing ever reads a prior run's now-orphaned instance back out of it."""
     global _default
     _default = Orchestrator()
+    _runs.clear()
+    _runs[_default.run_id] = _default
 
 
 def start_pipeline(platform_description: str, seed_url: str, model: str | None = None) -> dict:
