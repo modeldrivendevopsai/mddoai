@@ -23,7 +23,9 @@ def react_to_event(event: dict, history: list[dict] | None = None, use_tools: bo
     stage_description = stage if stage is not None else "none, the pipeline hasn't been started"
     system_prompt = pipeline_tools.SYSTEM_PROMPT_TEMPLATE.format(current_stage=stage_description)
     available_tools = tool_calling.load_tools(stage, pipeline_tools.TOOLS) if use_tools else None
-    return tool_calling.build_reply(orchestrator.chat, system_prompt, event, history, available_tools)
+    return tool_calling.build_reply(
+        orchestrator.chat, system_prompt, event, history, available_tools, model=orchestrator.current_model()
+    )
 
 
 def nudge(user_message: str) -> dict:
@@ -47,5 +49,7 @@ def nudge(user_message: str) -> dict:
     orchestrator.append_event(event)
     reply = react_to_event(event, history, use_tools=True)
     text = reply.get("message") or f"Called {reply.get('tool_called')}."
-    orchestrator.append_event({"type": "message", "stage": stage, "text": text, "timestamp": time.time()})
+    orchestrator.append_event(
+        {"type": "message", "stage": stage, "text": text, "model": reply.get("model"), "timestamp": time.time()}
+    )
     return reply

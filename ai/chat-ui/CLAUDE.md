@@ -2,74 +2,69 @@
 
 ## Project Overview
 
-This is the chat interface for the MDDOAI project — a system that generates CI/CD pipeline configurations from software architecture models. The UI is the entry point for user interaction. It lives inside the `mddoai` monorepo at `ai/chat-ui/`.
+This is the UI for MDDOAI, a system that generates CI/CD pipeline configurations from software architecture models. It lives inside the `mddoai` monorepo at `ai/chat-ui/`.
 
 All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Eclipse codebase at the repo root. This CLAUDE.md only covers `chat-ui/` — see `ai/README.md` for how this service fits into the rest of the stack.
 
-This is a vanilla, single-conversation chat interface: the user talks, the orchestrator responds, the conversation flows linearly from top to bottom. A slide-out history panel (current conversation preview + a static platform list) is also part of the current UI — see `ConversationScreen.tsx`.
+This is a single-screen pipeline dashboard, not a generic chat app: a human starts a pipeline run, watches its 6-stage progress on a stepper, reviews each stage's output (approve, reject with a correction, or retry), and can nudge the Orchestrator with a free-form message at any point. Matches the real product wireframe (`mddoai-ui-wireframe-v3.html`, `wireframes` branch): the stage stepper and the "Nudge the Orchestrator.." chat column are one unified view, not two separate screens.
 
 ---
 
 ## Behaviour
 
-1. User sends a message describing what they want (e.g. a platform documentation URL and an integration goal)
-2. Message is passed to the Orchestrator
-3. Orchestrator may respond with a clarification request — presented to the user as a normal chat message
-4. User responds, conversation continues
-5. Loop continues until the Orchestrator signals completion
-6. On completion, the final result is shown as the last message in the conversation
-
-That's the whole flow. One conversation, one thread, no extra UI chrome.
+1. A human enters a platform description and its real documentation URL, and starts a run.
+2. The `docs` stage runs for real (a real crawl via `ai/retrieval`, can take 90+ seconds).
+3. The human reviews each stage's output in turn: **Approve** (advances and starts the next stage), **Reject** with a correction (records it, stays on the same stage), or **Retry** (reruns the current stage, folding in any recorded correction).
+4. The Orchestrator narrates what's happening in the chat column after every real action, automatically.
+5. The human can also type a free-form message ("the ATL output is wrong, use kebab-case names") into the "Nudge the Orchestrator.." input; an LLM decides which of the actions above it maps to.
+6. This repeats until the last stage (`generation`) is approved.
 
 ---
 
 ## Stack
 
-- **Vite + React + TypeScript** — no Next.js, no SSR
-- **shadcn/ui + prompt-kit** — component foundation (prompt-kit replaces deprecated shadcn-chat, installs via standard shadcn registry CLI, no AI SDK coupling)
-- **Tailwind CSS** — styling
+- **Vite + React + TypeScript** — no Next.js, no SSR, no router (one screen)
+- **shadcn/ui** — component foundation for generic primitives (`src/components/ui/`)
+- **Tailwind CSS** — styling for generic layout; the Orchestrator screen's own design-system tokens (see below) are plain CSS custom properties, not part of Tailwind's theme
 - **Vitest** — testing
 
 ---
 
 ## Architecture
 
-The entire app is one screen, no router, no multi-page structure. Network calls go through `src/services/`, never directly from a component, and only ever to the AI layer, never the Java backend or an LLM provider directly. For the full request path (Vite dev proxy, ai-layer, provider routing), see `ai/README.md`.
+The entire app is one screen (`src/screens/OrchestratorScreen.tsx`), no router, no multi-page structure. Network calls go through `src/services/`, never directly from a component, and only ever to `ai/orchestrator` (never the Java backend, `ai-layer`, or an LLM provider directly — `ai/orchestrator` itself is the only thing that talks to those).
+
+- `src/services/orchestratorPipelineService.ts` — the real API client (`startPipeline`, `reviewStage`, `rerunStage`, `getEvents`, `nudge`), hits `/orchestrator-api/*` (see `vite.config.ts`'s dev proxy, `ai/orchestrator` is internal-only in `docker-compose.yml`).
+- `src/orchestrator/types.ts` — mirrors `ai/orchestrator`'s real REST contract (`STAGES`, `OrchestratorEvent`, response shapes). Single source of truth for that contract on this side; see `ai/orchestrator/README.md` for the backend's own description of it.
+- `src/hooks/usePipeline.ts` — polls `GET /events` (1.5s interval) and exposes the derived pipeline state (`events`, `currentStage`, `busy`, `started`) plus the real actions (`start`, `approve`, `reject`, `retry`, `sendNudge`). No local/simulated state, every action is a real call.
+- `src/components/orchestrator/` — `Stepper` (the 6-stage progress indicator), `StageOutputPanel` (current stage's output + Approve/Reject/Retry), `ChatColumn` (the event log rendered as messages + the nudge input).
 
 See `ai/CLAUDE.md` for cross-service folder boundaries.
 
 ---
 
-## Types
+## The stage stepper
 
-See `src/types/index.ts` for the current `Message` and `OrchestratorResponse` shapes. `orchestratorService.ts` sends the full conversation history (stripped to `{role, content}` pairs) as `POST /api/chat` and maps the AI layer's response onto `OrchestratorResponse` — that contract (full history in, one response out) is what should stay stable, independent of the exact field names.
-
----
-
-## State & History
-
-- Chat history: React `useState`
-- Persisted to `localStorage` so it survives a page refresh
-- A slide-out panel shows a preview of the current conversation and a static platform list (`GitLab CI`, `Bamboo`, `Azure DevOps`) — not a multi-session history, no backend storage at this stage
+Six stages, per the real wireframe: `Docs → PIM → PSM → ATL → Acceleo → Generation`. Only five of these are real backend stages today (`ai/orchestrator`'s `STAGES`, no `PIM` yet); `PIM` renders as a fixed, permanently "not yet implemented" node, never wired to real state, don't fabricate progress for it. When a real `PIM` stage lands in the backend, remove that special case from `Stepper.tsx`, it should just work off the backend's own stage list at that point.
 
 ---
 
 ## Design System
 
-Follow the MDDOAI Design System for all UI work here — see `ai/CLAUDE.md`. No local brand/color/typography rules in this file; that's the single source of truth.
+The Orchestrator screen uses the real MDDOAI Design System tokens (`mddoai-design-system/project/tokens/*.css`), ported verbatim into `src/orchestrator/tokens.css`, scoped to a `.orch-scope` wrapper class (not `:root`), so they don't collide with any other token values elsewhere in this app. Violet brand (`--brand`, `#684aeb`), Space Grotesk for display/headings (`--font-display`), IBM Plex Sans for body (`--font-sans`), IBM Plex Mono for code/output (`--font-mono`), light mode (the design system defines no dark variant). Fonts are self-hosted via `@fontsource*` packages (matching this repo's existing convention), not the design system's own remote Google Fonts import.
 
-Layout is header on top, scrollable conversation in the middle, input bar pinned to the bottom. The slide-out history panel is the one exception to "single conversation thread" — no other tabs or extra content sections.
+Component styling uses inline `style={{ ... }}` referencing these `var(--...)` tokens directly, not Tailwind utility classes, since none of these tokens are registered in Tailwind's theme (adding them there risked exactly the cross-contamination `.orch-scope` exists to avoid). Generic layout (flex, gap) still uses Tailwind where convenient.
 
 ---
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`, proxying API calls to `ai-layer` by its Compose service name. See `ai/README.md` for the full topology.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies to `ai-layer` (`/api`) and `ai/orchestrator` (`/orchestrator-api`) by their Compose service names, both internal-only. See `ai/README.md` for the full topology.
 
 ---
 
 ## What This Is Not
 
-- Not a generic chatbot template, but also not a multi-phase dashboard — just a focused conversation UI
-- Not connected to any LLM directly — always through the AI layer
-- Not yet decided: how platform integration history, pipeline history, or multi-session support will work. Don't build for this — it adds complexity for decisions not yet made
+- Not a generic chatbot — every action maps to a real `ai/orchestrator` pipeline operation, there's no conversation independent of the pipeline.
+- Not connected to `ai-layer` or any LLM provider directly — always through `ai/orchestrator`.
+- Not the full wireframe: the platform list and "Add a CI/CD Platform" pages aren't built, `ai/orchestrator`'s real `/start` takes a platform description and URL directly, there's no "saved platforms" concept server-side to back a list/CRUD screen yet. Don't build those pages ahead of that backend capability existing.

@@ -4,7 +4,17 @@ from pydantic import BaseModel, Field
 
 import assistant
 import orchestrator
-from orchestrator import current_stage, events, is_busy, rerun_stage, review, start_pipeline
+from orchestrator import (
+    current_model,
+    current_stage,
+    events,
+    is_busy,
+    list_providers,
+    rerun_stage,
+    review,
+    set_model,
+    start_pipeline,
+)
 
 # Every recorded event reacts automatically (see orchestrator.record_event()),
 # but orchestrator.py has no knowledge of assistant.py, it only exposes a
@@ -20,6 +30,7 @@ _BUSY_DETAIL = "A stage is still running, try again shortly."
 class StartRequest(BaseModel):
     platform_description: str
     seed_url: str
+    model: str | None = None
 
 
 class ReviewRequest(BaseModel):
@@ -44,14 +55,37 @@ class NudgeRequest(BaseModel):
     message: str
 
 
+class ModelRequest(BaseModel):
+    model: str | None = None
+
+
 @app.get("/events")
 def events_endpoint(since_index: int = 0):
-    return {"events": events()[since_index:], "current_stage": current_stage(), "busy": is_busy()}
+    return {
+        "events": events()[since_index:],
+        "current_stage": current_stage(),
+        "busy": is_busy(),
+        "model": current_model(),
+    }
+
+
+@app.post("/model")
+def model_endpoint(request: ModelRequest):
+    """Changes the model for the rest of the run, not just what /start chose,
+    every subsequent real chat() call picks this up. None means ai-layer's
+    own automatic routing."""
+    set_model(request.model)
+    return {"model": request.model}
 
 
 @app.post("/start", status_code=202)
 def start_endpoint(request: StartRequest):
-    return start_pipeline(request.platform_description, request.seed_url)
+    return start_pipeline(request.platform_description, request.seed_url, request.model)
+
+
+@app.get("/providers")
+def providers_endpoint():
+    return list_providers()
 
 
 @app.post("/review/{stage_id}")

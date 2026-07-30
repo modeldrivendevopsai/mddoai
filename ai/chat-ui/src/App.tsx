@@ -1,7 +1,7 @@
-import ConversationScreen from "@/screens/ConversationScreen"
+import OrchestratorScreen from "@/screens/OrchestratorScreen"
 
 function App() {
-  return <ConversationScreen />
+  return <OrchestratorScreen />
 }
 
 export default App

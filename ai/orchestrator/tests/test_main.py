@@ -201,6 +201,87 @@ def test_start_endpoint_records_call_failed_event_on_downstream_error_not_500():
     assert "all providers exhausted" in failed[0]["data"]["error"]
 
 
+def test_start_endpoint_forwards_the_chosen_model_to_every_real_chat_call():
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+        client.post(
+            "/start",
+            json={
+                "platform_description": "A GitLab CI platform",
+                "seed_url": "https://example.com/docs",
+                "model": "gemini-flash",
+            },
+        )
+        orchestrator.wait_for_idle()
+
+    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
+    assert chat_calls  # at least the narration call(s) triggered by /start
+    assert all(c.kwargs["json"]["model"] == "gemini-flash" for c in chat_calls)
+
+
+def test_start_endpoint_omits_model_when_none_chosen():
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+        client.post(
+            "/start", json={"platform_description": "A GitLab CI platform", "seed_url": "https://example.com/docs"}
+        )
+        orchestrator.wait_for_idle()
+
+    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
+    assert chat_calls
+    assert all(c.kwargs["json"]["model"] is None for c in chat_calls)
+
+
+# --- GET /providers ----------------------------------------------------------------
+
+
+def test_providers_endpoint_proxies_ai_layer():
+    payload = [{"name": "gemini-flash", "tier": "free"}, {"name": "claude-subscription", "tier": "subscription"}]
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = payload
+
+    with patch("orchestrator.httpx.get", return_value=mock_response) as mock_get:
+        response = client.get("/providers")
+
+    mock_get.assert_called_once_with(f"{orchestrator.AI_LAYER_URL}/providers", timeout=10.0)
+    assert response.status_code == 200
+    assert response.json() == payload
+
+
+# --- POST /model -------------------------------------------------------------------
+
+
+def test_model_endpoint_changes_the_model_for_the_rest_of_the_run():
+    response = client.post("/model", json={"model": "claude-subscription"})
+
+    assert response.status_code == 200
+    assert response.json() == {"model": "claude-subscription"}
+    assert orchestrator.current_model() == "claude-subscription"
+
+
+def test_model_endpoint_back_to_auto_with_null():
+    client.post("/model", json={"model": "claude-subscription"})
+
+    response = client.post("/model", json={"model": None})
+
+    assert response.json() == {"model": None}
+    assert orchestrator.current_model() is None
+
+
+def test_model_endpoint_change_is_picked_up_by_the_next_real_stage_run():
+    _advance_to_psm(psm_output="PSM v1")
+    client.post("/model", json={"model": "cerebras-120b"})
+
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PSM v2")) as mock_post:
+        response = client.post("/rerun/psm")
+        orchestrator.wait_for_idle()
+
+    assert response.status_code == 202
+    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
+    agent_calls = [c for c in chat_calls if "MDDOAI Orchestrator" not in c.kwargs["json"]["messages"][0]["content"]]
+    assert agent_calls
+    assert all(c.kwargs["json"]["model"] == "cerebras-120b" for c in agent_calls)
+
+
 # --- GET /events ------------------------------------------------------------------
 
 
@@ -214,6 +295,16 @@ def test_events_endpoint_returns_full_log_current_stage_and_busy():
     assert len(body["events"]) > 0
     assert body["current_stage"] == "docs"
     assert body["busy"] is False
+    assert body["model"] is None
+
+
+def test_events_endpoint_reports_the_current_model():
+    start_pipeline()
+    client.post("/model", json={"model": "groq-llama"})
+
+    response = client.get("/events")
+
+    assert response.json()["model"] == "groq-llama"
 
 
 def test_events_endpoint_since_index_slices_the_log():
@@ -420,6 +511,7 @@ def test_nudge_endpoint_returns_clarification_when_no_tool_called():
         "tool_called": None,
         "result": None,
         "message": "Could you clarify which stage you mean?",
+        "model": "gemini/gemini-2.5-flash",
     }
 
 

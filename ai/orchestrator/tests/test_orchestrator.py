@@ -184,6 +184,20 @@ def test_psm_agent_uses_psm_system_prompt_and_platform_description():
     assert messages[1]["content"].startswith("A GitLab CI platform")
 
 
+def test_psm_agent_forwards_the_chosen_model_from_context():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")) as mock_chat:
+        orchestrator.psm_agent({"platform_description": "A GitLab CI platform", "model": "gemini-flash"})
+
+    assert mock_chat.call_args.kwargs["model"] == "gemini-flash"
+
+
+def test_psm_agent_passes_none_model_when_none_chosen():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")) as mock_chat:
+        orchestrator.psm_agent({"platform_description": "A GitLab CI platform"})
+
+    assert mock_chat.call_args.kwargs["model"] is None
+
+
 def test_atl_agent_uses_atl_system_prompt_and_psm_output():
     with patch.object(orchestrator, "chat", return_value=ok_response("ATL rules")) as mock_chat:
         result = orchestrator.atl_agent({"psm_output": "some PSM output"})
@@ -315,6 +329,48 @@ def test_docs_agent_raises_when_no_pages_succeeded():
             orchestrator.docs_agent({"seed_url": "https://example.com/docs"})
 
 
+def test_docs_agent_returns_stub_output_without_calling_retrieval_when_flag_set():
+    with patch.object(orchestrator, "_STUB_DOCS", True), patch.object(orchestrator, "httpx") as mock_httpx:
+        result = orchestrator.docs_agent({"seed_url": "https://example.com/docs"})
+
+    mock_httpx.post.assert_not_called()
+    assert "https://example.com/docs" in result
+    assert "STUBBED" in result
+
+
+def test_start_pipeline_stores_the_chosen_model_for_the_whole_run():
+    original = orchestrator._default
+    try:
+        with patch.object(orchestrator, "httpx") as mock_httpx:
+            mock_httpx.post.return_value = _fake_fetch_response()
+            orchestrator.start_pipeline("TeamCity", "https://example.com/docs", model="gemini-flash")
+            assert orchestrator._default.model == "gemini-flash"
+            orchestrator.wait_for_idle()
+    finally:
+        orchestrator._default = original
+
+
+def test_start_pipeline_defaults_model_to_none():
+    original = orchestrator._default
+    try:
+        with patch.object(orchestrator, "httpx") as mock_httpx:
+            mock_httpx.post.return_value = _fake_fetch_response()
+            orchestrator.start_pipeline("TeamCity", "https://example.com/docs")
+            assert orchestrator._default.model is None
+            orchestrator.wait_for_idle()
+    finally:
+        orchestrator._default = original
+
+
+def test_list_providers_proxies_ai_layers_real_providers_endpoint():
+    payload = [{"name": "gemini-flash", "tier": "free"}, {"name": "claude-subscription", "tier": "subscription"}]
+    with patch("orchestrator.httpx.get", return_value=_fake_httpx_response_raw(payload)) as mock_get:
+        result = orchestrator.list_providers()
+
+    mock_get.assert_called_once_with(f"{orchestrator.AI_LAYER_URL}/providers", timeout=10.0)
+    assert result == payload
+
+
 def test_fetch_documentation_tool_returns_summary_not_raw_content():
     with patch.object(orchestrator, "httpx") as mock_httpx:
         mock_httpx.post.return_value = _fake_fetch_response(confidence=0.9)
@@ -361,6 +417,16 @@ def test_run_stage_calls_current_stage_agent_and_validates_output():
 
     assert mock_chat.call_count == 1
     assert result == {"stage": "psm", "output": "PSM description", "valid": True}
+
+
+def test_run_stage_threads_the_orchestrator_s_chosen_model_into_the_agent_s_context():
+    o = orchestrator.Orchestrator()
+    _fast_forward_to_psm(o)
+    o.model = "mistral-small"
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")) as mock_chat:
+        o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    assert mock_chat.call_args.kwargs["model"] == "mistral-small"
 
 
 def test_run_stage_reports_invalid_output():
@@ -687,6 +753,7 @@ def test_nudge_returns_clarification_when_llm_calls_no_tool():
             "tool_called": None,
             "result": None,
             "message": "Could you clarify which stage you mean?",
+            "model": "test-model",
         }
     finally:
         orchestrator._default = original
@@ -722,7 +789,7 @@ def test_nudge_records_the_human_message_and_reply_as_events():
         }
         assert events[1] == {
             "type": "message", "stage": "docs",
-            "text": "Sure, one moment.", "timestamp": events[1]["timestamp"],
+            "text": "Sure, one moment.", "model": "test-model", "timestamp": events[1]["timestamp"],
         }
     finally:
         orchestrator._default = original
@@ -853,6 +920,7 @@ def test_nudge_dispatches_single_rerun_stage_tool_call():
             "tool_called": "rerun_stage",
             "result": {"status": "started", "stage": "psm"},
             "steps": [{"tool": "rerun_stage", "arguments": {}, "result": {"status": "started", "stage": "psm"}}],
+            "model": "test-model",
         }
         completed = next(e for e in orchestrator.events() if e["type"] == "call_completed")
         assert completed["data"] == {"stage": "psm", "output": "PSM v2", "valid": True}
@@ -983,7 +1051,7 @@ def test_react_to_event_without_tools_only_narrates_and_never_dispatches():
         with patch.object(orchestrator, "chat", return_value=ok_response("Fetching docs now.")) as mock_chat:
             result = assistant.react_to_event(event, [])
 
-        assert result == {"tool_called": None, "result": None, "message": "Fetching docs now."}
+        assert result == {"tool_called": None, "result": None, "message": "Fetching docs now.", "model": "test-model"}
         assert "tools" not in mock_chat.call_args.kwargs
         assert "tool_choice" not in mock_chat.call_args.kwargs
     finally:
@@ -1014,6 +1082,15 @@ def _fake_httpx_response(content=None, model="gemini/gemini-2.5-flash", tool_cal
     resp = MagicMock()
     resp.raise_for_status.return_value = None
     resp.json.return_value = {"content": content, "model": model, "tool_calls": tool_calls}
+    return resp
+
+
+def _fake_httpx_response_raw(payload):
+    """Like _fake_httpx_response, but for endpoints that aren't ai-layer's
+    /chat shape, e.g. GET /providers, which returns a bare list."""
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = payload
     return resp
 
 

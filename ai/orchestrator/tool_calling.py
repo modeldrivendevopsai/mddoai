@@ -56,6 +56,7 @@ def build_reply(
     event: dict,
     history: list[dict] | None,
     tools: list[Tool] | None,
+    model: str | None = None,
 ) -> dict:
     messages = [{"role": "system", "content": system_prompt}]
     for past in history or []:
@@ -63,17 +64,21 @@ def build_reply(
     messages.append({"role": "user", "content": json.dumps(event)})
 
     if tools:
-        response = chat_fn(messages, tools=[tool.schema() for tool in tools], tool_choice="auto")
+        response = chat_fn(messages, model=model, tools=[tool.schema() for tool in tools], tool_choice="auto")
     else:
-        response = chat_fn(messages)
+        response = chat_fn(messages, model=model)
     tool_calls = response.get("tool_calls") or []
+
+    # What actually answered, ai-layer echoes this back regardless of
+    # whether `model` above requested a specific one or left it to auto-route.
+    model = response.get("model")
 
     if not tool_calls:
         # Someone is waiting on a reply either way, but the two fallbacks differ:
         # with tools available and none called, a clarifying question is useful;
         # narrating (no tools) has no one to ask, so a plain filler is enough.
         fallback = "Could you clarify which stage and what you'd like done?" if tools else "(no reply)"
-        return {"tool_called": None, "result": None, "message": response.get("content") or fallback}
+        return {"tool_called": None, "result": None, "message": response.get("content") or fallback, "model": model}
 
     steps = []
     for call in tool_calls:
@@ -88,4 +93,4 @@ def build_reply(
             result = {"error": str(e)}
         steps.append({"tool": function["name"], "arguments": arguments, "result": result})
 
-    return {"tool_called": steps[-1]["tool"], "result": steps[-1]["result"], "steps": steps}
+    return {"tool_called": steps[-1]["tool"], "result": steps[-1]["result"], "steps": steps, "model": model}

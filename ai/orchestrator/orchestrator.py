@@ -23,6 +23,14 @@ _DOCS_MIN_CONFIDENCE = 0.15
 # every subsequent narration call doesn't balloon the prompt. self.events keeps
 # the untruncated original, this only affects what the reactor sees.
 _REACTION_FIELD_MAX_CHARS = 2000
+# Opt-in only (unset by default, so a real `docker compose up` still runs the
+# real crawl): when set, docs_agent() skips retrieval entirely and returns
+# canned output instantly. For iterating on the orchestrator UI/mechanics
+# (approve/reject/retry/nudge) without needing a real, valid documentation
+# URL or waiting on a real 90+ second crawl each time. Set in orchestrator's
+# own .env (gitignored, not docker-compose.yml's committed defaults), so it
+# never silently affects a real run.
+_STUB_DOCS = os.environ.get("ORCHESTRATOR_STUB_DOCS", "").strip().lower() in ("1", "true", "yes")
 
 
 def chat(
@@ -166,8 +174,16 @@ def docs_agent(context: dict) -> str:
     with whatever context supplies, formats the result as the stage's output
     string, and fails hard if the crawl found essentially nothing. An
     explicit context["hint"] (from a /rerun override) takes priority over the
-    constraints-derived one."""
+    constraints-derived one. Short-circuits to canned output when
+    ORCHESTRATOR_STUB_DOCS is set (see _STUB_DOCS), skipping retrieval
+    entirely, real fetch_documentation()/fetch_page() (the tool-call paths
+    nudge() can reach directly) are untouched either way."""
     seed_url = context.get("seed_url", "")
+    if _STUB_DOCS:
+        return (
+            f"[STUBBED] ORCHESTRATOR_STUB_DOCS is set, skipped the real crawl of {seed_url}. "
+            f"This is placeholder output for testing the pipeline's mechanics, not real documentation."
+        )
     constraints = context.get("constraints", {}).get("docs", [])
     hint = context.get("hint") or (" ".join(constraints) if constraints else None)
 
@@ -201,7 +217,7 @@ def psm_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["psm"]},
         {"role": "user", "content": user_content},
     ]
-    return chat(messages)["content"]
+    return chat(messages, model=context.get("model"))["content"]
 
 
 def atl_agent(context: dict) -> str:
@@ -211,7 +227,7 @@ def atl_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["atl"]},
         {"role": "user", "content": user_content},
     ]
-    return chat(messages)["content"]
+    return chat(messages, model=context.get("model"))["content"]
 
 
 def acceleo_agent(context: dict) -> str:
@@ -221,7 +237,7 @@ def acceleo_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["acceleo"]},
         {"role": "user", "content": user_content},
     ]
-    return chat(messages)["content"]
+    return chat(messages, model=context.get("model"))["content"]
 
 
 def gen_agent(context: dict) -> str:
@@ -234,7 +250,7 @@ def gen_agent(context: dict) -> str:
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["generation"]},
         {"role": "user", "content": user_content},
     ]
-    return chat(messages)["content"]
+    return chat(messages, model=context.get("model"))["content"]
 
 
 stage_agents = {
@@ -292,6 +308,13 @@ class Orchestrator:
         self.last_context: dict = {}
         self.last_output: str | None = None
         self.events: list[dict] = []
+        # Chosen once via start_pipeline()'s optional model param, applied to
+        # every real chat() call for this run: the four stage agents (docs
+        # doesn't call chat() at all, it's a real retrieval crawl, not an LLM
+        # choice) and the reply/narration mechanism (see assistant.py).
+        # None means ai-layer's own automatic routing, same as before this
+        # existed.
+        self.model: str | None = None
         # Set synchronously by run_stage_async(), before the background thread
         # even starts, so a poller can never race a run that's already been
         # triggered. Cleared by the thread itself in a finally block. A guard
@@ -316,7 +339,7 @@ class Orchestrator:
         # self.constraints is looked up fresh (not snapshotted at run_stage() call time),
         # so a correction recorded via add_constraint() after this call is picked up the
         # next time run_stage()/rerun() runs this same stage.
-        enriched_context = {**context, "constraints": self.constraints}
+        enriched_context = {**context, "constraints": self.constraints, "model": self.model}
         output = agent(enriched_context)
         self.last_output = output
         return {"stage": stage, "output": output, "valid": validate(output)}
@@ -396,15 +419,17 @@ class Orchestrator:
         the real event, especially inside a background thread."""
         event = {"type": event_type, "stage": stage, "data": data, "timestamp": time.time()}
         self.events.append(event)
+        model = None
         try:
             if _reactor is None:
                 raise RuntimeError("no reactor wired in, see set_reactor()")
             reply = _reactor(_summarize_for_reaction(event), self.events[:-1])
             text = reply.get("message") or "(no reply)"
+            model = reply.get("model")
         except Exception:
             logger.exception("reactor failed for event %s", event_type)
             text = "(narration unavailable)"
-        self.events.append({"type": "message", "stage": stage, "text": text, "timestamp": time.time()})
+        self.events.append({"type": "message", "stage": stage, "text": text, "model": model, "timestamp": time.time()})
         return event
 
     def run_stage_async(self, context: dict) -> None:
@@ -494,6 +519,28 @@ def current_stage() -> str | None:
     return _default.current_stage
 
 
+def current_model() -> str | None:
+    return _default.model
+
+
+def set_model(model: str | None) -> None:
+    """Changes the model for the rest of this run, not just what /start
+    chose: every subsequent real chat() call (a stage run, a retry, or a
+    nudge) picks this up, since they all read Orchestrator.model fresh each
+    time, not a value snapshotted at start_pipeline() time."""
+    _default.model = model
+
+
+def list_providers() -> list[dict]:
+    """Proxies ai-layer's real GET /providers. The frontend never calls
+    ai-layer directly (see ai/chat-ui/CLAUDE.md), this is the one place that
+    does, on its behalf, so the model picker can show real, current
+    provider/tier options rather than a hardcoded list that could drift."""
+    response = httpx.get(f"{AI_LAYER_URL}/providers", timeout=10.0)
+    response.raise_for_status()
+    return response.json()
+
+
 def reset_pipeline() -> None:
     """Start a fresh pipeline run: replace the default Orchestrator instance,
     dropping any progress and constraints from a prior run."""
@@ -501,10 +548,14 @@ def reset_pipeline() -> None:
     _default = Orchestrator()
 
 
-def start_pipeline(platform_description: str, seed_url: str) -> dict:
+def start_pipeline(platform_description: str, seed_url: str, model: str | None = None) -> dict:
     """Reset the pipeline and start the docs stage running in the background.
-    Used directly by both /start and the start_pipeline tool."""
+    Used directly by both /start and the start_pipeline tool (which never
+    supplies model, that choice is REST/UI-driven at Start time, not
+    something the LLM decides via nudge). model, once set, applies to every
+    real chat() call for the rest of this run (see Orchestrator.model)."""
     reset_pipeline()
+    _default.model = model
     context = {"platform_description": platform_description, "seed_url": seed_url}
     return start_stage_run(context)
 
