@@ -7,15 +7,17 @@ Tests verify:
   2. /fetch calls fetch_documentation with the given url, max_pages, max_depth, force_refresh,
      and hint, returns its result.
   3. /fetch uses the defaults (DEFAULT_MAX_PAGES, DEFAULT_MAX_DEPTH, force_refresh=False,
-     hint=None) when not specified.
+     hint=None, model=None) when not specified.
   4. /fetch passes force_refresh=True and hint through when specified.
-  5. /fetch converts a downstream exception into a 500.
-  6. /fetch rejects a non-URL string with 422 before ever calling fetch_documentation.
-  7. /fetch rejects max_pages/max_depth outside their bounds with 422 before ever calling
+  5. /fetch passes model through when specified, defaulting to None (ai-layer's own
+     provider chain) when omitted.
+  6. /fetch converts a downstream exception into a 500.
+  7. /fetch rejects a non-URL string with 422 before ever calling fetch_documentation.
+  8. /fetch rejects max_pages/max_depth outside their bounds with 422 before ever calling
      fetch_documentation.
-  8. /fetch/page calls fetch_single_page with the given url and force_refresh, returns its
-     result; defaults force_refresh to False; converts a downstream exception to 500; rejects
-     a non-URL string with 422.
+  9. /fetch/page calls fetch_single_page with the given url, force_refresh, and model, returns
+     its result; defaults force_refresh to False and model to None; converts a downstream
+     exception to 500; rejects a non-URL string with 422.
 """
 from unittest.mock import AsyncMock, patch
 
@@ -44,7 +46,7 @@ def test_fetch_returns_fetch_documentation_result():
     assert response.json() == fake_result
     mock_fetch.assert_called_once_with(
         "https://docs.example.com/", max_pages=3, force_refresh=False, hint=None,
-        max_depth=main.DEFAULT_MAX_DEPTH, exclude_urls=None,
+        max_depth=main.DEFAULT_MAX_DEPTH, exclude_urls=None, model=None,
     )
 
 
@@ -59,6 +61,7 @@ def test_fetch_defaults_max_pages_max_depth_and_force_refresh():
         hint=None,
         max_depth=main.DEFAULT_MAX_DEPTH,
         exclude_urls=None,
+        model=None,
     )
 
 
@@ -79,7 +82,15 @@ def test_fetch_passes_force_refresh_hint_and_exclude_urls_through():
         hint="prioritize pages about environment variables",
         max_depth=8,
         exclude_urls=["https://docs.example.com/wrong-page"],
+        model=None,
     )
+
+
+def test_fetch_passes_model_through():
+    fake_result = {"seed_url": "u", "pages": [], "meta": {"confidence": 0.0, "pages_crawled": 0, "depth_reached": None, "pending_links": []}}
+    with patch.object(main, "fetch_documentation", AsyncMock(return_value=fake_result)) as mock_fetch:
+        client.post("/fetch", json={"url": "https://docs.example.com/", "model": "claude"})
+    assert mock_fetch.call_args.kwargs["model"] == "claude"
 
 
 def test_fetch_converts_exception_to_500():
@@ -124,14 +135,21 @@ def test_fetch_page_returns_fetch_single_page_result():
         response = client.post("/fetch/page", json={"url": "https://docs.example.com/a"})
     assert response.status_code == 200
     assert response.json() == fake_page
-    mock_fetch.assert_called_once_with("https://docs.example.com/a", force_refresh=False)
+    mock_fetch.assert_called_once_with("https://docs.example.com/a", force_refresh=False, model=None)
 
 
 def test_fetch_page_passes_force_refresh_through():
     fake_page = {"url": "https://docs.example.com/a", "success": True, "status_code": 200, "markdown": "c", "links": []}
     with patch.object(main, "fetch_single_page", AsyncMock(return_value=fake_page)) as mock_fetch:
         client.post("/fetch/page", json={"url": "https://docs.example.com/a", "force_refresh": True})
-    mock_fetch.assert_called_once_with("https://docs.example.com/a", force_refresh=True)
+    mock_fetch.assert_called_once_with("https://docs.example.com/a", force_refresh=True, model=None)
+
+
+def test_fetch_page_passes_model_through():
+    fake_page = {"url": "https://docs.example.com/a", "success": True, "status_code": 200, "markdown": "c", "links": []}
+    with patch.object(main, "fetch_single_page", AsyncMock(return_value=fake_page)) as mock_fetch:
+        client.post("/fetch/page", json={"url": "https://docs.example.com/a", "model": "claude"})
+    mock_fetch.assert_called_once_with("https://docs.example.com/a", force_refresh=False, model="claude")
 
 
 def test_fetch_page_converts_exception_to_500():

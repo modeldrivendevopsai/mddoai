@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from router.config import AVAILABLE
+from router.config import AVAILABLE, MODELS
 from router.router import AUTO, chat
 
 app = FastAPI(title="MDDOAI AI Layer")
@@ -22,6 +22,11 @@ class ChatResponse(BaseModel):
 class Provider(BaseModel):
     name: str
     tier: str
+    # False when this provider has no API key configured (see MODELS in
+    # router/config.py) — listed so a caller can show every provider this
+    # deployment knows about, not just the ones currently usable, but shouldn't
+    # be selected for /chat while False (see chat_endpoint's AVAILABLE check).
+    available: bool
 
 
 @app.get("/health")
@@ -31,7 +36,7 @@ def health():
 
 @app.get("/providers", response_model=list[Provider])
 def providers():
-    return [{"name": m["name"], "tier": m["tier"]} for m in AVAILABLE]
+    return [{"name": m["name"], "tier": m["tier"], "available": bool(m["key"])} for m in MODELS]
 
 
 @app.post("/chat", response_model=ChatResponse)

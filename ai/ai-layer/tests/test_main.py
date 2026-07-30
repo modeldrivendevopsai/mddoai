@@ -3,7 +3,8 @@ FastAPI endpoint tests. No real API calls — router.chat is mocked.
 
 Tests verify:
   1. /health reports ok.
-  2. /providers lists the configured providers.
+  2. /providers lists every configured model (MODELS), not just the currently-usable ones
+     (AVAILABLE), each with an available flag reflecting whether it has a real key.
   3. /chat returns content+model on success.
   4. /chat rejects an unrecognized model with 400 before calling chat().
   5. /chat accepts "auto" and passes it straight through.
@@ -15,6 +16,8 @@ Tests verify:
 Orchestrator's endpoints (/start, /rerun/{stage_id}, /judge, /review/{stage_id}) now live
 in the standalone orchestrator service — see orchestrator/tests/test_main.py.
 """
+import importlib
+import os
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -46,11 +49,52 @@ def test_health():
     assert response.json() == {"status": "ok"}
 
 
-def test_providers_lists_available_providers():
+def test_providers_lists_every_model_not_just_available_ones():
     response = client.get("/providers")
     assert response.status_code == 200
     names = {p["name"] for p in response.json()}
-    assert names == {m["name"] for m in main.AVAILABLE}
+    assert names == {m["name"] for m in main.MODELS}
+
+
+def test_providers_reports_available_true_for_every_env_var_backed_key():
+    # conftest.py fakes GOOGLE/MISTRAL/CEREBRAS/GROQ/ANTHROPIC_API_KEY, so these
+    # four should report available=True regardless of the host machine's real
+    # state. claude-subscription is deliberately not asserted here — its key
+    # comes from CLAUDE_CODE_OAUTH_TOKEN or a real ~/.claude/.credentials.json
+    # (see router/config.py's _get_oauth_token), neither of which conftest fakes,
+    # so its availability legitimately depends on the machine running the test.
+    response = client.get("/providers")
+    by_name = {p["name"]: p["available"] for p in response.json()}
+    assert by_name["gemini-flash"] is True
+    assert by_name["mistral-small"] is True
+    assert by_name["cerebras-120b"] is True
+    assert by_name["groq-llama"] is True
+    assert by_name["claude"] is True
+
+
+def test_providers_reports_available_false_for_a_provider_missing_its_key():
+    # Saves/restores os.environ around the reload, same pattern as
+    # test_oauth_full.py's reload_config, so this test's env change never
+    # leaks into any test that runs after it.
+    saved = os.environ.get("GROQ_API_KEY")
+    os.environ.pop("GROQ_API_KEY", None)
+    try:
+        reload_router_modules()
+        with patch("dotenv.load_dotenv"):  # a real ai-layer/.env would refill the popped key
+            # `import main` alone would return the already-cached module object
+            # without re-running its top-level `from router.config import ...`;
+            # reload() re-executes it so main.MODELS/AVAILABLE actually refresh.
+            importlib.reload(main)
+
+        response = TestClient(main.app).get("/providers")
+        by_name = {p["name"]: p["available"] for p in response.json()}
+        assert by_name["groq-llama"] is False
+        assert by_name["gemini-flash"] is True  # unaffected providers stay available
+    finally:
+        if saved is not None:
+            os.environ["GROQ_API_KEY"] = saved
+        reload_router_modules()
+        importlib.reload(main)  # restores the shared module/client the rest of this file uses
 
 
 def test_chat_returns_content_and_model_on_success():

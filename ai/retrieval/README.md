@@ -149,7 +149,8 @@ flowchart TD
   "max_depth": 5,
   "force_refresh": false,
   "hint": null,
-  "exclude_urls": null
+  "exclude_urls": null,
+  "model": null
 }
 ```
 
@@ -163,6 +164,14 @@ levers described in Architecture: `hint` is free text folded into both the stati
 pre-filter's query and the LLM ranking prompt, e.g. `"prioritize pages about environment
 variables and secrets"`; `exclude_urls` rules out specific URLs a caller already knows were
 wrong or unhelpful, so the ranking can't pick them again.
+
+`model` (optional) picks which `ai-layer` provider handles both the link-ranking and
+content-cleanup LLM calls for this request (see `AVAILABLE` in `ai-layer/router/config.py` for
+valid names). Omitted, `ai-layer`'s own default provider chain runs, same as every other caller
+of its `/chat` endpoint. An unrecognized model name isn't rejected by `retrieval` itself: both
+LLM calls degrade gracefully on any downstream failure (falls back to statistical link order,
+or keeps a chunk unclean), rather than failing the whole `/fetch` request over a single bad
+model name.
 
 Returns:
 
@@ -199,8 +208,10 @@ changes that, only a different seed URL or `exclude_urls`-driven rescoping would
 ### `POST /fetch/page`
 
 ```json
-{ "url": "https://docs.gitlab.com/ci/yaml/needs/", "force_refresh": false }
+{ "url": "https://docs.gitlab.com/ci/yaml/needs/", "force_refresh": false, "model": null }
 ```
+
+`model` has the same meaning as in `/fetch` — it's applied to this URL's own cleanup call.
 
 Fetches and cleans exactly one URL, no crawling, no link-following, no ranking, same
 structural filter + `wait_for` + cleanup pass as every page inside `/fetch`. The targeted half

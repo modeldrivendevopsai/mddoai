@@ -1,7 +1,8 @@
-import ConversationScreen from "@/screens/ConversationScreen"
+import PlatformIntegrationScreen from "@/screens/PlatformIntegrationScreen"
 
+// TEMPORARY — local preview only for the retrieval-agent screen, reverted before commit.
 function App() {
-  return <ConversationScreen />
+  return <PlatformIntegrationScreen />
 }
 
 export default App

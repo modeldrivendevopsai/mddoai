@@ -366,8 +366,8 @@ export default function ConversationScreen() {
             >
               <option value="auto">Auto</option>
               {providers.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name} ({p.tier})
+                <option key={p.name} value={p.name} disabled={!p.available}>
+                  {p.name} ({p.tier}){!p.available ? " — no API key set" : ""}
                 </option>
               ))}
             </select>
