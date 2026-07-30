@@ -233,16 +233,17 @@ function MessageLine({ event }: { event: OrchestratorEvent }) {
   )
 }
 
-// Distinct, compact "activity" chips for the real structured events
-// (call_started/call_completed/call_failed/review_approved/review_rejected),
-// interspersed with the chat messages in the same timeline, rather than
-// filtered out, so the log reads like Lovable's build-activity feed: prose
-// replies plus visibly different action/status entries, not just prose.
-// Built on mddoai-design-system's real StatusPill.jsx ("CI/CD pipeline state
-// chip", size "sm": mono, 11px, dot indicator, pill radius, no border),
-// reusing its exact "running"/"passed"/"failed" token combinations rather
-// than inventing new colors, centered in the log like a system message
-// rather than left-aligned like the chat bubbles around it.
+// Distinct "activity" cards for the real structured events (call_started/
+// call_completed/call_failed/review_approved/review_rejected), interspersed
+// with the chat messages in the same timeline, rather than filtered out, so
+// the log reads like Lovable's build-activity feed: prose replies plus
+// visibly different, inspectable action/status entries, not just prose.
+// Colors reuse mddoai-design-system's real StatusPill.jsx token
+// combinations ("running"/"passed"/"failed") rather than inventing new
+// ones; the card shape/size and the click-to-expand "Show details" affordance
+// are our own, sized for a real event's full data (a click target, not just
+// a hover tooltip), centered in the log like a system message rather than
+// left-aligned like the chat bubbles around it.
 const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot: string; label: string; pulse?: boolean }> = {
   call_started: { bg: "var(--warning-100)", fg: "#9a6800", dot: "var(--warning-500)", label: "Started", pulse: true },
   call_completed: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Completed" },
@@ -263,56 +264,107 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
 }
 
 function EventChip({ event }: { event: OrchestratorEvent }) {
+  const [expanded, setExpanded] = useState(false)
   const s = EVENT_STATUS[event.type]
   const summary = eventSummary(event)
+  const hasDetails = Boolean(event.data && Object.keys(event.data).length > 0)
+
   return (
-    <div
-      title={JSON.stringify(event.data ?? {}, null, 2)}
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "var(--space-1) 0" }}
-    >
-      <span
+    <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-2) 0" }}>
+      <div
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          padding: "2px 8px",
-          borderRadius: "var(--radius-pill)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-2)",
+          width: "min(420px, 90%)",
+          padding: "var(--space-3) var(--space-4)",
+          borderRadius: "var(--radius-lg)",
           background: s.bg,
-          color: s.fg,
-          lineHeight: 1.3,
-          whiteSpace: "nowrap",
+          boxShadow: "var(--shadow-xs)",
         }}
       >
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: s.dot,
-            flexShrink: 0,
-            animation: s.pulse ? "mddoai-pulse 1.6s var(--ease-out) infinite" : "none",
-          }}
-        />
-        {s.label}
-        {event.stage ? `: ${event.stage}` : ""}
-      </span>
-      {summary && (
-        <span
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "var(--text-2xs)",
-            color: "var(--text-muted)",
-            textAlign: "center",
-            maxWidth: "85%",
-          }}
-        >
-          {summary}
-        </span>
-      )}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <span
+            style={{
+              width: 9,
+              height: 9,
+              borderRadius: "50%",
+              background: s.dot,
+              flexShrink: 0,
+              animation: s.pulse ? "mddoai-pulse 1.6s var(--ease-out) infinite" : "none",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--text-xs)",
+              fontWeight: "var(--weight-bold)",
+              letterSpacing: "0.01em",
+              color: s.fg,
+            }}
+          >
+            {s.label}
+            {event.stage ? `: ${event.stage}` : ""}
+          </span>
+        </div>
+
+        {summary && (
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+            {summary}
+          </span>
+        )}
+
+        {hasDetails && (
+          <div>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--text-2xs)",
+                fontWeight: "var(--weight-bold)",
+                color: s.fg,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  transition: "transform var(--duration-fast) var(--ease-out)",
+                  transform: expanded ? "rotate(90deg)" : "none",
+                }}
+              >
+                ›
+              </span>
+              {expanded ? "Hide details" : "Show details"}
+            </button>
+            {expanded && (
+              <pre
+                style={{
+                  margin: "var(--space-2) 0 0",
+                  padding: "var(--space-2) var(--space-3)",
+                  background: "var(--surface-code)",
+                  color: "#d6d3e8",
+                  borderRadius: "var(--radius-sm)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "var(--text-2xs)",
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  textAlign: "left",
+                }}
+              >
+                {JSON.stringify(event.data, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

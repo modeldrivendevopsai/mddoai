@@ -4,10 +4,13 @@ is just the generic engine these get plugged into (it has no idea these 7
 specifically exist); assistant.py is what actually calls
 tool_calling.build_reply() with this SYSTEM_PROMPT_TEMPLATE and TOOLS.
 
-Each Tool bundles its own schema and real Python implementation (from
-orchestrator.py) as a single object, so adding a new ability means adding
-one entry here, nothing else, and a schema can never drift from its impl the
-way a separately maintained config file and impl dict could.
+Each Tool bundles its own schema and real Python implementation as a single
+object, so adding a new ability means adding one entry here, nothing else,
+and a schema can never drift from its impl the way a separately maintained
+config file and impl dict could. Most impls are orchestrator.py functions
+directly; fetch_documentation/fetch_page go through a local summarizing
+wrapper first (see below) so a tool-call result doesn't dump a whole crawl
+into a nudge() reply, but still end in a real orchestrator.py call.
 
 What's currently declared, at a glance:
   Global (every stage):  run_stage, rerun_stage, stage_result,

@@ -3,14 +3,16 @@ import type {
   NudgeResponse,
   Provider,
   RerunOverrides,
+  ResetResponse,
   ReviewResponse,
   StageId,
   StartedResponse,
 } from "@/orchestrator/types"
 
 // Talks to ai/orchestrator (a separate internal-only service, see
-// vite.config.ts's /orchestrator-api proxy) — never ai-layer directly, that's
-// what orchestratorService.ts is for.
+// vite.config.ts's /orchestrator-api proxy) — never ai-layer directly.
+// ai/orchestrator itself is the only thing that talks to ai-layer/retrieval
+// (see its own README), this service layer has no other client to defer to.
 
 // FastAPI's HTTPException responses carry a real, useful {"detail": "..."}
 // body (e.g. "'psm' is not the current pending stage", or a downstream
@@ -41,6 +43,19 @@ export async function startPipeline(
 
   if (!res.ok) {
     throw await errorFor("Start", res)
+  }
+
+  return res.json()
+}
+
+// Discards the current run with no new run to replace it, the empty-state
+// counterpart to startPipeline(). 409s (surfaced via errorFor's real detail
+// message) if a stage is genuinely still running.
+export async function resetPipeline(): Promise<ResetResponse> {
+  const res = await fetch("/orchestrator-api/reset", { method: "POST" })
+
+  if (!res.ok) {
+    throw await errorFor("Reset", res)
   }
 
   return res.json()

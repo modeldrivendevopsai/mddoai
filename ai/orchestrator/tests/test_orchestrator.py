@@ -170,7 +170,7 @@ def test_is_good_enough_accepts_technical_content_that_mentions_error_handling()
 
 
 def test_stages_order():
-    assert orchestrator.STAGES == ["docs", "psm", "atl", "acceleo", "generation"]
+    assert orchestrator.STAGES == ["docs", "pim", "psm", "atl", "acceleo", "generation"]
 
 
 def test_psm_agent_uses_psm_system_prompt_and_platform_description():
@@ -395,11 +395,44 @@ def test_fetch_page_tool_returns_summary_not_raw_content():
 def test_stage_agents_maps_stage_names_to_agent_functions():
     assert orchestrator.stage_agents == {
         "docs": orchestrator.docs_agent,
+        "pim": orchestrator.pim_agent,
         "psm": orchestrator.psm_agent,
         "atl": orchestrator.atl_agent,
         "acceleo": orchestrator.acceleo_agent,
         "generation": orchestrator.gen_agent,
     }
+
+
+def test_pim_agent_uses_pim_system_prompt_and_docs_output():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PIM description")) as mock_chat:
+        result = orchestrator.pim_agent({"docs_output": "Fetched 3 pages about GitLab CI."})
+
+    assert result == "PIM description"
+    messages = mock_chat.call_args.args[0]
+    assert messages[0]["role"] == "system"
+    assert "PIM" in messages[0]["content"]
+    assert messages[1]["content"].startswith("Fetched 3 pages about GitLab CI.")
+
+
+def test_pim_agent_falls_back_to_platform_description_without_docs_output():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PIM description")) as mock_chat:
+        orchestrator.pim_agent({"platform_description": "A GitLab CI platform"})
+
+    assert mock_chat.call_args.args[0][1]["content"].startswith("A GitLab CI platform")
+
+
+def test_psm_agent_prefers_pim_output_over_docs_output():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")) as mock_chat:
+        orchestrator.psm_agent({"pim_output": "PIM: jobs/stages/triggers", "docs_output": "raw docs"})
+
+    assert mock_chat.call_args.args[0][1]["content"].startswith("PIM: jobs/stages/triggers")
+
+
+def test_psm_agent_falls_back_to_docs_output_without_pim_output():
+    with patch.object(orchestrator, "chat", return_value=ok_response("PSM description")) as mock_chat:
+        orchestrator.psm_agent({"docs_output": "raw docs"})
+
+    assert mock_chat.call_args.args[0][1]["content"].startswith("raw docs")
 
 
 def _fast_forward_to_psm(o: "orchestrator.Orchestrator") -> None:
@@ -512,6 +545,7 @@ def test_module_level_rerun_stage_delegates_to_default_orchestrator():
 def test_advance_stage_moves_through_stages_and_returns_none_at_end():
     o = orchestrator.Orchestrator()
     assert o.current_stage == "docs"
+    assert o.advance_stage() == "pim"
     assert o.advance_stage() == "psm"
     assert o.advance_stage() == "atl"
     assert o.advance_stage() == "acceleo"

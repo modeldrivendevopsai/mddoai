@@ -23,7 +23,7 @@ autonomously.
 
 ## Module layout
 
-Four Python modules, each with one job, arranged so a REST call (a human clicking a button)
+Five Python modules, each with one job, arranged so a REST call (a human clicking a button)
 and an LLM tool call (`/nudge`) end up running the exact same code, not two parallel
 implementations of "approve a stage" or "rerun a stage":
 
@@ -256,7 +256,10 @@ server bug (or, for `/nudge`, a failure in its own synchronous routing call, see
 ### `POST /start`
 
 Resets the pipeline and starts the first stage (`docs`) running against a platform description
-and its real documentation URL.
+and its real documentation URL. `409` if a stage is currently running in the background (same
+guard `/review`, `/rerun`, and `/nudge` have, added here for the same reason: `start_pipeline()`
+swaps in a brand-new `Orchestrator`, so without this guard, starting over mid-run wouldn't error,
+it would silently orphan the old run's background thread instead).
 
 Request:
 ```json
@@ -266,6 +269,17 @@ Request:
 Response (`202`), immediately, before the fetch has necessarily finished:
 ```json
 { "status": "started", "stage": "docs" }
+```
+
+### `POST /reset`
+
+Discards the current run, progress, constraints, and events, with no new run to replace it: the
+empty-state counterpart to `/start`. `409` if a stage is currently running, same guard and same
+reasoning as `/start` above.
+
+Response (`200`):
+```json
+{ "status": "reset" }
 ```
 
 ### `GET /events`

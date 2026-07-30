@@ -3,6 +3,7 @@ import {
   getEvents,
   nudge as nudgeApi,
   rerunStage,
+  resetPipeline,
   reviewStage,
   setModel as setModelApi,
   startPipeline,
@@ -31,9 +32,24 @@ export function usePipeline() {
   const [model, setModelState] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollingRef = useRef(false)
+  // The real accumulated log. GET /events?since_index=N exists specifically
+  // "for incremental polling" (see main.py), so each fetch only asks for
+  // what's new since this and gets appended, rather than re-fetching and
+  // replacing the whole thing every 1.5s tick.
+  const allEventsRef = useRef<OrchestratorEvent[]>([])
+  // True once nothing can change without a new explicit action from this
+  // hook itself (start/reset, both of which reset this directly): either the
+  // pipeline finished (current_stage null) or it never started (no events
+  // yet). The recurring interval poll skips its fetch entirely while this is
+  // true, an idle tab left open otherwise hits the backend forever for
+  // nothing. Action-triggered fetches (approve/retry/nudge/reset) never
+  // check this, they always fetch, since they just did something that can
+  // legitimately change state.
+  const doneRef = useRef(false)
 
-  const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>) => {
-    setEvents(body.events)
+  const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
+    allEventsRef.current = replace ? body.events : [...allEventsRef.current, ...body.events]
+    setEvents(allEventsRef.current)
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
     setModelState(body.model)
@@ -41,17 +57,36 @@ export function usePipeline() {
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. events.length is the only real signal that /start
     // has actually been called.
-    setStarted(body.events.length > 0)
+    setStarted(allEventsRef.current.length > 0)
+    doneRef.current = !body.busy && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
-  // Action handlers (start/approve/reject/retry/sendNudge, all triggered by a
-  // click, never by an effect) call this directly afterward to reflect the
-  // real result right away, instead of waiting for the next poll tick.
-  const refresh = useCallback(async () => {
+  // Used by the interval poll and by approve/retry, neither of which can
+  // ever change which run is current (only /start and /reset do that), so
+  // asking for since_index=<what we already have> is always safe.
+  const fetchIncremental = useCallback(async () => {
     if (pollingRef.current) return
     pollingRef.current = true
     try {
-      applyEvents(await getEvents(0))
+      applyEvents(await getEvents(allEventsRef.current.length), false)
+    } catch {
+      // Transient network hiccup, the next poll tick or manual action retries.
+    } finally {
+      pollingRef.current = false
+    }
+  }, [applyEvents])
+
+  // Used after start/reset (which already clear allEventsRef themselves) and
+  // after a nudge, since nudge's tool-calling can itself call start_pipeline
+  // (see pipeline_tools.py's start_pipeline tool), resetting the backend's
+  // own event indices in a way this hook can't predict in advance, there's
+  // no run identity yet to detect that safely, so nudge always does a full
+  // refetch rather than risk merging two different runs' events together.
+  const fetchFull = useCallback(async () => {
+    if (pollingRef.current) return
+    pollingRef.current = true
+    try {
+      applyEvents(await getEvents(0), true)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
@@ -60,18 +95,19 @@ export function usePipeline() {
   }, [applyEvents])
 
   // The interval poll is defined and called entirely inside this effect
-  // (not via the `refresh` callback above) so state updates stay scoped to
+  // (not via the fetch callbacks above) so state updates stay scoped to
   // "an effect synchronizing with an external system on a timer," rather
   // than an effect reaching out to a click-handler's own helper.
   useEffect(() => {
     let cancelled = false
 
     async function poll() {
+      if (doneRef.current) return
       if (pollingRef.current) return
       pollingRef.current = true
       try {
-        const body = await getEvents(0)
-        if (!cancelled) applyEvents(body)
+        const body = await getEvents(allEventsRef.current.length)
+        if (!cancelled) applyEvents(body, false)
       } catch {
         // Transient network hiccup, the next tick retries.
       } finally {
@@ -92,13 +128,19 @@ export function usePipeline() {
       setError(null)
       try {
         await startPipeline(platformDescription, seedUrl, model)
+        // The backend just replaced its own Orchestrator (reset_pipeline()),
+        // a fresh event log starting again at index 0, drop whatever the
+        // previous run had accumulated so the next fetch doesn't merge two
+        // different runs' events together.
+        allEventsRef.current = []
+        doneRef.current = false
         setStarted(true)
-        await refresh()
+        await fetchFull()
       } catch (err) {
         setError(messageFor(err, "Could not start the pipeline. Is the orchestrator running?"))
       }
     },
-    [refresh]
+    [fetchFull]
   )
 
   const approve = useCallback(
@@ -106,12 +148,12 @@ export function usePipeline() {
       setError(null)
       try {
         await reviewStage(stageId, true)
-        await refresh()
+        await fetchIncremental()
       } catch (err) {
         setError(messageFor(err, "Could not approve this stage."))
       }
     },
-    [refresh]
+    [fetchIncremental]
   )
 
   // Matches the wireframe's actual gesture: curate a correction, then retry,
@@ -127,12 +169,12 @@ export function usePipeline() {
           await reviewStage(stageId, false, correction)
         }
         await rerunStage(stageId)
-        await refresh()
+        await fetchIncremental()
       } catch (err) {
         setError(messageFor(err, "Could not retry this stage."))
       }
     },
-    [refresh]
+    [fetchIncremental]
   )
 
   const sendNudge = useCallback(
@@ -140,12 +182,12 @@ export function usePipeline() {
       setError(null)
       try {
         await nudgeApi(message)
-        await refresh()
+        await fetchFull()
       } catch (err) {
         setError(messageFor(err, "Could not reach the Orchestrator."))
       }
     },
-    [refresh]
+    [fetchFull]
   )
 
   // Changes the model for the rest of the run (every subsequent stage run,
@@ -162,5 +204,21 @@ export function usePipeline() {
     }
   }, [])
 
-  return { events, currentStage, busy, started, model, error, start, approve, retry, sendNudge, changeModel }
+  // Discards the current run with nothing to replace it, the manual escape
+  // hatch for "I don't want to wait for/continue this run." 409s while a
+  // stage is genuinely busy (same guard /start has), surfaced as a real
+  // error rather than silently no-op-ing.
+  const reset = useCallback(async () => {
+    setError(null)
+    try {
+      await resetPipeline()
+      allEventsRef.current = []
+      doneRef.current = false
+      await fetchFull()
+    } catch (err) {
+      setError(messageFor(err, "Could not restart, a stage may still be running."))
+    }
+  }, [fetchFull])
+
+  return { events, currentStage, busy, started, model, error, start, approve, retry, sendNudge, changeModel, reset }
 }

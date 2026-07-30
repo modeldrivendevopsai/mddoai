@@ -66,13 +66,15 @@ def is_good_enough(response: str) -> bool:
 
 # --- Stage-based pipeline generation ---------------------------------------
 #
-# A docs -> PSM -> ATL -> Acceleo -> generation pipeline. docs is a real call
-# to the retrieval service; the other four are placeholder LLM prompts stand-
-# ing in for future real agents. A human reviews each stage's output and
-# either approves it (advancing to the next stage) or rejects it with a
-# correction that's recorded as a constraint for the stage's next run.
+# A docs -> PIM -> PSM -> ATL -> Acceleo -> generation pipeline (see the repo
+# root CLAUDE.md's own description of the real chain: SWArch -> PIM -> PSM ->
+# YAML). docs is a real call to the retrieval service; the other five are
+# placeholder LLM prompts standing in for future real agents. A human
+# reviews each stage's output and either approves it (advancing to the next
+# stage) or rejects it with a correction that's recorded as a constraint for
+# the stage's next run.
 
-STAGES = ["docs", "psm", "atl", "acceleo", "generation"]
+STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"]
 
 # One line per stage, used to build the Orchestrator's own narration/tool-
 # routing system prompt (see pipeline_tools.py) so that prompt never needs a
@@ -80,6 +82,7 @@ STAGES = ["docs", "psm", "atl", "acceleo", "generation"]
 # and stage_agents below.
 STAGE_DESCRIPTIONS: dict[str, str] = {
     "docs": "fetches the platform's real documentation (a real call to retrieval).",
+    "pim": "a PIM (Platform-Independent Model) description of the platform.",
     "psm": "a PSM (Platform-Specific Model) description of the platform.",
     "atl": "the ATL transformation rules needed to build that PSM.",
     "acceleo": "the Acceleo code-generation template for that ATL.",
@@ -87,11 +90,18 @@ STAGE_DESCRIPTIONS: dict[str, str] = {
 }
 
 _STAGE_SYSTEM_PROMPTS = {
-    "psm": (
-        "You are the MDDOAI PSM (Platform-Specific Model) agent. Given a description of a "
-        "CI/CD platform, produce a clear PSM-level description: express the platform's "
+    "pim": (
+        "You are the MDDOAI PIM (Platform-Independent Model) agent. Given a platform's real "
+        "documentation, produce a clear PIM-level description: express the platform's CI/CD "
         "concepts (jobs, stages, triggers, artifacts, agents/runners) in MDDOAI's "
-        "platform-specific metamodel terms. Be precise and structured."
+        "platform-independent metamodel terms, without committing to any one platform's "
+        "specific syntax yet. Be precise and structured."
+    ),
+    "psm": (
+        "You are the MDDOAI PSM (Platform-Specific Model) agent. Given a PIM-level description "
+        "of a CI/CD platform, produce a clear PSM-level description: express the same concepts "
+        "(jobs, stages, triggers, artifacts, agents/runners) in MDDOAI's platform-specific "
+        "metamodel terms. Be precise and structured."
     ),
     "atl": (
         "You are the MDDOAI ATL transformation agent. Given a PSM-level description, describe "
@@ -124,7 +134,7 @@ def _constraints_note(context: dict, stage: str) -> str:
 
 # Retrieval's own two real capabilities (ai/retrieval's POST /fetch and POST
 # /fetch/page), called directly here by docs_agent (the docs stage's normal
-# path). reactions.py also wraps these as stage-scoped tools (so nudge() can
+# path). pipeline_tools.py also wraps these as stage-scoped tools (so nudge() can
 # call them directly too, e.g. "just grab that one missing page" mapping onto
 # fetch_page precisely instead of the generic rerun_stage), reusing these same
 # functions, not duplicating the HTTP calls.
@@ -206,12 +216,26 @@ def docs_agent(context: dict) -> str:
     return f"Fetched {len(pages)} page(s) from {seed_url}, confidence {confidence:.2f}.\n\n{content}"
 
 
-def psm_agent(context: dict) -> str:
+def pim_agent(context: dict) -> str:
     # docs_output (the real fetched documentation) is what a live run actually
-    # has once "docs" precedes "psm"; platform_description is the fallback for
-    # a caller (or a unit test) that invokes psm_agent directly without it.
+    # has once "docs" precedes "pim"; platform_description is the fallback for
+    # a caller (or a unit test) that invokes pim_agent directly without it.
     platform_description = context.get("platform_description", "")
     primary_input = context.get("docs_output") or platform_description
+    user_content = primary_input + _constraints_note(context, "pim")
+    messages = [
+        {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["pim"]},
+        {"role": "user", "content": user_content},
+    ]
+    return chat(messages, model=context.get("model"))["content"]
+
+
+def psm_agent(context: dict) -> str:
+    # pim_output is what a live run actually has once "pim" precedes "psm";
+    # docs_output/platform_description are fallbacks for a caller (or a unit
+    # test) that invokes psm_agent directly without a pim stage having run.
+    platform_description = context.get("platform_description", "")
+    primary_input = context.get("pim_output") or context.get("docs_output") or platform_description
     user_content = primary_input + _constraints_note(context, "psm")
     messages = [
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["psm"]},
@@ -255,6 +279,7 @@ def gen_agent(context: dict) -> str:
 
 stage_agents = {
     "docs": docs_agent,
+    "pim": pim_agent,
     "psm": psm_agent,
     "atl": atl_agent,
     "acceleo": acceleo_agent,
@@ -285,11 +310,12 @@ def _summarize_for_reaction(event: dict) -> dict:
 
 # record_event() reacts to every event it records (see Orchestrator.record_event
 # below), but this file has no knowledge of tool-calling or LLM reply-building,
-# that lives in tools.py/reactions.py. reactions.py wires its react_to_event()
-# in here via set_reactor() as an import-time side effect, so this file never
-# imports tools.py or reactions.py (avoiding a circular import: reactions.py
-# needs this file's pipeline operations to build its tool list). A late-bound
-# module global, not a constructor argument, so reset_pipeline()'s fresh
+# that lives in pipeline_tools.py/assistant.py. main.py wires assistant.py's
+# react_to_event() in here via set_reactor() explicitly at startup, not as an
+# import-time side effect, so this file never imports pipeline_tools.py or
+# assistant.py (avoiding a circular import: pipeline_tools.py needs this
+# file's pipeline operations to build its tool list). A late-bound module
+# global, not a constructor argument, so reset_pipeline()'s fresh
 # Orchestrator() instances don't each need it threaded through.
 _reactor: Callable[[dict, list[dict] | None], dict] | None = None
 
@@ -502,7 +528,7 @@ def events() -> list[dict]:
 
 def append_event(event: dict) -> None:
     """Appends a raw event with no reaction triggered, unlike record_event().
-    Used by reactions.nudge() for the human's own message and the LLM's
+    Used by assistant.nudge() for the human's own message and the LLM's
     reply, neither of which is itself something to react to."""
     _default.events.append(event)
 

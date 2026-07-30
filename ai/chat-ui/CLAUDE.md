@@ -45,7 +45,7 @@ See `ai/CLAUDE.md` for cross-service folder boundaries.
 
 ## The stage stepper
 
-Six stages, per the real wireframe: `Docs → PIM → PSM → ATL → Acceleo → Generation`. Only five of these are real backend stages today (`ai/orchestrator`'s `STAGES`, no `PIM` yet); `PIM` renders as a fixed, permanently "not yet implemented" node, never wired to real state, don't fabricate progress for it. When a real `PIM` stage lands in the backend, remove that special case from `Stepper.tsx`, it should just work off the backend's own stage list at that point.
+Six stages, per the real wireframe: `Docs → PIM → PSM → ATL → Acceleo → Generation`, matching `ai/orchestrator`'s real `STAGES` exactly. `Stepper.tsx` renders directly off that list (`@/orchestrator/types`'s `STAGES`), no per-stage special-casing.
 
 ---
 

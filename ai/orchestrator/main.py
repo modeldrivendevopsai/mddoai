@@ -10,6 +10,7 @@ from orchestrator import (
     events,
     is_busy,
     list_providers,
+    reset_pipeline,
     rerun_stage,
     review,
     set_model,
@@ -80,7 +81,28 @@ def model_endpoint(request: ModelRequest):
 
 @app.post("/start", status_code=202)
 def start_endpoint(request: StartRequest):
+    # Unlike /review, /rerun, and /nudge, this used to have no busy guard:
+    # start_pipeline() swaps in a brand-new Orchestrator, so a double-click
+    # (or a restart while a stage is genuinely still running) didn't error,
+    # it silently orphaned the old run's background thread, which kept
+    # burning a real retrieval crawl or LLM call to write its result into an
+    # Orchestrator instance nothing could ever read again.
+    if is_busy():
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     return start_pipeline(request.platform_description, request.seed_url, request.model)
+
+
+@app.post("/reset")
+def reset_endpoint():
+    """Discards the current run (progress, constraints, events) with no new
+    run to replace it, the empty-state counterpart to /start. Same busy
+    guard as every other mutating endpoint, for the same reason /start's
+    guard above exists: swapping the Orchestrator instance out from under a
+    genuinely in-flight background thread just orphans it."""
+    if is_busy():
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+    reset_pipeline()
+    return {"status": "reset"}
 
 
 @app.get("/providers")

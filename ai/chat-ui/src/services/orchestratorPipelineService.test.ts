@@ -4,6 +4,7 @@ import {
   getProviders,
   nudge,
   rerunStage,
+  resetPipeline,
   reviewStage,
   setModel,
   startPipeline,
@@ -210,6 +211,22 @@ describe("orchestratorPipelineService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
 
     await expect(setModel("gemini-flash")).rejects.toThrow("Model request failed: 500")
+  })
+
+  it("resetPipeline posts with no body", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "reset" }) })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await resetPipeline()
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/reset", { method: "POST" })
+    expect(result).toEqual({ status: "reset" })
+  })
+
+  it("resetPipeline throws with the status code on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 409 }))
+
+    await expect(resetPipeline()).rejects.toThrow("Reset request failed: 409")
   })
 
   it("surfaces the backend's real error detail instead of a generic status message when one is given", async () => {

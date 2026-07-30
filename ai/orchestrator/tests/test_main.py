@@ -30,7 +30,9 @@ request's own in either order.
 Tests verify:
   1. POST /start (docs-first now) starts the docs stage running in the background and
      returns 202 immediately; a downstream failure surfaces as a call_failed event via
-     GET /events, not a 500.
+     GET /events, not a 500; 409 if a stage is still running (it resets the pipeline by
+     swapping in a fresh Orchestrator, so without this guard a restart mid-run would
+     silently orphan the old run's background thread instead of rejecting the request).
   2. POST /review/{stage_id} records the review as an event; approving starts the next
      stage running in the background (202) or returns {"status": "complete"} directly on
      the last stage; rejecting returns {"status": "rerun", ...} directly, without
@@ -48,6 +50,8 @@ Tests verify:
      makes its one routing call, never blocking for a stage's duration; returns a
      clarification directly when no tool is called; converts a downstream error in its
      own routing call into a 500.
+  6. POST /reset discards the current run with no new run to replace it, the empty-state
+     counterpart to /start; 409 if a stage is still running, same reasoning as /start.
 """
 import json
 import threading
@@ -131,11 +135,13 @@ def approve(stage_id, agent_response_text="Generic stage output"):
 
 
 def _advance_to_psm(psm_output="PSM description"):
-    """Starts the pipeline (lands on docs) and approves it, landing on psm
-    with the given output. Every endpoint test that isn't specifically about
-    the docs stage builds on this instead of hand-rolling the docs fetch."""
+    """Starts the pipeline (lands on docs) and approves docs then pim,
+    landing on psm with the given output. Every endpoint test that isn't
+    specifically about the docs/pim stages builds on this instead of
+    hand-rolling the docs fetch and pim approval."""
     start_pipeline()
-    return approve("docs", agent_response_text=psm_output)
+    approve("docs")
+    return approve("pim", agent_response_text=psm_output)
 
 
 # --- background-thread execution (the load-bearing assumption) ------------------
@@ -230,6 +236,51 @@ def test_start_endpoint_omits_model_when_none_chosen():
     assert all(c.kwargs["json"]["model"] is None for c in chat_calls)
 
 
+def test_start_endpoint_returns_409_while_busy():
+    """Unlike /review, /rerun, and /nudge, this endpoint used to have no busy
+    guard: start_pipeline() swaps in a brand-new Orchestrator, so restarting
+    (or double-clicking Start) mid-run didn't error, it silently orphaned the
+    old run's background thread instead of rejecting the request."""
+    start_pipeline()
+    orchestrator._default.busy = True
+
+    with patch("orchestrator.httpx.post") as mock_post:
+        response = client.post(
+            "/start", json={"platform_description": "A different platform", "seed_url": "https://example.com/other"}
+        )
+
+    assert response.status_code == 409
+    mock_post.assert_not_called()
+    # the busy run's own Orchestrator instance is untouched, nothing was reset
+    assert orchestrator.current_stage() == "docs"
+
+
+# --- POST /reset -------------------------------------------------------------------
+
+
+def test_reset_endpoint_discards_the_current_run():
+    start_pipeline()
+    assert len(orchestrator.events()) > 0
+
+    response = client.post("/reset")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "reset"}
+    assert orchestrator.events() == []
+    assert orchestrator.current_stage() == "docs"
+
+
+def test_reset_endpoint_returns_409_while_busy():
+    start_pipeline()
+    orchestrator._default.busy = True
+
+    response = client.post("/reset")
+
+    assert response.status_code == 409
+    # busy run wasn't discarded
+    assert len(orchestrator.events()) > 0
+
+
 # --- GET /providers ----------------------------------------------------------------
 
 
@@ -322,14 +373,14 @@ def test_events_endpoint_since_index_slices_the_log():
 def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     start_pipeline()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PSM description")):
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PIM description")):
         response = client.post("/review/docs", json={"approved": True})
         orchestrator.wait_for_idle()
 
     assert response.status_code == 202
-    assert response.json() == {"status": "started", "stage": "psm"}
-    # psm ran and completed for real, but it's pending review now too
-    assert orchestrator.current_stage() == "psm"
+    assert response.json() == {"status": "started", "stage": "pim"}
+    # pim ran and completed for real, but it's pending review now too
+    assert orchestrator.current_stage() == "pim"
 
 
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():
