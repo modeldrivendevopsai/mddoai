@@ -1,0 +1,8 @@
+.mdd-panel {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.mdd-panel--neutral { background: var(--surface-card); }
+.mdd-panel--pipeline { background: var(--tint-pipeline); }
+.mdd-panel--platform { background: var(--tint-platform); }

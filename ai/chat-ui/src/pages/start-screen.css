@@ -1,0 +1,102 @@
+.mdd-start-screen {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) 64px;
+}
+
+.mdd-start-screen__subtitle {
+  text-align: center;
+  font-size: var(--text-md);
+  color: var(--neutral-500);
+  margin: 0 0 28px;
+}
+
+.mdd-start-screen__caption {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--neutral-500);
+  margin: 0 0 var(--space-2);
+}
+.mdd-start-screen__caption--below {
+  margin: var(--space-2) 0 0;
+}
+
+.mdd-start-screen__cards {
+  display: flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(24, 24, 40, 0.04);
+}
+
+.mdd-start-screen__card {
+  flex: 1;
+  padding: 30px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: 0;
+  border: none;
+}
+.mdd-start-screen__card:not(:first-child) {
+  border-left: 1px solid var(--border-subtle);
+}
+.mdd-start-screen__card h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--neutral-950);
+}
+.mdd-start-screen__card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+
+.mdd-start-screen__heading {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--neutral-950);
+  margin: 40px 0 var(--space-3);
+}
+
+.mdd-start-screen__table {
+  overflow: hidden;
+}
+
+.mdd-start-screen__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 11px var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mdd-start-screen__row:last-child {
+  border-bottom: none;
+}
+.mdd-start-screen__row:hover {
+  background: var(--surface-sunken);
+}
+
+.mdd-start-screen__platform-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.mdd-start-screen__link {
+  color: var(--info);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  margin-left: auto;
+  padding-left: var(--space-3);
+}
+.mdd-start-screen__link:hover {
+  text-decoration: underline;
+}
