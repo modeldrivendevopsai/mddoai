@@ -14,8 +14,8 @@ services:
       # confirmed via `docker compose config` that Compose resolves this
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
 
   orchestrator:
     build:
@@ -54,23 +54,17 @@ services:
       ai-layer:
         condition: service_started
 
-  chat-ui-build:
+  # Overrides the Dockerfile's static build with Vite's own dev server.
+  chat-ui:
     build: ./chat-ui
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      - VITE_API_PROXY_TARGET=http://ai-layer:8000
     volumes:
-      - static-assets:/output
-
-  caddy:
-    image: caddy:2-alpine
-    volumes:
-      - static-assets:/usr/share/caddy
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./chat-ui:/app
+      - /app/node_modules
     ports:
-      - "8080:80"
+      - "5173:5173"
     depends_on:
       ai-layer:
         condition: service_started
-      chat-ui-build:
-        condition: service_completed_successfully
-
-volumes:
-  static-assets:

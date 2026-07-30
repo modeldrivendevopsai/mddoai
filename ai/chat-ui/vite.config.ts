@@ -14,7 +14,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // docker-compose.yml sets this to ai-layer:8000 (Docker service name);
+        // the fallback here is for running npm run dev outside Docker.
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },

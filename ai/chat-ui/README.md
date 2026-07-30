@@ -14,7 +14,6 @@ See [CLAUDE.md](./CLAUDE.md) for the full product and design spec.
 | Component foundation | [shadcn/ui](https://ui.shadcn.com/) | [Docs](https://ui.shadcn.com/docs) |
 | Chat components | [prompt-kit](https://www.prompt-kit.com/) | [Docs](https://www.prompt-kit.com/docs) |
 | Testing | [Vitest](https://vitest.dev/) | [Docs](https://vitest.dev/guide/) |
-| Reverse proxy / static server | [Caddy](https://caddyserver.com/) (separate gateway service, see `ai/README.md`) | [Docs](https://caddyserver.com/docs/) |
 
 ## Prerequisites
 
@@ -32,13 +31,13 @@ Open the URL Vite prints (default [http://localhost:5173](http://localhost:5173)
 
 ## Develop
 
-The whole app is one screen: [src/screens/ConversationScreen.tsx](./src/screens/ConversationScreen.tsx). There is no router or multi-page structure.
+There is no router or multi-page structure; screens live under `src/screens/`, currently just [ConversationScreen.tsx](./src/screens/ConversationScreen.tsx).
 
 Where things live:
 
 - **UI and conversation logic** `src/screens/ConversationScreen.tsx`
 - **Component primitives** `src/components/ui/` (shadcn/ui + prompt-kit, generated)
-- **Backend contract** `src/services/orchestratorService.ts` is the only file that talks to the network — see it and `src/types/index.ts` for the current request/response shape.
+- **Backend contract** Network calls go through `src/services/` (currently `orchestratorService.ts`); see it and `src/types/index.ts` for the current request/response shape.
 - **Design tokens** `src/index.css` (`--bg`, `--surface`, `--accent`, etc., mapped onto shadcn's CSS variable names)
 
 The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`).
@@ -82,15 +81,8 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-chat-ui's Dockerfile only builds the static assets — a shared `caddy` gateway service (`ai/Caddyfile`) serves them and proxies `/api/*` to `ai-layer`. Run the whole stack from `ai/`:
-
-```bash
-cd ..
-docker compose up --build
-```
-
-Served at [http://localhost:8080](http://localhost:8080). Stop with `docker compose down`.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (`npm run dev -- --host 0.0.0.0`, source volume-mounted in), published at `http://localhost:5173`, proxying `/api/*` to `ai-layer` by its Docker Compose service name. Not the `Dockerfile` in this folder, that one builds static assets only (`npm run build`, no server) and is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full compose setup.
 
 ## Project structure
 
-Everything lives under `src/`: `screens/ConversationScreen.tsx` is the whole app, `services/orchestratorService.ts` is the only file that calls the backend, `components/ui/` holds generated shadcn/ui + prompt-kit primitives, and `types/index.ts` has the shared types. The `Dockerfile` here only builds the static assets — see `ai/README.md` for how the full stack fits together.
+Everything lives under `src/`: `screens/` holds the app's screens, `services/` holds the files that call the backend, `components/ui/` holds generated shadcn/ui + prompt-kit primitives, and `types/` holds the shared types. See `ai/README.md` for how the full stack fits together.
