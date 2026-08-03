@@ -10,8 +10,8 @@ import { TextField, NumberField, TextAreaField } from "@/components/platform-int
 import { brandTokenStyle } from "@/components/platform-integration/brandTokens"
 import { fetchDocumentation } from "@/services/retrievalService"
 import type { RetrievalFetchResult } from "@/services/retrievalService"
-import { getProviders } from "@/services/orchestratorService"
-import type { Provider } from "@/types"
+import { getProviders } from "@/services/providersService"
+import type { Provider } from "@/services/providersService"
 import type {
   DocsStepState,
   OrchestratorNote,

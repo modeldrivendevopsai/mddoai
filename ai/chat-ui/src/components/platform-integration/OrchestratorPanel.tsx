@@ -1,6 +1,6 @@
 import { SelectField } from "./FormField"
 import type { OrchestratorNote } from "./types"
-import type { Provider } from "@/types"
+import type { Provider } from "@/services/providersService"
 
 interface OrchestratorPanelProps {
   notes: OrchestratorNote[]
