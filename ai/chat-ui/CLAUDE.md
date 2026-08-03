@@ -8,6 +8,8 @@ All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Ec
 
 This is a vanilla, single-conversation chat interface: the user talks, the orchestrator responds, the conversation flows linearly from top to bottom. A slide-out history panel (current conversation preview + a static platform list) is also part of the current UI — see `ConversationScreen.tsx`.
 
+A second screen, `PlatformIntegrationScreen.tsx`, covers the retrieval agent's "Add a CI/CD Platform" flow (documentation input → fetch progress → review), calling the `retrieval` service's `POST /fetch` directly — the retrieval agent is independent, not routed through the orchestrator. It's a standalone component, not yet mounted into `App.tsx` — how multiple screens get switched between (router, tab state, etc.) isn't decided yet, see "What This Is Not" below.
+
 ---
 
 ## Behaviour
@@ -34,7 +36,7 @@ That's the whole flow. One conversation, one thread, no extra UI chrome.
 
 ## Architecture
 
-The entire app is one screen, no router, no multi-page structure. Network calls go through `src/services/`, never directly from a component, and only ever to the AI layer, never the Java backend or an LLM provider directly. For the full request path (Vite dev proxy, ai-layer, provider routing), see `ai/README.md`.
+No router, no multi-page navigation shell yet. Network calls go through `src/services/`, never directly from a component, and only ever to one of the independent backend agents, never the Java backend or an LLM provider directly. `orchestratorService.ts` calls `ai-layer` via `/api/*`; `retrievalService.ts` calls the `retrieval` service directly via `/retrieval-api/*` — retrieval is its own agent, not routed through orchestrator. For the full request path (Vite dev proxy, ai-layer, retrieval, provider routing), see `ai/README.md`.
 
 See `ai/CLAUDE.md` for cross-service folder boundaries.
 
@@ -43,6 +45,8 @@ See `ai/CLAUDE.md` for cross-service folder boundaries.
 ## Types
 
 See `src/types/index.ts` for the current `Message` and `OrchestratorResponse` shapes. `orchestratorService.ts` sends the full conversation history (stripped to `{role, content}` pairs) as `POST /api/chat` and maps the AI layer's response onto `OrchestratorResponse` — that contract (full history in, one response out) is what should stay stable, independent of the exact field names.
+
+`src/components/platform-integration/types.ts` holds the retrieval-agent screen's own local UI types (`PipelineStage`, `DocsStepState`, etc.); `retrievalService.ts` holds the types mirroring retrieval's real `POST /fetch` request/response shape (`RetrievalFetchResult`, `RetrievedPage`, etc.) — both scoped to that screen, not shared app-wide state.
 
 ---
 
@@ -64,7 +68,7 @@ Layout is header on top, scrollable conversation in the middle, input bar pinned
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`, proxying API calls to `ai-layer` by its Compose service name. See `ai/README.md` for the full topology.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`, proxying API calls to `ai-layer` and `retrieval` by their Compose service names. See `ai/README.md` for the full topology.
 
 ---
 

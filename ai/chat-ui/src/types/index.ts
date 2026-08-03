@@ -15,4 +15,8 @@ export interface OrchestratorResponse {
 export interface Provider {
   name: string
   tier: string
+  // False when this provider has no API key configured (see ai-layer's
+  // GET /providers) — still listed so a selector can show every provider
+  // this deployment knows about, but shouldn't be selectable while false.
+  available: boolean
 }

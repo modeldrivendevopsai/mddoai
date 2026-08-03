@@ -31,13 +31,14 @@ Open the URL Vite prints (default [http://localhost:5173](http://localhost:5173)
 
 ## Develop
 
-There is no router or multi-page structure; screens live under `src/screens/`, currently just [ConversationScreen.tsx](./src/screens/ConversationScreen.tsx).
+There is no router yet; screens live under `src/screens/`: [ConversationScreen.tsx](./src/screens/ConversationScreen.tsx) (the main chat UI, mounted in `App.tsx`) and [PlatformIntegrationScreen.tsx](./src/screens/PlatformIntegrationScreen.tsx) (the retrieval agent's "Add a CI/CD Platform" flow — not yet mounted, since how multiple screens get switched between isn't decided).
 
 Where things live:
 
 - **UI and conversation logic** `src/screens/ConversationScreen.tsx`
+- **Retrieval agent UI** `src/screens/PlatformIntegrationScreen.tsx`, with its supporting components/types/service under `src/components/platform-integration/` and `src/services/retrievalService.ts`
 - **Component primitives** `src/components/ui/` (shadcn/ui + prompt-kit, generated)
-- **Backend contract** Network calls go through `src/services/` (currently `orchestratorService.ts`); see it and `src/types/index.ts` for the current request/response shape.
+- **Backend contract** Network calls go through `src/services/` (`orchestratorService.ts` for chat, `retrievalService.ts` for the docs-fetch flow); see them and `src/types/index.ts` for the current request/response shapes.
 - **Design tokens** `src/index.css` (`--bg`, `--surface`, `--accent`, etc., mapped onto shadcn's CSS variable names)
 
 The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`).
@@ -63,7 +64,7 @@ npm run test         # one-shot run
 npm run test:watch   # watch mode
 ```
 
-[orchestratorService.test.ts](./src/services/orchestratorService.test.ts) covers the request/response contract with `fetch` mocked — see the file for current cases.
+[orchestratorService.test.ts](./src/services/orchestratorService.test.ts) and [retrievalService.test.ts](./src/services/retrievalService.test.ts) cover their respective request/response contracts with `fetch` mocked — see the files for current cases.
 
 ## Lint and typecheck
 
@@ -81,7 +82,17 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (`npm run dev -- --host 0.0.0.0`, source volume-mounted in), published at `http://localhost:5173`, proxying `/api/*` to `ai-layer` by its Docker Compose service name. Not the `Dockerfile` in this folder, that one builds static assets only (`npm run build`, no server) and is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full compose setup.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (`npm run dev -- --host 0.0.0.0`, source volume-mounted in), published at `http://localhost:5173`, proxying `/api/*` to `ai-layer` and `/retrieval-api/*` to `retrieval`, both by their Docker Compose service names. Not the `Dockerfile` in this folder, that one builds static assets only (`npm run build`, no server) and is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full compose setup.
+
+**After adding a new npm dependency**, a plain `docker compose up --build` isn't enough: Compose reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s `/app/node_modules` entry) across recreation by default, so the new package won't actually be there even though the image rebuilt with it. Force a fresh volume with:
+
+```bash
+docker compose up -d --build --renew-anon-volumes chat-ui
+```
+
+Symptom if you skip this: Vite's overlay reports `Failed to resolve import "..."` for the package you just added, even though `npm ci` clearly succeeded during the image build.
+
+**If an edit to a source file doesn't show up in the browser** (no `[vite] hmr update` line in `docker compose logs chat-ui`, page keeps serving the old version even after a hard refresh): Docker Desktop on Windows doesn't always forward native filesystem change events through the bind mount into the Linux container, so Vite's watcher silently misses the edit. `vite.config.ts` enables polling (`server.watch.usePolling`) whenever `CHOKIDAR_USEPOLLING=true` is set, which `docker-compose.yml` sets for exactly this reason — if you still hit this, confirm that env var made it into the running container (`docker compose exec chat-ui printenv CHOKIDAR_USEPOLLING`).
 
 ## Project structure
 

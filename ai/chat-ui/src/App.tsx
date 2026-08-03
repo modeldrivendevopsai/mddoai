@@ -1,7 +1,20 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
 import ConversationScreen from "@/screens/ConversationScreen"
+import PlatformIntegrationScreen from "@/screens/PlatformIntegrationScreen"
 import { AppShell } from "@/layout/AppShell"
 import { StartScreen } from "@/pages/StartScreen"
+
+function StartScreenRoute() {
+  const navigate = useNavigate()
+  return (
+    <StartScreen
+      onSelectOption={(optionId) => {
+        if (optionId === "add-update-platform") navigate("/platforms/new")
+        if (optionId === "generate-pipeline") navigate("/")
+      }}
+    />
+  )
+}
 
 function App() {
   return (
@@ -12,7 +25,15 @@ function App() {
           path="/start"
           element={
             <AppShell>
-              <StartScreen />
+              <StartScreenRoute />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/platforms/new"
+          element={
+            <AppShell>
+              <PlatformIntegrationScreen />
             </AppShell>
           }
         />

@@ -112,7 +112,9 @@ def patch_crawler():
 def patch_clean_passthrough():
     """clean_page_content is a real LLM call over the network, tests that aren't
     exercising cleanup behavior specifically should mock it as an identity function."""
-    return patch.object(retrieval, "clean_page_content", AsyncMock(side_effect=lambda md, force_refresh=False: md))
+    return patch.object(
+        retrieval, "clean_page_content", AsyncMock(side_effect=lambda md, force_refresh=False, model=None: md)
+    )
 
 
 # --- _result_to_page ----------------------------------------------------------
@@ -209,6 +211,52 @@ async def test_llm_rank_links_folds_hint_into_the_prompt():
 
 
 @pytest.mark.asyncio
+async def test_llm_rank_links_includes_model_when_provided():
+    links = [make_link("https://docs.example.com/a")]
+    seen_payload = {}
+
+    async def capture_post(url, json):
+        seen_payload.update(json)
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"content": '["https://docs.example.com/a"]'}
+        return response
+
+    client = AsyncMock()
+    client.post.side_effect = capture_post
+    client_cm = MagicMock()
+    client_cm.__aenter__.return_value = client
+    client_cm.__aexit__.return_value = False
+    with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
+        await retrieval._llm_rank_links(links, model="claude")
+
+    assert seen_payload["model"] == "claude"
+
+
+@pytest.mark.asyncio
+async def test_llm_rank_links_omits_model_when_not_provided():
+    links = [make_link("https://docs.example.com/a")]
+    seen_payload = {}
+
+    async def capture_post(url, json):
+        seen_payload.update(json)
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"content": '["https://docs.example.com/a"]'}
+        return response
+
+    client = AsyncMock()
+    client.post.side_effect = capture_post
+    client_cm = MagicMock()
+    client_cm.__aenter__.return_value = client
+    client_cm.__aexit__.return_value = False
+    with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
+        await retrieval._llm_rank_links(links)
+
+    assert "model" not in seen_payload
+
+
+@pytest.mark.asyncio
 async def test_llm_ranked_strategy_reorders_shortlist_and_keeps_unlisted_at_tail():
     from crawl4ai.adaptive_crawler import CrawlState
 
@@ -238,6 +286,20 @@ async def test_llm_ranked_strategy_passes_its_hint_through_to_llm_rank_links():
         await strategy.rank_links(state, AdaptiveConfig(strategy="statistical"))
 
     assert mock_rank.call_args.kwargs["hint"] == "find the secrets page"
+
+
+@pytest.mark.asyncio
+async def test_llm_ranked_strategy_passes_its_model_through_to_llm_rank_links():
+    from crawl4ai.adaptive_crawler import CrawlState
+
+    link_a = make_link("https://docs.example.com/a")
+    state = CrawlState(pending_links=[link_a], query="q")
+    strategy = retrieval._LLMRankedStrategy(model="claude")
+
+    with patch.object(retrieval, "_llm_rank_links", AsyncMock(return_value=[link_a.href])) as mock_rank:
+        await strategy.rank_links(state, AdaptiveConfig(strategy="statistical"))
+
+    assert mock_rank.call_args.kwargs["model"] == "claude"
 
 
 @pytest.mark.asyncio
@@ -658,6 +720,18 @@ async def test_fetch_documentation_folds_hint_into_query_and_strategy():
 
 
 @pytest.mark.asyncio
+async def test_fetch_documentation_passes_model_into_strategy_and_cleanup():
+    state = make_fake_state([make_crawl_result()])
+    patcher, crawler_cls = patch_adaptive_crawler(state)
+    with patch_crawler(), patcher, patch.object(retrieval, "clean_page_content", AsyncMock(side_effect=lambda md, force_refresh=False, model=None: md)) as mock_clean:
+        await retrieval.fetch_documentation("https://docs.example.com/", model="claude")
+
+    strategy = crawler_cls.call_args.kwargs["strategy"]
+    assert strategy._model == "claude"
+    assert mock_clean.call_args.kwargs["model"] == "claude"
+
+
+@pytest.mark.asyncio
 async def test_fetch_documentation_no_hint_uses_bare_query():
     state = make_fake_state([make_crawl_result()])
     patcher, crawler_cls = patch_adaptive_crawler(state)
@@ -758,7 +832,7 @@ async def test_fetch_documentation_dedupes_before_cleanup_so_llm_never_sees_the_
     patcher, _ = patch_adaptive_crawler(state)
     seen_by_cleanup = []
 
-    async def record_and_passthrough(markdown, force_refresh=False):
+    async def record_and_passthrough(markdown, force_refresh=False, model=None):
         seen_by_cleanup.append(markdown)
         return markdown
 
@@ -851,6 +925,52 @@ async def test_clean_page_content_force_refresh_bypasses_cache():
     with patch_chat_response("second cleanup, fresh"):
         second = await retrieval.clean_page_content(markdown, force_refresh=True)
     assert second == "second cleanup, fresh"
+
+
+@pytest.mark.asyncio
+async def test_clean_page_content_includes_model_when_provided():
+    markdown = "content cleaned with a specific model requested"
+    seen_payload = {}
+
+    async def capture_post(url, json):
+        seen_payload.update(json)
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"content": "cleaned"}
+        return response
+
+    client = AsyncMock()
+    client.post.side_effect = capture_post
+    client_cm = MagicMock()
+    client_cm.__aenter__.return_value = client
+    client_cm.__aexit__.return_value = False
+    with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
+        await retrieval.clean_page_content(markdown, model="claude")
+
+    assert seen_payload["model"] == "claude"
+
+
+@pytest.mark.asyncio
+async def test_clean_page_content_omits_model_when_not_provided():
+    markdown = "content cleaned with no model requested"
+    seen_payload = {}
+
+    async def capture_post(url, json):
+        seen_payload.update(json)
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"content": "cleaned"}
+        return response
+
+    client = AsyncMock()
+    client.post.side_effect = capture_post
+    client_cm = MagicMock()
+    client_cm.__aenter__.return_value = client
+    client_cm.__aexit__.return_value = False
+    with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
+        await retrieval.clean_page_content(markdown)
+
+    assert "model" not in seen_payload
 
 
 @pytest.mark.asyncio
