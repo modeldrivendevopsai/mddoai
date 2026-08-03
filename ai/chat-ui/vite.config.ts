@@ -44,6 +44,12 @@ export default defineConfig({
         target: process.env.VITE_RETRIEVAL_PROXY_TARGET || 'http://localhost:8010',
         rewrite: (path) => path.replace(/^\/retrieval-api/, ''),
       },
+      '/orchestrator-api': {
+        // ai/orchestrator is internal-only (expose, not ports, in
+        // docker-compose.yml), same reasoning as /api above.
+        target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
+        rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),
+      },
     },
   },
   test: {

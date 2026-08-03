@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
-import ConversationScreen from "@/screens/ConversationScreen"
+import OrchestratorScreen from "@/screens/OrchestratorScreen"
 import PlatformIntegrationScreen from "@/screens/PlatformIntegrationScreen"
 import { AppShell } from "@/layout/AppShell"
 import { StartScreen } from "@/pages/StartScreen"
@@ -20,7 +20,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<ConversationScreen />} />
+        <Route
+          path="/"
+          element={
+            <AppShell>
+              <OrchestratorScreen />
+            </AppShell>
+          }
+        />
         <Route
           path="/start"
           element={
