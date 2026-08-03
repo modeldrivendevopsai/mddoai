@@ -1,0 +1,34 @@
+.mdd-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mdd-tabs__tab {
+  flex: 1;
+  padding: 11px 0;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--neutral-500);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.mdd-tabs__tab.is-active {
+  color: var(--neutral-950);
+  background: var(--surface-card);
+}
+.mdd-tabs__tab:not(.is-active):hover {
+  color: var(--neutral-700);
+}
+.mdd-tabs__tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient);
+}

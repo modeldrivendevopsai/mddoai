@@ -1,0 +1,82 @@
+/**
+ * MDDOAI Design System — tokens
+ * This is the single source of truth for color, type, spacing, radius, and
+ * motion. Components must reference these variables, never hardcode a hex
+ * value or px size directly. If the real MDDOAI Design System skill package
+ * becomes available in this repo, this file is the one to replace/re-point
+ * at it — nothing downstream should need to change.
+ */
+:root {
+  /* Brand */
+  --brand: #684aeb;
+  --brand-strong: #5636d6;
+  --brand-light: #a45eed;
+  --brand-gradient: linear-gradient(120deg, #684aeb, #a45eed);
+  --ring-brand: rgba(104, 74, 235, 0.35);
+  --glow-brand: 0 4px 18px rgba(104, 74, 235, 0.28);
+
+  /* Cool slate neutrals */
+  --neutral-0: #ffffff;
+  --neutral-50: #f8f8fb;
+  --neutral-100: #f1f0f7;
+  --neutral-150: #e9e8f2;
+  --neutral-200: #e0dfeb;
+  --neutral-300: #c7c5d8;
+  --neutral-400: #a09dbd;
+  --neutral-500: #767392;
+  --neutral-600: #5b5876;
+  --neutral-700: #423f5c;
+  --neutral-800: #2b2940;
+  --neutral-950: #0e0d15;
+
+  /* Context tints (pipeline vs platform) */
+  --tint-pipeline: #f2f6ff;
+  --tint-pipeline-border: #d7e3ff;
+  --tint-platform: #f8f4ff;
+  --tint-platform-border: #e6d9ff;
+  --tint-brand-50: #f3ecff;
+
+  /* Semantic = CI states */
+  --success: #1c8a4b;
+  --success-tint: #e3f9ea;
+  --warning: #9a7300;
+  --warning-tint: #fff6cc;
+  --danger: #b53030;
+  --danger-tint: #ffe6e6;
+  --info: #1a4fd6;
+  --info-tint: #eaf1ff;
+
+  /* Surfaces */
+  --surface-page: var(--neutral-50);
+  --surface-card: var(--neutral-0);
+  --surface-sunken: var(--neutral-100);
+  --border-subtle: var(--neutral-150);
+
+  /* Type */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --text-xs: 11px;
+  --text-sm: 12.5px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 19px;
+
+  /* Spacing (4px base grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+}

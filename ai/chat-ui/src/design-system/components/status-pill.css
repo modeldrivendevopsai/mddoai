@@ -1,0 +1,20 @@
+.mdd-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--neutral-600);
+}
+
+.mdd-status-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mdd-status-pill--success .mdd-status-pill__dot { background: var(--success); }
+.mdd-status-pill--warning .mdd-status-pill__dot { background: var(--warning); }
+.mdd-status-pill--danger .mdd-status-pill__dot { background: var(--danger); }
+.mdd-status-pill--info .mdd-status-pill__dot { background: var(--info); }

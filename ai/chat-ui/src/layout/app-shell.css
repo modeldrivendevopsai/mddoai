@@ -1,0 +1,21 @@
+.mdd-app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--surface-page);
+  font-family: var(--font-body);
+  color: var(--neutral-950);
+}
+
+.mdd-app-shell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mdd-app-shell__content {
+  flex: 1;
+  overflow-y: auto;
+}
