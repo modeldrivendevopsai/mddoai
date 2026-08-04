@@ -2538,40 +2538,39 @@
             <mxPoint x="440.09302325581393" y="2571" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-40" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;strokeColor=#888888;fillColor=#F2F2F2;" value="Context Services Cluster" vertex="1">
-          <mxGeometry height="400" width="260" x="1228" y="1951" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="🗄 Graph-RAG&#xa;Vectorized Metamodels, Models, Transformation with Logical Bindings" vertex="1">
-          <mxGeometry height="150" width="220" x="1248" y="1981" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;spacingLeft=8;" value="👥 RAG Agent&#xa;• Ranks data&#xa;• Memorizes data in Graph-RAG&#xa;• Organizes Master Graph Table" vertex="1">
-          <mxGeometry height="190" width="220" x="1248" y="2151" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-43" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;" target="w8IEM-XlgQ3ocT9upb8R-41">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-44" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;rounded=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" target="w8IEM-XlgQ3ocT9upb8R-42">
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-44" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;rounded=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1358" y="2621" />
             </Array>
             <mxPoint x="878" y="2601" as="sourcePoint" />
+            <mxPoint x="1358" y="2341" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-45" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.15;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-18" value="splits metamodel">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-45" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.15;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-18" value="splits metamodel">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1248" y="2179.5" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-46" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.3;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-19" value="splits model">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-46" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.3;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-19" value="splits model">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1248" y="2208" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-47" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.45;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-20" value="splits code">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-47" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.45;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-20" value="splits code">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1248" y="2236.5" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-48" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.6;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-21" value="M2M">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-48" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.6;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-21" value="M2M">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1248" y="2265" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-49" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-42" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.75;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-22" value="M2C">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-49" edge="1" parent="1" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;exitX=0;exitY=0.75;entryX=1;entryY=0.5;" target="w8IEM-XlgQ3ocT9upb8R-22" value="M2C">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1248" y="2293.5" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-50" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Domain1 Agent" vertex="1">
           <mxGeometry height="45" width="230" x="928" y="1986" as="geometry" />
@@ -2593,15 +2592,6 @@
             <mxPoint x="848" y="2148.55" as="sourcePoint" />
             <mxPoint x="908" y="2150.9962809917356" as="targetPoint" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-55" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Plain-language description / Repo scan" vertex="1">
-          <mxGeometry height="35" width="230" x="928" y="1906" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-56" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Cross-user Shared Access&#xa;Graph-RAG available to all users immediately" vertex="1">
-          <mxGeometry height="50" width="260" x="1228" y="2371" as="geometry" />
-        </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-57" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-41" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;" target="w8IEM-XlgQ3ocT9upb8R-56" value="shared">
-          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
