@@ -2431,7 +2431,7 @@
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Generation Agent (iterator)" vertex="1">
           <mxGeometry height="50" width="121" x="426.25" y="1974" as="geometry" />
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-16" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-31" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-16" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-31" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="fTe6BnEEGNu3OLTLRNkt-3" value="">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="530" y="2271" as="sourcePoint" />
             <mxPoint x="508.75000000000045" y="2194" as="targetPoint" />
@@ -2455,7 +2455,7 @@
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="LLM as a Judge&#xa;(Generative AI as a Judge)" vertex="1">
           <mxGeometry height="70" width="176" x="219" y="2085" as="geometry" />
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Semantic Validation Agent" vertex="1">
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Semantic and Compilation Validation Agent" vertex="1">
           <mxGeometry height="70" width="142" x="445" y="2085" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Prompt Improvement Agent" vertex="1">
@@ -2464,8 +2464,9 @@
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-36" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-32" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;" target="w8IEM-XlgQ3ocT9upb8R-33">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="w8IEM-XlgQ3ocT9upb8R-37" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-33" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;" value="Fail">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="w8IEM-XlgQ3ocT9upb8R-37" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-33" style="endArrow=block;dashed=1;html=1;strokeColor=#666666;fontSize=10;fontColor=#333333;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="w8IEM-XlgQ3ocT9upb8R-34" value="Fail">
+          <mxGeometry relative="1" x="0.0099" y="1" as="geometry">
+            <mxPoint as="offset" />
             <mxPoint x="379.181818181818" y="2034.0000000000002" as="targetPoint" />
           </mxGeometry>
         </mxCell>
