@@ -7,6 +7,7 @@ service-specific setup — this file only covers how they fit together.
 
 - **`ai-layer/`** — FastAPI backend that routes chat requests to an LLM provider (with automatic fallback across providers), published directly on port 8000. See [ai-layer/README.md](./ai-layer/README.md).
 - **`chat-ui/`** — React SPA, run via `docker-compose.yml` as a hot-reloading Vite dev server (not its `Dockerfile`, that one builds static assets for an actual deployment target later), published on port 5173. Its dev-server proxy forwards `/api/*` to `ai-layer` by Docker Compose service name (`chat-ui/vite.config.ts`). See [chat-ui/README.md](./chat-ui/README.md).
+- **`integration-agent/`** — wraps `main/`'s headless `.ecore` validator as an HTTP service, internal-only (no host port). The one deliberate exception to "nothing in `ai/` talks to the Java/Eclipse backend" — see [integration-agent/README.md](./integration-agent/README.md) and `ai/CLAUDE.md`'s folder-boundaries section.
 
 There's no reverse proxy in front of these right now, `chat-ui` and `ai-layer` talk directly, each published on its own port. A single-origin gateway (static files + `/api/*` reverse-proxied behind one exposed port) is worth adding once there's an actual deployment target, not for local dev, where each service on its own port is normal.
 

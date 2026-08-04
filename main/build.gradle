@@ -43,6 +43,9 @@ dependencies {
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.common', version: '2.31.0'
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.ecore.xmi', version: '2.39.0'
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.codegen', version: '2.23.0'
+    // GenModelFactory/GenModel/Generator live here, not in the base org.eclipse.emf.codegen
+    // bundle above (that one's only the JET-template codegen, no genmodel/generator classes).
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.codegen.ecore', version: '2.41.0'
     implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.edit', version: '2.21.0'
 
     // https://mvnrepository.com/artifact/com.google.guava/guava
