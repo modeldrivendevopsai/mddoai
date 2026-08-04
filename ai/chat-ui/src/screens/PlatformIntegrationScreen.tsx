@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import "@fontsource-variable/space-grotesk"
-import "@fontsource-variable/ibm-plex-sans"
-import "@fontsource/ibm-plex-mono"
 import { CodeBlockCode } from "@/components/ui/code-block"
 import { OrchestratorPanel } from "@/components/platform-integration/OrchestratorPanel"
 import { StagePipeline } from "@/components/platform-integration/StagePipeline"
-import { BrandButton } from "@/components/platform-integration/BrandButton"
+import { Button } from "@/design-system"
 import { TextField, NumberField, TextAreaField } from "@/components/platform-integration/FormField"
-import { brandTokenStyle } from "@/components/platform-integration/brandTokens"
 import { fetchDocumentation } from "@/services/retrievalService"
 import type { RetrievalFetchResult } from "@/services/retrievalService"
 import { getProviders } from "@/services/providersService"
@@ -169,9 +165,8 @@ export default function PlatformIntegrationScreen({
 
   return (
     <div
-      className="flex h-screen flex-col"
+      className="flex h-full flex-col"
       style={{
-        ...brandTokenStyle,
         background: "var(--brand-faint)",
         color: "var(--text-strong)",
         fontFamily: "var(--font-sans)",
@@ -371,9 +366,9 @@ export default function PlatformIntegrationScreen({
           )}
 
           {step === "input" && (
-            <BrandButton onClick={handleStart} disabled={!canStart} className="w-fit">
+            <Button onClick={handleStart} disabled={!canStart}>
               Start Integration
-            </BrandButton>
+            </Button>
           )}
 
           {step === "starting" && (
@@ -404,9 +399,9 @@ export default function PlatformIntegrationScreen({
               >
                 Docs fetch failed: {error}
               </div>
-              <BrandButton onClick={handleRetry} className="w-fit">
+              <Button onClick={handleRetry}>
                 Try again
-              </BrandButton>
+              </Button>
             </>
           )}
 
@@ -428,17 +423,16 @@ export default function PlatformIntegrationScreen({
               </div>
 
               <div className="flex" style={{ gap: 10 }}>
-                <BrandButton onClick={handleApprove} disabled={step === "done"} className="w-fit">
+                <Button onClick={handleApprove} disabled={step === "done"}>
                   {step === "done" ? "Approved" : "Approve"}
-                </BrandButton>
-                <BrandButton
+                </Button>
+                <Button
                   variant="secondary"
                   onClick={handleRetry}
                   disabled={step === "done"}
-                  className="w-fit"
                 >
                   Retry this stage
-                </BrandButton>
+                </Button>
               </div>
             </>
           )}

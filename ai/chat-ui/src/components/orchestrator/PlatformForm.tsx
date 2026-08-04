@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { CSSProperties, ReactNode } from "react"
-import { Button } from "./Button"
+import { Button } from "@/design-system"
 
 interface PlatformFormProps {
   onStart: (platformName: string, documentationUrl: string) => void

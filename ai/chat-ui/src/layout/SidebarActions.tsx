@@ -22,6 +22,7 @@ export function SidebarActions({ activeTab, collapsed, onAction }: SidebarAction
         <Button
           key={action.id}
           variant="ghost"
+          full
           icon={action.icon}
           onClick={() => onAction?.(action.id)}
         >

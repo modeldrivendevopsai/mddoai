@@ -33,7 +33,7 @@
   background: none;
   border: none;
   color: var(--neutral-600);
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   font-size: var(--text-xs);
   cursor: pointer;
   padding: var(--space-2);

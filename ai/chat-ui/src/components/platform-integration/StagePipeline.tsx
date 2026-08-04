@@ -1,8 +1,8 @@
 import type { PipelineStage, StageStatus } from "./types"
 
 // Mirrors mddoai-design-system/project/components/feedback/StatusPill.jsx's
-// semantic color mapping (success/warning/danger/info), using this screen's
-// brandTokens.ts custom properties.
+// semantic color mapping (success/warning/danger/info), using the shared
+// design-system tokens.
 const STATUS_STYLES: Record<
   StageStatus,
   { bg: string; border: string; text: string }

@@ -91,7 +91,7 @@
 }
 
 .mdd-start-screen__link {
-  color: var(--info);
+  color: var(--info-500);
   font-size: var(--text-sm);
   text-decoration: none;
   margin-left: auto;

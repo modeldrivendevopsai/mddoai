@@ -32,7 +32,7 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 .mdd-sessions__item:hover {
-  box-shadow: 0 0 0 1px var(--ring-brand);
+  box-shadow: var(--ring-brand);
 }
 .mdd-sessions__item--pipeline {
   background: var(--tint-pipeline);
@@ -45,7 +45,7 @@
   box-shadow: 0 0 0 1px var(--brand);
 }
 .mdd-sessions__item.is-attention {
-  border-color: var(--danger);
+  border-color: var(--danger-500);
 }
 
 .mdd-sessions__name {
@@ -58,7 +58,7 @@
 }
 
 .mdd-sessions__warn {
-  color: var(--warning);
+  color: var(--warning-500);
   flex-shrink: 0;
 }
 
@@ -76,6 +76,6 @@
     background var(--duration-fast) var(--ease-out);
 }
 .mdd-sessions__close:hover {
-  color: var(--danger);
-  background: var(--danger-tint);
+  color: var(--danger-500);
+  background: var(--danger-100);
 }

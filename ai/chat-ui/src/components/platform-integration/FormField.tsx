@@ -1,8 +1,8 @@
 import { useState } from "react"
 
 // Adapted from mddoai-design-system/project/components/forms/Input.jsx —
-// scoped to this screen so plain <input>/<select>/<textarea> elements can
-// use the real brand tokens (brandTokens.ts) for focus rings, borders, etc.
+// plain <input>/<select>/<textarea> elements styled against the shared
+// design-system tokens for focus rings, borders, etc.
 
 function fieldChromeStyle(focus: boolean, disabled?: boolean): React.CSSProperties {
   return {

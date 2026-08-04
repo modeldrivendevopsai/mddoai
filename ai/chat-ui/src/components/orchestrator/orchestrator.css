@@ -1,0 +1,29 @@
+/* Focus ring and the "running" pulse used by the Orchestrator screen's own
+   inputs — real :focus/@keyframes can't be expressed through inline
+   styles, so these two small rules live here instead. Token values
+   themselves live in the shared design-system/tokens.css (single source
+   of truth for the whole app), not duplicated here. */
+
+.orch-field {
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.orch-field:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--ring-brand);
+}
+
+/* Matches StatusPill.jsx's "running" pulse exactly (warning-500 = #cf8a00). */
+@keyframes mddoai-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(207, 138, 0, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(207, 138, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(207, 138, 0, 0);
+  }
+}

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
 import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
-import { Button } from "./Button"
+import { Button } from "@/design-system"
 import { CodeBlock } from "./CodeBlock"
 
 interface StageOutputPanelProps {

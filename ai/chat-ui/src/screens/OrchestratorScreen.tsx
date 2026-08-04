@@ -4,10 +4,10 @@ import { Stepper } from "@/components/orchestrator/Stepper"
 import { ChatColumn } from "@/components/orchestrator/ChatColumn"
 import { StageOutputPanel } from "@/components/orchestrator/StageOutputPanel"
 import { PlatformForm } from "@/components/orchestrator/PlatformForm"
-import { Button } from "@/components/orchestrator/Button"
+import { Button } from "@/design-system"
 import { CodeBlock } from "@/components/orchestrator/CodeBlock"
 import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
-import "@/orchestrator/tokens.css"
+import "@/components/orchestrator/orchestrator.css"
 
 function latestCallResult(events: OrchestratorEvent[], stage: StageId | null): OrchestratorEvent | null {
   if (!stage) return null
@@ -98,7 +98,7 @@ export default function OrchestratorScreen() {
   }
 
   return (
-    <div className="orch-scope" style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Header + stepper are always visible, from the very first load (all
           pending) through completion, matching the wireframe's "d1: input
           (new platform)" screen, not just once a run is in progress. */}

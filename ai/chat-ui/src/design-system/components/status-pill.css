@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--neutral-600);
 }
@@ -14,7 +14,7 @@
   flex-shrink: 0;
 }
 
-.mdd-status-pill--success .mdd-status-pill__dot { background: var(--success); }
-.mdd-status-pill--warning .mdd-status-pill__dot { background: var(--warning); }
-.mdd-status-pill--danger .mdd-status-pill__dot { background: var(--danger); }
-.mdd-status-pill--info .mdd-status-pill__dot { background: var(--info); }
+.mdd-status-pill--success .mdd-status-pill__dot { background: var(--success-500); }
+.mdd-status-pill--warning .mdd-status-pill__dot { background: var(--warning-500); }
+.mdd-status-pill--danger .mdd-status-pill__dot { background: var(--danger-500); }
+.mdd-status-pill--info .mdd-status-pill__dot { background: var(--info-500); }
