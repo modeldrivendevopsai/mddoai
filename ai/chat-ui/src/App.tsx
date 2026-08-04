@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
 import OrchestratorScreen from "@/screens/OrchestratorScreen"
 import PlatformIntegrationScreen from "@/screens/PlatformIntegrationScreen"
 import { AppShell } from "@/layout/AppShell"
-import { StartScreen } from "@/pages/StartScreen"
+import { StartScreen } from "@/screens/StartScreen"
 
 function StartScreenRoute() {
   const navigate = useNavigate()
