@@ -2262,7 +2262,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Orchestration and Control Layer" vertex="1">
-          <mxGeometry height="137" width="593" x="-2" y="1794" as="geometry" />
+          <mxGeometry height="137" width="571" x="20" y="1794" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="&amp;nbsp; &amp;nbsp; &amp;nbsp;Generation Loop" vertex="1">
           <mxGeometry height="326" width="684" x="52" y="1954" as="geometry" />
@@ -2412,15 +2412,20 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0E5B6E;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=13;horizontal=0;align=center;verticalAlign=middle;rotation=90;" value="User Input" vertex="1">
-          <mxGeometry height="121" width="42" x="56.5" y="1808.5" as="geometry" />
+          <mxGeometry height="121" width="42" x="65.5" y="1812.5" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-4" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-3" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="w8IEM-XlgQ3ocT9upb8R-6">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="214.99999999999955" y="1868.9999999999998" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="fTe6BnEEGNu3OLTLRNkt-7" connectable="0" parent="w8IEM-XlgQ3ocT9upb8R-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Prompt" vertex="1">
+          <mxGeometry relative="1" x="-0.3843" y="-3" as="geometry">
+            <mxPoint x="8" y="-3" as="offset" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Chat Interface Agent" vertex="1">
-          <mxGeometry height="70" width="150" x="203" y="1837" as="geometry" />
+          <mxGeometry height="70" width="150" x="216" y="1838" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#006EAF;fillColor=#1ba1e2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=11;fontColor=#ffffff;" value="&lt;b&gt;Orchestrator Agent&lt;/b&gt;" vertex="1">
           <mxGeometry height="45" width="137" x="425" y="1848" as="geometry" />
@@ -2438,13 +2443,13 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Context Engineering" vertex="1">
-          <mxGeometry height="172" width="169" x="631" y="1766" as="geometry" />
+          <mxGeometry height="152.5" width="169" x="599" y="1792.75" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Domain 2 Agent" vertex="1">
-          <mxGeometry height="31" width="137" x="649" y="1841" as="geometry" />
+          <mxGeometry height="31" width="137" x="617" y="1867.75" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Domain 3 Agent" vertex="1">
-          <mxGeometry height="31" width="137" x="649" y="1878" as="geometry" />
+          <mxGeometry height="31" width="137" x="617" y="1904.75" as="geometry" />
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-23" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-7" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;rounded=1;startArrow=block;startFill=1;entryDx=0;entryDy=0;" target="w8IEM-XlgQ3ocT9upb8R-17">
           <mxGeometry relative="1" as="geometry" />
@@ -2482,7 +2487,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="w8IEM-XlgQ3ocT9upb8R-50" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Domain1 Agent" vertex="1">
-          <mxGeometry height="31" width="137" x="649" y="1804" as="geometry" />
+          <mxGeometry height="31" width="137" x="617" y="1830.75" as="geometry" />
         </mxCell>
         <mxCell id="fTe6BnEEGNu3OLTLRNkt-1" edge="1" parent="1" source="w8IEM-XlgQ3ocT9upb8R-7" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;rounded=1;startArrow=block;startFill=1;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" target="w8IEM-XlgQ3ocT9upb8R-11">
           <mxGeometry relative="1" as="geometry">
