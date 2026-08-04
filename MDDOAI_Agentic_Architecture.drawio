@@ -255,7 +255,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="Joj8jIXp7VIct9sAKGCk" name="Low Level">
-    <mxGraphModel dx="4804" dy="2572" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1501" dy="804" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -502,6 +502,63 @@
             <mxPoint x="3180" y="902.5" as="sourcePoint" />
             <mxPoint x="2860" y="417.5" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=16;fontColor=#1B3A5C;" value="Ecore Validator" vertex="1">
+          <mxGeometry height="30" width="700" x="780" y="2000" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-2" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;strokeColor=#1B3A5C;fillColor=none;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="740" width="750" x="710" y="2050" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#006EAF;fillColor=#1ba1e2;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Caller&#xa;(e.g. orchestrator, or any future ai/ client)" vertex="1">
+          <mxGeometry height="60" width="260" x="885" y="2080" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=13;fillColor=none;strokeColor=#888888;" value="ai/integration-agent (Python, FastAPI)" vertex="1">
+          <mxGeometry height="220" width="665" x="745" y="2170" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="POST /validate/ecore&#xa;(mode: reflective | codegen)" vertex="1">
+          <mxGeometry height="60" width="260" x="885" y="2210" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#ffffff;" value="&lt;b&gt;validator_runner.py&lt;/b&gt;&lt;br&gt;writes content to a temp file, spawns a fresh JVM per call (never a long-lived embedded one as EMF&#39;s global registry state isn&#39;t safe to reuse across calls)" vertex="1">
+          <mxGeometry height="60" width="600" x="775" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-7" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-3" style="endArrow=block;startArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=10;fontColor=#1B3A5C;" target="WL5m0U0JmWJvD9h2GzeN-5" value="HTTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-8" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-5" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;" target="WL5m0U0JmWJvD9h2GzeN-6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=13;fillColor=none;strokeColor=#888888;" value="main/ — EcoreValidatorCli (fresh JVM subprocess)" vertex="1">
+          <mxGeometry height="250" width="685" x="745" y="2490" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="EcoreValidatorCli&#xa;java -cp lib/* ... &lt;mode&gt; &lt;path&gt;" vertex="1">
+          <mxGeometry height="55" width="620" x="775" y="2525" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#ffffff;" value="&lt;b&gt;validateReflectively()&lt;/b&gt;&lt;br&gt;EcoreUtil.resolveAll + proxy walk&lt;br&gt;Diagnostician.INSTANCE.validate" vertex="1">
+          <mxGeometry height="60" width="290" x="775" y="2630" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#ffffff;" value="&lt;b&gt;validateViaCodegen()&lt;/b&gt;&lt;br&gt;GenModelBuilder + real EMF Generator&lt;br&gt;JavaCompilerCheck (real javac)" vertex="1">
+          <mxGeometry height="60" width="290" x="1105" y="2630" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-13" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-10" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=10;" target="WL5m0U0JmWJvD9h2GzeN-11" value="reflective">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-14" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-10" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=10;" target="WL5m0U0JmWJvD9h2GzeN-12" value="codegen (runs reflective first, fails fast)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-15" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-10" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;dashed=1;fontSize=10;fontColor=#1B3A5C;exitX=0.5;exitY=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitDx=0;exitDy=0;" target="WL5m0U0JmWJvD9h2GzeN-6" value="stdout: {valid, issues[], duration_ms}">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="gradle-builder (one-shot compose service)&#xa;./gradlew installDist" vertex="1">
+          <mxGeometry height="60" width="230" x="470" y="2270" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=10;" value="main-build-output volume&#xa;lib/*.jar" vertex="1">
+          <mxGeometry height="60" width="150" x="510" y="2400" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-18" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-16" style="endArrow=block;html=1;strokeColor=#666666;dashed=1;strokeWidth=2;" target="WL5m0U0JmWJvD9h2GzeN-17" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="WL5m0U0JmWJvD9h2GzeN-19" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-17" style="endArrow=block;html=1;strokeColor=#666666;dashed=1;strokeWidth=2;fontSize=10;" target="WL5m0U0JmWJvD9h2GzeN-10" value="-cp lib/*">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
