@@ -7,10 +7,11 @@ import './sessions-list.css';
 
 // Mock session data has no real pipeline/platform run behind it yet (see
 // sessions.service.ts), so clicking a row can't resume real state, only
-// route to the screen that type of session belongs to.
+// route to the one real screen — both session types land there, there's
+// no separate platform-only screen anymore.
 const ROUTE_BY_TYPE: Record<SessionType, string> = {
-  pipeline: '/',
-  platform: '/platforms/new',
+  pipeline: '/pipeline',
+  platform: '/pipeline',
 };
 
 /**

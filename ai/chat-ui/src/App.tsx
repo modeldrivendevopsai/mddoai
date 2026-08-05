@@ -10,7 +10,7 @@ import { StartScreen } from "@/screens/StartScreen"
 // standalone screen for it anymore.
 function StartScreenRoute() {
   const navigate = useNavigate()
-  return <StartScreen onSelectOption={() => navigate("/")} />
+  return <StartScreen onSelectOption={() => navigate("/pipeline")} />
 }
 
 // Shared by every route's AppShell so the sidebar behaves the same
@@ -21,7 +21,7 @@ function StartScreenRoute() {
 // pretending to do something it can't.
 function useSidebarNavigation() {
   const navigate = useNavigate()
-  return () => navigate("/")
+  return () => navigate("/pipeline")
 }
 
 function AppShellRoute({ children }: { children: ReactNode }) {
@@ -37,15 +37,15 @@ function App() {
           path="/"
           element={
             <AppShellRoute>
-              <OrchestratorScreen />
+              <StartScreenRoute />
             </AppShellRoute>
           }
         />
         <Route
-          path="/start"
+          path="/pipeline"
           element={
             <AppShellRoute>
-              <StartScreenRoute />
+              <OrchestratorScreen />
             </AppShellRoute>
           }
         />
