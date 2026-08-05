@@ -102,8 +102,8 @@
   --tint-brand-50: #f3ecff;
 
   /* --- typography.css --- */
-  --font-display: "Space Grotesk Variable", "IBM Plex Sans", system-ui, sans-serif;
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk Variable", "IBM Plex Sans Variable", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --weight-regular: 400;
