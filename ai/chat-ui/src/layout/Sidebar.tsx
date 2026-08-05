@@ -19,7 +19,7 @@ export function Sidebar({ onAction }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className={`mdd-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
+    <aside className={`mdd-sidebar mdd-sidebar--${activeTab} ${collapsed ? 'is-collapsed' : ''}`}>
       <div className="mdd-sidebar__header">
         <button
           className="mdd-sidebar__collapse"

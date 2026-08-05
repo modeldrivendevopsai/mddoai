@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { getProviders } from "@/services/orchestratorPipelineService"
-import type { OrchestratorEvent, OrchestratorEventType, Provider } from "@/orchestrator/types"
+import type { OrchestratorEvent, OrchestratorEventType, Provider } from "@/types/orchestrator"
 
 interface ChatColumnProps {
   events: OrchestratorEvent[]
@@ -8,6 +8,10 @@ interface ChatColumnProps {
   model: string | null
   onSend: (message: string) => void
   onModelChange: (model?: string) => void
+  // True while viewing a past (non-current) run from the sidebar's history —
+  // nudging or changing the model would silently act on the live run
+  // instead, not the one on screen, so both are disabled.
+  readOnly?: boolean
 }
 
 // Matches the wireframe's real "Add a CI/CD Platform" screen: a static
@@ -16,15 +20,15 @@ interface ChatColumnProps {
 const INTRO_TEXT =
   "MDDOAI reads the documentation, then works through PSM → ATL → Acceleo → Generation/Test one stage at a time, showing you each result to approve or correct before moving on."
 
-export function ChatColumn({ events, busy, model, onSend, onModelChange }: ChatColumnProps) {
+export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnly = false }: ChatColumnProps) {
   const [value, setValue] = useState("")
   const [providers, setProviders] = useState<Provider[]>([])
   // Nudging (and picking a model) is a real capability before a run has
   // started too: /nudge only guards on is_busy(), not on whether /start has
   // ever been called (current_stage defaults to STAGES[0] regardless), and
   // the tool-calling layer can itself invoke start_pipeline from a nudge.
-  // Only an in-flight call actually needs to block input.
-  const disabled = busy
+  // Only an in-flight call, or viewing read-only history, blocks input.
+  const disabled = busy || readOnly
   const logRef = useRef<HTMLDivElement>(null)
   const lastCountRef = useRef(0)
 
@@ -106,6 +110,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange }: ChatC
         <select
           value={model ?? "auto"}
           onChange={(e) => onModelChange(e.target.value === "auto" ? undefined : e.target.value)}
+          disabled={readOnly}
           aria-label="Model"
           style={{
             border: "1px solid var(--border-default)",
@@ -118,11 +123,13 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange }: ChatC
           }}
         >
           <option value="auto">Auto</option>
-          {providers.map((p) => (
-            <option key={p.name} value={p.name}>
-              {p.name} ({p.tier})
-            </option>
-          ))}
+          {providers
+            .filter((p) => p.available)
+            .map((p) => (
+              <option key={p.name} value={p.name}>
+                {p.name} ({p.tier})
+              </option>
+            ))}
         </select>
       </div>
 
@@ -245,11 +252,11 @@ function MessageLine({ event }: { event: OrchestratorEvent }) {
 // a hover tooltip), centered in the log like a system message rather than
 // left-aligned like the chat bubbles around it.
 const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot: string; label: string; pulse?: boolean }> = {
-  call_started: { bg: "var(--warning-100)", fg: "#9a6800", dot: "var(--warning-500)", label: "Started", pulse: true },
+  call_started: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Started", pulse: true },
   call_completed: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Completed" },
   call_failed: { bg: "var(--danger-100)", fg: "var(--danger-500)", dot: "var(--danger-500)", label: "Failed" },
   review_approved: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Approved" },
-  review_rejected: { bg: "var(--warning-100)", fg: "#9a6800", dot: "var(--warning-500)", label: "Rejected" },
+  review_rejected: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Rejected" },
   message: { bg: "", fg: "", dot: "", label: "" },
   user_message: { bg: "", fg: "", dot: "", label: "" },
 }
@@ -349,7 +356,7 @@ function EventChip({ event }: { event: OrchestratorEvent }) {
                   margin: "var(--space-2) 0 0",
                   padding: "var(--space-2) var(--space-3)",
                   background: "var(--surface-code)",
-                  color: "#d6d3e8",
+                  color: "var(--code-text)",
                   borderRadius: "var(--radius-sm)",
                   fontFamily: "var(--font-mono)",
                   fontSize: "var(--text-2xs)",

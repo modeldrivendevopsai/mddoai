@@ -5,15 +5,6 @@ import type { Session, SessionType } from '../services/sessions.service';
 import { Icon } from '../design-system';
 import './sessions-list.css';
 
-// Mock session data has no real pipeline/platform run behind it yet (see
-// sessions.service.ts), so clicking a row can't resume real state, only
-// route to the one real screen — both session types land there, there's
-// no separate platform-only screen anymore.
-const ROUTE_BY_TYPE: Record<SessionType, string> = {
-  pipeline: '/pipeline',
-  platform: '/pipeline',
-};
-
 /**
  * SessionsList — renders the open-sessions list for whichever sidebar tab
  * is active. Sourced entirely from sessions.service.ts; swapping that
@@ -63,9 +54,9 @@ export function SessionsList({ activeTab }: SessionsListProps) {
           ]
             .filter(Boolean)
             .join(' ')}
-          onClick={() => navigate(ROUTE_BY_TYPE[s.type])}
+          onClick={() => navigate(`/pipeline?run=${s.id}`)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') navigate(ROUTE_BY_TYPE[s.type]);
+            if (e.key === 'Enter' || e.key === ' ') navigate(`/pipeline?run=${s.id}`);
           }}
         >
           <span className="mdd-sessions__name">{s.name}</span>

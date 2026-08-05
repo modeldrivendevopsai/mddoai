@@ -52,6 +52,10 @@
   --success-100: #e3f6ec;
   --warning-500: #cf8a00;
   --warning-100: #fbf0d6;
+  /* Darker than --warning-500 specifically for text on --warning-100 (the
+     500 shade doesn't meet contrast for small text there) — see
+     ChatColumn's "Started"/"Rejected" event chips. */
+  --warning-700: #9a6800;
   --danger-500: #e0443c;
   --danger-100: #fbe5e3;
   --info-500: #3a7bd5;
@@ -74,6 +78,23 @@
   --surface-inverse: var(--neutral-950);
   --surface-code: #16141f;
   --surface-overlay: rgba(14, 13, 21, 0.55);
+
+  /* Terminal chrome for the code surface above (CodeBlock, and any other
+     dark-on-surface-code panel, e.g. ChatColumn's event-detail <pre>) —
+     ported verbatim from mddoai-design-system/project/components/surfaces/
+     CodeBlock.jsx, which has no named tokens of its own for these, they're
+     hardcoded there too. Named here so every consumer references one value
+     instead of each re-hardcoding the same hex. */
+  --code-border: rgba(255, 255, 255, 0.07);
+  --code-dot: #46435a;
+  --code-title: #9b98b5;
+  --code-lang: #6f6c86;
+  --code-text: #d6d3e8;
+  --code-copy-bg: rgba(255, 255, 255, 0.06);
+  --code-copy-border: rgba(255, 255, 255, 0.09);
+  --code-copy-text: #b9b6d0;
+  --code-copy-success-bg: rgba(127, 214, 168, 0.14);
+  --code-copy-success-text: #7fd6a8;
 
   --text-strong: var(--neutral-900);
   --text-body: var(--neutral-700);
@@ -99,7 +120,6 @@
   --tint-pipeline-border: #d7e3ff;
   --tint-platform: #f8f4ff;
   --tint-platform-border: #e6d9ff;
-  --tint-brand-50: #f3ecff;
 
   /* --- typography.css --- */
   --font-display: "Space Grotesk Variable", "IBM Plex Sans Variable", system-ui, sans-serif;

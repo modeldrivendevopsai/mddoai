@@ -98,14 +98,18 @@ def docs_agent(context: dict) -> str:
     the result as the stage's output string, and fails hard if the crawl
     found essentially nothing. An explicit context["hint"] (from a /rerun
     override) takes priority over the constraints-derived one. Short-circuits
-    to canned output when ORCHESTRATOR_STUB_DOCS is set (see _STUB_DOCS),
-    skipping retrieval entirely, the real fetch_documentation()/fetch_page()
-    (the tool-call paths nudge() can reach directly, via pipeline_tools.py)
-    are untouched either way."""
+    to canned output, skipping retrieval entirely, when either the process-wide
+    ORCHESTRATOR_STUB_DOCS env var is set (see _STUB_DOCS) or the caller passed
+    context["mock"] (the per-run "Mock" checkbox on the Start/Retry form, see
+    main.py's StartRequest/RerunOverrides — real crawls are slow enough during
+    local dev that a permanent env var is too blunt, this is opt-in per run
+    instead). The real fetch_documentation()/fetch_page() (the tool-call paths
+    nudge() can reach directly, via pipeline_tools.py) are untouched either way.
+    """
     seed_url = context.get("seed_url", "")
-    if _STUB_DOCS:
+    if _STUB_DOCS or context.get("mock"):
         return (
-            f"[STUBBED] ORCHESTRATOR_STUB_DOCS is set, skipped the real crawl of {seed_url}. "
+            f"[MOCKED] Skipped the real crawl of {seed_url}. "
             f"This is placeholder output for testing the pipeline's mechanics, not real documentation."
         )
     constraints = context.get("constraints", {}).get("docs", [])

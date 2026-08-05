@@ -9,7 +9,7 @@ import {
   startPipeline,
 } from "@/services/orchestratorPipelineService"
 import type { DocsOptions } from "@/services/orchestratorPipelineService"
-import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
+import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
 
 // Real backend error messages (see orchestratorPipelineService's errorFor())
 // are actually useful, e.g. "'psm' is not the current pending stage" or a
@@ -25,14 +25,23 @@ function messageFor(err: unknown, fallback: string): string {
 // the design's decision to poll rather than open a websocket for MVP.
 const POLL_INTERVAL_MS = 1500
 
-export function usePipeline() {
+// runId is undefined for the live run (existing behavior, unchanged: polls
+// and is fully interactive). A defined runId views a specific run from the
+// sidebar's history — GET /events?run_id= reports back whether that run is
+// still the current one (is_current), which decides whether this stays
+// interactive/polling or goes read-only after a single fetch.
+export function usePipeline(runId?: string) {
   const [events, setEvents] = useState<OrchestratorEvent[]>([])
   const [currentStage, setCurrentStage] = useState<StageId | null>(null)
   const [busy, setBusy] = useState(false)
   const [started, setStarted] = useState(false)
   const [model, setModelState] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCurrent, setIsCurrent] = useState(true)
   const pollingRef = useRef(false)
+  // Mirrors isCurrent for the interval poll below, which can't depend on the
+  // state value directly without re-subscribing the effect every tick.
+  const isCurrentRef = useRef(true)
   // The real accumulated log. GET /events?since_index=N exists specifically
   // "for incremental polling" (see main.py), so each fetch only asks for
   // what's new since this and gets appended, rather than re-fetching and
@@ -54,6 +63,8 @@ export function usePipeline() {
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
     setModelState(body.model)
+    setIsCurrent(body.is_current)
+    isCurrentRef.current = body.is_current
     // current_stage defaults to "docs" (index 0) even on a completely fresh,
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. events.length is the only real signal that /start
@@ -69,13 +80,13 @@ export function usePipeline() {
     if (pollingRef.current) return
     pollingRef.current = true
     try {
-      applyEvents(await getEvents(allEventsRef.current.length), false)
+      applyEvents(await getEvents(allEventsRef.current.length, runId), false)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
       pollingRef.current = false
     }
-  }, [applyEvents])
+  }, [applyEvents, runId])
 
   // Used after start/reset (which already clear allEventsRef themselves) and
   // after a nudge, since nudge's tool-calling can itself call start_pipeline
@@ -87,13 +98,13 @@ export function usePipeline() {
     if (pollingRef.current) return
     pollingRef.current = true
     try {
-      applyEvents(await getEvents(0), true)
+      applyEvents(await getEvents(0, runId), true)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
       pollingRef.current = false
     }
-  }, [applyEvents])
+  }, [applyEvents, runId])
 
   // The interval poll is defined and called entirely inside this effect
   // (not via the fetch callbacks above) so state updates stay scoped to
@@ -101,13 +112,22 @@ export function usePipeline() {
   // than an effect reaching out to a click-handler's own helper.
   useEffect(() => {
     let cancelled = false
+    // Switching which run is viewed (including live -> history or back) is a
+    // fresh start: the previous run's accumulated event indices don't apply.
+    allEventsRef.current = []
+    doneRef.current = false
+    isCurrentRef.current = true
 
     async function poll() {
       if (doneRef.current) return
+      // A past, non-current run is a frozen log (see main.py's /events?run_id=
+      // — "read-only, no polling loop needed"): once the first fetch confirms
+      // that, every later tick is a no-op instead of a wasted request.
+      if (runId && !isCurrentRef.current) return
       if (pollingRef.current) return
       pollingRef.current = true
       try {
-        const body = await getEvents(allEventsRef.current.length)
+        const body = await getEvents(allEventsRef.current.length, runId)
         if (!cancelled) applyEvents(body, false)
       } catch {
         // Transient network hiccup, the next tick retries.
@@ -122,7 +142,7 @@ export function usePipeline() {
       cancelled = true
       clearInterval(id)
     }
-  }, [applyEvents])
+  }, [applyEvents, runId])
 
   const start = useCallback(
     async (platformDescription: string, seedUrl: string, model?: string, docsOptions?: DocsOptions) => {
@@ -221,5 +241,19 @@ export function usePipeline() {
     }
   }, [fetchFull])
 
-  return { events, currentStage, busy, started, model, error, start, approve, retry, sendNudge, changeModel, reset }
+  return {
+    events,
+    currentStage,
+    busy,
+    started,
+    model,
+    error,
+    isCurrent,
+    start,
+    approve,
+    retry,
+    sendNudge,
+    changeModel,
+    reset,
+  }
 }

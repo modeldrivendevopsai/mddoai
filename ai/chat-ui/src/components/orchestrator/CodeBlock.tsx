@@ -25,7 +25,7 @@ export function CodeBlock({ code, title, lang = "text" }: CodeBlockProps) {
     <div
       style={{
         background: "var(--surface-code)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        border: "1px solid var(--code-border)",
         borderRadius: "var(--radius-md)",
         overflow: "hidden",
         fontFamily: "var(--font-mono)",
@@ -38,26 +38,32 @@ export function CodeBlock({ code, title, lang = "text" }: CodeBlockProps) {
         minHeight: 120,
       }}
     >
+      {/* Padding/sizes below (8/12/14px, 10px dots, 11/12/13px text, 3px/9px
+          button padding) are the source component's own bespoke terminal-
+          chrome measurements, off the spacing and text-size scales — kept
+          as literals to stay verbatim, same convention as StageOutputPanel's
+          danger callout. Colors are the actual token violation and are
+          real, named code-surface tokens now (see tokens.css). */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "8px 12px 8px 14px",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          borderBottom: "1px solid var(--code-border)",
           flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ display: "flex", gap: 6 }}>
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#46435a" }} />
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#46435a" }} />
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#46435a" }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--code-dot)" }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--code-dot)" }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--code-dot)" }} />
           </span>
           {title ? (
-            <span style={{ fontSize: 12, color: "#9b98b5", marginLeft: 4 }}>{title}</span>
+            <span style={{ fontSize: 12, color: "var(--code-title)", marginLeft: 4 }}>{title}</span>
           ) : (
-            <span style={{ fontSize: 11, color: "#6f6c86", marginLeft: 4 }}>{lang}</span>
+            <span style={{ fontSize: 11, color: "var(--code-lang)", marginLeft: 4 }}>{lang}</span>
           )}
         </div>
         <button
@@ -65,9 +71,9 @@ export function CodeBlock({ code, title, lang = "text" }: CodeBlockProps) {
           disabled={!code}
           style={{
             appearance: "none",
-            background: copied ? "rgba(127,214,168,0.14)" : "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.09)",
-            color: copied ? "#7fd6a8" : "#b9b6d0",
+            background: copied ? "var(--code-copy-success-bg)" : "var(--code-copy-bg)",
+            border: "1px solid var(--code-copy-border)",
+            color: copied ? "var(--code-copy-success-text)" : "var(--code-copy-text)",
             fontFamily: "var(--font-mono)",
             fontSize: 11,
             padding: "3px 9px",
@@ -89,7 +95,7 @@ export function CodeBlock({ code, title, lang = "text" }: CodeBlockProps) {
           overflow: "auto",
           fontSize: 13,
           lineHeight: 1.75,
-          color: "#d6d3e8",
+          color: "var(--code-text)",
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
           flex: 1,

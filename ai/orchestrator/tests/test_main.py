@@ -69,11 +69,17 @@ client = TestClient(main.app)
 @pytest.fixture(autouse=True)
 def reset_orchestrator_state():
     """Each test drives the real Orchestrator singleton through its endpoints, so
-    isolate them from each other by swapping in a fresh instance per test."""
+    isolate them from each other by swapping in a fresh instance per test. Also
+    resets _runs (reset_pipeline() no longer clears it, see orchestrator.py — it's
+    real in-memory history now, not just per-test scratch state), or any test that
+    calls /start or /reset would leak an Orchestrator into every test after it."""
     original = orchestrator._default
+    original_runs = dict(orchestrator._runs)
     orchestrator._default = orchestrator.Orchestrator()
+    orchestrator._runs = {orchestrator._default.run_id: orchestrator._default}
     yield
     orchestrator._default = original
+    orchestrator._runs = original_runs
 
 
 def fake_response(content=None, model="gemini/gemini-2.5-flash", tool_calls=None):
@@ -247,6 +253,24 @@ def test_start_endpoint_forwards_docs_options_to_the_real_fetch_call():
     }
 
 
+def test_start_endpoint_with_mock_skips_the_real_fetch_call():
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+        client.post(
+            "/start",
+            json={
+                "platform_description": "A GitLab CI platform",
+                "seed_url": "https://example.com/docs",
+                "mock": True,
+            },
+        )
+        orchestrator.wait_for_idle()
+
+    fetch_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/fetch")]
+    assert fetch_calls == []
+    body = client.get("/events").json()
+    assert any("MOCKED" in (e.get("data") or {}).get("output", "") for e in body["events"])
+
+
 def test_start_endpoint_omits_model_when_none_chosen():
     with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
         client.post(
@@ -370,6 +394,7 @@ def test_events_endpoint_returns_full_log_current_stage_and_busy():
     assert body["current_stage"] == "docs"
     assert body["busy"] is False
     assert body["model"] is None
+    assert body["is_current"] is True
 
 
 def test_events_endpoint_reports_the_current_model():
@@ -388,6 +413,45 @@ def test_events_endpoint_since_index_slices_the_log():
     sliced = client.get(f"/events?since_index={len(full) - 1}").json()["events"]
 
     assert sliced == full[-1:]
+
+
+def test_events_endpoint_reads_a_past_run_by_id_not_just_default():
+    start_pipeline(platform_description="Old run")
+    old_run_id = orchestrator.current_run_id()
+    start_pipeline(platform_description="Current run")
+
+    response = client.get(f"/events?run_id={old_run_id}")
+
+    assert response.status_code == 200
+    assert response.json()["current_stage"] == "docs"
+    assert response.json()["is_current"] is False
+    assert old_run_id != orchestrator.current_run_id()
+
+
+def test_events_endpoint_returns_404_for_an_unknown_run_id():
+    response = client.get("/events?run_id=no-such-run")
+
+    assert response.status_code == 404
+
+
+# --- GET /runs --------------------------------------------------------------------
+
+
+def test_runs_endpoint_lists_history_newest_first_with_current_flag():
+    start_pipeline(platform_description="First platform")
+    first_id = orchestrator.current_run_id()
+    start_pipeline(platform_description="Second platform")
+    second_id = orchestrator.current_run_id()
+
+    response = client.get("/runs")
+
+    assert response.status_code == 200
+    runs = response.json()
+    assert runs[0]["run_id"] == second_id
+    assert runs[0]["is_current"] is True
+    assert runs[1]["run_id"] == first_id
+    assert runs[1]["is_current"] is False
+    assert runs[1]["platform_name"] == "First platform"
 
 
 # --- POST /review/{stage_id} -------------------------------------------------------

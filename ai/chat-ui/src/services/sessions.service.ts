@@ -1,22 +1,12 @@
 /**
- * Sessions data service.
- *
- * Components depend only on getSessions()/closeSession()'s signatures, not
- * on where the data comes from. When the backend endpoint exists, replace
- * the bodies below with real calls, e.g.:
- *
- *   export async function getSessions(type: SessionType) {
- *     const res = await fetch(`/api/sessions?type=${type}`);
- *     if (!res.ok) throw new Error('Failed to load sessions');
- *     return res.json();
- *   }
- *
- *   export async function closeSession(id: string) {
- *     await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
- *   }
- *
- * No caller-side changes required when that swap happens.
+ * Sessions data service — backed by ai/orchestrator's real run history
+ * (GET /runs, in-memory for the life of that process, see
+ * orchestrator.py's list_runs()). Components depend only on
+ * getSessions()/closeSession()'s signatures, not on this.
  */
+import { getRuns } from './orchestratorPipelineService';
+import type { RunSummary } from '@/types/orchestrator';
+
 export type SessionType = 'pipeline' | 'platform';
 export type SessionState = 'selected' | 'normal' | 'attention';
 
@@ -27,16 +17,33 @@ export interface Session {
   state: SessionState;
 }
 
-const MOCK_SESSIONS: Session[] = [
-  { id: 's1', name: 'GitLab CI v1.7 pipeline', type: 'pipeline', state: 'selected' },
-  { id: 's2', name: 'Bamboo v2.2.0 update', type: 'platform', state: 'normal' },
-  { id: 's3', name: 'TeamCity v0.9 build', type: 'platform', state: 'attention' },
-];
+function toSession(run: RunSummary): Session {
+  return {
+    id: run.run_id,
+    name: run.platform_name ?? `Run ${run.run_id.slice(0, 8)}`,
+    // Every real run today is the "Add/Update a CI/CD Platform" flow (see
+    // OrchestratorScreen's own header, "Platform Integration" /
+    // "Add a CI/CD Platform") — 'platform', not 'pipeline', is what makes
+    // SessionsList render it with the app's real purple ("platform mode")
+    // tint instead of the unimplemented "Generate a CI/CD Pipeline" mode's
+    // blue one.
+    type: 'platform',
+    state: run.is_current ? 'selected' : 'normal',
+  };
+}
 
+// Filtered by type, not just returned wholesale: every real run is
+// 'platform' (see toSession), so the "Pipelines" tab is correctly empty
+// until "Generate a CI/CD Pipeline" is a real flow with its own runs, not a
+// duplicate of "Platforms" own list.
 export async function getSessions(type: SessionType): Promise<Session[]> {
-  return MOCK_SESSIONS.filter((s) => s.type === type);
+  const runs = await getRuns();
+  return runs.map(toSession).filter((session) => session.type === type);
 }
 
 export async function closeSession(id: string): Promise<{ id: string; closed: boolean }> {
+  // No backend "delete a run" action yet — a run is in-memory history, not
+  // something to discard individually. Matches SessionsList's existing
+  // optimistic local removal; nothing to await here yet.
   return { id, closed: true };
 }

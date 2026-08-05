@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
-import { STAGES } from "@/orchestrator/types"
-import type { StageId } from "@/orchestrator/types"
+import { STAGES } from "@/types/orchestrator"
+import type { StageId } from "@/types/orchestrator"
 
 // Drives entirely off the backend's own real STAGES list, same as
 // types.ts. PIM used to be a fixed, permanently "not yet implemented" node
@@ -18,7 +18,13 @@ const LABELS: Record<StageId, string> = {
 
 type NodeStatus = "pending" | "generating" | "reviewing" | "done"
 
-function statusFor(stageId: StageId, currentStage: StageId | null, busy: boolean): NodeStatus {
+function statusFor(stageId: StageId, currentStage: StageId | null, busy: boolean, started: boolean): NodeStatus {
+  // Before a real run exists (fresh load, or right after Restart), there's
+  // nothing to be "reviewing" yet — every stage is just pending. Without
+  // this, the docs node compared itself against a forced currentStage of
+  // "docs" and read as "current + idle" -> "reviewing", showing a review
+  // state for a stage that never ran.
+  if (!started) return "pending"
   if (currentStage === null) return "done"
   const currentIndex = STAGES.indexOf(currentStage)
   const thisIndex = STAGES.indexOf(stageId)
@@ -47,6 +53,7 @@ function labelFor(label: string, status: NodeStatus): string {
 interface StepperProps {
   currentStage: StageId | null
   busy: boolean
+  started: boolean
   // Which stage (if any) the human has clicked to inspect, separate from
   // currentStage (the real pending stage). Only relevant when onSelectStage
   // is given.
@@ -58,7 +65,7 @@ interface StepperProps {
   onSelectStage?: (stageId: StageId) => void
 }
 
-export function Stepper({ currentStage, busy, selectedStage = null, onSelectStage }: StepperProps) {
+export function Stepper({ currentStage, busy, started, selectedStage = null, onSelectStage }: StepperProps) {
   return (
     <ol
       style={{
@@ -73,7 +80,7 @@ export function Stepper({ currentStage, busy, selectedStage = null, onSelectStag
       }}
     >
       {STAGES.map((stageId, i) => {
-        const status = statusFor(stageId, currentStage, busy)
+        const status = statusFor(stageId, currentStage, busy, started)
         const clickable = Boolean(onSelectStage) && status !== "pending"
         return (
           <li key={stageId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>

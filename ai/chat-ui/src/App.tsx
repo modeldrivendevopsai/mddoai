@@ -19,9 +19,19 @@ function StartScreenRoute() {
 // has no real backend capability yet (no endpoint to copy an existing
 // platform's support), so it lands on the same screen rather than
 // pretending to do something it can't.
+//
+// "new-pipeline"/"add-platform" specifically mean "start over" — they need
+// ?new=1, not a bare navigate("/pipeline"): the backend's current run isn't
+// scoped to a URL, so if you're already on /pipeline (viewing the live run,
+// or a finished one with nothing left to approve), navigating to the exact
+// same URL is a no-op in react-router (no re-render, nothing resets) and the
+// old run just sits there. OrchestratorScreen reads ?new=1 and actually
+// resets the backend, the same real action its own Restart button takes.
+const START_FRESH_ACTIONS = new Set(["new-pipeline", "add-platform"])
+
 function useSidebarNavigation() {
   const navigate = useNavigate()
-  return () => navigate("/pipeline")
+  return (actionId: string) => navigate(START_FRESH_ACTIONS.has(actionId) ? "/pipeline?new=1" : "/pipeline")
 }
 
 function AppShellRoute({ children }: { children: ReactNode }) {

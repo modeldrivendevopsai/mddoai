@@ -24,9 +24,11 @@ export function SidebarActions({ activeTab, collapsed, onAction }: SidebarAction
           variant="ghost"
           full
           icon={action.icon}
+          disabled={action.comingSoon}
+          title={action.comingSoon ? 'Not built yet' : undefined}
           onClick={() => onAction?.(action.id)}
         >
-          {!collapsed && action.label}
+          {!collapsed && (action.comingSoon ? `${action.label} (coming soon)` : action.label)}
         </Button>
       ))}
     </div>

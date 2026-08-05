@@ -1,81 +1,61 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { usePipeline } from "@/hooks/usePipeline"
 import { Stepper } from "@/components/orchestrator/Stepper"
 import { ChatColumn } from "@/components/orchestrator/ChatColumn"
 import { StageOutputPanel } from "@/components/orchestrator/StageOutputPanel"
+import { ViewedStagePanel } from "@/components/orchestrator/ViewedStagePanel"
 import { PlatformForm } from "@/components/orchestrator/PlatformForm"
 import { Button } from "@/design-system"
-import { CodeBlock } from "@/components/orchestrator/CodeBlock"
-import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
+import { latestCallResult } from "@/components/orchestrator/stageEvents"
+import type { StageId } from "@/types/orchestrator"
 import "@/components/orchestrator/orchestrator.css"
 
-function latestCallResult(events: OrchestratorEvent[], stage: StageId | null): OrchestratorEvent | null {
-  if (!stage) return null
-  for (let i = events.length - 1; i >= 0; i--) {
-    const event = events[i]
-    if (event.stage === stage && (event.type === "call_completed" || event.type === "call_failed")) {
-      return event
-    }
-  }
-  return null
-}
-
-// Read-only view of a past (non-current) stage's real result, shown when a
-// Stepper node is clicked. Deliberately has no Approve/Retry, those only
-// make sense for the actual pending stage, see StageOutputPanel for that.
-function ViewedStagePanel({
-  stage,
-  result,
-  onBack,
-}: {
-  stage: StageId
-  result: OrchestratorEvent | null
-  onBack: () => void
-}) {
-  const failed = result?.type === "call_failed"
-  const output = failed
-    ? String(result?.data?.error ?? "Stage failed.")
-    : String(result?.data?.output ?? "No output recorded for this stage yet.")
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-3)",
-        height: "100%",
-        padding: "var(--space-4)",
-        background: "var(--brand-faint)",
-        border: "1px solid var(--border-default)",
-        borderRadius: "var(--radius-md)",
-        boxSizing: "border-box",
-        minHeight: 0,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h2
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "var(--text-md)",
-            fontWeight: "var(--weight-bold)",
-            color: "var(--text-strong)",
-            margin: 0,
-            textTransform: "capitalize",
-          }}
-        >
-          {stage} stage output
-        </h2>
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          ← Back to current
-        </Button>
-      </div>
-      <CodeBlock code={output} title={`${stage} output (read-only)`} lang={stage} />
-    </div>
-  )
-}
-
 export default function OrchestratorScreen() {
-  const { events, currentStage, busy, started, model, error, start, approve, retry, sendNudge, changeModel, reset } =
-    usePipeline()
+  // A sidebar session row links here with ?run=<run_id> (see
+  // SessionsList.tsx). No param means the live run, same as before.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const runId = searchParams.get("run") ?? undefined
+  const {
+    events,
+    currentStage,
+    busy,
+    started,
+    model,
+    error,
+    isCurrent,
+    start,
+    approve,
+    retry,
+    sendNudge,
+    changeModel,
+    reset,
+  } = usePipeline(runId)
+
+  // "Add a new platform"/"New pipeline" in the sidebar link here with
+  // ?new=1 (see App.tsx's useSidebarNavigation) — a real signal to actually
+  // discard the current run, not just a route change to a URL that might
+  // already be the one we're on. Same destructive action as the Restart
+  // button below, same confirmation; skipped when nothing's actually
+  // running yet, so clicking it from an already-blank form is silent.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return
+    if (!started || window.confirm("Start a new run? This discards the current run and can't be undone.")) {
+      if (started) void reset()
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("new")
+        return next
+      },
+      { replace: true }
+    )
+    // Only the URL's "new" flag should ever re-trigger this; started/reset
+    // are read at the moment it fires, not watched for changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
   // Which stage's real result the human clicked to inspect, separate from
   // currentStage (the real pending one). Snaps back to the live view
   // whenever the pipeline actually advances, so clicking an old stage can
@@ -129,21 +109,49 @@ export default function OrchestratorScreen() {
           >
             {started ? "Platform Integration" : "Add a CI/CD Platform"}
           </h1>
-          {/* No real run history/persistence exists yet (a restart or a
-              fresh /start both discard everything the same way), so this is
-              a manual escape hatch, not a "save and come back later"
-              button. Guarded by a confirm() since it's unrecoverable. */}
-          <Button variant="secondary" size="sm" disabled={!started || busy} onClick={handleRestart}>
+          {/* Restarting discards the live run, so it's meaningless while
+              looking at read-only history — only ever acts on the current
+              run either way. Guarded by a confirm() since it's
+              unrecoverable. */}
+          <Button variant="secondary" size="sm" disabled={!started || busy || !isCurrent} onClick={handleRestart}>
             Restart
           </Button>
         </div>
         <Stepper
-          currentStage={started ? currentStage : "docs"}
-          busy={started && busy}
+          currentStage={currentStage}
+          busy={busy}
+          started={started}
           selectedStage={viewedStage}
           onSelectStage={started ? setViewedStage : undefined}
         />
       </header>
+
+      {/* Only a defined runId can ever be non-current (the live run always
+          reports is_current: true, see usePipeline) — this is genuinely
+          frozen history from the sidebar, not the run in progress. */}
+      {runId && !isCurrent && (
+        <div
+          style={{
+            margin: "var(--space-3) var(--space-5) 0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "var(--space-3)",
+            padding: "10px 16px",
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--text-xs)",
+            color: "var(--text-muted)",
+          }}
+        >
+          <span>Viewing a past run, read-only.</span>
+          <Button variant="ghost" size="sm" onClick={() => setSearchParams({})}>
+            Back to current run
+          </Button>
+        </div>
+      )}
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border #f3c4c0, 14px/16px padding, these are the source's own
@@ -179,7 +187,14 @@ export default function OrchestratorScreen() {
         }}
       >
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <ChatColumn events={events} busy={busy} model={model} onSend={sendNudge} onModelChange={changeModel} />
+          <ChatColumn
+            events={events}
+            busy={busy}
+            model={model}
+            onSend={sendNudge}
+            onModelChange={changeModel}
+            readOnly={!isCurrent}
+          />
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {started ? (
@@ -196,6 +211,7 @@ export default function OrchestratorScreen() {
                 latestResult={latestResult}
                 onApprove={approve}
                 onRetry={retry}
+                readOnly={!isCurrent}
               />
             )
           ) : (

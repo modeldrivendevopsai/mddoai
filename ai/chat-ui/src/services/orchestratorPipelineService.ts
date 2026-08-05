@@ -5,9 +5,10 @@ import type {
   RerunOverrides,
   ResetResponse,
   ReviewResponse,
+  RunSummary,
   StageId,
   StartedResponse,
-} from "@/orchestrator/types"
+} from "@/types/orchestrator"
 
 // Talks to ai/orchestrator (a separate internal-only service, see
 // vite.config.ts's /orchestrator-api proxy) — never ai-layer directly.
@@ -118,11 +119,28 @@ export async function rerunStage(
   return res.json()
 }
 
-export async function getEvents(sinceIndex = 0): Promise<EventsResponse> {
-  const res = await fetch(`/orchestrator-api/events?since_index=${sinceIndex}`)
+// runId omitted (or the current run's own id) polls the live run as normal.
+// Any other runId reads that past run's full event log instead — read-only
+// history, see ai/orchestrator/README.md's session-history section.
+export async function getEvents(sinceIndex = 0, runId?: string): Promise<EventsResponse> {
+  const params = new URLSearchParams({ since_index: String(sinceIndex) })
+  if (runId) params.set("run_id", runId)
+  const res = await fetch(`/orchestrator-api/events?${params}`)
 
   if (!res.ok) {
     throw await errorFor("Events", res)
+  }
+
+  return res.json()
+}
+
+// In-memory only (see orchestrator.py's list_runs()) — every run this
+// process has seen, newest first, not persisted across a backend restart.
+export async function getRuns(): Promise<RunSummary[]> {
+  const res = await fetch("/orchestrator-api/runs")
+
+  if (!res.ok) {
+    throw await errorFor("Runs", res)
   }
 
   return res.json()

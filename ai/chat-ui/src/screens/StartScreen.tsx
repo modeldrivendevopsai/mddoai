@@ -34,8 +34,13 @@ export function StartScreen({ onSelectOption }: StartScreenProps) {
           <Panel key={option.id} tone={option.tone} className="mdd-start-screen__card">
             <h2>{option.title}</h2>
             <p>{option.description}</p>
-            <Button variant="primary" onClick={() => onSelectOption?.(option.id)}>
-              {option.cta}
+            <Button
+              variant="primary"
+              disabled={option.comingSoon}
+              title={option.comingSoon ? 'Not built yet' : undefined}
+              onClick={() => onSelectOption?.(option.id)}
+            >
+              {option.comingSoon ? 'Coming soon' : option.cta}
             </Button>
           </Panel>
         ))}

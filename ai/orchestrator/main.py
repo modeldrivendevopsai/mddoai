@@ -6,10 +6,13 @@ import assistant
 import orchestrator
 from orchestrator import (
     current_model,
+    current_run_id,
     current_stage,
     events,
+    get_run_events,
     is_busy,
     list_providers,
+    list_runs,
     reset_pipeline,
     rerun_stage,
     review,
@@ -39,6 +42,11 @@ class StartRequest(BaseModel):
     max_pages: int | None = Field(default=None, ge=1)
     max_depth: int | None = Field(default=None, ge=1)
     force_refresh: bool | None = None
+    # Skips the real crawl entirely, docs_agent returns canned placeholder
+    # output instead (see stage_agents.py) — for local dev, where a real
+    # crawl is slow enough to make iterating on the rest of the pipeline
+    # painful.
+    mock: bool | None = None
 
 
 class ReviewRequest(BaseModel):
@@ -53,6 +61,7 @@ class RerunOverrides(BaseModel):
     max_pages: int | None = Field(default=None, ge=1)
     max_depth: int | None = Field(default=None, ge=1)
     force_refresh: bool | None = None
+    mock: bool | None = None
 
 
 class RerunRequest(BaseModel):
@@ -68,13 +77,25 @@ class ModelRequest(BaseModel):
 
 
 @app.get("/events")
-def events_endpoint(since_index: int = 0):
-    return {
-        "events": events()[since_index:],
-        "current_stage": current_stage(),
-        "busy": is_busy(),
-        "model": current_model(),
-    }
+def events_endpoint(since_index: int = 0, run_id: str | None = None):
+    if run_id is None or run_id == current_run_id():
+        return {
+            "events": events()[since_index:],
+            "current_stage": current_stage(),
+            "busy": is_busy(),
+            "model": current_model(),
+            "is_current": True,
+        }
+    # A past run: read-only, no polling loop needed, always the full list.
+    result = get_run_events(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"No run with id {run_id!r}")
+    return result
+
+
+@app.get("/runs")
+def runs_endpoint():
+    return list_runs()
 
 
 @app.post("/model")
@@ -97,7 +118,7 @@ def start_endpoint(request: StartRequest):
     if is_busy():
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     docs_options = request.model_dump(
-        include={"hint", "exclude_urls", "max_pages", "max_depth", "force_refresh"}, exclude_none=True
+        include={"hint", "exclude_urls", "max_pages", "max_depth", "force_refresh", "mock"}, exclude_none=True
     )
     return start_pipeline(request.platform_description, request.seed_url, request.model, docs_options)
 

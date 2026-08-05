@@ -18,7 +18,7 @@ Tests verify:
      overrides them), raises when the crawl found essentially nothing useful
      (low confidence or zero successful pages), and short-circuits to canned
      output without calling retrieval at all when ORCHESTRATOR_STUB_DOCS is
-     set.
+     set or the per-run context["mock"] flag is passed.
   4. stage_agents maps every stage name to its real agent function.
 """
 from unittest.mock import patch
@@ -178,7 +178,24 @@ def test_docs_agent_returns_stub_output_without_calling_retrieval_when_flag_set(
 
     mock_httpx.post.assert_not_called()
     assert "https://example.com/docs" in result
-    assert "STUBBED" in result
+    assert "MOCKED" in result
+
+
+def test_docs_agent_returns_stub_output_without_calling_retrieval_when_mock_context_flag_set():
+    with patch.object(orchestrator, "httpx") as mock_httpx:
+        result = stage_agents.docs_agent({"seed_url": "https://example.com/docs", "mock": True})
+
+    mock_httpx.post.assert_not_called()
+    assert "https://example.com/docs" in result
+    assert "MOCKED" in result
+
+
+def test_docs_agent_crawls_for_real_when_mock_context_flag_is_falsy():
+    with patch.object(orchestrator, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
+        stage_agents.docs_agent({"seed_url": "https://example.com/docs", "mock": False})
+
+    mock_httpx.post.assert_called_once()
 
 
 def test_stage_agents_maps_stage_names_to_agent_functions():

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   getEvents,
   getProviders,
+  getRuns,
   nudge,
   rerunStage,
   resetPipeline,
@@ -188,6 +189,48 @@ describe("orchestratorPipelineService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }))
 
     await expect(getEvents()).rejects.toThrow("Events request failed: 503")
+  })
+
+  it("getEvents includes run_id when a runId is given, for a past run's frozen log", async () => {
+    const payload = { events: [], current_stage: "docs", busy: false, model: null, is_current: false }
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await getEvents(0, "old-run-id")
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/events?since_index=0&run_id=old-run-id")
+    expect(result).toEqual(payload)
+  })
+
+  it("getEvents omits run_id when none is given, polling the live run", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ events: [], current_stage: "docs", busy: false, model: null, is_current: true }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await getEvents(5)
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/events?since_index=5")
+  })
+
+  it("getRuns fetches the real run history", async () => {
+    const payload = [
+      { run_id: "abc123", platform_name: "TeamCity", current_stage: "docs", busy: false, is_current: true },
+    ]
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await getRuns()
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/runs")
+    expect(result).toEqual(payload)
+  })
+
+  it("getRuns throws with the status code on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+
+    await expect(getRuns()).rejects.toThrow("Runs request failed: 500")
   })
 
   it("nudge posts the message and returns the reply", async () => {

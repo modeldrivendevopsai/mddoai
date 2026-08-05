@@ -141,7 +141,7 @@ def test_current_run_id_matches_the_default_orchestrator():
         orchestrator._runs[original.run_id] = original
 
 
-def test_reset_pipeline_replaces_runs_rather_than_accumulating():
+def test_reset_pipeline_keeps_prior_runs_as_history():
     original = orchestrator._default
     try:
         orchestrator.reset_pipeline()
@@ -150,7 +150,73 @@ def test_reset_pipeline_replaces_runs_rather_than_accumulating():
         second_reset_id = orchestrator._default.run_id
 
         assert first_reset_id != second_reset_id
-        assert list(orchestrator._runs.keys()) == [second_reset_id]
+        # Both stay in _runs (in-memory session history, see list_runs()) —
+        # only the most recent one is _default, the one live endpoints act on.
+        assert first_reset_id in orchestrator._runs
+        assert second_reset_id in orchestrator._runs
+        assert orchestrator._default.run_id == second_reset_id
+    finally:
+        orchestrator._default = original
+        orchestrator._runs.clear()
+        orchestrator._runs[original.run_id] = original
+
+
+def test_list_runs_marks_only_the_default_run_as_current():
+    original = orchestrator._default
+    try:
+        orchestrator.reset_pipeline()
+        first_id = orchestrator._default.run_id
+        orchestrator.reset_pipeline()
+        second_id = orchestrator._default.run_id
+
+        runs = orchestrator.list_runs()
+        by_id = {r["run_id"]: r for r in runs}
+
+        assert by_id[first_id]["is_current"] is False
+        assert by_id[second_id]["is_current"] is True
+        # newest first
+        assert runs[0]["run_id"] == second_id
+    finally:
+        orchestrator._default = original
+        orchestrator._runs.clear()
+        orchestrator._runs[original.run_id] = original
+
+
+def test_list_runs_surfaces_platform_name_from_the_first_recorded_event():
+    original = orchestrator._default
+    try:
+        orchestrator.reset_pipeline()
+        orchestrator._default.record_event(
+            "call_started", "docs", {"platform_description": "TeamCity"}
+        )
+
+        runs = orchestrator.list_runs()
+
+        assert runs[0]["platform_name"] == "TeamCity"
+    finally:
+        orchestrator._default = original
+        orchestrator._runs.clear()
+        orchestrator._runs[original.run_id] = original
+
+
+def test_get_run_events_returns_none_for_an_unknown_run():
+    assert orchestrator.get_run_events("no-such-run-id") is None
+
+
+def test_get_run_events_reads_a_specific_run_not_just_default():
+    original = orchestrator._default
+    try:
+        orchestrator.reset_pipeline()
+        first_id = orchestrator._default.run_id
+        orchestrator._default.record_event("call_started", "docs", {"platform_description": "TeamCity"})
+        orchestrator.reset_pipeline()  # first_id is no longer _default
+
+        result = orchestrator.get_run_events(first_id)
+
+        assert result is not None
+        assert len(result["events"]) == 2  # call_started + its auto-narration message
+        assert result["events"][0]["data"]["platform_description"] == "TeamCity"
+        assert result["is_current"] is False
     finally:
         orchestrator._default = original
         orchestrator._runs.clear()

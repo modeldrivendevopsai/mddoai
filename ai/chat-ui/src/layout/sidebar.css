@@ -1,12 +1,22 @@
 .mdd-sidebar {
   width: 236px;
   flex-shrink: 0;
-  background: var(--tint-brand-50);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width var(--duration-base) var(--ease-out);
+  transition:
+    width var(--duration-base) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
   overflow: hidden;
+}
+/* Same two mode tints as the StartScreen cards and SessionsList rows
+   (--tint-pipeline blue / --tint-platform purple) — the sidebar tracks
+   whichever tab is active, not a fixed color of its own. */
+.mdd-sidebar--pipeline {
+  background: var(--tint-pipeline);
+}
+.mdd-sidebar--platform {
+  background: var(--tint-platform);
 }
 .mdd-sidebar.is-collapsed {
   width: 56px;

@@ -65,8 +65,14 @@ export function Button({
       boxShadow: active ? 'none' : hover ? 'var(--glow-brand)' : 'var(--shadow-sm)',
     },
     danger: {
+      // #c93b34 (hover only) is the source's own literal value, not a
+      // token substitution — mddoai-design-system/project/components/
+      // actions/Button.jsx hardcodes this exact hex too, no darker-danger
+      // token exists to reference. color is --on-brand (not a literal),
+      // it duplicates #fff exactly and is already the token every other
+      // colored variant's text uses.
       background: hover ? '#c93b34' : 'var(--danger-500)',
-      color: '#fff',
+      color: 'var(--on-brand)',
       boxShadow: active ? 'none' : 'var(--shadow-xs)',
     },
   };
@@ -110,8 +116,23 @@ export function Button({
       }}
       {...rest}
     >
-      {icon && <Icon name={icon} size={size === 'sm' ? 13 : 14} />}
-      {children}
+      {/* A long full-width label (e.g. the sidebar's "Copy an existing
+          platform") has nowhere to go: whiteSpace:nowrap above means the
+          text can't wrap, so without flexShrink:0 here the flex layout
+          shrinks the icon instead of the text to make room — visibly
+          smaller icons on longer-label buttons. The label gets its own
+          minWidth:0 span so it truncates with an ellipsis instead, the icon
+          never does. */}
+      {icon && <Icon name={icon} size={size === 'sm' ? 13 : 14} style={{ flexShrink: 0 }} />}
+      {/* lineHeight: 'normal' here, not the button's own lineHeight: 1 —
+          overflow:hidden (needed for the ellipsis) clips to the line box,
+          and a lineHeight of 1 leaves no room for descenders (the tails on
+          "p"/"y"), cutting them off. The button's overall height is still
+          the fixed s.height above; this only affects the text's own line
+          box, centered within it via alignItems:center. */}
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 'normal' }}>
+        {children}
+      </span>
     </button>
   );
 }

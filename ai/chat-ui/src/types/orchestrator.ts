@@ -33,6 +33,20 @@ export interface EventsResponse {
   current_stage: StageId | null
   busy: boolean
   model: string | null
+  // False for a past run's frozen event log (see main.py's /events?run_id=),
+  // true for the live run — the seam the frontend uses to go read-only.
+  is_current: boolean
+}
+
+// One entry per run this backend process has seen (in-memory only, see
+// orchestrator.py's list_runs()) — the sidebar's session list. is_current
+// is false for anything but the live run; those are read-only history.
+export interface RunSummary {
+  run_id: string
+  platform_name: string | null
+  current_stage: StageId | null
+  busy: boolean
+  is_current: boolean
 }
 
 export interface StartedResponse {
@@ -62,6 +76,10 @@ export interface RerunOverrides {
   max_pages?: number
   max_depth?: number
   force_refresh?: boolean
+  // Skips the real crawl, docs_agent returns canned placeholder output
+  // instead (see ai/orchestrator/stage_agents.py) — for local dev, so a run
+  // doesn't have to wait on a real crawl every time.
+  mock?: boolean
 }
 
 export interface NudgeStep {
@@ -80,4 +98,5 @@ export interface NudgeResponse {
 export interface Provider {
   name: string
   tier: string
+  available: boolean
 }

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
+import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
 import { Button } from "@/design-system"
 import { CodeBlock } from "./CodeBlock"
 
@@ -10,9 +10,20 @@ interface StageOutputPanelProps {
   latestResult: OrchestratorEvent | null
   onApprove: (stage: StageId) => void
   onRetry: (stage: StageId, correction?: string) => void
+  // True while viewing a past (non-current) run from the sidebar's history —
+  // approve/retry would silently act on the live run instead of the one on
+  // screen, so both are disabled.
+  readOnly?: boolean
 }
 
-export function StageOutputPanel({ currentStage, busy, latestResult, onApprove, onRetry }: StageOutputPanelProps) {
+export function StageOutputPanel({
+  currentStage,
+  busy,
+  latestResult,
+  onApprove,
+  onRetry,
+  readOnly = false,
+}: StageOutputPanelProps) {
   const [correction, setCorrection] = useState("")
 
   if (!currentStage) {
@@ -99,6 +110,7 @@ export function StageOutputPanel({ currentStage, busy, latestResult, onApprove, 
           onChange={(e) => setCorrection(e.target.value)}
           placeholder="Describe what should change"
           rows={2}
+          disabled={readOnly}
           style={{
             width: "100%",
             resize: "none",
@@ -115,13 +127,18 @@ export function StageOutputPanel({ currentStage, busy, latestResult, onApprove, 
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
-        <Button variant="primary" size="sm" disabled={busy || !hasResult || failed} onClick={() => onApprove(currentStage)}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={busy || !hasResult || failed || readOnly}
+          onClick={() => onApprove(currentStage)}
+        >
           Approve
         </Button>
         <Button
           variant="secondary"
           size="sm"
-          disabled={busy}
+          disabled={busy || readOnly}
           onClick={() => {
             onRetry(currentStage, correction.trim() || undefined)
             setCorrection("")

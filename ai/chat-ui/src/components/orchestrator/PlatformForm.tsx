@@ -28,6 +28,7 @@ export function PlatformForm({ onStart }: PlatformFormProps) {
   const [hint, setHint] = useState("")
   const [excludeUrlsText, setExcludeUrlsText] = useState("")
   const [forceRefresh, setForceRefresh] = useState(false)
+  const [mock, setMock] = useState(false)
   const canSubmit = platformName.trim() && documentationUrl.trim()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -40,6 +41,7 @@ export function PlatformForm({ onStart }: PlatformFormProps) {
     const excludeUrls = parseExcludeUrls(excludeUrlsText)
     if (excludeUrls.length) docsOptions.exclude_urls = excludeUrls
     if (forceRefresh) docsOptions.force_refresh = true
+    if (mock) docsOptions.mock = true
     onStart(platformName.trim(), documentationUrl.trim(), docsOptions)
   }
 
@@ -118,11 +120,40 @@ export function PlatformForm({ onStart }: PlatformFormProps) {
             <input type="checkbox" checked={forceRefresh} onChange={(e) => setForceRefresh(e.target.checked)} />
             Force refresh (bypass cache, fetch everything fresh)
           </label>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              color: "var(--text-body)",
+            }}
+          >
+            <input type="checkbox" checked={mock} onChange={(e) => setMock(e.target.checked)} />
+            Mock (skip the real crawl, for faster local testing)
+          </label>
         </div>
       </details>
 
-      <div style={{ flex: 1 }} />
-      <Button type="submit" variant="primary" size="md" disabled={!canSubmit} style={{ alignSelf: "flex-start" }}>
+      {/* No flex:1 spacer here: bottom-anchoring the button that way only
+          holds up while all the content fits in the container's fixed
+          height. Advanced's extra fields push past that, overflowY kicks
+          in, and the spacer collapses to nothing — the button loses its
+          breathing room. Flowing normally with the same gap as everything
+          else keeps it consistent whether Advanced is open or not.
+          flexShrink:0 matters once Advanced's fields push the form's total
+          content past its fixed height: without it, the flex column shrinks
+          every child (including this button) to try to fit before finally
+          letting overflowY scroll — the same mechanism that shrank Button's
+          own icon (see design-system/components/Button.tsx). */}
+      <Button
+        type="submit"
+        variant="primary"
+        size="md"
+        disabled={!canSubmit}
+        style={{ alignSelf: "flex-start", flexShrink: 0 }}
+      >
         Start Integration
       </Button>
     </form>

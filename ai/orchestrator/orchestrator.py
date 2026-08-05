@@ -349,15 +349,13 @@ class Orchestrator:
 
 
 _default = Orchestrator()
-# Every Orchestrator that's ever been "the" current run, keyed by run_id.
-# MVP still only ever has exactly one real run at a time (_default), the
-# free functions below all still operate on that one implicitly, nothing in
-# main.py's endpoints changes shape. This is the seam a future multi-run
-# feature or persistence layer would need (real run identity, addressable in
-# a dict, not a single mutable module variable), kept in sync with _default
-# rather than replacing it, so the ~20 existing call sites (and tests) that
-# reference _default directly don't all need to change for a benefit nothing
-# uses yet. get_run()/current_run_id() below are that seam's read side.
+# Every Orchestrator that's ever been "the" current run, keyed by run_id, kept
+# for the life of this process (see reset_pipeline() — it no longer clears
+# this). The mutating free functions below (run_stage, review, etc.) still
+# only ever act on _default, that one-active-run-at-a-time behavior is
+# unchanged; this dict is the read side for history — list_runs() and a
+# run_id-scoped events read, so the sidebar can show past runs without
+# needing real persistence (in-memory only, gone on restart, that's fine).
 _runs: dict[str, "Orchestrator"] = {_default.run_id: _default}
 
 
@@ -367,6 +365,45 @@ def get_run(run_id: str) -> "Orchestrator | None":
 
 def current_run_id() -> str:
     return _default.run_id
+
+
+def _platform_name(run: "Orchestrator") -> str | None:
+    for event in run.events:
+        data = event.get("data") or {}
+        if "platform_description" in data:
+            return data["platform_description"]
+    return None
+
+
+def list_runs() -> list[dict]:
+    """Summaries of every run this process has seen, newest first, for the
+    sidebar's session list. is_current tells the frontend which one is safe
+    to interact with (approve/reject/retry/nudge) vs read-only history."""
+    return [
+        {
+            "run_id": run.run_id,
+            "platform_name": _platform_name(run),
+            "current_stage": run.current_stage,
+            "busy": run.busy,
+            "is_current": run.run_id == _default.run_id,
+        }
+        for run in reversed(list(_runs.values()))
+    ]
+
+
+def get_run_events(run_id: str) -> dict | None:
+    """Same shape as the live /events response, for a specific (possibly
+    past) run rather than always _default. None if run_id is unknown."""
+    run = get_run(run_id)
+    if run is None:
+        return None
+    return {
+        "events": run.events,
+        "current_stage": run.current_stage,
+        "busy": run.busy,
+        "model": run.model,
+        "is_current": run.run_id == _default.run_id,
+    }
 
 
 def run_stage(context: dict) -> dict:
@@ -451,13 +488,12 @@ def list_providers() -> list[dict]:
 
 
 def reset_pipeline() -> None:
-    """Start a fresh pipeline run: replace the default Orchestrator instance,
-    dropping any progress and constraints from a prior run. _runs is kept to
-    exactly this one entry, not accumulated, MVP has no persistence and
-    nothing ever reads a prior run's now-orphaned instance back out of it."""
+    """Start a fresh pipeline run: replace the default Orchestrator instance.
+    The prior run's instance stays in _runs (see list_runs()) so the sidebar
+    can show it as history for the life of this process — no persistence
+    across a restart, in-memory only, that's the deliberate MVP scope."""
     global _default
     _default = Orchestrator()
-    _runs.clear()
     _runs[_default.run_id] = _default
 
 
