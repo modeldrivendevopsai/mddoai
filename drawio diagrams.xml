@@ -2257,7 +2257,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="lDNisXqK3LtesLir01gw" name="PhD vision">
-    <mxGraphModel dx="1978" dy="-52" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2214" dy="97" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -2636,6 +2636,15 @@
             <mxPoint x="843.1700000000001" y="3065.25" as="sourcePoint" />
             <mxPoint x="649.1700000000001" y="2830.25" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="fTe6BnEEGNu3OLTLRNkt-35" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="258" width="258" x="953" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="fTe6BnEEGNu3OLTLRNkt-36" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="258" width="258" x="1138" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="fTe6BnEEGNu3OLTLRNkt-37" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="258" width="258" x="1046" y="1328" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
