@@ -4,14 +4,15 @@ import {
   nudge as nudgeApi,
   rerunStage,
   resetPipeline,
+  resumeRun,
   reviewStage,
   setModel as setModelApi,
   startPipeline,
-} from "@/services/orchestratorPipelineService"
-import type { DocsOptions } from "@/services/orchestratorPipelineService"
+} from "@/services/orchestrator.service"
+import type { DocsOptions } from "@/services/orchestrator.service"
 import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
 
-// Real backend error messages (see orchestratorPipelineService's errorFor())
+// Real backend error messages (see orchestrator.service's errorFor())
 // are actually useful, e.g. "'psm' is not the current pending stage" or a
 // downstream failure's own message, show them instead of a made-up generic
 // one that throws that information away.
@@ -30,7 +31,7 @@ const POLL_INTERVAL_MS = 1500
 // sidebar's history — GET /events?run_id= reports back whether that run is
 // still the current one (is_current), which decides whether this stays
 // interactive/polling or goes read-only after a single fetch.
-export function usePipeline(runId?: string) {
+export function useIntegration(runId?: string) {
   const [events, setEvents] = useState<OrchestratorEvent[]>([])
   const [currentStage, setCurrentStage] = useState<StageId | null>(null)
   const [busy, setBusy] = useState(false)
@@ -158,7 +159,7 @@ export function usePipeline(runId?: string) {
         setStarted(true)
         await fetchFull()
       } catch (err) {
-        setError(messageFor(err, "Could not start the pipeline. Is the orchestrator running?"))
+        setError(messageFor(err, "Could not start the integration. Is the orchestrator running?"))
       }
     },
     [fetchFull]
@@ -225,9 +226,11 @@ export function usePipeline(runId?: string) {
     }
   }, [])
 
-  // Discards the current run with nothing to replace it, the manual escape
-  // hatch for "I don't want to wait for/continue this run." 409s while a
-  // stage is genuinely busy (same guard /start has), surfaced as a real
+  // Replaces the current run with a fresh, blank one — the manual escape
+  // hatch for "I don't want to wait for/continue this run." The old run
+  // isn't deleted (see orchestrator.py's reset_pipeline(), which keeps it
+  // in history), it just stops being the live/interactive one. 409s while
+  // a stage is genuinely busy (same guard /start has), surfaced as a real
   // error rather than silently no-op-ing.
   const reset = useCallback(async () => {
     setError(null)
@@ -240,6 +243,26 @@ export function usePipeline(runId?: string) {
       setError(messageFor(err, "Could not restart, a stage may still be running."))
     }
   }, [fetchFull])
+
+  // The counterpart to reset: makes this hook's own runId current again
+  // instead of replacing it with a blank one. Only meaningful for a past,
+  // non-current run — IntegrationScreen only ever renders the button that
+  // calls this once isCurrent is already false. No local event/doneRef
+  // reset needed like reset() does: this runId's events are already
+  // correct as-is, resuming doesn't create a new run, it just flips which
+  // one is current, so a plain refetch is enough to pick that up (and,
+  // since applyEvents updates isCurrentRef on every fetch, the poll loop
+  // above resumes on its own once this run reports is_current: true).
+  const resume = useCallback(async () => {
+    if (!runId) return
+    setError(null)
+    try {
+      await resumeRun(runId)
+      await fetchFull()
+    } catch (err) {
+      setError(messageFor(err, "Could not resume, another stage may still be running."))
+    }
+  }, [runId, fetchFull])
 
   return {
     events,
@@ -255,5 +278,6 @@ export function usePipeline(runId?: string) {
     sendNudge,
     changeModel,
     reset,
+    resume,
   }
 }

@@ -189,8 +189,11 @@ the actual current pending stage, and `correction` is required when `approved` i
 just at the REST layer, so it can't be silently bypassed by a caller that doesn't go through
 `main.py`'s endpoint.
 
-`reset_pipeline()` replaces the default `Orchestrator`, discarding progress, constraints, and
-events, used to start a fresh run.
+`reset_pipeline()` replaces the default `Orchestrator` with a fresh, blank one, used to start a
+new run. The old instance isn't discarded, it stays in `_runs` (see `list_runs()` above) so it
+can still be viewed, or made current again via `resume_run(run_id)`, the counterpart that swaps
+`_default` back to an existing instance instead of a new one, picking up its progress,
+constraints, and events exactly as they were.
 
 ## The reply mechanism (`react_to_event()` / `nudge()`)
 
@@ -308,13 +311,28 @@ Response (`202`), immediately, before the fetch has necessarily finished:
 
 ### `POST /reset`
 
-Discards the current run, progress, constraints, and events, with no new run to replace it: the
-empty-state counterpart to `/start`. `409` if a stage is currently running, same guard and same
-reasoning as `/start` above.
+Replaces the current run with a fresh, blank one: the empty-state counterpart to `/start`. The
+old run isn't deleted, it just stops being current, `GET /runs` still lists it and
+`POST /resume/{run_id}` below can bring it back. `409` if a stage is currently running, same
+guard and same reasoning as `/start` above.
 
 Response (`200`):
 ```json
 { "status": "reset" }
+```
+
+### `POST /resume/{run_id}`
+
+Makes a past run current again, so it can be approved/retried/nudged like any other live run,
+picking up exactly where it left off: nothing about that run's progress, constraints, or events
+is replayed or reset. The counterpart to `/reset`, which replaces the current run with a blank
+one instead of an existing one. `404` for an unknown `run_id`. `409` if a stage is currently
+running, same guard and same reasoning as `/reset` above (swapping `_default` out from under a
+genuinely in-flight background thread would orphan it).
+
+Response (`200`):
+```json
+{ "run_id": "a1b2c3d4e5f6...", "current_stage": "psm" }
 ```
 
 ### `GET /events`

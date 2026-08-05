@@ -14,6 +14,7 @@ from orchestrator import (
     list_providers,
     list_runs,
     reset_pipeline,
+    resume_run,
     rerun_stage,
     review,
     set_model,
@@ -125,15 +126,32 @@ def start_endpoint(request: StartRequest):
 
 @app.post("/reset")
 def reset_endpoint():
-    """Discards the current run (progress, constraints, events) with no new
-    run to replace it, the empty-state counterpart to /start. Same busy
-    guard as every other mutating endpoint, for the same reason /start's
-    guard above exists: swapping the Orchestrator instance out from under a
-    genuinely in-flight background thread just orphans it."""
+    """Replaces the current run with a fresh, blank one — the empty-state
+    counterpart to /start, and the "give up on this one" counterpart to
+    /resume below. The old run isn't deleted, reset_pipeline() keeps it in
+    _runs, it just stops being current. Same busy guard as every other
+    mutating endpoint, for the same reason /start's guard exists: swapping
+    the Orchestrator instance out from under a genuinely in-flight
+    background thread just orphans it."""
     if is_busy():
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     reset_pipeline()
     return {"status": "reset"}
+
+
+@app.post("/resume/{run_id}")
+def resume_endpoint(run_id: str):
+    """Makes a past run current again, so it can be approved/retried/nudged
+    like any other live run, picking up exactly where it left off. Same
+    busy guard as /reset and /start, for the same reason: swapping _default
+    out from under a genuinely in-flight background thread just orphans it.
+    404 for an unknown run_id."""
+    if is_busy():
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+    try:
+        return resume_run(run_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get("/providers")

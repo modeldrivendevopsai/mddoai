@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Button } from "@/design-system"
 import { TextField, NumberField, TextAreaField } from "./FormField"
-import type { DocsOptions } from "@/services/orchestratorPipelineService"
+import type { DocsOptions } from "@/services/orchestrator.service"
 
-interface PlatformFormProps {
+interface DocsStartFormProps {
   onStart: (platformName: string, documentationUrl: string, docsOptions?: DocsOptions) => void
 }
 
@@ -14,13 +14,30 @@ function parseExcludeUrls(text: string): string[] {
     .filter(Boolean)
 }
 
-// The docs stage's real form: platform name + documentation URL (always
-// sent), plus retrieval's own real retry/steer levers (hint, exclude URLs,
-// max pages/depth, force refresh — see ai/retrieval/README.md) as an
-// Advanced section, sent to ai/orchestrator's /start alongside them (see
-// main.py's StartRequest) so they're available from the very first crawl,
-// not only reachable later via a Retry override.
-export function PlatformForm({ onStart }: PlatformFormProps) {
+// Mock skips the real crawl entirely (see stage_agents.py's docs_agent), so
+// requiring a real platform name/URL first is pointless busywork when
+// you're just testing the rest of the integration. Used only as a fallback
+// for whichever field is actually left blank (see handleSubmit) — a field
+// the human did fill in is never overwritten, even with mock checked.
+function randomMockPlatformName(): string {
+  return `Mock Platform ${Math.random().toString(36).slice(2, 8)}`
+}
+const MOCK_DOCUMENTATION_URL = "https://example.com/mock-docs"
+
+// Shown before any run exists (IntegrationScreen's !started branch) — not a
+// generic "start a run" form, almost every field here is the docs stage's
+// own real input: documentation URL + retrieval's own real retry/steer
+// levers (hint, exclude URLs, max pages/depth, force refresh, mock — see
+// ai/retrieval/README.md) as an Advanced section, sent to ai/orchestrator's
+// /start alongside them (see main.py's StartRequest and stage_agents.py's
+// docs_agent, which reads exactly these fields from context). The one field
+// that ISN'T docs-specific is platform name (platform_description) — docs
+// itself never reads it, but every later stage (PIM/PSM/...) falls back to
+// it, so it's collected once here rather than re-asked per stage. Filed
+// next to DocsStagePanel.tsx (its output-review counterpart), not merged
+// into it: input-collection and output-review are different enough shapes
+// that one function handling both would be doing two jobs.
+export function DocsStartForm({ onStart }: DocsStartFormProps) {
   const [platformName, setPlatformName] = useState("")
   const [documentationUrl, setDocumentationUrl] = useState("")
   const [maxPages, setMaxPages] = useState("")
@@ -29,11 +46,18 @@ export function PlatformForm({ onStart }: PlatformFormProps) {
   const [excludeUrlsText, setExcludeUrlsText] = useState("")
   const [forceRefresh, setForceRefresh] = useState(false)
   const [mock, setMock] = useState(false)
-  const canSubmit = platformName.trim() && documentationUrl.trim()
+  // Mock doesn't need real input (see randomMockPlatformName() above) —
+  // only require the fields to be filled when mock is off.
+  const canSubmit = mock || (platformName.trim() && documentationUrl.trim())
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
+    // Falls back to a random mock value only when the field is actually
+    // blank — canSubmit above already guarantees that can only happen with
+    // mock checked, so this never overwrites a real value the human typed.
+    const finalPlatformName = platformName.trim() || randomMockPlatformName()
+    const finalDocumentationUrl = documentationUrl.trim() || MOCK_DOCUMENTATION_URL
     const docsOptions: DocsOptions = {}
     if (maxPages) docsOptions.max_pages = Number(maxPages)
     if (maxDepth) docsOptions.max_depth = Number(maxDepth)
@@ -42,7 +66,7 @@ export function PlatformForm({ onStart }: PlatformFormProps) {
     if (excludeUrls.length) docsOptions.exclude_urls = excludeUrls
     if (forceRefresh) docsOptions.force_refresh = true
     if (mock) docsOptions.mock = true
-    onStart(platformName.trim(), documentationUrl.trim(), docsOptions)
+    onStart(finalPlatformName, finalDocumentationUrl, docsOptions)
   }
 
   return (

@@ -50,8 +50,11 @@ Tests verify:
      makes its one routing call, never blocking for a stage's duration; returns a
      clarification directly when no tool is called; converts a downstream error in its
      own routing call into a 500.
-  6. POST /reset discards the current run with no new run to replace it, the empty-state
-     counterpart to /start; 409 if a stage is still running, same reasoning as /start.
+  6. POST /reset replaces the current run with a fresh, blank one, the empty-state counterpart
+     to /start; the old run isn't deleted, it just stops being current; 409 if a stage is still
+     running, same reasoning as /start.
+  7. POST /resume/{run_id} makes a past run current again, picking up exactly where it left off;
+     404 for an unknown run_id; 409 if a stage is still running, same reasoning as /reset.
 """
 import json
 import threading
@@ -326,6 +329,42 @@ def test_reset_endpoint_returns_409_while_busy():
     assert response.status_code == 409
     # busy run wasn't discarded
     assert len(orchestrator.events()) > 0
+
+
+# --- POST /resume/{run_id} ----------------------------------------------------------
+
+
+def test_resume_endpoint_makes_a_past_run_current_again():
+    start_pipeline(platform_description="Old run")
+    old_run_id = orchestrator.current_run_id()
+    start_pipeline(platform_description="Current run")
+    assert old_run_id != orchestrator.current_run_id()
+
+    response = client.post(f"/resume/{old_run_id}")
+
+    assert response.status_code == 200
+    assert response.json() == {"run_id": old_run_id, "current_stage": "docs"}
+    assert orchestrator.current_run_id() == old_run_id
+    # the resumed run's own events are untouched, picked up exactly as they were
+    assert len(orchestrator.events()) > 0
+
+
+def test_resume_endpoint_returns_404_for_an_unknown_run_id():
+    response = client.post("/resume/no-such-run")
+
+    assert response.status_code == 404
+
+
+def test_resume_endpoint_returns_409_while_busy():
+    start_pipeline(platform_description="Old run")
+    old_run_id = orchestrator.current_run_id()
+    start_pipeline(platform_description="Current run")
+    orchestrator._default.busy = True
+
+    response = client.post(f"/resume/{old_run_id}")
+
+    assert response.status_code == 409
+    assert orchestrator.current_run_id() != old_run_id
 
 
 # --- GET /providers ----------------------------------------------------------------

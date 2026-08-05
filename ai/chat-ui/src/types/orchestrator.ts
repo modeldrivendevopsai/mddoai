@@ -62,6 +62,11 @@ export interface ResetResponse {
   status: "reset"
 }
 
+export interface ResumeResponse {
+  run_id: string
+  current_stage: StageId | null
+}
+
 export interface RerunStatusResponse {
   status: "rerun"
   stage: StageId

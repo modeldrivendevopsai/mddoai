@@ -1,0 +1,324 @@
+import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { useIntegration } from "@/hooks/useIntegration"
+import { Stepper } from "@/features/integration/Stepper"
+import { STAGE_PANELS } from "@/features/integration/stages/registry"
+import { ChatColumn } from "@/features/chat/ChatColumn"
+import { DocsStartForm } from "@/features/integration/stages/docs/DocsStartForm"
+import { Button } from "@/design-system"
+import { latestCallResult } from "@/features/integration/stageEvents"
+import type { StageId } from "@/types/orchestrator"
+
+// "Nothing left to review" is a screen-level state (the whole run finished),
+// not any one stage's concern — kept here rather than duplicated across all
+// six stage panels in @/features/integration/stages/.
+function CompletePanel() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-3)",
+        height: "100%",
+        padding: "var(--space-4)",
+        background: "var(--brand-faint)",
+        border: "1px solid var(--border-default)",
+        borderRadius: "var(--radius-md)",
+        boxSizing: "border-box",
+        minHeight: 0,
+      }}
+    >
+      <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
+        Integration complete. All stages approved.
+      </p>
+    </div>
+  )
+}
+
+// A past, non-current run that never got a platform name/URL submitted —
+// e.g. created by Restart or "Add a new platform" and then abandoned before
+// filling the form. Real, possible state, not a bug on its own. Shown
+// instead of DocsStartForm: that form's onStart always acts on whichever
+// run is actually current on the backend, never "this specific old slot",
+// so rendering a live, submittable form here would let a read-only history
+// view silently hijack and replace the real current run.
+function NoStagesRanPanel() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-3)",
+        height: "100%",
+        padding: "var(--space-4)",
+        background: "var(--brand-faint)",
+        border: "1px solid var(--border-default)",
+        borderRadius: "var(--radius-md)",
+        boxSizing: "border-box",
+        minHeight: 0,
+      }}
+    >
+      <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
+        No stages were run for this session.
+      </p>
+    </div>
+  )
+}
+
+export default function IntegrationScreen() {
+  // A sidebar session row links here with ?run=<run_id> (see
+  // SessionsList.tsx). No param means the live run, same as before.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const runId = searchParams.get("run") ?? undefined
+  const {
+    events,
+    currentStage,
+    busy,
+    started,
+    model,
+    error,
+    isCurrent,
+    start,
+    approve,
+    retry,
+    sendNudge,
+    changeModel,
+    reset,
+    resume,
+  } = useIntegration(runId)
+
+  // "Add a new platform"/"New pipeline" in the sidebar link here with
+  // ?new=1 (see App.tsx's useSidebarNavigation) — a real signal to actually
+  // reset the current run, not just a route change to a URL that might
+  // already be the one we're on. Same action as the Restart button below,
+  // same confirmation: the current run isn't deleted, it stays viewable as
+  // read-only history (see orchestrator.py's reset_pipeline(), which keeps
+  // it in _runs), it just stops being the live/interactive one. Skipped
+  // when nothing's actually running yet, so clicking it from an
+  // already-blank form is silent.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return
+    if (!started || window.confirm("Start a new run? The current run becomes read-only history — you can still view it, but can no longer approve, retry, or nudge it.")) {
+      if (started) void reset()
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("new")
+        return next
+      },
+      { replace: true }
+    )
+    // Only the URL's "new" flag should ever re-trigger this; started/reset
+    // are read at the moment it fires, not watched for changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Which stage's real result the human clicked to inspect, separate from
+  // currentStage (the real pending one). Snaps back to the live view
+  // whenever the pipeline actually advances, so clicking an old stage can
+  // never strand you away from the stage you'd need to act on next. Reset
+  // directly during render (React's own documented pattern for "adjust
+  // state when a prop/value changes") rather than in a useEffect, which
+  // would cause an extra, avoidable render pass.
+  const [viewedStage, setViewedStage] = useState<StageId | null>(null)
+  const [stageForReset, setStageForReset] = useState(currentStage)
+  if (currentStage !== stageForReset) {
+    setStageForReset(currentStage)
+    setViewedStage(null)
+  }
+
+  const latestResult = latestCallResult(events, currentStage)
+
+  const handleRestart = () => {
+    if (!window.confirm("Restart? The current run becomes read-only history — you can still view it, but can no longer approve, retry, or nudge it.")) return
+    void reset()
+  }
+
+  const handleResume = () => {
+    if (!window.confirm("Resume this run? Whatever run is currently active will become read-only history instead — you can still view it, but can no longer approve, retry, or nudge it.")) return
+    void resume()
+  }
+
+  // Picks which of the six independent stage panels to render, and in which
+  // mode (active vs. viewed-read-only) — see @/features/integration/stages/
+  // registry.ts. Kept here, not pushed into a shared component, since it's
+  // wiring specific to this screen's own state (viewedStage/currentStage/
+  // approve/retry), not a reusable stage-panel concern.
+  function renderStagePane() {
+    if (viewedStage && viewedStage !== currentStage) {
+      const ViewedPanel = STAGE_PANELS[viewedStage]
+      return (
+        <ViewedPanel
+          busy={false}
+          latestResult={latestCallResult(events, viewedStage)}
+          onBack={() => setViewedStage(null)}
+          readOnly
+        />
+      )
+    }
+    if (!currentStage) {
+      return <CompletePanel />
+    }
+    const ActivePanel = STAGE_PANELS[currentStage]
+    return (
+      <ActivePanel
+        busy={busy}
+        latestResult={latestResult}
+        onApprove={() => approve(currentStage)}
+        onRetry={(correction) => retry(currentStage, correction)}
+        readOnly={!isCurrent}
+      />
+    )
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Header + stepper are always visible, from the very first load (all
+          pending) through completion, matching the wireframe's "d1: input
+          (new platform)" screen, not just once a run is in progress. */}
+      <header
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-3)",
+          padding: "var(--space-3) var(--space-5)",
+          borderBottom: "1px solid var(--border-default)",
+          // The real wireframe's "d1: input (new platform)" header is a
+          // single flat #F3ECFF, no gradient. --brand-faint (--purple-50,
+          // #f3f0fe) is the token-scale match. Scenario A/B/C's "Generate
+          // Pipeline" flow (not built here) uses a different flat color,
+          // pale blue #E8F0FF, not pink and not a gradient either.
+          background: "var(--brand-faint)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-md)",
+              fontWeight: "var(--weight-bold)",
+              color: "var(--text-strong)",
+              margin: 0,
+            }}
+          >
+            Platform integration
+          </h1>
+          {/* Restarting moves the live run to read-only history rather than
+              deleting it (see orchestrator.py's reset_pipeline()), so it's
+              meaningless while already looking at read-only history — only
+              ever acts on the current run either way. Still guarded by a
+              confirm(): you can't go back to actively working on that run
+              once this happens, even though its results stay viewable. */}
+          <Button variant="secondary" size="sm" disabled={!started || busy || !isCurrent} onClick={handleRestart}>
+            Restart
+          </Button>
+        </div>
+        <Stepper
+          currentStage={currentStage}
+          busy={busy}
+          started={started}
+          selectedStage={viewedStage}
+          onSelectStage={started ? setViewedStage : undefined}
+        />
+      </header>
+
+      {/* Only a defined runId can ever be non-current (the live run always
+          reports is_current: true, see useIntegration) — this is genuinely
+          frozen history from the sidebar, not the run in progress. */}
+      {runId && !isCurrent && (
+        <div
+          style={{
+            margin: "var(--space-3) var(--space-5) 0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "var(--space-3)",
+            padding: "10px 16px",
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--text-xs)",
+            color: "var(--text-muted)",
+          }}
+        >
+          <span>Viewing a past run, read-only.</span>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            {/* No disabled={busy} guard here: busy on this hook instance is
+                the viewed (non-current) run's own busy state, always false
+                for history — it says nothing about whether the actually-live
+                run is mid-stage. The real guard is server-side (see
+                main.py's resume_endpoint, 409 while the live run is busy),
+                surfaced through the normal error path if it fires. */}
+            <Button variant="secondary" size="sm" onClick={handleResume}>
+              Resume this run
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSearchParams({})}>
+              Back to current run
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
+          border --danger-border, 14px/16px padding — see tokens.css's
+          --danger-border for why that one's a token this port adds on top
+          of the source. */}
+      {error && (
+        <div
+          style={{
+            margin: "var(--space-3) var(--space-5) 0",
+            display: "flex",
+            gap: 12,
+            padding: "14px 16px",
+            background: "var(--danger-100)",
+            border: "1px solid var(--danger-border)",
+            borderRadius: "var(--radius-md)",
+            fontFamily: "var(--font-sans)",
+            fontSize: 13.5,
+            lineHeight: 1.6,
+            color: "var(--text-body)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          gap: "var(--space-4)",
+          padding: "var(--space-4)",
+          overflow: "hidden",
+          background: "var(--surface-page)",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          <ChatColumn
+            events={events}
+            busy={busy}
+            model={model}
+            onSend={sendNudge}
+            onModelChange={changeModel}
+            readOnly={!isCurrent}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          {started ? (
+            renderStagePane()
+          ) : isCurrent ? (
+            <DocsStartForm
+              onStart={(platformName, documentationUrl, docsOptions) =>
+                start(platformName, documentationUrl, model ?? undefined, docsOptions)
+              }
+            />
+          ) : (
+            <NoStagesRanPanel />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

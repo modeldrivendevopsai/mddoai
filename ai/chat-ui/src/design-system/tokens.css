@@ -58,6 +58,19 @@
   --warning-700: #9a6800;
   --danger-500: #e0443c;
   --danger-100: #fbe5e3;
+  /* Hover-state darkening for Button's danger variant, mirrors
+     --brand-strong's role for --brand — ported verbatim from
+     mddoai-design-system/project/components/actions/Button.jsx, which
+     hardcodes this exact value too (no darker-danger token exists there
+     either). */
+  --danger-strong: #c93b34;
+  /* Border tone for a danger Callout, distinct from the fully-saturated
+     --danger-500 — ported verbatim from mddoai-design-system/project/
+     components/feedback/Callout.jsx's danger tone, which hardcodes this
+     exact value too (no token exists there either). Named here so every
+     danger-callout consumer references one value instead of each
+     re-hardcoding the same hex, same reasoning as --code-* above. */
+  --danger-border: #f3c4c0;
   --info-500: #3a7bd5;
   --info-100: #e4eefb;
 

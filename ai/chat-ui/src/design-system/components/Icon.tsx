@@ -13,7 +13,9 @@ interface IconProps extends LucideProps {
   name: IconName;
 }
 
-export function Icon({ name, size = 16, ...rest }: IconProps) {
+// size/strokeWidth defaults match the real source verbatim
+// (mddoai-design-system/project/components/actions/Icon.jsx).
+export function Icon({ name, size = 20, strokeWidth = 1.9, ...rest }: IconProps) {
   const LucideIcon = LucideIcons[name] as React.ComponentType<LucideProps> | undefined;
   if (!LucideIcon) {
     if (import.meta.env.DEV) {
@@ -21,5 +23,5 @@ export function Icon({ name, size = 16, ...rest }: IconProps) {
     }
     return null;
   }
-  return <LucideIcon size={size} strokeWidth={2} {...rest} />;
+  return <LucideIcon size={size} strokeWidth={strokeWidth} {...rest} />;
 }

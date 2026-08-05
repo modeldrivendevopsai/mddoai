@@ -4,7 +4,7 @@
  * orchestrator.py's list_runs()). Components depend only on
  * getSessions()/closeSession()'s signatures, not on this.
  */
-import { getRuns } from './orchestratorPipelineService';
+import { getRuns } from './orchestrator.service';
 import type { RunSummary } from '@/types/orchestrator';
 
 export type SessionType = 'pipeline' | 'platform';
@@ -21,11 +21,11 @@ function toSession(run: RunSummary): Session {
   return {
     id: run.run_id,
     name: run.platform_name ?? `Run ${run.run_id.slice(0, 8)}`,
-    // Every real run today is the "Add/Update a CI/CD Platform" flow (see
-    // OrchestratorScreen's own header, "Platform Integration" /
-    // "Add a CI/CD Platform") — 'platform', not 'pipeline', is what makes
+    // Every real run today is the "Add/update a CI/CD platform" flow (see
+    // IntegrationScreen's own header, "Platform integration" /
+    // "Add a CI/CD platform") — 'platform', not 'pipeline', is what makes
     // SessionsList render it with the app's real purple ("platform mode")
-    // tint instead of the unimplemented "Generate a CI/CD Pipeline" mode's
+    // tint instead of the unimplemented "Generate a CI/CD pipeline" mode's
     // blue one.
     type: 'platform',
     state: run.is_current ? 'selected' : 'normal',
@@ -34,7 +34,7 @@ function toSession(run: RunSummary): Session {
 
 // Filtered by type, not just returned wholesale: every real run is
 // 'platform' (see toSession), so the "Pipelines" tab is correctly empty
-// until "Generate a CI/CD Pipeline" is a real flow with its own runs, not a
+// until "Generate a CI/CD pipeline" is a real flow with its own runs, not a
 // duplicate of "Platforms" own list.
 export async function getSessions(type: SessionType): Promise<Session[]> {
   const runs = await getRuns();

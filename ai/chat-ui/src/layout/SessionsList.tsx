@@ -14,17 +14,31 @@ interface SessionsListProps {
   activeTab: SessionType;
 }
 
+// Which run is current (the blue highlight) and the list itself both change
+// from actions taken entirely outside this component — starting, approving,
+// or restarting a run on IntegrationScreen. A one-time fetch on tab-switch
+// goes stale the moment any of those happen, since nothing here would ever
+// trigger a refetch otherwise. Polls on the same "MVP: poll, don't add a
+// websocket" basis as useIntegration's own event polling, just on a slower
+// interval since this list is far less latency-sensitive than live events.
+const POLL_INTERVAL_MS = 4000;
+
 export function SessionsList({ activeTab }: SessionsListProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
-    getSessions(activeTab).then((data) => {
-      if (!cancelled) setSessions(data);
-    });
+    function load() {
+      getSessions(activeTab).then((data) => {
+        if (!cancelled) setSessions(data);
+      });
+    }
+    load();
+    const id = setInterval(load, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [activeTab]);
 
@@ -54,14 +68,14 @@ export function SessionsList({ activeTab }: SessionsListProps) {
           ]
             .filter(Boolean)
             .join(' ')}
-          onClick={() => navigate(`/pipeline?run=${s.id}`)}
+          onClick={() => navigate(`/integration?run=${s.id}`)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') navigate(`/pipeline?run=${s.id}`);
+            if (e.key === 'Enter' || e.key === ' ') navigate(`/integration?run=${s.id}`);
           }}
         >
           <span className="mdd-sessions__name">{s.name}</span>
           {s.state === 'attention' && (
-            <Icon name="AlertTriangle" size={12} className="mdd-sessions__warn" />
+            <Icon name="AlertTriangle" className="mdd-sessions__warn" />
           )}
           <button
             className="mdd-sessions__close"
@@ -71,7 +85,7 @@ export function SessionsList({ activeTab }: SessionsListProps) {
               handleClose(s.id);
             }}
           >
-            <Icon name="X" size={12} />
+            <Icon name="X" />
           </button>
         </div>
       ))}

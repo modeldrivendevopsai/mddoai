@@ -9,11 +9,11 @@ import {
   reviewStage,
   setModel,
   startPipeline,
-} from "./orchestratorPipelineService"
+} from "./orchestrator.service"
 
 afterEach(() => vi.restoreAllMocks())
 
-describe("orchestratorPipelineService", () => {
+describe("orchestratorService", () => {
   it("startPipeline posts platform_description/seed_url and returns the started response", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,

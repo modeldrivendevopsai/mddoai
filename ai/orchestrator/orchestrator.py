@@ -497,6 +497,23 @@ def reset_pipeline() -> None:
     _runs[_default.run_id] = _default
 
 
+def resume_run(run_id: str) -> dict:
+    """Make an existing run current again, so it can be approved/retried/
+    nudged like any other live run — the counterpart to reset_pipeline(),
+    which replaces _default with a blank run instead of an existing one.
+    The run's own state (constraints, events, current_stage_index) is
+    untouched, nothing is replayed or reset, it just picks up exactly where
+    it left off. Raises ValueError for an unknown run_id, left for the
+    caller (main.py) to turn into the right HTTP status, same convention as
+    review()/rerun_stage()."""
+    global _default
+    run = get_run(run_id)
+    if run is None:
+        raise ValueError(f"No run with id {run_id!r}")
+    _default = run
+    return {"run_id": _default.run_id, "current_stage": _default.current_stage}
+
+
 def start_pipeline(
     platform_description: str,
     seed_url: str,

@@ -12,7 +12,7 @@ export interface StartOption {
   cta: string;
   // True for a mode with no real backend behind it yet — the card renders
   // but its Start button is disabled rather than silently landing on the
-  // "Add/Update a CI/CD Platform" flow, which is a different, real mode.
+  // "Add/update a CI/CD platform" flow, which is a different, real mode.
   comingSoon?: boolean;
 }
 
@@ -20,7 +20,7 @@ export const START_OPTIONS: StartOption[] = [
   {
     id: 'generate-pipeline',
     tone: 'pipeline',
-    title: 'Generate a CI/CD Pipeline',
+    title: 'Generate a CI/CD pipeline',
     description:
       'Upload a SWArch file, pick a supported CI/CD platform, get a CI/CD pipeline back.',
     cta: 'Start',
@@ -29,7 +29,7 @@ export const START_OPTIONS: StartOption[] = [
   {
     id: 'add-update-platform',
     tone: 'platform',
-    title: 'Add or Update a CI/CD Platform',
+    title: 'Add or update a CI/CD platform',
     description:
       'Describe a CI/CD platform or upload its docs, MDDOAI generates or updates support for it.',
     cta: 'Start',

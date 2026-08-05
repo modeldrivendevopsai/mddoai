@@ -41,9 +41,10 @@ export function CodeBlock({ code, title, lang = "text" }: CodeBlockProps) {
       {/* Padding/sizes below (8/12/14px, 10px dots, 11/12/13px text, 3px/9px
           button padding) are the source component's own bespoke terminal-
           chrome measurements, off the spacing and text-size scales — kept
-          as literals to stay verbatim, same convention as StageOutputPanel's
-          danger callout. Colors are the actual token violation and are
-          real, named code-surface tokens now (see tokens.css). */}
+          as literals to stay verbatim, same convention as each stage
+          panel's danger callout (see e.g. stages/psm/PsmStagePanel.tsx).
+          Colors are the actual token violation and are real, named
+          code-surface tokens now (see tokens.css). */}
       <div
         style={{
           display: "flex",

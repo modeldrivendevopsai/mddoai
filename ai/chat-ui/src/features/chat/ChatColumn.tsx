@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { getProviders } from "@/services/orchestratorPipelineService"
+import { getProviders } from "@/services/orchestrator.service"
 import type { OrchestratorEvent, OrchestratorEventType, Provider } from "@/types/orchestrator"
+import "./chat.css"
 
 interface ChatColumnProps {
   events: OrchestratorEvent[]
@@ -14,7 +15,7 @@ interface ChatColumnProps {
   readOnly?: boolean
 }
 
-// Matches the wireframe's real "Add a CI/CD Platform" screen: a static
+// Matches the wireframe's real "Add a CI/CD platform" screen: a static
 // explainer from "Orchestrator" is always the first thing in the chat,
 // before any real event exists, not just an empty-state placeholder.
 const INTRO_TEXT =
@@ -38,7 +39,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
       .catch(() => setProviders([]))
   }, [])
 
-  // usePipeline polls GET /events every 1.5s, which hands back a freshly
+  // useIntegration polls GET /events every 1.5s, which hands back a freshly
   // parsed array (a new reference) on every tick even when nothing actually
   // changed, so this can't just depend on `events` itself, that would
   // scroll-to-bottom every single tick, yanking you back down while trying
@@ -104,7 +105,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
           positioned the same way, right above the input. Unlike that one
           (which only ever affected the next message), this one changes
           Orchestrator.model for the rest of the run, every subsequent stage
-          run/retry/nudge, not just the next nudge, see usePipeline's
+          run/retry/nudge, not just the next nudge, see useIntegration's
           changeModel. */}
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <select
@@ -134,6 +135,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
       </div>
 
       <div
+        className="mddoai-chat-nudge"
         style={{
           background: "var(--surface-card)",
           border: "1px solid var(--border-strong)",

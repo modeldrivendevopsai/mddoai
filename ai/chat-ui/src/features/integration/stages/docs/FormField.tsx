@@ -139,34 +139,3 @@ export function TextAreaField({
     </label>
   )
 }
-
-export function SelectField({
-  value,
-  onChange,
-  disabled,
-  children,
-  ariaLabel,
-}: {
-  value: string
-  onChange: (value: string) => void
-  disabled?: boolean
-  children: React.ReactNode
-  ariaLabel?: string
-}) {
-  const [focus, setFocus] = useState(false)
-  return (
-    <span style={{ ...fieldChromeStyle(focus, disabled), height: 32, padding: "0 8px" }}>
-      <select
-        value={value}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        style={{ ...inputTextStyle, fontSize: 12, cursor: disabled ? "not-allowed" : "pointer" }}
-      >
-        {children}
-      </select>
-    </span>
-  )
-}

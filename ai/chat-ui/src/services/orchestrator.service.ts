@@ -4,6 +4,7 @@ import type {
   Provider,
   RerunOverrides,
   ResetResponse,
+  ResumeResponse,
   ReviewResponse,
   RunSummary,
   StageId,
@@ -61,14 +62,32 @@ export async function startPipeline(
   return res.json()
 }
 
-// Discards the current run with no new run to replace it, the empty-state
-// counterpart to startPipeline(). 409s (surfaced via errorFor's real detail
-// message) if a stage is genuinely still running.
+// Replaces the current run with a fresh, blank one (no stage started yet) —
+// the empty-state counterpart to startPipeline(), which does the same
+// replacement but also kicks off the docs stage immediately. The old run
+// isn't deleted, ai/orchestrator's reset_pipeline() keeps it in history.
+// 409s (surfaced via errorFor's real detail message) if a stage is
+// genuinely still running.
 export async function resetPipeline(): Promise<ResetResponse> {
   const res = await fetch("/orchestrator-api/reset", { method: "POST" })
 
   if (!res.ok) {
     throw await errorFor("Reset", res)
+  }
+
+  return res.json()
+}
+
+// The counterpart to resetPipeline(): makes a past run current again,
+// picking up exactly where it left off (nothing about its progress,
+// constraints, or events is replayed or reset). 404s if runId is unknown,
+// 409s (both surfaced via errorFor's real detail message) if a stage is
+// genuinely still running on whichever run is current right now.
+export async function resumeRun(runId: string): Promise<ResumeResponse> {
+  const res = await fetch(`/orchestrator-api/resume/${runId}`, { method: "POST" })
+
+  if (!res.ok) {
+    throw await errorFor("Resume", res)
   }
 
   return res.json()

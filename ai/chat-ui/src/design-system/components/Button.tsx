@@ -65,13 +65,13 @@ export function Button({
       boxShadow: active ? 'none' : hover ? 'var(--glow-brand)' : 'var(--shadow-sm)',
     },
     danger: {
-      // #c93b34 (hover only) is the source's own literal value, not a
-      // token substitution — mddoai-design-system/project/components/
-      // actions/Button.jsx hardcodes this exact hex too, no darker-danger
-      // token exists to reference. color is --on-brand (not a literal),
-      // it duplicates #fff exactly and is already the token every other
-      // colored variant's text uses.
-      background: hover ? '#c93b34' : 'var(--danger-500)',
+      // color is --on-brand (not a literal): it duplicates #fff exactly
+      // and is already the token every other colored variant's text uses.
+      // background's hover state uses --danger-strong, a token this port
+      // adds on top of the source (mddoai-design-system/project/components/
+      // actions/Button.jsx hardcodes this same hex with no token of its
+      // own) — see tokens.css's --danger-strong for why.
+      background: hover ? 'var(--danger-strong)' : 'var(--danger-500)',
       color: 'var(--on-brand)',
       boxShadow: active ? 'none' : 'var(--shadow-xs)',
     },
@@ -123,7 +123,7 @@ export function Button({
           smaller icons on longer-label buttons. The label gets its own
           minWidth:0 span so it truncates with an ellipsis instead, the icon
           never does. */}
-      {icon && <Icon name={icon} size={size === 'sm' ? 13 : 14} style={{ flexShrink: 0 }} />}
+      {icon && <Icon name={icon} style={{ flexShrink: 0 }} />}
       {/* lineHeight: 'normal' here, not the button's own lineHeight: 1 —
           overflow:hidden (needed for the ellipsis) clips to the line box,
           and a lineHeight of 1 leaves no room for descenders (the tails on
