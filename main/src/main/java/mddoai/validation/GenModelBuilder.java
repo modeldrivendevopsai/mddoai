@@ -37,6 +37,12 @@ final class GenModelBuilder {
     private static final Object ADAPTER_REGISTRATION_LOCK = new Object();
     private static volatile boolean adapterRegistered = false;
 
+    // EcorePlugin.getPlatformResourceMap() is backed by a plain, non-thread-safe HashMap
+    // (confirmed against EMF's own source), so the put/generate/remove sequence below must
+    // be serialized — two concurrent calls could otherwise corrupt the map or have one call's
+    // finally-remove wipe out another call's still-in-progress mapping.
+    private static final Object PLATFORM_RESOURCE_MAP_LOCK = new Object();
+
     private GenModelBuilder() {
     }
 
@@ -75,20 +81,22 @@ final class GenModelBuilder {
         // Generated output paths are platform:/resource/<modelPluginID>/... URIs; outside
         // Eclipse that scheme is unresolvable unless mapped to a real directory here. This
         // is the actual fix for "generate() returns a clean OK diagnostic but writes nothing."
-        EcorePlugin.getPlatformResourceMap().put(modelPluginID,
-                URI.createFileURI(workDir.getAbsolutePath() + "/"));
-        try {
-            org.eclipse.emf.codegen.ecore.generator.Generator generator =
-                    new org.eclipse.emf.codegen.ecore.generator.Generator();
-            generator.setInput(genModel);
-            Diagnostic diagnostic = generator.generate(
-                    genModel, GenBaseGeneratorAdapter.MODEL_PROJECT_TYPE, new BasicMonitor());
+        synchronized (PLATFORM_RESOURCE_MAP_LOCK) {
+            EcorePlugin.getPlatformResourceMap().put(modelPluginID,
+                    URI.createFileURI(workDir.getAbsolutePath() + "/"));
+            try {
+                org.eclipse.emf.codegen.ecore.generator.Generator generator =
+                        new org.eclipse.emf.codegen.ecore.generator.Generator();
+                generator.setInput(genModel);
+                Diagnostic diagnostic = generator.generate(
+                        genModel, GenBaseGeneratorAdapter.MODEL_PROJECT_TYPE, new BasicMonitor());
 
-            List<ValidationIssue> issues = new ArrayList<>();
-            boolean hasError = flatten(diagnostic, sourceFileForIssues, issues);
-            return new Result(issues, hasError, new File(workDir, "src-gen"));
-        } finally {
-            EcorePlugin.getPlatformResourceMap().remove(modelPluginID);
+                List<ValidationIssue> issues = new ArrayList<>();
+                boolean hasError = flatten(diagnostic, sourceFileForIssues, issues);
+                return new Result(issues, hasError, new File(workDir, "src-gen"));
+            } finally {
+                EcorePlugin.getPlatformResourceMap().remove(modelPluginID);
+            }
         }
     }
 
