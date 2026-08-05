@@ -255,7 +255,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="Joj8jIXp7VIct9sAKGCk" name="Low Level">
-    <mxGraphModel dx="1501" dy="804" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="6773" dy="3687" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -559,6 +559,101 @@
         </mxCell>
         <mxCell id="WL5m0U0JmWJvD9h2GzeN-19" edge="1" parent="1" source="WL5m0U0JmWJvD9h2GzeN-17" style="endArrow=block;html=1;strokeColor=#666666;dashed=1;strokeWidth=2;fontSize=10;" target="WL5m0U0JmWJvD9h2GzeN-10" value="-cp lib/*">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontStyle=1;fontSize=14;" value="Orchestrator" vertex="1">
+          <mxGeometry height="50" width="160" x="2970" y="1630" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-2" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;" target="PPcgnp2etPmw12dt06Y3-4" value="invokes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8D5F5;strokeColor=#9673B9;fontColor=#4A2D6B;fontStyle=1;fontSize=14;verticalAlign=top;spacingTop=10;dashed=0;container=0;" value="PIM Agent (pim_agent.py)" vertex="1">
+          <mxGeometry height="720" width="790" x="2660" y="1720" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;Load inputs&lt;/b&gt;&lt;br&gt;pimMM.ecore + parsed platform docs" vertex="1">
+          <mxGeometry height="60" width="240" x="2790" y="1770" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD2CC;strokeColor=#CC6655;fontSize=12;fontColor=#663333;" value="&lt;b&gt;ACICDTrip Knowledge Agent&lt;/b&gt;&lt;br&gt;Full understanding of ACICDTrip&lt;br&gt;PIM metamodel (.ecore + concept&lt;br&gt;definitions + known platform gaps)" vertex="1">
+          <mxGeometry height="90" width="240" x="3100" y="1755" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-6" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;" target="PPcgnp2etPmw12dt06Y3-8" value="grounds">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3280.04" y="1920.04" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-7" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="PPcgnp2etPmw12dt06Y3-8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2910" y="1920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;LLM full compare&lt;/b&gt;&lt;br&gt;Compare platform docs vs PIM:&lt;br&gt;subclasses, properties, relationships,&lt;br&gt;and any entirely new concepts" vertex="1">
+          <mxGeometry height="80" width="280" x="2930" y="1880" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-9" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="PPcgnp2etPmw12dt06Y3-10" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-10" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=12;" value="Gap found?" vertex="1">
+          <mxGeometry height="60" width="120" x="3010" y="2000" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-11" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.998;entryY=0.405;entryDx=0;entryDy=0;fontSize=11;entryPerimeter=0;" target="PPcgnp2etPmw12dt06Y3-20" value="no gaps">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3340.05" y="2030" />
+              <mxPoint x="3340.05" y="2490" />
+              <mxPoint x="3189.4" y="2490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-12" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;" target="PPcgnp2etPmw12dt06Y3-13" value="yes">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="3070" y="2100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;Propose PIM extension&lt;/b&gt;&lt;br&gt;New subclass / attribute / relationship /&lt;br&gt;entirely new concept" vertex="1">
+          <mxGeometry height="60" width="280" x="2930" y="2130" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-14" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="PPcgnp2etPmw12dt06Y3-15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="&lt;b&gt;POST /review/gap_id&lt;/b&gt;&lt;br&gt;Human approves or curates prompt" vertex="1">
+          <mxGeometry height="50" width="280" x="2930" y="2250" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-16" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontSize=11;entryX=0.998;entryY=0.846;entryDx=0;entryDy=0;entryPerimeter=0;" target="PPcgnp2etPmw12dt06Y3-13" value="curate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3240" y="2275" />
+              <mxPoint x="3240" y="2260.11" />
+              <mxPoint x="3209.33" y="2260.11" />
+            </Array>
+            <mxPoint x="3210" y="2200.02" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-17" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;fontSize=11;" target="PPcgnp2etPmw12dt06Y3-18" value="approve">
+          <mxGeometry relative="1" x="0.0053" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="2829.96" y="2275" />
+              <mxPoint x="2829.96" y="2359.96" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;Apply extension to pimMM.ecore&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="280" x="2920" y="2350" as="geometry" />
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-19" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;fontSize=11;entryX=0;entryY=0.883;entryDx=0;entryDy=0;entryPerimeter=0;" target="PPcgnp2etPmw12dt06Y3-8" value="check for more gaps">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2750" y="2380" />
+              <mxPoint x="2750.05" y="1950.59" />
+            </Array>
+            <mxPoint x="2920" y="1947.6" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PPcgnp2etPmw12dt06Y3-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" value="&lt;b&gt;Return confirmed / extended PIM&lt;/b&gt;&lt;br&gt;→ back to Orchestrator" vertex="1">
+          <mxGeometry height="50" width="280" x="2910" y="2470" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
