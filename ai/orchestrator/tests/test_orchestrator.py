@@ -221,6 +221,47 @@ def test_start_pipeline_defaults_model_to_none():
         orchestrator._default = original
 
 
+def test_start_pipeline_forwards_docs_options_to_the_real_fetch_call():
+    original = orchestrator._default
+    try:
+        with patch.object(orchestrator, "httpx") as mock_httpx:
+            mock_httpx.post.return_value = _fake_fetch_response()
+            orchestrator.start_pipeline(
+                "TeamCity",
+                "https://example.com/docs",
+                docs_options={
+                    "hint": "focus on syntax",
+                    "exclude_urls": ["https://example.com/blog"],
+                    "max_pages": 5,
+                    "max_depth": 2,
+                    "force_refresh": True,
+                },
+            )
+            orchestrator.wait_for_idle()
+
+        fetch_calls = [c for c in mock_httpx.post.call_args_list if c.args[0].endswith("/fetch")]
+        assert fetch_calls[0].kwargs["json"] == {
+            "url": "https://example.com/docs", "hint": "focus on syntax",
+            "exclude_urls": ["https://example.com/blog"], "max_pages": 5, "max_depth": 2, "force_refresh": True,
+        }
+    finally:
+        orchestrator._default = original
+
+
+def test_start_pipeline_omits_docs_options_when_none_given():
+    original = orchestrator._default
+    try:
+        with patch.object(orchestrator, "httpx") as mock_httpx:
+            mock_httpx.post.return_value = _fake_fetch_response()
+            orchestrator.start_pipeline("TeamCity", "https://example.com/docs")
+            orchestrator.wait_for_idle()
+
+        fetch_calls = [c for c in mock_httpx.post.call_args_list if c.args[0].endswith("/fetch")]
+        assert fetch_calls[0].kwargs["json"] == {"url": "https://example.com/docs"}
+    finally:
+        orchestrator._default = original
+
+
 def test_list_providers_proxies_ai_layers_real_providers_endpoint():
     payload = [{"name": "gemini-flash", "tier": "free"}, {"name": "claude-subscription", "tier": "subscription"}]
     with patch("orchestrator.httpx.get", return_value=_fake_httpx_response_raw(payload)) as mock_get:

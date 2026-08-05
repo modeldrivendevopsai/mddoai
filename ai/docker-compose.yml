@@ -62,8 +62,6 @@ services:
     build: ./chat-ui
     command: npm run dev -- --host 0.0.0.0
     environment:
-      - VITE_API_PROXY_TARGET=http://ai-layer:8000
-      - VITE_RETRIEVAL_PROXY_TARGET=http://retrieval:8010
       - VITE_ORCHESTRATOR_PROXY_TARGET=http://orchestrator:8001
       # See vite.config.ts's server.watch comment: without this, edits to a
       # bind-mounted file on the host can silently stop triggering HMR.
@@ -74,9 +72,5 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      ai-layer:
-        condition: service_started
-      retrieval:
-        condition: service_started
       orchestrator:
         condition: service_started

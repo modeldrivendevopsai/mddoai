@@ -50,6 +50,37 @@ describe("orchestratorPipelineService", () => {
     })
   })
 
+  it("startPipeline includes docsOptions when given", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "started", stage: "docs" }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await startPipeline("TeamCity", "https://example.com/docs", undefined, {
+      hint: "focus on syntax",
+      exclude_urls: ["https://example.com/blog"],
+      max_pages: 5,
+      max_depth: 2,
+      force_refresh: true,
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        platform_description: "TeamCity",
+        seed_url: "https://example.com/docs",
+        model: undefined,
+        hint: "focus on syntax",
+        exclude_urls: ["https://example.com/blog"],
+        max_pages: 5,
+        max_depth: 2,
+        force_refresh: true,
+      }),
+    })
+  })
+
   it("getProviders fetches the real provider list", async () => {
     const payload = [{ name: "gemini-flash", tier: "free" }, { name: "claude-subscription", tier: "subscription" }]
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })

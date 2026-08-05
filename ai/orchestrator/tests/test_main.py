@@ -224,6 +224,29 @@ def test_start_endpoint_forwards_the_chosen_model_to_every_real_chat_call():
     assert all(c.kwargs["json"]["model"] == "gemini-flash" for c in chat_calls)
 
 
+def test_start_endpoint_forwards_docs_options_to_the_real_fetch_call():
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+        client.post(
+            "/start",
+            json={
+                "platform_description": "A GitLab CI platform",
+                "seed_url": "https://example.com/docs",
+                "hint": "focus on syntax",
+                "exclude_urls": ["https://example.com/blog"],
+                "max_pages": 5,
+                "max_depth": 2,
+                "force_refresh": True,
+            },
+        )
+        orchestrator.wait_for_idle()
+
+    fetch_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/fetch")]
+    assert fetch_calls[0].kwargs["json"] == {
+        "url": "https://example.com/docs", "hint": "focus on syntax",
+        "exclude_urls": ["https://example.com/blog"], "max_pages": 5, "max_depth": 2, "force_refresh": True,
+    }
+
+
 def test_start_endpoint_omits_model_when_none_chosen():
     with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
         client.post(

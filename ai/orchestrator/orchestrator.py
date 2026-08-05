@@ -461,15 +461,23 @@ def reset_pipeline() -> None:
     _runs[_default.run_id] = _default
 
 
-def start_pipeline(platform_description: str, seed_url: str, model: str | None = None) -> dict:
+def start_pipeline(
+    platform_description: str,
+    seed_url: str,
+    model: str | None = None,
+    docs_options: dict | None = None,
+) -> dict:
     """Reset the pipeline and start the docs stage running in the background.
     Used directly by both /start and the start_pipeline tool (which never
-    supplies model, that choice is REST/UI-driven at Start time, not
-    something the LLM decides via nudge). model, once set, applies to every
-    real chat() call for the rest of this run (see Orchestrator.model)."""
+    supplies model or docs_options, those are REST/UI-driven at Start time,
+    not something the LLM decides via nudge). model, once set, applies to
+    every real chat() call for the rest of this run (see Orchestrator.model).
+    docs_options is the same shape rerun()'s overrides accepts for the docs
+    stage (hint, exclude_urls, max_pages, max_depth, force_refresh) — set
+    once here up front instead of only being reachable via a retry."""
     reset_pipeline()
     _default.model = model
-    context = {"platform_description": platform_description, "seed_url": seed_url}
+    context = {"platform_description": platform_description, "seed_url": seed_url, **(docs_options or {})}
     return start_stage_run(context)
 
 

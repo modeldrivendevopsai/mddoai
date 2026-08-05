@@ -223,9 +223,11 @@ tools are scoped to `stages: [docs]`, wrapping `retrieval`'s own real capabiliti
   immediately, same as `POST /review` approving does.
 - **`add_constraint(stage, constraint)`** — record a correction without rerunning yet;
   typically followed immediately by `rerun_stage()` when the user wants a fix applied now.
-- **`start_pipeline(platform_description, seed_url)`** — reset the pipeline and start the
-  `docs` stage running (in the background) fresh for a *different* platform, discarding all
-  current progress and constraints.
+- **`start_pipeline(platform_description, seed_url, model=None, docs_options=None)`** — reset the
+  pipeline and start the `docs` stage running (in the background) fresh for a *different*
+  platform, discarding all current progress and constraints. `docs_options` is the same shape
+  `rerun()`'s overrides accepts for the docs stage (`hint`, `exclude_urls`, `max_pages`,
+  `max_depth`, `force_refresh`), settable at start time too, not only reachable via a retry.
 - **`fetch_documentation(url, hint=None, exclude_urls=None, max_pages=None, max_depth=None, force_refresh=None)`**
   (`docs` only) — wraps `retrieval`'s real `POST /fetch` directly, for steering or narrowing a
   fresh crawl without advancing the pipeline. Returns a summary (page count, confidence,
@@ -277,9 +279,26 @@ guard `/review`, `/rerun`, and `/nudge` have, added here for the same reason: `s
 swaps in a brand-new `Orchestrator`, so without this guard, starting over mid-run wouldn't error,
 it would silently orphan the old run's background thread instead).
 
-Request:
+`hint`, `exclude_urls`, `max_pages`, `max_depth`, and `force_refresh` are optional, the same
+real retrieval parameters `/rerun/docs`'s `overrides` accepts, settable here too so a caller can
+steer the very first crawl, not only a retry.
+
+Request (minimal):
 ```json
 { "platform_description": "TeamCity: A CI/CD platform using Kotlin DSL", "seed_url": "https://www.jetbrains.com/help/teamcity/" }
+```
+
+Request (with the docs stage's advanced options):
+```json
+{
+  "platform_description": "TeamCity: A CI/CD platform using Kotlin DSL",
+  "seed_url": "https://www.jetbrains.com/help/teamcity/",
+  "hint": "prioritize pages about triggers and secrets",
+  "exclude_urls": ["https://www.jetbrains.com/help/teamcity/old-page.html"],
+  "max_pages": 20,
+  "max_depth": 4,
+  "force_refresh": false
+}
 ```
 
 Response (`202`), immediately, before the fetch has necessarily finished:

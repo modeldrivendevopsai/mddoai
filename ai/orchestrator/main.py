@@ -32,6 +32,13 @@ class StartRequest(BaseModel):
     platform_description: str
     seed_url: str
     model: str | None = None
+    # Same shape as RerunOverrides below — the docs stage's real retrieval
+    # parameters, settable at start time too, not just on a retry.
+    hint: str | None = None
+    exclude_urls: list[str] | None = None
+    max_pages: int | None = Field(default=None, ge=1)
+    max_depth: int | None = Field(default=None, ge=1)
+    force_refresh: bool | None = None
 
 
 class ReviewRequest(BaseModel):
@@ -89,7 +96,10 @@ def start_endpoint(request: StartRequest):
     # Orchestrator instance nothing could ever read again.
     if is_busy():
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    return start_pipeline(request.platform_description, request.seed_url, request.model)
+    docs_options = request.model_dump(
+        include={"hint", "exclude_urls", "max_pages", "max_depth", "force_refresh"}, exclude_none=True
+    )
+    return start_pipeline(request.platform_description, request.seed_url, request.model, docs_options)
 
 
 @app.post("/reset")

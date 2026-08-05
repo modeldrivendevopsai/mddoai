@@ -30,15 +30,27 @@ async function errorFor(label: string, res: Response): Promise<Error> {
   return new Error(`${label} request failed: ${res.status}`)
 }
 
+// Same shape as rerunStage's overrides, minus seed_url (that's the required
+// seedUrl param below, not an optional override here) — ai/orchestrator's
+// docs stage takes these real retrieval parameters at start time too, not
+// only on a retry (see main.py's StartRequest).
+export type DocsOptions = Omit<RerunOverrides, "seed_url">
+
 export async function startPipeline(
   platformDescription: string,
   seedUrl: string,
-  model?: string
+  model?: string,
+  docsOptions?: DocsOptions
 ): Promise<StartedResponse> {
   const res = await fetch("/orchestrator-api/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ platform_description: platformDescription, seed_url: seedUrl, model }),
+    body: JSON.stringify({
+      platform_description: platformDescription,
+      seed_url: seedUrl,
+      model,
+      ...docsOptions,
+    }),
   })
 
   if (!res.ok) {

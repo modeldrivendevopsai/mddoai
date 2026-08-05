@@ -8,6 +8,7 @@ import {
   setModel as setModelApi,
   startPipeline,
 } from "@/services/orchestratorPipelineService"
+import type { DocsOptions } from "@/services/orchestratorPipelineService"
 import type { OrchestratorEvent, StageId } from "@/orchestrator/types"
 
 // Real backend error messages (see orchestratorPipelineService's errorFor())
@@ -124,10 +125,10 @@ export function usePipeline() {
   }, [applyEvents])
 
   const start = useCallback(
-    async (platformDescription: string, seedUrl: string, model?: string) => {
+    async (platformDescription: string, seedUrl: string, model?: string, docsOptions?: DocsOptions) => {
       setError(null)
       try {
-        await startPipeline(platformDescription, seedUrl, model)
+        await startPipeline(platformDescription, seedUrl, model, docsOptions)
         // The backend just replaced its own Orchestrator (reset_pipeline()),
         // a fresh event log starting again at index 0, drop whatever the
         // previous run had accumulated so the next fetch doesn't merge two

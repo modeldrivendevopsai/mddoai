@@ -32,21 +32,13 @@ export default defineConfig({
       interval: 300,
     },
     proxy: {
-      '/api': {
-        // docker-compose.yml sets this to ai-layer:8000 (Docker service name);
-        // the fallback here is for running npm run dev outside Docker.
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/retrieval-api': {
-        // docker-compose.yml sets this to retrieval:8010 (Docker service name);
-        // the fallback here is for running npm run dev outside Docker.
-        target: process.env.VITE_RETRIEVAL_PROXY_TARGET || 'http://localhost:8010',
-        rewrite: (path) => path.replace(/^\/retrieval-api/, ''),
-      },
       '/orchestrator-api': {
-        // ai/orchestrator is internal-only (expose, not ports, in
-        // docker-compose.yml), same reasoning as /api above.
+        // docker-compose.yml sets this to orchestrator:8001 (Docker service
+        // name); the fallback here is for running npm run dev outside
+        // Docker. ai/orchestrator is internal-only (expose, not ports, in
+        // docker-compose.yml) — every real call chat-ui makes goes through
+        // this one proxy now, orchestrator itself is the only thing that
+        // talks to ai-layer/retrieval (see ai/README.md).
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
         rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),
       },

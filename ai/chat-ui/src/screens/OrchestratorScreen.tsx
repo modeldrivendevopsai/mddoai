@@ -199,7 +199,11 @@ export default function OrchestratorScreen() {
               />
             )
           ) : (
-            <PlatformForm onStart={start} />
+            <PlatformForm
+              onStart={(platformName, documentationUrl, docsOptions) =>
+                start(platformName, documentationUrl, model ?? undefined, docsOptions)
+              }
+            />
           )}
         </div>
       </div>
