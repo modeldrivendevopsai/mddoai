@@ -255,7 +255,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="Joj8jIXp7VIct9sAKGCk" name="Low Level">
-    <mxGraphModel dx="6773" dy="3687" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1693" dy="922" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -625,8 +625,7 @@
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="3240" y="2275" />
-              <mxPoint x="3240" y="2260.11" />
-              <mxPoint x="3209.33" y="2260.11" />
+              <mxPoint x="3240" y="2180.77" />
             </Array>
             <mxPoint x="3210" y="2200.02" as="targetPoint" />
           </mxGeometry>
