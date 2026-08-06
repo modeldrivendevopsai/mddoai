@@ -12,6 +12,10 @@ Tests verify:
   8. ground() matches a plural query term ("limitations") against a singular
      keyword ("limitation") via the scorer's lightweight suffix stripping,
      without reintroducing the earlier substring-matching false-positive bug.
+  9. ground() returns the Job services entry for a "services" query (PR
+     feedback: this previously returned zero results).
+  10. ground() returns the VariableDeclaration entry for a "VariableDeclaration"
+      query (PR feedback: this previously returned zero results).
 """
 
 from pim_agent import GroundingExample, ground
@@ -56,6 +60,20 @@ def test_ground_matches_plural_query_against_singular_keyword():
     results = ground("known limitations")
     assert results
     assert any(r.category == "limitation" for r in results)
+
+
+def test_ground_matches_job_services_entry():
+    # PR feedback (@Dhingraakshat): "services" previously returned 0 results.
+    results = ground("services")
+    assert results
+    assert any(r.title == "Job services" for r in results)
+
+
+def test_ground_matches_variable_declaration_entry():
+    # PR feedback (@Dhingraakshat): "VariableDeclaration" previously returned 0 results.
+    results = ground("VariableDeclaration")
+    assert results
+    assert any(r.title == "VariableDeclaration" for r in results)
 
 
 def test_ground_results_are_well_formed():

@@ -93,6 +93,20 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
     ),
     _KnowledgeEntry(
         category="metamodel",
+        title="Job services",
+        description=(
+            "A Job declares a `services` property (DockerContainer[*|1]): one or "
+            "more DockerContainer instances that run alongside the job during its "
+            "execution, e.g. spinning up a database or cache container for a test "
+            "job. This is the Job-to-DockerContainer dependency relationship, "
+            "distinct from the DockerContainer class's own fields (image, env "
+            "vars, volumes, ports, credentials)."
+        ),
+        keywords=("service", "services", "job", "dockercontainer", "docker", "sidecar", "database", "cache"),
+        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+    ),
+    _KnowledgeEntry(
+        category="metamodel",
         title="Trigger types",
         description=(
             "Triggers cover PushTrigger, PullRequestTrigger, ManualTrigger, and "
@@ -146,6 +160,21 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         keywords=(
             "expression", "concat", "literal", "literals", "variablereference", "binaryop",
             "equalityop", "comparisonop", "logicalop", "unaryop", "negation",
+        ),
+        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+    ),
+    _KnowledgeEntry(
+        category="metamodel",
+        title="VariableDeclaration",
+        description=(
+            "VariableDeclaration introduces a named variable (a single `name` "
+            "attribute). It's referenced by VariableReference and Assignment, and "
+            "is used across environment variables, plugin keyword arguments, and "
+            "matrix combinations; MatrixAxis also relates to VariableDeclaration."
+        ),
+        keywords=(
+            "variabledeclaration", "variable", "declaration", "variablereference",
+            "assignment", "environment variable", "plugin", "kwargs", "matrixaxis", "matrix",
         ),
         source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
