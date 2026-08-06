@@ -5,7 +5,6 @@ the built main/ distribution aren't available, so the fast suite (plain
 `cd main && ./gradlew installDist`) gets the real run by pointing
 VALIDATOR_LIB_DIR at the real built lib/ directory.
 """
-import os
 import shutil
 from pathlib import Path
 
@@ -13,12 +12,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+import validator_runner
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-LIB_DIR = Path(os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib"))
 
+# Checks the exact same LIB_DIR the real code path resolves (see
+# validator_runner.py), not a separately-hardcoded copy of its default —
+# two independent defaults silently drifting apart is exactly what let this
+# skip check pass locally while the real subprocess call still failed
+# against a nonexistent classpath (confirmed the hard way, not a hypothetical).
 pytestmark = pytest.mark.skipif(
-    not (shutil.which("java") and LIB_DIR.exists()),
+    not (shutil.which("java") and Path(validator_runner.LIB_DIR).exists()),
     reason="real JDK + built main/ distribution not available",
 )
 

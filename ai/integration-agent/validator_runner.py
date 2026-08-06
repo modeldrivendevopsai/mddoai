@@ -17,7 +17,11 @@ from typing import Literal, TypedDict
 
 logger = logging.getLogger(__name__)
 
-LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "/app/lib")
+# In Docker/production, ai/docker-compose.yml always sets this explicitly
+# (pointed at the gradle-builder service's shared build-output volume) —
+# this default only matters for local dev, run directly against a sibling
+# main/ checkout already built via `cd main && ./gradlew installDist`.
+LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
 MAIN_CLASS = "main.java.mddoai.validation.EcoreValidatorCli"
 TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
 
