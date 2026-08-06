@@ -6,6 +6,7 @@ import {
   nudge,
   rerunStage,
   resetPipeline,
+  resumeRun,
   reviewStage,
   setModel,
   startPipeline,
@@ -301,6 +302,25 @@ describe("orchestratorService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 409 }))
 
     await expect(resetPipeline()).rejects.toThrow("Reset request failed: 409")
+  })
+
+  it("resumeRun posts to the run-specific URL with no body", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ run_id: "old-run-id", current_stage: "psm" }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await resumeRun("old-run-id")
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/resume/old-run-id", { method: "POST" })
+    expect(result).toEqual({ run_id: "old-run-id", current_stage: "psm" })
+  })
+
+  it("resumeRun throws with the status code on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+
+    await expect(resumeRun("no-such-run")).rejects.toThrow("Resume request failed: 404")
   })
 
   it("surfaces the backend's real error detail instead of a generic status message when one is given", async () => {

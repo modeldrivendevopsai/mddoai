@@ -123,16 +123,29 @@ export function Button({
           smaller icons on longer-label buttons. The label gets its own
           minWidth:0 span so it truncates with an ellipsis instead, the icon
           never does. */}
-      {icon && <Icon name={icon} style={{ flexShrink: 0 }} />}
+      {/* Overrides Icon's own 20px default: at sm's 32px height especially,
+          a source-default-sized icon crowds the label (this exact button
+          had its icon-vs-label proportions screenshot-checked earlier), so
+          this keeps the smaller, already-verified sizing rather than
+          inheriting the source's generic default. */}
+      {icon && <Icon name={icon} size={size === 'sm' ? 13 : 14} style={{ flexShrink: 0 }} />}
       {/* lineHeight: 'normal' here, not the button's own lineHeight: 1 —
           overflow:hidden (needed for the ellipsis) clips to the line box,
           and a lineHeight of 1 leaves no room for descenders (the tails on
           "p"/"y"), cutting them off. The button's overall height is still
           the fixed s.height above; this only affects the text's own line
           box, centered within it via alignItems:center. */}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 'normal' }}>
-        {children}
-      </span>
+      {/* Conditional, not just empty when there's no label: an icon-only
+          button (e.g. the sidebar's collapsed "+" actions) passes
+          `false`/undefined children. An unconditionally-rendered span, even
+          empty, is still a real flex child, gap above still applies between
+          it and the icon, shifting the icon off-center for no visible
+          reason. Only render it when there's real content to show. */}
+      {children && (
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 'normal' }}>
+          {children}
+        </span>
+      )}
     </button>
   );
 }

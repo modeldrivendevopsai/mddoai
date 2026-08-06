@@ -2,7 +2,6 @@ import path from 'node:path'
 import { setDefaultResultOrder } from 'node:dns'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 
 // Node 18+ defaults DNS lookups to 'verbatim' order, which can return an AAAA
 // (IPv6) result first for a Docker Compose service name that only has an A
@@ -12,7 +11,7 @@ setDefaultResultOrder('ipv4first')
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

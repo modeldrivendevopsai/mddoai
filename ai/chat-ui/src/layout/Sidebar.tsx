@@ -26,7 +26,7 @@ export function Sidebar({ onAction }: SidebarProps) {
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? 'Show panel' : 'Hide panel'}
         >
-          <Icon name={collapsed ? 'ChevronsRight' : 'ChevronsLeft'} />
+          <Icon name={collapsed ? 'ChevronsRight' : 'ChevronsLeft'} size={14} />
           {!collapsed && <span>Hide panel</span>}
         </button>
       </div>

@@ -178,7 +178,7 @@ export function DocsStartForm({ onStart }: DocsStartFormProps) {
         disabled={!canSubmit}
         style={{ alignSelf: "flex-start", flexShrink: 0 }}
       >
-        Start Integration
+        Start integration
       </Button>
     </form>
   )

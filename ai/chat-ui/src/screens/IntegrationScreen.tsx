@@ -6,7 +6,7 @@ import { STAGE_PANELS } from "@/features/integration/stages/registry"
 import { ChatColumn } from "@/features/chat/ChatColumn"
 import { DocsStartForm } from "@/features/integration/stages/docs/DocsStartForm"
 import { Button } from "@/design-system"
-import { latestCallResult } from "@/features/integration/stageEvents"
+import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
 import type { StageId } from "@/types/orchestrator"
 
 // "Nothing left to review" is a screen-level state (the whole run finished),
@@ -90,17 +90,17 @@ export default function IntegrationScreen() {
   // "Add a new platform"/"New pipeline" in the sidebar link here with
   // ?new=1 (see App.tsx's useSidebarNavigation) — a real signal to actually
   // reset the current run, not just a route change to a URL that might
-  // already be the one we're on. Same action as the Restart button below,
-  // same confirmation: the current run isn't deleted, it stays viewable as
-  // read-only history (see orchestrator.py's reset_pipeline(), which keeps
-  // it in _runs), it just stops being the live/interactive one. Skipped
-  // when nothing's actually running yet, so clicking it from an
-  // already-blank form is silent.
+  // already be the one we're on. Deliberately a blank reset(), not
+  // handleRestart's "re-run the same platform" below: "Add a new platform"
+  // means a different platform, an empty DocsStartForm is the right result.
+  // No confirm(): the current run isn't deleted, it stays viewable and
+  // resumable as history (see orchestrator.py's reset_pipeline(), which
+  // keeps it in _runs, and POST /resume/{run_id}), it just stops being the
+  // live/interactive one until resumed. Skipped when nothing's actually
+  // running yet, so clicking it from an already-blank form is silent.
   useEffect(() => {
     if (searchParams.get("new") !== "1") return
-    if (!started || window.confirm("Start a new run? The current run becomes read-only history — you can still view it, but can no longer approve, retry, or nudge it.")) {
-      if (started) void reset()
-    }
+    if (started) void reset()
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -130,15 +130,22 @@ export default function IntegrationScreen() {
 
   const latestResult = latestCallResult(events, currentStage)
 
+  // Restart re-runs the SAME platform from scratch (same platform name/URL/
+  // docs options, re-crawled from stage 0) — different from "Add a new
+  // platform" above, which really does want a blank form for a different
+  // platform. originalDocsInput reads the real input back out of this run's
+  // own first docs event rather than a blank reset(), since that's the
+  // whole point of "restart": redo this, not clear it. Falls back to a
+  // no-op if that data isn't there for some reason (can't restart what was
+  // never really started), rather than silently degrading into a blank
+  // reset the human didn't ask for.
   const handleRestart = () => {
-    if (!window.confirm("Restart? The current run becomes read-only history — you can still view it, but can no longer approve, retry, or nudge it.")) return
-    void reset()
+    const original = originalDocsInput(events)
+    if (!original) return
+    void start(original.platformDescription, original.seedUrl, model ?? undefined, original.docsOptions)
   }
 
-  const handleResume = () => {
-    if (!window.confirm("Resume this run? Whatever run is currently active will become read-only history instead — you can still view it, but can no longer approve, retry, or nudge it.")) return
-    void resume()
-  }
+  const handleResume = () => void resume()
 
   // Picks which of the six independent stage panels to render, and in which
   // mode (active vs. viewed-read-only) — see @/features/integration/stages/
@@ -207,9 +214,10 @@ export default function IntegrationScreen() {
           {/* Restarting moves the live run to read-only history rather than
               deleting it (see orchestrator.py's reset_pipeline()), so it's
               meaningless while already looking at read-only history — only
-              ever acts on the current run either way. Still guarded by a
-              confirm(): you can't go back to actively working on that run
-              once this happens, even though its results stay viewable. */}
+              ever acts on the current run either way. No confirm(): Resume
+              (in the read-only banner below) can always bring it back, so
+              this was never actually a one-way action worth interrupting
+              for. */}
           <Button variant="secondary" size="sm" disabled={!started || busy || !isCurrent} onClick={handleRestart}>
             Restart
           </Button>

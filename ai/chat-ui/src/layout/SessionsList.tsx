@@ -75,7 +75,7 @@ export function SessionsList({ activeTab }: SessionsListProps) {
         >
           <span className="mdd-sessions__name">{s.name}</span>
           {s.state === 'attention' && (
-            <Icon name="AlertTriangle" className="mdd-sessions__warn" />
+            <Icon name="AlertTriangle" size={12} className="mdd-sessions__warn" />
           )}
           <button
             className="mdd-sessions__close"
@@ -85,7 +85,7 @@ export function SessionsList({ activeTab }: SessionsListProps) {
               handleClose(s.id);
             }}
           >
-            <Icon name="X" />
+            <Icon name="X" size={12} />
           </button>
         </div>
       ))}
