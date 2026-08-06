@@ -255,7 +255,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="Joj8jIXp7VIct9sAKGCk" name="Low Level">
-    <mxGraphModel dx="1693" dy="922" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2032" dy="1106" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -572,7 +572,7 @@
         <mxCell id="PPcgnp2etPmw12dt06Y3-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;Load inputs&lt;/b&gt;&lt;br&gt;pimMM.ecore + parsed platform docs" vertex="1">
           <mxGeometry height="60" width="240" x="2790" y="1770" as="geometry" />
         </mxCell>
-        <mxCell id="PPcgnp2etPmw12dt06Y3-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD2CC;strokeColor=#CC6655;fontSize=12;fontColor=#663333;" value="&lt;b&gt;ACICDTrip Knowledge Agent&lt;/b&gt;&lt;br&gt;Full understanding of ACICDTrip&lt;br&gt;PIM metamodel (.ecore + concept&lt;br&gt;definitions + known platform gaps)" vertex="1">
+        <mxCell id="PPcgnp2etPmw12dt06Y3-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD2CC;strokeColor=#CC6655;fontSize=12;fontColor=#663333;" value="&lt;b style=&quot;color: rgb(0, 0, 0);&quot;&gt;PIM Knowledge Agent&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;Full understanding of the prior CI/CD migration reference model (.ecore + concept definitions + known gaps)&lt;/span&gt;" vertex="1">
           <mxGeometry height="90" width="240" x="3100" y="1755" as="geometry" />
         </mxCell>
         <mxCell id="PPcgnp2etPmw12dt06Y3-6" edge="1" parent="1" source="PPcgnp2etPmw12dt06Y3-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;" target="PPcgnp2etPmw12dt06Y3-8" value="grounds">
