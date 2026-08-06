@@ -8,10 +8,6 @@
 build
 
 # CRLF-stripped throwaway copy the ai/integration-agent gradle-builder compose
-# service writes next to gradlew (never the real file) when running on a Windows
-# host where the checked-out gradlew has a CRLF-mangled shebang.
-gradlew-lf
-
 /plugins
 __pycache__/
 *.pyc
