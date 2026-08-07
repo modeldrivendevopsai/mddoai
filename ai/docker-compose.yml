@@ -74,3 +74,44 @@ services:
     depends_on:
       orchestrator:
         condition: service_started
+
+  # One-shot: builds main/'s Gradle distribution into the main-build-output
+  # volume, so integration-agent doesn't need its own Gradle toolchain.
+  # main-gradle-cache persists so repeat builds are fast.
+  gradle-builder:
+    image: gradle:8.14.3-jdk21-alpine
+    working_dir: /workspace
+    volumes:
+      - ../main:/workspace
+      - main-gradle-cache:/root/.gradle
+      - main-build-output:/workspace/build
+    # Piped through tr + sh, not run directly: Windows checkouts leave gradlew
+    # with CRLF endings, which breaks it here. Piping avoids writing any file.
+    # No `clean`: build/ is a volume mount point, Gradle can't rmdir it (and doesn't
+    # need to — this volume is dedicated to this one build, nothing else writes to it).
+    command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
+
+  # Wraps main/'s headless .ecore validator (issue #313) as an HTTP service.
+  # Named integration-agent, not ecore-validator: #314/#315 will add sibling
+  # /validate/<type> routes to this same service later.
+  integration-agent:
+    build:
+      context: ./integration-agent
+    env_file:
+      - path: ./integration-agent/.env
+        required: false
+    volumes:
+      - main-build-output:/main-build:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - VALIDATOR_TIMEOUT_SECONDS=60
+      - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
+    depends_on:
+      gradle-builder:
+        condition: service_completed_successfully
+    expose:
+      - "8020"
+
+volumes:
+  main-gradle-cache:
+  main-build-output:
