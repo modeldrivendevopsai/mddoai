@@ -1,4 +1,4 @@
-"""ACICDTrip Knowledge Agent tests. No LLM calls, no mocking: ground() is a plain
+"""Reference Knowledge Agent tests. No LLM calls, no mocking: ground() is a plain
 keyword lookup against a fixed, static knowledge list.
 
 Tests verify:
@@ -6,7 +6,7 @@ Tests verify:
   2. ground() returns a relevant process-category result for a transformation-process query.
   3. ground() returns a relevant reusability-category result for a reusability query.
   4. ground() returns a relevant limitation-category result for a limitation/caveat query.
-  5. ground() returns an empty list for a query unrelated to ACICDTrip.
+  5. ground() returns an empty list for a query unrelated to the reference project.
   6. ground() respects top_k, capping the number of results returned.
   7. Every returned GroundingExample has non-empty category/title/content fields.
   8. ground() matches a plural query term ("limitations") against a singular
@@ -34,13 +34,13 @@ def test_ground_matches_process_category():
 
 
 def test_ground_matches_reusability_category():
-    results = ground("is the ACICDTrip meta-model reusable for MDDOAI")
+    results = ground("is the reference project's meta-model reusable for MDDOAI")
     assert results
     assert any(r.category == "reusability" for r in results)
 
 
 def test_ground_matches_limitation_category():
-    results = ground("what caveats or limitations exist with ACICDTrip's generated output")
+    results = ground("what caveats or limitations exist with the reference project's generated output")
     assert results
     assert any(r.category == "limitation" for r in results)
 

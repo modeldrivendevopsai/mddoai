@@ -1,13 +1,12 @@
-"""ACICDTrip Knowledge Agent.
+"""Reference Knowledge Agent.
 
-A scoped, static knowledge source about ACICDTrip (GitHub: DreFlo/auto-cicd-migration),
-a prior CI/CD-migration thesis project whose meta-model design directly informed
-MDDOAI's own pimMM.ecore. This is NOT a RAG/vector-DB agent: the knowledge is a
-fixed, hand-curated list of real facts, and matching is plain keyword scoring
-against that list.
+A static knowledge base derived from a reference CI/CD-migration project's
+meta-model, transformation process, and reusability assessment for MDDOAI.
+This is NOT a RAG/vector-DB agent: the knowledge is a fixed, hand-curated list
+of real facts, and matching is plain keyword scoring against that list.
 
 Intended use: a future PIM comparison agent calls ground(query) to pull relevant
-ACICDTrip context (concept definitions, meta-model structure, known reusable/
+context (concept definitions, meta-model structure, known reusable/
 non-reusable components) as grounding when comparing platform docs against our
 PIM. This module only produces that grounding context; it does not itself
 compare or extend anything.
@@ -15,13 +14,14 @@ compare or extend anything.
 
 from dataclasses import dataclass
 
-_ACICDTRIP_SOURCE = "ACICDTrip thesis project (GitHub: DreFlo/auto-cicd-migration)"
+_REFERENCE_SOURCE = "the reference CI/CD migration project"
 
 
 @dataclass
 class GroundingExample:
-    """One piece of ACICDTrip grounding context. This shape is the stable public
-    contract: implementation of ground() can change without breaking callers."""
+    """One piece of grounding context from the reference CI/CD migration project.
+    This shape is the stable public contract: implementation of ground() can
+    change without breaking callers."""
 
     category: str  # "metamodel", "process", "reusability", or "limitation"
     title: str
@@ -56,7 +56,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "and pipeline-calling jobs share these same base attributes."
         ),
         keywords=("pipeline", "pipelineblock", "agent", "inputs", "outputs", "environment", "timeout", "shell"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -67,7 +67,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "explicit previous/next references rather than an implicit list position."
         ),
         keywords=("job", "scriptjob", "pipelinecalljob", "step", "steps", "previous", "next", "ordering"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -78,7 +78,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "or MacOSAgent for a specific OS."
         ),
         keywords=("agent", "customagent", "presetagent", "linuxagent", "windowsagent", "macosagent", "labels", "runner"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -89,7 +89,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "specific containerized environment."
         ),
         keywords=("docker", "dockercontainer", "image", "volumes", "ports", "registry", "credentials", "network", "container"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -103,7 +103,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "vars, volumes, ports, credentials)."
         ),
         keywords=("service", "services", "job", "dockercontainer", "docker", "sidecar", "database", "cache"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -114,7 +114,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "time-based runs."
         ),
         keywords=("trigger", "pushtrigger", "pullrequesttrigger", "manualtrigger", "scheduledtrigger", "cron", "schedule"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -125,7 +125,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "combination cancels the rest of the matrix."
         ),
         keywords=("matrix", "axes", "axis", "include", "exclude", "combinations", "fail-fast", "failfast"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -136,7 +136,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "via a PipelineCallJob."
         ),
         keywords=("input", "output", "parameter", "parameters"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -147,7 +147,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "wraps another step in a condition."
         ),
         keywords=("step", "command", "plugin", "cache", "artifact", "checkout", "conditionalstep", "condition"),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -161,7 +161,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "expression", "concat", "literal", "literals", "variablereference", "binaryop",
             "equalityop", "comparisonop", "logicalop", "unaryop", "negation",
         ),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     _KnowledgeEntry(
         category="metamodel",
@@ -176,7 +176,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "variabledeclaration", "variable", "declaration", "variablereference",
             "assignment", "environment variable", "plugin", "kwargs", "matrixaxis", "matrix",
         ),
-        source_note=f"{_ACICDTRIP_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
+        source_note=f"{_REFERENCE_SOURCE} meta-model; structural reference for MDDOAI's pimMM.ecore, not directly reusable.",
     ),
     # --- process ---------------------------------------------------------------
     _KnowledgeEntry(
@@ -184,7 +184,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         title="Step 0: CLI parsing and environment init",
         description="The transformation starts with CLI argument parsing and environment initialization.",
         keywords=("cli", "parsing", "environment", "init", "step 0"),
-        source_note=f"{_ACICDTRIP_SOURCE} transformation process.",
+        source_note=f"{_REFERENCE_SOURCE} transformation process.",
     ),
     _KnowledgeEntry(
         category="process",
@@ -194,7 +194,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "using the source platform's meta-model plus YAML parsing."
         ),
         keywords=("input script", "platform-specific", "input model", "yaml", "parsing", "step 1"),
-        source_note=f"{_ACICDTRIP_SOURCE} transformation process.",
+        source_note=f"{_REFERENCE_SOURCE} transformation process.",
     ),
     _KnowledgeEntry(
         category="process",
@@ -205,7 +205,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "the scripts in tsm2tim."
         ),
         keywords=("platform-independent", "atl", "emfvmlauncher", "tsm2tim", "step 2"),
-        source_note=f"{_ACICDTRIP_SOURCE} transformation process.",
+        source_note=f"{_REFERENCE_SOURCE} transformation process.",
     ),
     _KnowledgeEntry(
         category="process",
@@ -215,57 +215,58 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
             "platform-specific model via the tim2tsm ATL scripts."
         ),
         keywords=("refinement", "tim2tsm", "atl", "output platform-specific", "step 3"),
-        source_note=f"{_ACICDTRIP_SOURCE} transformation process.",
+        source_note=f"{_REFERENCE_SOURCE} transformation process.",
     ),
     _KnowledgeEntry(
         category="process",
         title="Step 4: output model to output script",
         description="The output platform-specific model is turned into the final output script via Acceleo code generation.",
         keywords=("acceleo", "code generation", "output script", "step 4"),
-        source_note=f"{_ACICDTRIP_SOURCE} transformation process.",
+        source_note=f"{_REFERENCE_SOURCE} transformation process.",
     ),
     # --- reusability -------------------------------------------------------------
     _KnowledgeEntry(
         category="reusability",
         title="Meta-models: structural reference only",
         description=(
-            "ACICDTrip's meta-models are a structural reference only, not directly "
-            "reusable in MDDOAI: ACICDTrip targets multiple platforms, while MDDOAI "
-            "targets GitLab specifically."
+            "The reference CI/CD migration project's meta-models are a structural "
+            "reference only, not directly reusable in MDDOAI: it targets multiple "
+            "platforms, while MDDOAI targets GitLab specifically."
         ),
         keywords=("reusable", "reusability", "meta-model", "metamodel", "multi-platform", "gitlab"),
-        source_note="MDDOAI team's own prior reusability analysis of ACICDTrip components.",
+        source_note="MDDOAI team's own prior reusability analysis of the reference CI/CD migration project's components.",
     ),
     _KnowledgeEntry(
         category="reusability",
         title="Code generation approach: adaptable",
-        description="ACICDTrip's Acceleo-based code generation approach is adaptable to MDDOAI with only minor modifications.",
+        description="The reference CI/CD migration project's Acceleo-based code generation approach is adaptable to MDDOAI with only minor modifications.",
         keywords=("acceleo", "code generation", "adaptable", "reusable"),
-        source_note="MDDOAI team's own prior reusability analysis of ACICDTrip components.",
+        source_note="MDDOAI team's own prior reusability analysis of the reference CI/CD migration project's components.",
     ),
     _KnowledgeEntry(
         category="reusability",
         title="Transformation rules: reference for approach, not directly reusable",
         description=(
-            "ACICDTrip's ATL transformation rules are a reference for approach, not "
-            "directly reusable, since MDDOAI has different model types. Specific "
-            "patterns, such as lazy rules and helper rules, may still be useful."
+            "The reference CI/CD migration project's ATL transformation rules are a "
+            "reference for approach, not directly reusable, since MDDOAI has "
+            "different model types. Specific patterns, such as lazy rules and "
+            "helper rules, may still be useful."
         ),
         keywords=("atl", "transformation rules", "lazy rule", "helper rule", "reusable", "reusability"),
-        source_note="MDDOAI team's own prior reusability analysis of ACICDTrip components.",
+        source_note="MDDOAI team's own prior reusability analysis of the reference CI/CD migration project's components.",
     ),
     # --- limitation --------------------------------------------------------------
     _KnowledgeEntry(
         category="limitation",
         title="Generated output can be incomplete",
         description=(
-            "ACICDTrip's generated output can be incomplete: one documented case "
-            "didn't generate build jobs or specify a version, requiring manual "
-            "fixes. Treat ACICDTrip as a useful but not fully authoritative "
-            "reference when grounding a comparison."
+            "The reference CI/CD migration project's generated output can be "
+            "incomplete: one documented case didn't generate build jobs or specify "
+            "a version, requiring manual fixes. Treat it as a useful but not fully "
+            "authoritative reference when grounding a comparison."
         ),
         keywords=("limitation", "incomplete", "build job", "version", "manual fix", "caveat"),
-        source_note="Observed in practice during the MDDOAI team's evaluation of ACICDTrip's generated output.",
+        source_note="Observed in practice during the MDDOAI team's evaluation of the reference CI/CD migration project's generated output.",
     ),
 ]
 
@@ -279,7 +280,7 @@ _STOPWORDS = {
 
 def _tokenize(text: str) -> list[str]:
     # Strip apostrophes rather than replacing with a space, so contractions like
-    # "ACICDTrip's" don't split into a spurious lone "s" token that would otherwise
+    # "project's" don't split into a spurious lone "s" token that would otherwise
     # false-positive match against any other possessive/contraction in the haystack.
     cleaned = text.lower().replace("'", "")
     tokens = "".join(c if c.isalnum() else " " for c in cleaned).split()
@@ -315,7 +316,7 @@ def _score(entry: _KnowledgeEntry, query_stems: list[str]) -> int:
 
 
 def ground(query: str, top_k: int = 5) -> list[GroundingExample]:
-    """Return the most relevant ACICDTrip grounding examples for a query.
+    """Return the most relevant reference-project grounding examples for a query.
 
     Matching is plain keyword scoring against each entry's title, description,
     and keywords, ordered highest-scoring first, matching this scope's Phase 0
