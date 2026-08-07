@@ -1,0 +1,15 @@
+/* Focus ring for each stage panel's correction textarea — a real :focus rule
+   can't be expressed through inline styles. Token values live in the shared
+   design-system/tokens.css (single source of truth for the whole app), not
+   duplicated here. box-shadow only, not border-color: each stage panel's
+   own textareaStyle sets border color inline, and an inline style always
+   wins over a stylesheet rule for the same property regardless of
+   pseudo-class, so a border-color override here would silently never apply
+   (same reasoning as chat.css's .mddoai-chat-nudge). */
+.orch-field {
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.orch-field:focus {
+  outline: none;
+  box-shadow: var(--ring-brand);
+}

@@ -40,11 +40,11 @@ curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
-**GET /providers** — list the currently configured providers (name + tier), for a UI to build a selector from.
+**GET /providers** — list every provider this deployment knows about (name + tier + whether it currently has a real key), for a UI to build a selector from. `available: false` entries are listed too (not hidden), so a UI can show the full option set and gray out/disable the ones that aren't usable yet rather than silently omitting them; `POST /chat` still rejects selecting one of those with a 400.
 
 ```bash
 curl http://localhost:8000/providers
-# [{"name": "gemini-flash", "tier": "free"}, ...]
+# [{"name": "gemini-flash", "tier": "free", "available": false}, {"name": "claude-subscription", "tier": "subscription", "available": true}, ...]
 ```
 
 **POST /chat** — send a message and get a response. Also supports tool/function calling, so it can serve as the transport for other services (like `orchestrator`) that need an LLM to choose between tools rather than just returning text.

@@ -1,0 +1,225 @@
+/**
+ * MDDOAI Design System — tokens
+ * Single source of truth for color, type, spacing, radius, elevation, and
+ * motion for the whole app — every screen imports this one file via
+ * AppShell, none of them define their own local copy. Ported verbatim
+ * (values only) from the real mddoai-design-system/project/tokens/*.css
+ * reference (that folder is a set of Claude-Design HTML/JSX prototypes to
+ * copy from, not an installable package — no package.json — so this file
+ * is the one place those values get copied into for real use). Components
+ * must reference these variables, never hardcode a hex value or px size
+ * directly.
+ */
+
+@import "@fontsource-variable/space-grotesk/wght.css";
+@import "@fontsource-variable/ibm-plex-sans/wght.css";
+@import "@fontsource-variable/ibm-plex-sans/wght-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
+:root {
+  /* --- colors.css --- */
+  --purple-50: #f3f0fe;
+  --purple-100: #e7e1fd;
+  --purple-200: #cfc4fb;
+  --purple-300: #ad9cf6;
+  --purple-400: #8b70f1;
+  --purple-500: #684aeb;
+  --purple-600: #5736d6;
+  --purple-700: #4a2cba;
+  --purple-800: #3d2697;
+  --purple-900: #332179;
+
+  --violet-400: #b97cf0;
+  --violet-500: #a45eed;
+  --violet-600: #8e3fe0;
+
+  --neutral-0: #ffffff;
+  --neutral-50: #f8f8fb;
+  --neutral-100: #f0f0f5;
+  --neutral-200: #e4e4ee;
+  --neutral-300: #cdcddb;
+  --neutral-400: #a1a1b8;
+  --neutral-500: #74748d;
+  --neutral-600: #565569;
+  --neutral-700: #3d3d4c;
+  --neutral-800: #262633;
+  --neutral-900: #181820;
+  --neutral-950: #0e0d15;
+
+  --success-500: #15a36a;
+  --success-100: #e3f6ec;
+  --warning-500: #cf8a00;
+  --warning-100: #fbf0d6;
+  /* Darker than --warning-500 specifically for text on --warning-100 (the
+     500 shade doesn't meet contrast for small text there) — see
+     ChatColumn's "Started"/"Rejected" event chips. */
+  --warning-700: #9a6800;
+  --danger-500: #e0443c;
+  --danger-100: #fbe5e3;
+  /* Hover-state darkening for Button's danger variant, mirrors
+     --brand-strong's role for --brand — ported verbatim from
+     mddoai-design-system/project/components/actions/Button.jsx, which
+     hardcodes this exact value too (no darker-danger token exists there
+     either). */
+  --danger-strong: #c93b34;
+  /* Border tone for a danger Callout, distinct from the fully-saturated
+     --danger-500 — ported verbatim from mddoai-design-system/project/
+     components/feedback/Callout.jsx's danger tone, which hardcodes this
+     exact value too (no token exists there either). Named here so every
+     danger-callout consumer references one value instead of each
+     re-hardcoding the same hex, same reasoning as --code-* above. */
+  --danger-border: #f3c4c0;
+  --info-500: #3a7bd5;
+  --info-100: #e4eefb;
+
+  --gradient-brand: linear-gradient(120deg, #684aeb 0%, #a45eed 100%);
+  --gradient-brand-soft: linear-gradient(120deg, #7a5cf0 0%, #b97cf0 100%);
+
+  --brand: var(--purple-500);
+  --brand-strong: var(--purple-600);
+  --brand-stronger: var(--purple-700);
+  --brand-subtle: var(--purple-100);
+  --brand-faint: var(--purple-50);
+  --brand-accent: var(--violet-500);
+  --on-brand: var(--neutral-0);
+
+  --surface-page: var(--neutral-50);
+  --surface-card: var(--neutral-0);
+  --surface-sunken: var(--neutral-100);
+  --surface-inverse: var(--neutral-950);
+  --surface-code: #16141f;
+  --surface-overlay: rgba(14, 13, 21, 0.55);
+
+  /* Terminal chrome for the code surface above (CodeBlock, and any other
+     dark-on-surface-code panel, e.g. ChatColumn's event-detail <pre>) —
+     ported verbatim from mddoai-design-system/project/components/surfaces/
+     CodeBlock.jsx, which has no named tokens of its own for these, they're
+     hardcoded there too. Named here so every consumer references one value
+     instead of each re-hardcoding the same hex. */
+  --code-border: rgba(255, 255, 255, 0.07);
+  --code-dot: #46435a;
+  --code-title: #9b98b5;
+  --code-lang: #6f6c86;
+  --code-text: #d6d3e8;
+  --code-copy-bg: rgba(255, 255, 255, 0.06);
+  --code-copy-border: rgba(255, 255, 255, 0.09);
+  --code-copy-text: #b9b6d0;
+  --code-copy-success-bg: rgba(127, 214, 168, 0.14);
+  --code-copy-success-text: #7fd6a8;
+
+  --text-strong: var(--neutral-900);
+  --text-body: var(--neutral-700);
+  --text-muted: var(--neutral-500);
+  --text-faint: var(--neutral-400);
+  --text-brand: var(--purple-600);
+  --text-on-inverse: var(--neutral-100);
+  --text-on-inverse-muted: #9b9bb5;
+  --text-link: var(--purple-600);
+
+  --border-subtle: var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong: var(--neutral-400);
+  --border-brand: var(--purple-300);
+  --border-inverse: rgba(255, 255, 255, 0.12);
+
+  --focus-ring: var(--purple-400);
+
+  /* App-specific context tints (StartScreen's two option cards, sessions
+     list) — not part of the real design system's own palette, kept as a
+     deliberate, small extension on top of it, not a fork of it. */
+  --tint-pipeline: #f2f6ff;
+  --tint-pipeline-border: #d7e3ff;
+  --tint-platform: #f8f4ff;
+  --tint-platform-border: #e6d9ff;
+
+  /* --- typography.css --- */
+  --font-display: "Space Grotesk Variable", "IBM Plex Sans Variable", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.375rem;
+  --text-4xl: 3rem;
+  --text-5xl: 3.75rem;
+  --text-6xl: 4.75rem;
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-caps: 0.08em;
+
+  --display-font: var(--font-display);
+  --heading-font: var(--font-display);
+  --body-font: var(--font-sans);
+  --label-font: var(--font-sans);
+  --code-font: var(--font-mono);
+
+  /* --- spacing.css --- */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-9: 4rem;
+  --space-10: 5rem;
+  --space-11: 6rem;
+  --space-12: 8rem;
+
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+
+  --container-sm: 640px;
+  --container-md: 860px;
+  --container-lg: 1080px;
+  --container-xl: 1240px;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+
+  /* --- elevation.css --- */
+  --shadow-xs: 0 1px 2px rgba(24, 24, 40, 0.06);
+  --shadow-sm: 0 1px 3px rgba(24, 24, 40, 0.08), 0 1px 2px rgba(24, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px rgba(24, 24, 40, 0.08), 0 2px 4px rgba(24, 24, 40, 0.05);
+  --shadow-lg: 0 12px 28px rgba(24, 24, 40, 0.12), 0 4px 8px rgba(24, 24, 40, 0.06);
+  --shadow-xl: 0 24px 56px rgba(24, 24, 40, 0.16), 0 8px 16px rgba(24, 24, 40, 0.08);
+
+  --glow-brand: 0 6px 20px rgba(104, 74, 235, 0.35);
+  --ring-brand: 0 0 0 3px rgba(104, 74, 235, 0.28);
+
+  --border-hairline: 1px;
+  --border-thick: 2px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+}
