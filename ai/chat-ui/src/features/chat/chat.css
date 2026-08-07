@@ -1,0 +1,31 @@
+/* The "running" pulse on an in-flight call_started event chip's dot — a real
+   @keyframes can't be expressed through inline styles. Matches
+   StatusPill.jsx's "running" pulse exactly (warning-500 = #cf8a00). Token
+   values themselves live in the shared design-system/tokens.css (single
+   source of truth for the whole app), not duplicated here. */
+@keyframes mddoai-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(207, 138, 0, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(207, 138, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(207, 138, 0, 0);
+  }
+}
+
+/* Focus ring for the nudge input's wrapper (:focus-within, since the ring
+   belongs on the bordered wrapper div, not the borderless <textarea>
+   itself). box-shadow only, not border-color: the wrapper's own inline
+   style already sets a border color, and an inline style always wins over
+   a stylesheet rule for the same property regardless of pseudo-class, so a
+   border-color override here would silently never apply (see
+   mddoai-design-system's README.md: "Focus:... always visible, never
+   removed" — box-shadow is the part that actually can and does apply). */
+.mddoai-chat-nudge {
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.mddoai-chat-nudge:focus-within {
+  box-shadow: var(--ring-brand);
+}

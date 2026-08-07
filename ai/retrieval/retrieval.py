@@ -249,9 +249,11 @@ def _scope_prefixes(seed_url: str) -> list[str]:
 _LINK_RANKING_PROMPT = _config["LINK_RANKING_PROMPT"]
 
 
-async def _llm_rank_links(links: list[Link], hint: str | None = None) -> list[str]:
+async def _llm_rank_links(links: list[Link], hint: str | None = None, model: str | None = None) -> list[str]:
     """Asks ai-layer's /chat which candidate links look like real syntax/schema
-    pages. hint, if given, is folded into the prompt to steer judgment."""
+    pages. hint, if given, is folded into the prompt to steer judgment. model,
+    if given, picks which ai-layer provider handles the call (see AVAILABLE in
+    ai-layer's router/config.py); omitted lets ai-layer's own default chain run."""
     if not links:
         return []
     candidates_text = "\n".join(f"{link.href} | text: {link.text!r} | title: {link.title!r}" for link in links)
@@ -262,9 +264,12 @@ async def _llm_rank_links(links: list[Link], hint: str | None = None) -> list[st
         {"role": "system", "content": _LINK_RANKING_PROMPT},
         {"role": "user", "content": user_content},
     ]
+    payload = {"messages": messages}
+    if model is not None:
+        payload["model"] = model
     try:
         async with httpx.AsyncClient(timeout=_AI_LAYER_TIMEOUT) as client:
-            response = await client.post(f"{AI_LAYER_URL}/chat", json={"messages": messages})
+            response = await client.post(f"{AI_LAYER_URL}/chat", json=payload)
             response.raise_for_status()
             content = response.json()["content"]
     except Exception:
@@ -295,9 +300,10 @@ class _LLMRankedStrategy(StatisticalStrategy):
     syntax/schema pages. Candidates the LLM doesn't mention are kept, not
     dropped, appended at the tail in their original statistical order."""
 
-    def __init__(self, hint: str | None = None):
+    def __init__(self, hint: str | None = None, model: str | None = None):
         super().__init__()
         self._hint = hint
+        self._model = model
 
     async def rank_links(self, state: CrawlState, config: AdaptiveConfig) -> list[tuple[Link, float]]:
         statistically_ranked = await super().rank_links(state, config)
@@ -306,7 +312,7 @@ class _LLMRankedStrategy(StatisticalStrategy):
             return shortlist
         by_href = {link.href: (link, score) for link, score in shortlist}
         max_score = max(score for _, score in shortlist)
-        selected_hrefs = await _llm_rank_links([link for link, _ in shortlist], hint=self._hint)
+        selected_hrefs = await _llm_rank_links([link for link, _ in shortlist], hint=self._hint, model=self._model)
         # LLM-selected links get the shortlist's own max statistical score, not
         # their original one: digest()'s min_gain_threshold stopping check reads
         # the top-ranked link's score, so a page the LLM promoted despite weak
@@ -412,13 +418,16 @@ _CLEAN_CONTENT_PROMPT = _config["CLEAN_CONTENT_PROMPT"]
 _clean_cache: dict[str, str] = {}
 
 
-async def _clean_chunk(client: httpx.AsyncClient, chunk: str) -> str:
+async def _clean_chunk(client: httpx.AsyncClient, chunk: str, model: str | None = None) -> str:
     messages = [
         {"role": "system", "content": _CLEAN_CONTENT_PROMPT},
         {"role": "user", "content": chunk},
     ]
+    payload = {"messages": messages}
+    if model is not None:
+        payload["model"] = model
     try:
-        response = await client.post(f"{AI_LAYER_URL}/chat", json={"messages": messages})
+        response = await client.post(f"{AI_LAYER_URL}/chat", json=payload)
         response.raise_for_status()
         cleaned = response.json()["content"].strip()
     except Exception:
@@ -439,9 +448,13 @@ async def _clean_chunk(client: httpx.AsyncClient, chunk: str) -> str:
     return cleaned
 
 
-async def clean_page_content(markdown: str, force_refresh: bool = False) -> str:
+async def clean_page_content(markdown: str, force_refresh: bool = False, model: str | None = None) -> str:
     """LLM cleanup pass over already-filtered markdown, chunked and cached by
-    content hash. force_refresh bypasses the cache for a truly fresh result."""
+    content hash. force_refresh bypasses the cache for a truly fresh result.
+    model, if given, picks which ai-layer provider handles the cleanup calls;
+    the cache key doesn't include it, so switching models on a retry reuses a
+    cached cleanup from a different model rather than recalling the LLM — the
+    cleanup instruction (byte-for-byte fidelity) is deliberately model-agnostic."""
     if not markdown.strip():
         return markdown
     cache_key = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
@@ -464,7 +477,7 @@ async def clean_page_content(markdown: str, force_refresh: bool = False) -> str:
 
     async def _bounded_clean(client: httpx.AsyncClient, chunk: str) -> str:
         async with semaphore:
-            return await _clean_chunk(client, chunk)
+            return await _clean_chunk(client, chunk, model=model)
 
     async with httpx.AsyncClient(timeout=_AI_LAYER_TIMEOUT) as client:
         cleaned_chunks = await asyncio.gather(*[_bounded_clean(client, chunk) for chunk in chunks])
@@ -509,6 +522,7 @@ async def fetch_documentation(
     hint: str | None = None,
     max_depth: int = DEFAULT_MAX_DEPTH,
     exclude_urls: list[str] | None = None,
+    model: str | None = None,
 ) -> FetchResult:
     """Crawls seed_url via AdaptiveCrawler for CI/CD pipeline syntax reference
     content, following links across pages (not just the seed). Stops on
@@ -516,8 +530,11 @@ async def fetch_documentation(
     confidence/saturation/min_gain_threshold gates. hint steers link ranking
     toward something specific; exclude_urls rules out known-bad pages; both are
     retry levers for a caller (human or orchestrator) that inspected a prior
-    response and knows what to correct. Returns pages plus a meta block
-    (confidence, pending_links, ...): non-empty pending_links means real
+    response and knows what to correct. model picks which ai-layer provider
+    handles both the link-ranking and content-cleanup LLM calls (see AVAILABLE
+    in ai-layer's router/config.py); omitted lets ai-layer's own default
+    provider chain run, same as every other endpoint that talks to it.
+    Returns pages plus a meta block (confidence, pending_links, ...): non-empty pending_links means real
     candidates are still available, but not necessarily because a budget ran
     out, min_gain_threshold can also stop the crawl with candidates left,
     where raising max_pages does nothing and hint/exclude_urls are the actual
@@ -547,16 +564,16 @@ async def fetch_documentation(
                 authority_weight=_AUTHORITY_WEIGHT,
                 link_preview_timeout=_LINK_PREVIEW_TIMEOUT,
             ),
-            strategy=_LLMRankedStrategy(hint=hint),
+            strategy=_LLMRankedStrategy(hint=hint, model=model),
             cache_mode=cache_mode,
             scope_prefixes=_scope_prefixes(seed_url),
             exclude_urls=frozenset(exclude_urls or ()),
         )
         logger.info(
             "fetch_documentation: starting adaptive crawl seed=%s max_pages=%d max_depth=%d "
-            "force_refresh=%s hint=%r exclude_urls=%s scope_prefix_candidates=%s",
+            "force_refresh=%s hint=%r exclude_urls=%s model=%r scope_prefix_candidates=%s",
             seed_url, max_pages, max_depth, force_refresh, hint,
-            sorted(adaptive._exclude_urls), adaptive._scope_prefix_candidates,
+            sorted(adaptive._exclude_urls), model, adaptive._scope_prefix_candidates,
         )
         state = await adaptive.digest(seed_url, query=effective_query)
 
@@ -603,7 +620,7 @@ async def fetch_documentation(
     pages = dedupe_pages(pages)
     for page in pages:
         if page["success"]:
-            page["markdown"] = await clean_page_content(page["markdown"], force_refresh=force_refresh)
+            page["markdown"] = await clean_page_content(page["markdown"], force_refresh=force_refresh, model=model)
     pages = dedupe_pages(pages)
 
     for page in pages:
@@ -618,10 +635,11 @@ async def fetch_documentation(
     return {"seed_url": seed_url, "pages": pages, "meta": meta}
 
 
-async def fetch_single_page(url: str, force_refresh: bool = False) -> Page:
+async def fetch_single_page(url: str, force_refresh: bool = False, model: str | None = None) -> Page:
     """Fetches and cleans exactly one URL, no crawling or ranking, same content
     pipeline as every page inside fetch_documentation. For a caller that already
-    knows the one specific URL missing from a prior result."""
+    knows the one specific URL missing from a prior result. model picks which
+    ai-layer provider handles the cleanup call, same as fetch_documentation."""
     _validate_fetchable_url(url)  # unguarded: an SSRF rejection here is a real error, not a graceful failure
     cache_mode = CacheMode.BYPASS if force_refresh else CacheMode.ENABLED
     config = CrawlerRunConfig(**_base_run_config_kwargs(cache_mode))
@@ -634,6 +652,6 @@ async def fetch_single_page(url: str, force_refresh: bool = False) -> Page:
         return {"url": url, "success": False, "status_code": None, "markdown": "", "links": []}
     page = _result_to_page(result)
     if page["success"]:
-        page["markdown"] = await clean_page_content(page["markdown"], force_refresh=force_refresh)
+        page["markdown"] = await clean_page_content(page["markdown"], force_refresh=force_refresh, model=model)
     logger.info("fetch_single_page: done url=%s success=%s len=%d", url, page["success"], len(page["markdown"]))
     return page

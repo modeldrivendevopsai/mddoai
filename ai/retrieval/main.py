@@ -41,11 +41,16 @@ class FetchRequest(BaseModel):
     hint: str | None = Field(default=None, max_length=MAX_HINT_LENGTH)
     # The other retry lever: rule out a specific URL already known to be wrong.
     exclude_urls: list[str] | None = None
+    # Picks which ai-layer provider handles the ranking/cleanup LLM calls (see
+    # AVAILABLE in ai-layer's router/config.py). Omitted lets ai-layer's own
+    # default provider chain run.
+    model: str | None = None
 
 
 class FetchPageRequest(BaseModel):
     url: HttpUrl
     force_refresh: bool = False
+    model: str | None = None
 
 
 def _fail_with_500(context: str, url, e: Exception) -> HTTPException:
@@ -63,9 +68,9 @@ def health():
 @app.post("/fetch", response_model=FetchResult)
 async def fetch_endpoint(request: FetchRequest) -> FetchResult:
     logger.info(
-        "POST /fetch url=%s max_pages=%d max_depth=%d force_refresh=%s hint=%r exclude_urls=%s",
+        "POST /fetch url=%s max_pages=%d max_depth=%d force_refresh=%s hint=%r exclude_urls=%s model=%r",
         request.url, request.max_pages, request.max_depth, request.force_refresh, request.hint,
-        request.exclude_urls,
+        request.exclude_urls, request.model,
     )
     try:
         result = await fetch_documentation(
@@ -75,6 +80,7 @@ async def fetch_endpoint(request: FetchRequest) -> FetchResult:
             hint=request.hint,
             max_depth=request.max_depth,
             exclude_urls=request.exclude_urls,
+            model=request.model,
         )
     except ValueError as e:
         # A rejected URL (SSRF guard, bad scheme, unresolvable host) is a real,
@@ -94,9 +100,9 @@ async def fetch_page_endpoint(request: FetchPageRequest) -> Page:
     """Fetches and cleans exactly one URL, no crawling. The targeted half of the
     retry story: a caller who already knows a specific page is missing can pull
     it in directly rather than re-running a full crawl."""
-    logger.info("POST /fetch/page url=%s force_refresh=%s", request.url, request.force_refresh)
+    logger.info("POST /fetch/page url=%s force_refresh=%s model=%r", request.url, request.force_refresh, request.model)
     try:
-        page = await fetch_single_page(str(request.url), force_refresh=request.force_refresh)
+        page = await fetch_single_page(str(request.url), force_refresh=request.force_refresh, model=request.model)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:

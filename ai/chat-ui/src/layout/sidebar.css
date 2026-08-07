@@ -1,0 +1,77 @@
+.mdd-sidebar {
+  width: 236px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition:
+    width var(--duration-base) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+  overflow: hidden;
+}
+/* Same two mode tints as the StartScreen cards and SessionsList rows
+   (--tint-pipeline blue / --tint-platform purple) — the sidebar tracks
+   whichever tab is active, not a fixed color of its own. */
+.mdd-sidebar--pipeline {
+  background: var(--tint-pipeline);
+}
+.mdd-sidebar--platform {
+  background: var(--tint-platform);
+}
+.mdd-sidebar.is-collapsed {
+  width: 56px;
+}
+
+.mdd-sidebar__header {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mdd-sidebar.is-collapsed .mdd-sidebar__header {
+  justify-content: center;
+  padding: 0;
+}
+
+.mdd-sidebar__collapse {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--neutral-600);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.mdd-sidebar__collapse:hover {
+  background: rgba(104, 74, 235, 0.08);
+  color: var(--brand-strong);
+}
+
+.mdd-sidebar-actions {
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.mdd-sidebar.is-collapsed .mdd-sidebar-actions {
+  padding: var(--space-3) 6px;
+}
+
+.mdd-sidebar__sessions {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
