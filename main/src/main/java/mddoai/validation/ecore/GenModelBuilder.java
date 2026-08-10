@@ -1,5 +1,6 @@
-package main.java.mddoai.validation;
+package main.java.mddoai.validation.ecore;
 
+import main.java.mddoai.validation.ValidationIssue;
 import org.eclipse.emf.codegen.ecore.genmodel.GenJDKLevel;
 import org.eclipse.emf.codegen.ecore.genmodel.GenModel;
 import org.eclipse.emf.codegen.ecore.genmodel.GenModelFactory;

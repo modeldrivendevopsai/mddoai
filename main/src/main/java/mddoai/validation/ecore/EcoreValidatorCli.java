@@ -1,4 +1,7 @@
-package main.java.mddoai.validation;
+package main.java.mddoai.validation.ecore;
+
+import main.java.mddoai.validation.ValidationIssue;
+import main.java.mddoai.validation.ValidationResult;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -8,7 +11,7 @@ import java.util.List;
  * separate OS process (e.g. from ai/integration-agent's Python service).
  * Deliberately NOT wired into Main.java's transformation switch (reserved
  * for #316) — this is its own entrypoint, invoked directly with
- * {@code java -cp <lib>/* main.java.mddoai.validation.EcoreValidatorCli <mode> <path>}
+ * {@code java -cp <lib>/* main.java.mddoai.validation.ecore.EcoreValidatorCli <mode> <path>}
  * rather than through the generated {@code cli} start script.
  *
  * Exit codes (the infra-failure vs validation-failure boundary a caller

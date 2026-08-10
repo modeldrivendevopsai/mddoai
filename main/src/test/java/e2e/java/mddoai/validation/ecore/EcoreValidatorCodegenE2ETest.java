@@ -1,4 +1,4 @@
-package test.java.e2e.java.mddoai.validation;
+package test.java.e2e.java.mddoai.validation.ecore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,10 +10,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.mddoai.validation.EcoreValidator;
-import main.java.mddoai.validation.EcoreValidatorCli;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ecore.EcoreValidator;
+import main.java.mddoai.validation.ecore.EcoreValidatorCli;
 
 /**
  * Full genmodel+javac pipeline: real temp dirs, real EMF codegen, real javac.
@@ -21,7 +21,7 @@ import main.java.mddoai.validation.ValidationResult;
  */
 public class EcoreValidatorCodegenE2ETest {
 
-    private static final String FIXTURES = "./src/test/resources/testCases/validation/";
+    private static final String FIXTURES = "./src/test/resources/testCases/validation/ecore/";
 
     @Test
     public void validEcoreCompilesClean() {
