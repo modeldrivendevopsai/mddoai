@@ -3,8 +3,8 @@ package main.java.mddoai.validation;
 /**
  * A single problem (or warning) found while validating a model or metamodel.
  * {@code source} carries a locator (e.g. an Ecore fragment path like
- * "pimMM.ecore#//PipelineBlock/agent", or a javac "file:line") so the message
- * is specific enough to act on.
+ * "pimMM.ecore#//PipelineBlock/agent", a javac "file:line", or an ATL
+ * "file#line:col") so the message is specific enough to act on.
  */
 public record ValidationIssue(Severity severity, String message, String source) {
 

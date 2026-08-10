@@ -4,7 +4,13 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from validator_runner import EcoreValidationResult, ValidatorInfraError, run_ecore_validator
+from validator_runner import (
+    AtlValidationResult,
+    EcoreValidationResult,
+    ValidatorInfraError,
+    run_atl_validator,
+    run_ecore_validator,
+)
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -21,6 +27,11 @@ class EcoreValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .ecore XML content.")
     mode: str = Field(default="reflective", pattern="^(reflective|codegen)$")
+
+
+class AtlValidateRequest(BaseModel):
+    filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
+    content: str = Field(..., min_length=1, description="Raw .atl source content.")
 
 
 @app.get("/health")
@@ -41,5 +52,22 @@ def validate_ecore_endpoint(request: EcoreValidateRequest) -> EcoreValidationRes
         logger.error("POST /validate/ecore infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /validate/ecore done filename=%s valid=%s duration_ms=%d",
+                request.filename, result["valid"], result["duration_ms"])
+    return result
+
+
+@app.post("/validate/atl", response_model=AtlValidationResult)
+def validate_atl_endpoint(request: AtlValidateRequest) -> AtlValidationResult:
+    content_bytes = len(request.content.encode("utf-8"))
+    if content_bytes > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+
+    logger.info("POST /validate/atl filename=%s bytes=%d", request.filename, content_bytes)
+    try:
+        result = run_atl_validator(request.content, request.filename)
+    except ValidatorInfraError as e:
+        logger.error("POST /validate/atl infra failure: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("POST /validate/atl done filename=%s valid=%s duration_ms=%d",
                 request.filename, result["valid"], result["duration_ms"])
     return result
