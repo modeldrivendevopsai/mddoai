@@ -1,4 +1,4 @@
-package test.java.unit.java.mddoai.validation;
+package test.java.unit.java.mddoai.validation.ecore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.mddoai.validation.EcoreValidator;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ecore.EcoreValidator;
 
 public class EcoreValidatorInputGuardTest {
 
@@ -24,7 +24,7 @@ public class EcoreValidatorInputGuardTest {
     @Test
     public void validateReflectivelyReportsNonexistentPathAsIssueNotThrow() {
         ValidationResult result = EcoreValidator.validateReflectively(
-                "./src/test/resources/testCases/validation/nonexistent.ecore");
+                "./src/test/resources/testCases/validation/ecore/nonexistent.ecore");
 
         assertFalse(result.valid());
         assertEquals(1, result.issues().size());

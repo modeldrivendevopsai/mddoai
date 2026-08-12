@@ -1,21 +1,21 @@
-package test.java.integration.java.mddoai.validation;
+package test.java.integration.java.mddoai.validation.ecore;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.mddoai.validation.EcoreValidator;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ecore.EcoreValidator;
 
 /**
- * Real EMF load against the fixtures in src/test/resources/testCases/validation,
+ * Real EMF load against the fixtures in src/test/resources/testCases/validation/ecore,
  * matching EMFUtilsTest's headless-EMF pattern (plain ResourceSetImpl, no OSGi).
  */
 public class EcoreValidatorReflectiveTest {
 
-    private static final String FIXTURES = "./src/test/resources/testCases/validation/";
+    private static final String FIXTURES = "./src/test/resources/testCases/validation/ecore/";
 
     @Test
     public void validEcoreHasNoIssues() {

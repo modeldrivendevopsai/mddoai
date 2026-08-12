@@ -1,0 +1,10 @@
+module Broken;
+create OUT : PIM from IN : SWArch;
+
+rule Broken {
+	from
+		s : SWArch!Node
+	to
+		t : PIM!Node (
+			name <- s.name
+}

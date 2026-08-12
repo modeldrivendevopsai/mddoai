@@ -1,4 +1,4 @@
-package test.java.unit.java.mddoai.validation;
+package test.java.unit.java.mddoai.validation.ecore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.mddoai.validation.EcoreValidatorCli;
+import main.java.mddoai.validation.ecore.EcoreValidatorCli;
 
 public class EcoreValidatorCliTest {
 
@@ -35,7 +35,7 @@ public class EcoreValidatorCliTest {
     public void reflectiveModeOnNonexistentFileReturnsZeroWithInvalidJson() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int exitCode = EcoreValidatorCli.run(
-                new String[]{"reflective", "./src/test/resources/testCases/validation/nonexistent.ecore"},
+                new String[]{"reflective", "./src/test/resources/testCases/validation/ecore/nonexistent.ecore"},
                 new PrintStream(out), nullOut());
 
         assertEquals(0, exitCode);
@@ -48,7 +48,7 @@ public class EcoreValidatorCliTest {
     public void reflectiveModeOnValidFileReturnsZeroWithValidJson() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int exitCode = EcoreValidatorCli.run(
-                new String[]{"reflective", "./src/test/resources/testCases/validation/valid.ecore"},
+                new String[]{"reflective", "./src/test/resources/testCases/validation/ecore/valid.ecore"},
                 new PrintStream(out), nullOut());
 
         assertEquals(0, exitCode);

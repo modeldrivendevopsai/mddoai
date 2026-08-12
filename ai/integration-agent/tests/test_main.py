@@ -78,3 +78,47 @@ def test_validate_ecore_rejects_missing_content():
     response = client.post("/validate/ecore", json={"filename": "model.ecore", "mode": "reflective"})
 
     assert response.status_code == 422
+
+
+def fake_atl_result(valid=True, issues=None, duration_ms=42):
+    return {"valid": valid, "issues": issues or [], "duration_ms": duration_ms}
+
+
+def test_validate_atl_returns_200_with_valid_true():
+    with patch("main.run_atl_validator", return_value=fake_atl_result(valid=True)):
+        response = client.post("/validate/atl", json={"filename": "sample.atl", "content": "module M;"})
+
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+
+
+def test_validate_atl_returns_200_with_valid_false_and_issues():
+    issues = [{"severity": "ERROR", "message": "mismatched input", "source": "sample.atl#3:1"}]
+    with patch("main.run_atl_validator", return_value=fake_atl_result(valid=False, issues=issues)):
+        response = client.post("/validate/atl", json={"filename": "sample.atl", "content": "module M;"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is False
+    assert body["issues"] == issues
+
+
+def test_validate_atl_returns_500_on_infra_error():
+    with patch("main.run_atl_validator", side_effect=ValidatorInfraError("java not found")):
+        response = client.post("/validate/atl", json={"filename": "sample.atl", "content": "module M;"})
+
+    assert response.status_code == 500
+    assert "java not found" in response.json()["detail"]
+
+
+def test_validate_atl_rejects_oversized_content():
+    oversized = "x" * (main.MAX_CONTENT_BYTES + 1)
+    response = client.post("/validate/atl", json={"filename": "sample.atl", "content": oversized})
+
+    assert response.status_code == 413
+
+
+def test_validate_atl_rejects_missing_content():
+    response = client.post("/validate/atl", json={"filename": "sample.atl"})
+
+    assert response.status_code == 422

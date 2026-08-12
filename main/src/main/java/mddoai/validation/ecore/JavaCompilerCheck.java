@@ -1,5 +1,6 @@
-package main.java.mddoai.validation;
+package main.java.mddoai.validation.ecore;
 
+import main.java.mddoai.validation.ValidationIssue;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;

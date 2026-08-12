@@ -1,0 +1,11 @@
+module Sample;
+create OUT : PIM from IN : SWArch;
+
+rule Sample {
+	from
+		s : SWArch!Node
+	to
+		t : PIM!Node (
+			name <- s.name
+		)
+}

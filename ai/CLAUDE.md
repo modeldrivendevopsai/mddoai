@@ -7,18 +7,18 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 - Work on `chat-ui/` (the React frontend) only touches files inside `ai/chat-ui/`.
 - Work on `ai-layer/` (the FastAPI backend) only touches files inside `ai/ai-layer/`.
 - `chat-ui/` and `ai-layer/` never touch the Java/Eclipse code at the repo root.
-- **Exception, deliberate and narrow**: `integration-agent/` wraps the headless `.ecore`
-  validator (`main/src/main/java/mddoai/validation/`, issue #313) as an HTTP service, since a
-  Python process can't call a JVM library directly. Its Python code lives in
-  `ai/integration-agent/`; it also owns one thin Java CLI wrapper class,
-  `main/src/main/java/mddoai/validation/EcoreValidatorCli.java` (the `mddoai.validation`
-  package's actual validator library — `EcoreValidator`, `GenModelBuilder`, etc. — is owned by
-  the Java/Eclipse work, not by `integration-agent`; only the `*Cli` entrypoint class belongs
-  here). `integration-agent` invokes the Java side as a subprocess (`java -cp .../lib/*
-  ...EcoreValidatorCli <mode> <path>`), reading structured JSON off stdout — it never links
-  against or imports Java code directly. This exception does not extend to `chat-ui` or
-  `ai-layer`, and does not license any other future `ai/` service to reach into `main/` without
-  the same explicit justification.
+- **Exception, deliberate and narrow**: `integration-agent/` wraps headless model/transformation
+  validators (`main/src/main/java/mddoai/validation/`, one subpackage per file type) as HTTP
+  routes, since a Python process can't call a JVM library directly. Its Python code lives in
+  `ai/integration-agent/`; it also owns every `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`
+  class (recursive, any depth under `validation/`), a thin entrypoint that `integration-agent`
+  invokes as a subprocess (`java -cp .../lib/* ...*ValidatorCli <args>`), reading structured JSON
+  off stdout — it never links against or imports Java code directly. Everything else under
+  `mddoai.validation` is owned by the Java/Eclipse work, not by `integration-agent`. Both rules
+  (subprocess boundary, ownership split) are stated by naming pattern and path, not by
+  enumerating specific classes or file types, so adding a new validator never requires an edit
+  here. This exception does not extend to `chat-ui` or `ai-layer`, and does not license any
+  other future `ai/` service to reach into `main/` without the same explicit justification.
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`chat-ui/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).

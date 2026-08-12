@@ -54,3 +54,26 @@ def test_real_validation_of_invalid_fixture():
     body = response.json()
     assert body["valid"] is False
     assert any("NoSuchType" in issue["message"] for issue in body["issues"])
+
+
+def test_real_atl_validation_of_valid_fixture():
+    content = (FIXTURES_DIR / "valid.atl").read_text(encoding="utf-8")
+
+    response = client.post("/validate/atl", json={"filename": "valid.atl", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True
+    assert body["issues"] == []
+    assert body["duration_ms"] >= 0
+
+
+def test_real_atl_validation_of_invalid_fixture():
+    content = (FIXTURES_DIR / "invalid.atl").read_text(encoding="utf-8")
+
+    response = client.post("/validate/atl", json={"filename": "invalid.atl", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is False
+    assert len(body["issues"]) > 0

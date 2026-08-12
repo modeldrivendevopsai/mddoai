@@ -1,0 +1,11 @@
+module ReservedWordTest;
+create OUT : PIM from IN : SWArch;
+
+rule R {
+	from
+		rule : SWArch!Node
+	to
+		t : PIM!Node (
+			name <- rule.name
+		)
+}

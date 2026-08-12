@@ -1,8 +1,8 @@
 # integration-agent
 
-Wraps `main/`'s headless `.ecore` validator (issue #313) as an HTTP service, so other `ai/` services (like `orchestrator`) can validate an AI-generated `.ecore` metamodel without needing a JVM of their own.
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services (like `orchestrator`) can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313) and `.atl` transformations (issue #314).
 
-Named `integration-agent`, not `ecore-validator`, because sibling issues #314 (`.atl`) and #315 (`.mtl`) are expected to add more `/validate/<type>` routes to this same service later — one Java-process-spawning FastAPI wrapper, not a new microservice per file type.
+Named `integration-agent`, not `ecore-validator`, because sibling issue #315 (`.mtl`) is expected to add another `/validate/<type>` route to this same service later — one Java-process-spawning FastAPI wrapper, not a new microservice per file type.
 
 ## Why a subprocess, not an embedded JVM
 
@@ -10,17 +10,17 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 
 ## How a request flows
 
-1. A caller `POST`s `.ecore` content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore`.
-2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* main.java.mddoai.validation.EcoreValidatorCli <mode> <path>` as a subprocess.
-3. The Java side prints one line of JSON to stdout and exits 0, whether the model is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from a model that's simply invalid.
+1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore` or `/validate/atl`.
+2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>` or `AtlValidatorCli <path>`).
+3. The Java side prints one line of JSON to stdout and exits 0, whether the input is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from an input that's simply invalid.
 4. The JSON is parsed, `duration_ms` is added, and returned as the HTTP response.
 
 | Outcome | HTTP status |
 |---|---|
-| Model validated (valid or not) | `200`, `valid` field tells you which |
+| Input validated (valid or not) | `200`, `valid` field tells you which |
 | Subprocess itself failed (missing `java`, timeout, crash, garbage stdout) | `500` |
 | Request body over `MAX_CONTENT_BYTES` | `413` |
-| Bad `mode` / missing `content` | `422` |
+| Bad `mode` (ecore only) / missing `content` | `422` |
 
 ## API
 
@@ -35,6 +35,18 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 ```
 
 `mode` is `"reflective"` (structural check only — is the metamodel well-formed) or `"codegen"` (also generates real Java from it and compiles that with a real `javac` — the only way to catch problems like an `instanceClassName` pointing at a Java class that doesn't actually exist). `codegen` always runs the reflective check first and returns immediately if that fails, so it never spends time generating code for an already-broken metamodel.
+
+### `POST /validate/atl`
+
+```json
+// request
+{"filename": "swarch2pim.atl", "content": "module ...;"}
+
+// response (200)
+{"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310}
+```
+
+Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. It does **not** catch a reference to a type or attribute that doesn't actually exist in the real `.ecore` metamodel — ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture); that class of error only surfaces when the transformation actually runs against real model instances.
 
 ### `GET /health`
 

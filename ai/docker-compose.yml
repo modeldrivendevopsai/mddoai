@@ -91,9 +91,10 @@ services:
     # need to — this volume is dedicated to this one build, nothing else writes to it).
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
-  # Wraps main/'s headless .ecore validator (issue #313) as an HTTP service.
-  # Named integration-agent, not ecore-validator: #314/#315 will add sibling
-  # /validate/<type> routes to this same service later.
+  # Wraps main/'s headless model/transformation validators as an HTTP service:
+  # .ecore (issue #313) and .atl (issue #314). Named integration-agent, not
+  # ecore-validator: #315 (.mtl) is expected to add another sibling
+  # /validate/<type> route to this same service later.
   integration-agent:
     build:
       context: ./integration-agent

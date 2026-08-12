@@ -1,5 +1,7 @@
-package main.java.mddoai.validation;
+package main.java.mddoai.validation.ecore;
 
+import main.java.mddoai.validation.ValidationIssue;
+import main.java.mddoai.validation.ValidationResult;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;

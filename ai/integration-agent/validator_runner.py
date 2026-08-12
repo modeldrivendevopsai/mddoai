@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 # this default only matters for local dev, run directly against a sibling
 # main/ checkout already built via `cd main && ./gradlew installDist`.
 LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
-MAIN_CLASS = "main.java.mddoai.validation.EcoreValidatorCli"
+ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
+ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
 TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
 
 
@@ -39,9 +40,44 @@ class EcoreValidationResult(TypedDict):
     duration_ms: int
 
 
+class AtlValidationResult(TypedDict):
+    valid: bool
+    issues: list[Issue]
+    duration_ms: int
+
+
 class ValidatorInfraError(Exception):
     """The subprocess itself failed to run or produce usable output — distinct
     from the validator successfully reporting an invalid model."""
+
+
+def _run_cli(argv: list[str]) -> tuple[dict, int]:
+    """Shared subprocess boundary for both *ValidatorCli classes: run, time it,
+    and turn every non-"the model is invalid" failure mode into ValidatorInfraError.
+    Returns the parsed JSON plus the measured duration; callers own their own
+    result-shape fields (mode, logging) since those differ per validator type.
+    """
+    start = time.monotonic()
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+    except FileNotFoundError as e:
+        raise ValidatorInfraError(f"java executable not found: {e}") from e
+    except subprocess.TimeoutExpired as e:
+        raise ValidatorInfraError(f"validator subprocess timed out after {TIMEOUT_SECONDS}s") from e
+    duration_ms = int((time.monotonic() - start) * 1000)
+
+    if proc.returncode != 0:
+        raise ValidatorInfraError(
+            f"validator subprocess exited {proc.returncode}: {proc.stderr.strip()[:2000]}"
+        )
+    try:
+        result = json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as e:
+        raise ValidatorInfraError(
+            f"validator produced unparseable stdout: {proc.stdout[:2000]!r}"
+        ) from e
+
+    return result, duration_ms
 
 
 def run_ecore_validator(content: str, filename: str, mode: Literal["reflective", "codegen"]) -> EcoreValidationResult:
@@ -52,27 +88,22 @@ def run_ecore_validator(content: str, filename: str, mode: Literal["reflective",
         # The trailing /* is the JVM's own classpath wildcard, expanded internally
         # at JVM startup — not a shell glob. Safe to pass as one argv element with
         # no shell=True.
-        argv = ["java", "-cp", f"{LIB_DIR}/*", MAIN_CLASS, mode, str(target)]
-        start = time.monotonic()
-        try:
-            proc = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
-        except FileNotFoundError as e:
-            raise ValidatorInfraError(f"java executable not found: {e}") from e
-        except subprocess.TimeoutExpired as e:
-            raise ValidatorInfraError(f"validator subprocess timed out after {TIMEOUT_SECONDS}s") from e
-        duration_ms = int((time.monotonic() - start) * 1000)
-
-        if proc.returncode != 0:
-            raise ValidatorInfraError(
-                f"validator subprocess exited {proc.returncode}: {proc.stderr.strip()[:2000]}"
-            )
-        try:
-            result = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (json.JSONDecodeError, IndexError) as e:
-            raise ValidatorInfraError(
-                f"validator produced unparseable stdout: {proc.stdout[:2000]!r}"
-            ) from e
+        argv = ["java", "-cp", f"{LIB_DIR}/*", ECORE_MAIN_CLASS, mode, str(target)]
+        result, duration_ms = _run_cli(argv)
 
         result["duration_ms"] = duration_ms
         logger.info("ecore validation: mode=%s valid=%s duration_ms=%d", mode, result.get("valid"), duration_ms)
+        return result
+
+
+def run_atl_validator(content: str, filename: str) -> AtlValidationResult:
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / (Path(filename).name or "transformation.atl")
+        target.write_text(content, encoding="utf-8")
+
+        argv = ["java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, str(target)]
+        result, duration_ms = _run_cli(argv)
+
+        result["duration_ms"] = duration_ms
+        logger.info("atl validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result
