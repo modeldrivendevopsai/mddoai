@@ -144,12 +144,14 @@ def approve(stage_id, agent_response_text="Generic stage output"):
 
 
 def _advance_to_psm(psm_output="PSM description"):
-    """Starts the pipeline (lands on docs) and approves docs then pim,
-    landing on psm with the given output. Every endpoint test that isn't
-    specifically about the docs/pim stages builds on this instead of
-    hand-rolling the docs fetch and pim approval."""
+    """Starts the pipeline (lands on docs) and approves docs then
+    serialization then pim, landing on psm with the given output. Every
+    endpoint test that isn't specifically about the docs/serialization/pim
+    stages builds on this instead of hand-rolling the docs fetch and the
+    serialization/pim approvals."""
     start_pipeline()
     approve("docs")
+    approve("serialization")
     return approve("pim", agent_response_text=psm_output)
 
 
@@ -499,14 +501,14 @@ def test_runs_endpoint_lists_history_newest_first_with_current_flag():
 def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     start_pipeline()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PIM description")):
+    with patch("orchestrator.httpx.post", side_effect=_dispatcher("Serialization output")):
         response = client.post("/review/docs", json={"approved": True})
         orchestrator.wait_for_idle()
 
     assert response.status_code == 202
-    assert response.json() == {"status": "started", "stage": "pim"}
-    # pim ran and completed for real, but it's pending review now too
-    assert orchestrator.current_stage() == "pim"
+    assert response.json() == {"status": "started", "stage": "serialization"}
+    # serialization ran and completed for real, but it's pending review now too
+    assert orchestrator.current_stage() == "serialization"
 
 
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():

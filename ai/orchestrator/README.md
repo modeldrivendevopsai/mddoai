@@ -1,8 +1,9 @@
 # orchestrator
 
 Stage-based pipeline generation for MDDOAI: walks a platform description through a fixed
-`docs → psm → atl → acceleo → generation` pipeline, with a human reviewing and approving each
-stage's output before the next one runs. It's a standalone FastAPI service, independent of
+`docs → serialization → pim → psm → atl → acceleo → generation` pipeline, with a human
+reviewing and approving each stage's output before the next one runs. It's a standalone
+FastAPI service, independent of
 `ai-layer` and `retrieval` at the code level, that gets its LLM completions by calling
 `ai-layer`'s `POST /chat` endpoint over HTTP, and the `docs` stage's real documentation by
 calling `retrieval`'s `POST /fetch`, the same way any other client of those services would.
@@ -23,7 +24,7 @@ autonomously.
 
 ## Module layout
 
-Six Python modules, each with one job, arranged so a REST call (a human clicking a button)
+Several Python modules, each with one job, arranged so a REST call (a human clicking a button)
 and an LLM tool call (`/nudge`) end up running the exact same code, not two parallel
 implementations of "approve a stage" or "rerun a stage":
 
@@ -35,11 +36,19 @@ implementations of "approve a stage" or "rerun a stage":
   blank hook some other module fills in. Does not import `stage_agents.py` at module level
   (that would be circular, `stage_agents.py` needs this module already loaded), `run_stage()`
   does a local, deferred import instead.
-- **`stage_agents.py`** — the six stage agents (`docs_agent`, `pim_agent`, `psm_agent`,
-  `atl_agent`, `acceleo_agent`, `gen_agent`), their prompts, and the `stage_agents` lookup dict.
-  Split out from `orchestrator.py` because this content is volatile in a way the state machine
-  isn't: every agent but `docs_agent` is an explicit placeholder standing in for a future real
-  per-stage implementation, each likely to be replaced on its own schedule.
+- **`stage_agents.py`** — six of the seven stage agents (`docs_agent`, `pim_agent`, `psm_agent`,
+  `atl_agent`, `acceleo_agent`, `gen_agent`), their prompts, and the `stage_agents` lookup dict
+  (which also references `serialization_agent`, see below). Split out from `orchestrator.py`
+  because this content is volatile in a way the state machine isn't: every agent but
+  `docs_agent` is an explicit placeholder standing in for a future real per-stage
+  implementation, each likely to be replaced on its own schedule.
+- **`serialization_agent.py`** — the seventh stage agent, `serialization_agent`, kept in its
+  own module rather than folded into `stage_agents.py` because it's a real, multi-step
+  implementation (an LLM extraction call, then deterministic labeling and markdown assembly),
+  not a one-prompt placeholder like its neighbors. Turns `docs_agent`'s raw documentation
+  markdown into a structured artifact labeled against `pim_agent`'s `PIM_CONCEPTS`, so `pim_agent`
+  and every later stage work from structured, labeled input instead of an opaque blob of raw
+  prose. See [The serialization stage](#the-serialization-stage) below.
 - **`tool_calling.py`** — a small, generic, reusable LLM tool-calling reply engine (a `Tool`
   dataclass bundling a schema with its real implementation, plus the code that turns a system
   prompt + a list of `Tool`s into a reply). Has zero knowledge of MDDOAI, pipelines, or stages,
@@ -60,18 +69,19 @@ main.py ──imports──> orchestrator.py   (plain operations: start_pipeline
 main.py ──imports──> assistant.py      (nudge)
 assistant.py ──imports──> orchestrator.py, pipeline_tools.py, tool_calling.py
 pipeline_tools.py ──imports──> orchestrator.py, stage_agents.py, tool_calling.py
-stage_agents.py ──imports──> orchestrator.py
+stage_agents.py ──imports──> orchestrator.py, serialization_agent.py
+serialization_agent.py ──imports──> orchestrator.py, pim_agent (ground, PIM_CONCEPTS, concept_for_entry_title)
 orchestrator.py ──imports──> stage_agents.py locally, inside run_stage() only (breaks the cycle)
 tool_calling.py                        (imports none of the above)
 ```
 
 ## Stage-based pipeline generation
 
-The pipeline turns a platform description into generated CI/CD tooling through six fixed
+The pipeline turns a platform description into generated CI/CD tooling through seven fixed
 stages, in order:
 
 ```python
-STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"]
+STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 ```
 
 Each stage has exactly one agent, looked up directly by stage name, no classification or
@@ -80,6 +90,7 @@ selection step:
 ```python
 stage_agents = {
     "docs": docs_agent,
+    "serialization": serialization_agent,
     "pim": pim_agent,
     "psm": psm_agent,
     "atl": atl_agent,
@@ -90,19 +101,27 @@ stage_agents = {
 
 ### The agents
 
-All six agents, their prompts, and the `stage_agents` dict above live in `stage_agents.py`, not
-`orchestrator.py`. `docs_agent` is a real agent: it calls `retrieval`'s actual `POST /fetch` and
-returns the crawled documentation. `pim_agent`, `psm_agent`, `atl_agent`, `acceleo_agent`, and
-`gen_agent` are placeholders standing in for future real per-stage agents, each is a plain LLM
-prompt call `(context: dict) -> str`, not yet the real MDE toolchain.
+All seven agents and the `stage_agents` dict above live in `stage_agents.py` (six of them,
+plus the `serialization_agent` import) and `serialization_agent.py` (the seventh), not
+`orchestrator.py`. `docs_agent` and `serialization_agent` are real agents: the former calls
+`retrieval`'s actual `POST /fetch`, the latter is a real multi-step extraction/labeling
+pipeline (see [The serialization stage](#the-serialization-stage) below). `pim_agent`,
+`psm_agent`, `atl_agent`, `acceleo_agent`, and `gen_agent` are still placeholders standing in
+for future real per-stage agents, each a plain LLM prompt call `(context: dict) -> str`, not
+yet the real MDE toolchain.
 
 - **`docs_agent(context)`** — reads `context["seed_url"]` (the platform's real documentation
   URL). Calls `orchestrator.fetch_documentation()` (retrieval's `POST /fetch`), and raises if
   the crawl found essentially nothing useful (confidence below `_DOCS_MIN_CONFIDENCE`, or zero
   pages fetched successfully). Corrections fold into retrieval's own `hint` parameter directly,
   no translation needed, retrieval's `/fetch` already accepts free text there as a retry lever.
-- **`pim_agent(context)`** — prefers `context["docs_output"]` (the real fetched documentation)
-  when present, falls back to `context["platform_description"]` for a direct call without it
+- **`serialization_agent(context)`** — reads `context["docs_output"]` (the real fetched
+  documentation) and restructures it into a labeled, PIM-concept-tagged markdown artifact. See
+  [The serialization stage](#the-serialization-stage) below for the full extraction/labeling
+  design.
+- **`pim_agent(context)`** — prefers `context["serialization_output"]` (the structured,
+  labeled artifact) when present, falls back to `context["docs_output"]` (the raw fetched
+  documentation), then `context["platform_description"]` for a direct call without either
   (e.g. a unit test). Produces a PIM (Platform-Independent Model) description: the platform's
   CI/CD concepts (jobs, stages, triggers, artifacts, agents/runners) expressed in MDDOAI's
   platform-independent metamodel terms, without committing to any one platform's syntax yet.
@@ -133,6 +152,34 @@ refusal markers (`"I cannot"`, `"I don't know"`, `"I do not know"`) or explicit 
 a bare `"error"` substring match, generated content that legitimately *discusses* error
 handling (e.g. an Acceleo template's error-handling block) isn't flagged as a bad response.
 `validate()` is applied to every stage's output before a human ever sees it.
+
+### The serialization stage
+
+`serialization_agent(context)` (in `serialization_agent.py`) sits between `docs` and `pim`. It
+turns `docs_agent`'s raw, unstructured documentation markdown into a structured artifact,
+labeled against `pim_agent`'s `PIM_CONCEPTS` (the nine DevOps PIM concepts: Pipeline, Job,
+Agent, Services, Trigger, Matrix, Parameters, Steps, Expressions/VariableDeclaration), so `pim`
+and every later stage build on structured, labeled input instead of an opaque blob of raw
+prose. Three steps, one LLM call:
+
+1. **Extraction** (`_extract_fragments`, one `orchestrator.chat()` call) — asks the LLM to find
+   every distinct pipeline/job/task/trigger/agent-shaped fragment in the raw documentation text
+   and return it as a JSON array of `{"type", "name", "raw_text"}` objects. If the response
+   isn't parseable JSON (or isn't a JSON list), this degrades gracefully: the whole input
+   becomes one fragment rather than crashing the stage, so nothing is ever silently dropped.
+2. **Labeling** (`_label_fragment`, no LLM call) — calls `pim_agent`'s real, deterministic
+   `ground()` on each fragment, filters to `category == "metamodel"` results, and maps the top
+   hit through `concept_for_entry_title()` to one of the 9 `PIM_CONCEPTS`. A fragment `ground()`
+   can't match to any of the 9 concepts isn't dropped, it's labeled unmatched instead.
+3. **Markdown assembly** (`_build_markdown`, no LLM call, plain string formatting) — always
+   emits all 9 `## <concept>` headers, in `PIM_CONCEPTS` order, even when empty (`(none found)`),
+   plus a final `## Unrecognized` section for every unmatched fragment, never omitted.
+
+Known limitation (Phase 0 MVP, matching `pim_agent`'s own "not RAG" framing): "matched" means
+"`ground()` returned at least one metamodel-category result," there's no score threshold, since
+`GroundingExample` doesn't expose its internal match score. Exposing that would touch
+`GroundingExample`'s own documented "stable public contract" and deserves its own review, not a
+drive-by change bundled into this stage.
 
 ### The event log and background execution
 
@@ -505,9 +552,9 @@ print(result)  # {"stage": "docs", "output": "Fetched N page(s)...", "valid": Tr
 
 # Approved — record_review() returns the next stage's context, it doesn't run it
 review = record_review("docs", approved=True)
-print(review)  # {"status": "advanced", "stage": "psm", "context": {...}}
+print(review)  # {"status": "advanced", "stage": "serialization", "context": {...}}
 result = run_stage(review["context"])
-print(result)  # {"stage": "psm", "output": "...", "valid": True}
+print(result)  # {"stage": "serialization", "output": "# Serialization: labeled documentation structure\n\n## Pipeline\n...", "valid": True}
 
 # Rejected — record a correction, then rerun the same stage with it folded in.
 # Unlike run_stage() above, review()/rerun_stage() start a background thread
@@ -521,8 +568,8 @@ wait_for_idle()
 print(next(e for e in events() if e["type"] == "call_completed")["data"])
 # {"stage": "psm", "output": "... (lint stage added)", "valid": True}
 
-# ...review "atl", "acceleo", and so on, until approving the last stage
-# ("generation") completes the pipeline:
+# ...review "serialization", "pim", "psm", "atl", "acceleo", and so on, until
+# approving the last stage ("generation") completes the pipeline:
 result = review_and_run("generation", approved=True)
 print(result)  # {"status": "complete"}
 ```
@@ -555,12 +602,18 @@ No real network calls are made, `httpx.post` (the only thing that talks to `ai-l
 `retrieval`) is mocked in every test.
 
 `tests/test_orchestrator.py` covers `orchestrator.py`, `tool_calling.py`, and `pipeline_tools.py`:
-the agents (including the real `docs_agent`/`fetch_documentation`/`fetch_page`), `validate()`,
-the event log (`record_event`, `run_stage_async`, the narration-failure fallback), the
-review/validation path (`review`, `record_review`), and `assistant.nudge()`/`react_to_event()`'s
-tool dispatch. `tests/test_main.py` covers the endpoints above, mocking only `httpx.post` and
-letting the real `orchestrator.py` logic run underneath `main.py`'s routes, so the tests
-exercise the actual wiring between the two rather than mocking across that seam.
+`STAGES`, `validate()`, the event log (`record_event`, `run_stage_async`, the narration-failure
+fallback), the review/validation path (`review`, `record_review`), and
+`assistant.nudge()`/`react_to_event()`'s tool dispatch. `tests/test_stage_agents.py` covers the
+six agents defined in `stage_agents.py` (their prompts, fallback chains, and the `stage_agents`
+lookup dict, including the real `docs_agent`/`fetch_documentation`/`fetch_page`).
+`tests/test_serialization_agent.py` covers the seventh agent, `serialization_agent.py`,
+separately: extraction (including its malformed-JSON fallback), labeling against the real,
+unmocked `ground()`, markdown assembly, and a regression guard that every metamodel-category
+knowledge entry in `pim_agent/reference_knowledge.py` is mapped to one of the 9 `PIM_CONCEPTS`.
+`tests/test_main.py` covers the endpoints above, mocking only `httpx.post` and letting the real
+`orchestrator.py` logic run underneath `main.py`'s routes, so the tests exercise the actual
+wiring between the two rather than mocking across that seam.
 
 `run_stage_async()` spawns a real background thread (not FastAPI's `BackgroundTasks`), so a
 test that needs a run's outcome calls `orchestrator.wait_for_idle()` (joining that thread)

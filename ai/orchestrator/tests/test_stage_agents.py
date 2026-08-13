@@ -26,6 +26,7 @@ from unittest.mock import patch
 import pytest
 
 import orchestrator
+import serialization_agent
 import stage_agents
 from helpers import _fake_fetch_response, ok_response
 
@@ -201,6 +202,7 @@ def test_docs_agent_crawls_for_real_when_mock_context_flag_is_falsy():
 def test_stage_agents_maps_stage_names_to_agent_functions():
     assert stage_agents.stage_agents == {
         "docs": stage_agents.docs_agent,
+        "serialization": serialization_agent.serialization_agent,
         "pim": stage_agents.pim_agent,
         "psm": stage_agents.psm_agent,
         "atl": stage_agents.atl_agent,

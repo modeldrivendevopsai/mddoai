@@ -64,7 +64,7 @@ def is_good_enough(response: str) -> bool:
 # stage_agents lookup dict live in stage_agents.py, not here, see
 # Orchestrator.run_stage()'s own comment for why.
 
-STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"]
+STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 
 
 # Retrieval's own two real capabilities (ai/retrieval's POST /fetch and POST
