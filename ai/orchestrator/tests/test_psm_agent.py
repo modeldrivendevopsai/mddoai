@@ -3,6 +3,12 @@
 DEFAULT_PSM_METAMODEL_PATH (a static, already-checked-in repo file, not a mock) as the
 metamodel content, so only the LLM call itself is stubbed.
 
+ok_response() returns a plain dict, matching orchestrator.chat()'s real return shape
+(response.json() from ai-layer's /chat endpoint: {"model", "content", "tool_calls"} —
+see orchestrator.chat()'s own docstring) — not a raw completion object with .choices.
+Every other real call site in this repo (stage_agents.py) reads chat()'s result the
+same way: orchestrator.chat(...)["content"].
+
 Tests verify:
   1. compare() calls chat() with a system prompt instructing a missing/outdated comparison.
   2. compare() sends the metamodel content and the serialized docs in the user message.
@@ -15,19 +21,19 @@ Tests verify:
   8. compare() defaults to DEFAULT_PSM_METAMODEL_PATH (gitlabMM.ecore) when no path is given.
   9. compare() reads from a caller-supplied psm_metamodel_path instead of the default.
   10. source_excerpt is preserved as None when the LLM omits it.
+  11. compare() extracts the real JSON array and ignores a stray bracket in trailing prose,
+      rather than over-matching to it and silently failing to parse.
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import orchestrator
 from psm_agent import DEFAULT_PSM_METAMODEL_PATH, Suggestion, compare
 
 
 def ok_response(content):
-    r = MagicMock()
-    r.choices = [MagicMock(message=MagicMock(content=content, tool_calls=None))]
-    return r
+    return {"model": "test-model", "content": content, "tool_calls": None}
 
 
 def json_response(items):
@@ -139,3 +145,34 @@ def test_compare_preserves_none_source_excerpt():
         results = compare("docs")
 
     assert results[0].source_excerpt is None
+
+
+def test_compare_ignores_stray_bracket_in_trailing_prose():
+    # The real JSON array is well-formed and closes cleanly, but the LLM appended a
+    # trailing note containing an unrelated "[old_retry]"-style bracket. A greedy
+    # first-'['-to-last-']' regex would swallow that trailing bracket into the match,
+    # produce unparseable JSON, and silently return [] even though the real answer
+    # was fine. Depth-tracking must stop at the real array's own closing ']'.
+    array_json = json.dumps(
+        [
+            {
+                "kind": "missing",
+                "target": "Job.retry",
+                "description": "Docs describe a retry field with a max count; no such property exists.",
+                "source_excerpt": "Jobs support a `retry` field with a max count.",
+            }
+        ]
+    )
+    content = f"{array_json}\n\nNote: see also the deprecated field [old_retry] for context."
+
+    with patch.object(orchestrator, "chat", return_value=ok_response(content)):
+        results = compare("docs")
+
+    assert results == [
+        Suggestion(
+            kind="missing",
+            target="Job.retry",
+            description="Docs describe a retry field with a max count; no such property exists.",
+            source_excerpt="Jobs support a `retry` field with a max count.",
+        )
+    ]

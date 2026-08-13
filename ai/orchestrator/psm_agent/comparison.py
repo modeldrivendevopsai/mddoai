@@ -7,15 +7,15 @@ matching against a static knowledge list: the comparison itself, not just ground
 context, is the point of this agent.
 
 There is no single "psmMM.ecore" in this repo. MDDOAI's PSM is realized per target
-platform (gitlabMM.ecore, githubMM.ecore, bitbucketMM.ecore), so the metamodel to
-compare against is a parameter, not a fixed path. DEFAULT_PSM_METAMODEL_PATH points
-at gitlabMM.ecore since MDDOAI targets GitLab specifically (see pim_agent's own
-reusability notes), but any of the three can be passed explicitly.
+platform (gitlabMM.ecore, githubMM.ecore, and bitbucketMM.ecore once added), so the
+metamodel to compare against is a parameter, not a fixed path. DEFAULT_PSM_METAMODEL_PATH
+points at gitlabMM.ecore since MDDOAI targets GitLab specifically (see pim_agent's own
+reusability notes), but any of the three can be passed explicitly (bitbucketMM.ecore's
+path too, once that metamodel exists).
 """
 
 import json
 import logging
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -59,15 +59,48 @@ class Suggestion:
     source_excerpt: str | None  # relevant snippet from the serialized docs
 
 
+def _extract_json_array(content: str) -> str | None:
+    """Find the first '[' and scan forward tracking bracket depth (respecting JSON
+    string literals and escapes, so a '[' or ']' inside a quoted value doesn't
+    throw off the count) to find that '['s true matching ']'. Unlike a greedy
+    regex, this is correct even when a stray bracket appears elsewhere in
+    surrounding prose the LLM wasn't supposed to include."""
+    start = content.find("[")
+    if start == -1:
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for i in range(start, len(content)):
+        char = content[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                return content[start:i + 1]
+    return None
+
+
 def _parse_suggestions(content: str) -> list[Suggestion]:
-    match = re.search(r"\[.*\]", content, re.DOTALL)
-    if not match:
+    array_text = _extract_json_array(content)
+    if array_text is None:
         logger.warning("compare(): no JSON array in LLM response: %r", content[:300])
         return []
     try:
-        items = json.loads(match.group(0))
+        items = json.loads(array_text)
     except json.JSONDecodeError:
-        logger.warning("compare(): unparseable JSON from LLM: %r", match.group(0)[:300])
+        logger.warning("compare(): unparseable JSON from LLM: %r", array_text[:300])
         return []
 
     suggestions = []
@@ -102,8 +135,8 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
     output shape is known.
 
     `psm_metamodel_path` defaults to DEFAULT_PSM_METAMODEL_PATH (gitlabMM.ecore) when not
-    given; pass githubMM.ecore's or bitbucketMM.ecore's path explicitly to compare against
-    a different platform's PSM.
+    given; pass githubMM.ecore's path explicitly to compare against a different platform's
+    PSM (bitbucketMM.ecore's path too, once that metamodel exists).
     """
     metamodel_path = psm_metamodel_path or DEFAULT_PSM_METAMODEL_PATH
     metamodel_content = Path(metamodel_path).read_text()
@@ -117,5 +150,5 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
         {"role": "user", "content": user_content},
     ]
     response = orchestrator.chat(messages)
-    content = response.choices[0].message.content or ""
+    content = response["content"] or ""
     return _parse_suggestions(content)
