@@ -87,14 +87,14 @@ def _extract_fragments(docs_text: str, model: str | None) -> list[dict]:
 
 # ground() ranks matches across ALL categories (metamodel, process, reusability,
 # limitation) and only *then* truncates to top_k - it has no category filter of its
-# own. Calling it with the default top_k=5 here would let this function's own
-# metamodel-only filter see a pre-truncated slice: a fragment worded close to the
-# process-category "Step N: ..." entries, for example, fills all 5 of the default
-# top_k slots with process hits, pushing a real "Step types" (metamodel) match to
-# rank 8, past where the filter below could ever see it - a genuine metamodel match
-# silently reported as unrecognized. Request every entry ground() could ever
-# return (comfortably above the whole knowledge base's real size) instead, so the
-# metamodel filter runs over the full ranked list, not a pre-truncated one.
+# own. Calling it with a small top_k here would let this function's own
+# metamodel-only filter see a pre-truncated slice: a fragment worded close to
+# several non-metamodel entries can fill every available slot before the filter
+# below ever gets a chance to see a real metamodel match ranked further down -
+# a genuine match silently reported as unrecognized. Request every entry
+# ground() could ever return instead, comfortably above the knowledge base's
+# real size, so the metamodel filter runs over the full ranked list, not a
+# pre-truncated one.
 _GROUND_ALL_RESULTS = 1000
 
 
