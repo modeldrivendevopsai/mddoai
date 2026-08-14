@@ -47,7 +47,7 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - **Give each function, class, or service one clear job.** A change in one place should have a small, predictable effect, not a ripple through unrelated code.
 - **Do not hardcode values that can change.** A URL, a port, a timeout, a feature flag, a threshold, a secret: all belong in an environment variable or a config file, never a literal buried in source. Never commit a real secret or credential.
 - **Name and explain non-obvious constants.** If a number isn't self-explanatory, give it a name and a short comment on where it came from: measured, a library default, or an engineering guess.
-- **Build only what the current task needs (YAGNI, "you aren't gonna need it").** Don't add options, abstractions, or generalized code paths for a need you're only guessing at.
+- **Build only what the current task needs (YAGNI, "you aren't gonna need it").** Don't add options, abstractions, or generalized code paths for a need you're only guessing at — a config system for one deployment target, a plugin architecture for one plugin, generalized dispatch built around a single real case. **This does not cover basic structure for concerns that already concretely exist.** If two or more distinct, real things already sit flattened into one file or folder today, giving them their own files or modules is normal engineering hygiene, not speculative generalization, even if a third might join later. Don't invoke YAGNI to justify skipping real loose coupling or real separation of concerns that are already real, only to defend against ones that are still hypothetical.
 - **Depend on abstractions, not specific implementations**, so an implementation can change without every caller changing with it.
 
 ### Testing
@@ -55,6 +55,12 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - **Test every feature end to end before it's considered done.** A passing mocked/unit test suite isn't sufficient. Run the feature against its real dependencies (real service, real DB, real external API where feasible), and confirm the actual input and output, not just that an assertion passed.
 - **If a feature runs in Docker in production, test it in Docker**, not only on the host. A container can behave differently: different base image, missing dev tools, different network resolution between services.
 - **Don't break what already works.** Run the full existing test suite for the area you touched, not just tests for the new change. If you touched something shared (a shared config, a compose file wiring multiple services together), check what else depends on it.
+
+### Review
+
+- **After a non-trivial implementation or feature, and before committing it, get an independent review — don't self-certify.** Use the `/code-review` skill for general correctness/reuse/simplification, or spawn an independent, foreground agent (subagent type `Plan`, read-only) as a reviewer with a self-contained prompt that quotes the relevant rules from this file and points it at the real changed files. Either way it should have no memory of the conversation that produced the change, so it forms its own judgment instead of rubber-stamping the reasoning that led there — a reviewer that only sees the diff, not the justification, catches more.
+- **Tell the reviewer to be strict.** Cite an exact file and line for every finding. Verify claims by reading the real files and running real commands, not by trusting a description of what changed. State plainly when a category has no findings instead of praising it or staying silent. A review that finds nothing wrong should be the rare outcome, not the default one.
+- **Re-verify every finding yourself before acting on it or dismissing it.** A subagent's report describes what it believes it found, not necessarily ground truth. Confirm against the real file before changing anything, and before telling the user something is fine.
 
 ### Scope
 
@@ -66,6 +72,7 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - Create or update documentation for any feature you add or change, as part of that same change, not as a followup.
 - State the current design only. Never reference a document's own edit history: no "this used to say X," no "previously Y, now Z," no meta-commentary about a rewrite. Write only what's true now, as if it was always written this way.
 - Avoid hardcoding anything likely to go stale: no exact prices, exact counts, narrow enumerated lists, or absolute claims like "the only file that..." or "the whole app is..." about a part of a system that changes. Describe a file or service's role, not that it's uniquely or exclusively the one with that role, so the sentence stays true after the system grows.
+- Don't name specific files, classes, or examples in prose purely as illustration unless the rule genuinely depends on that exact name. A phrase like "e.g. `FooBar`, `BazQux`" goes stale the moment one of those is renamed, moved, or removed, even though the rule itself never changed, and it invites an edit here on every commit that happens to touch one of the named things. State the rule by its real, durable shape instead: a naming pattern (`*Cli.java`), a glob, a path, or a structural description, so a future rename or addition never requires editing this file.
 - Write for a colleague who has never done this task before, not someone who already knows the process.
 - Be clear: short sentences, one idea per sentence, active voice, plain words over jargon. Define jargon on first use.
 - Break up any sentence doing more than one job.
