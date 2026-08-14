@@ -97,8 +97,8 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         description=(
             "A Job declares a `services` property (DockerContainer[*|1]): one or "
             "more DockerContainer instances that run alongside the job during its "
-            "execution, e.g. spinning up a database or cache container for a test "
-            "job. This is the Job-to-DockerContainer dependency relationship, "
+            "execution, e.g. a database or cache container the job depends on. "
+            "This is the Job-to-DockerContainer dependency relationship, "
             "distinct from the DockerContainer class's own fields (image, env "
             "vars, volumes, ports, credentials)."
         ),
@@ -110,7 +110,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         title="Trigger types",
         description=(
             "Triggers cover PushTrigger, PullRequestTrigger, ManualTrigger, and "
-            "ScheduledTrigger, the last of which carries a cron expression for "
+            "ScheduledTrigger, the last of which carries a cron-based schedule for "
             "time-based runs."
         ),
         keywords=("trigger", "pushtrigger", "pullrequesttrigger", "manualtrigger", "scheduledtrigger", "cron", "schedule"),
@@ -120,7 +120,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         category="metamodel",
         title="Matrix",
         description=(
-            "Matrix defines build/test axes plus explicit include and exclude "
+            "Matrix defines named axes plus explicit include and exclude "
             "combinations, with a fail-fast flag controlling whether one failing "
             "combination cancels the rest of the matrix."
         ),
@@ -349,12 +349,28 @@ def _score(entry: _KnowledgeEntry, query_stems: list[str]) -> int:
     return sum(1 for stem in query_stems if stem in haystack_stems)
 
 
+def _keyword_score(entry: _KnowledgeEntry, query_stems: list[str]) -> int:
+    """Like _score, but counts overlap only against this entry's own curated
+    keywords tuple, not its title/description prose. Used solely as a
+    tie-break in ground()'s ranking: a query stem that's one of an entry's
+    deliberately chosen keywords is stronger evidence of a real match than a
+    stem that merely happens to appear somewhere in that entry's descriptive
+    prose - confirmed as a real false-positive source (an illustrative
+    example elsewhere in this file reusing a word like "test" or "expression"
+    that happens to be another entry's real vocabulary), not a hypothetical."""
+    keyword_stems = {_stem(t) for t in _tokenize(" ".join(entry.keywords))}
+    return sum(1 for stem in query_stems if stem in keyword_stems)
+
+
 def ground(query: str, top_k: int = 5) -> list[GroundingExample]:
     """Return the most relevant reference-project grounding examples for a query.
 
     Matching is plain keyword scoring against each entry's title, description,
     and keywords, ordered highest-scoring first, matching this scope's Phase 0
-    "not RAG" constraint. Entries with no matching tokens are excluded.
+    "not RAG" constraint. Entries with no matching tokens are excluded. Ties in
+    total score are broken by _keyword_score (see its own docstring) - this
+    only reorders entries that already scored equally, it never changes which
+    entries qualify or how many top_k returns.
     """
     query_stems = [_stem(t) for t in _tokenize(query)]
     if not query_stems:
@@ -362,6 +378,6 @@ def ground(query: str, top_k: int = 5) -> list[GroundingExample]:
 
     scored = [(entry, _score(entry, query_stems)) for entry in _KNOWLEDGE]
     matches = [(entry, score) for entry, score in scored if score > 0]
-    matches.sort(key=lambda pair: pair[1], reverse=True)
+    matches.sort(key=lambda pair: (pair[1], _keyword_score(pair[0], query_stems)), reverse=True)
 
     return [entry.to_grounding_example() for entry, _ in matches[:top_k]]

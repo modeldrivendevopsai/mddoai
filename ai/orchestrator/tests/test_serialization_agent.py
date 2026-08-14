@@ -119,6 +119,28 @@ def test_label_fragment_leaves_unrelated_text_unmatched():
     assert labeled["concept"] is None
 
 
+def test_label_fragment_finds_a_metamodel_match_ranked_past_grounds_default_top_k():
+    # Regression test: ground()'s default top_k=5 truncates across ALL categories
+    # before _label_fragment ever gets to filter for "metamodel" - a fragment worded
+    # close to the 5 process-category "Step N: ..." entries fills every default
+    # top_k=5 slot with process hits, pushing the real "Step types" (metamodel) match
+    # to rank 8. Without requesting a large top_k in _label_fragment, this fragment
+    # would incorrectly come back unmatched despite a clear, real concept for it.
+    fragment = {
+        "type": "step",
+        "name": "Build step",
+        "raw_text": (
+            "Command step build step init environment output script "
+            "input platform-specific model"
+        ),
+    }
+
+    labeled = serialization_agent._label_fragment(fragment)
+
+    assert labeled["matched"] is True
+    assert labeled["concept"] == "Steps"
+
+
 # --- _build_markdown -----------------------------------------------------------
 
 
