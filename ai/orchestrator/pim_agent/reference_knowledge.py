@@ -97,8 +97,8 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         description=(
             "A Job declares a `services` property (DockerContainer[*|1]): one or "
             "more DockerContainer instances that run alongside the job during its "
-            "execution, e.g. spinning up a database or cache container for a test "
-            "job. This is the Job-to-DockerContainer dependency relationship, "
+            "execution, e.g. a database or cache container the job depends on. "
+            "This is the Job-to-DockerContainer dependency relationship, "
             "distinct from the DockerContainer class's own fields (image, env "
             "vars, volumes, ports, credentials)."
         ),
@@ -110,7 +110,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         title="Trigger types",
         description=(
             "Triggers cover PushTrigger, PullRequestTrigger, ManualTrigger, and "
-            "ScheduledTrigger, the last of which carries a cron expression for "
+            "ScheduledTrigger, the last of which carries a cron-based schedule for "
             "time-based runs."
         ),
         keywords=("trigger", "pushtrigger", "pullrequesttrigger", "manualtrigger", "scheduledtrigger", "cron", "schedule"),
@@ -120,7 +120,7 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
         category="metamodel",
         title="Matrix",
         description=(
-            "Matrix defines build/test axes plus explicit include and exclude "
+            "Matrix defines named axes plus explicit include and exclude "
             "combinations, with a fail-fast flag controlling whether one failing "
             "combination cancels the rest of the matrix."
         ),
@@ -271,6 +271,40 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
 ]
 
 
+# The nine DevOps PIM concepts (issue #221's AC; the 9-concept set itself is
+# independently corroborated by test_coverage.py's own checklist, sourced
+# from Uldis's paper). Each concept maps to the metamodel-category
+# _KnowledgeEntry title(s) that define it — this only groups existing
+# entries, it adds no new knowledge. DockerContainer folds into "Services",
+# not "Agent": the "Job services" entry explicitly types a Job's `services`
+# property as DockerContainer[*|1] — a direct documented relationship: this
+# metamodel's own text ties DockerContainer to Services, not to Agent (the
+# "Agent types" entry never mentions DockerContainer at all). Expression
+# tree + VariableDeclaration merge into one concept for the same
+# entries-that-clearly-belong-together reasoning.
+PIM_CONCEPTS: dict[str, tuple[str, ...]] = {
+    "Pipeline": ("Pipeline and PipelineBlock",),
+    "Job": ("Job types: ScriptJob and PipelineCallJob",),
+    "Agent": ("Agent types",),
+    "Services": ("Job services", "DockerContainer"),
+    "Trigger": ("Trigger types",),
+    "Matrix": ("Matrix",),
+    "Parameters": ("Input and output parameters",),
+    "Steps": ("Step types",),
+    "Expressions/VariableDeclaration": ("Expression tree", "VariableDeclaration"),
+}
+
+
+def concept_for_entry_title(title: str) -> str | None:
+    """Reverse lookup: the PIM_CONCEPTS key whose grouped titles include the
+    given metamodel-category _KnowledgeEntry title, or None if it's not a
+    concept-labeling target (e.g. a process/reusability/limitation entry)."""
+    for concept, titles in PIM_CONCEPTS.items():
+        if title in titles:
+            return concept
+    return None
+
+
 _STOPWORDS = {
     "a", "an", "the", "in", "on", "at", "is", "are", "was", "were", "of", "to", "for",
     "and", "or", "what", "which", "how", "does", "do", "this", "that", "it", "its",
@@ -315,12 +349,28 @@ def _score(entry: _KnowledgeEntry, query_stems: list[str]) -> int:
     return sum(1 for stem in query_stems if stem in haystack_stems)
 
 
+def _keyword_score(entry: _KnowledgeEntry, query_stems: list[str]) -> int:
+    """Like _score, but counts overlap only against this entry's own curated
+    keywords tuple, not its title/description prose. Used solely as a
+    tie-break in ground()'s ranking: a query stem that's one of an entry's
+    deliberately chosen keywords is stronger evidence of a real match than a
+    stem that merely happens to appear somewhere in that entry's descriptive
+    prose - confirmed as a real false-positive source (an illustrative
+    example elsewhere in this file reusing a word like "test" or "expression"
+    that happens to be another entry's real vocabulary), not a hypothetical."""
+    keyword_stems = {_stem(t) for t in _tokenize(" ".join(entry.keywords))}
+    return sum(1 for stem in query_stems if stem in keyword_stems)
+
+
 def ground(query: str, top_k: int = 5) -> list[GroundingExample]:
     """Return the most relevant reference-project grounding examples for a query.
 
     Matching is plain keyword scoring against each entry's title, description,
     and keywords, ordered highest-scoring first, matching this scope's Phase 0
-    "not RAG" constraint. Entries with no matching tokens are excluded.
+    "not RAG" constraint. Entries with no matching tokens are excluded. Ties in
+    total score are broken by _keyword_score (see its own docstring) - this
+    only reorders entries that already scored equally, it never changes which
+    entries qualify or how many top_k returns.
     """
     query_stems = [_stem(t) for t in _tokenize(query)]
     if not query_stems:
@@ -328,6 +378,6 @@ def ground(query: str, top_k: int = 5) -> list[GroundingExample]:
 
     scored = [(entry, _score(entry, query_stems)) for entry in _KNOWLEDGE]
     matches = [(entry, score) for entry, score in scored if score > 0]
-    matches.sort(key=lambda pair: pair[1], reverse=True)
+    matches.sort(key=lambda pair: (pair[1], _keyword_score(pair[0], query_stems)), reverse=True)
 
     return [entry.to_grounding_example() for entry, _ in matches[:top_k]]

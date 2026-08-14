@@ -98,7 +98,7 @@ def test_validate_reuses_is_good_enough():
 
 
 def test_stages_order():
-    assert orchestrator.STAGES == ["docs", "pim", "psm", "atl", "acceleo", "generation"]
+    assert orchestrator.STAGES == ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 
 
 # --- run identity (run_id / _runs) tests -------------------------------------
@@ -443,6 +443,7 @@ def test_module_level_rerun_stage_delegates_to_default_orchestrator():
 def test_advance_stage_moves_through_stages_and_returns_none_at_end():
     o = orchestrator.Orchestrator()
     assert o.current_stage == "docs"
+    assert o.advance_stage() == "serialization"
     assert o.advance_stage() == "pim"
     assert o.advance_stage() == "psm"
     assert o.advance_stage() == "atl"

@@ -21,6 +21,7 @@ Orchestrator.run_stage()'s own local import for how that's resolved.
 import os
 
 import orchestrator
+import serialization_agent
 
 # Opt-in only (unset by default, so a real `docker compose up` still runs the
 # real crawl): when set, docs_agent() skips retrieval entirely and returns
@@ -42,6 +43,7 @@ _DOCS_MIN_CONFIDENCE = 0.15
 # orchestrator.STAGES and stage_agents below.
 STAGE_DESCRIPTIONS: dict[str, str] = {
     "docs": "fetches the platform's real documentation (a real call to retrieval).",
+    "serialization": "restructures the fetched documentation into a labeled, PIM-concept-tagged markdown artifact.",
     "pim": "a PIM (Platform-Independent Model) description of the platform.",
     "psm": "a PSM (Platform-Specific Model) description of the platform.",
     "atl": "the ATL transformation rules needed to build that PSM.",
@@ -135,11 +137,14 @@ def docs_agent(context: dict) -> str:
 
 
 def pim_agent(context: dict) -> str:
-    # docs_output (the real fetched documentation) is what a live run actually
-    # has once "docs" precedes "pim"; platform_description is the fallback for
-    # a caller (or a unit test) that invokes pim_agent directly without it.
+    # serialization_output (the labeled, structured markdown) is what a live
+    # run actually has once "serialization" precedes "pim" — strictly more
+    # useful than the raw docs_output it's built from. docs_output is the
+    # fallback for a caller (or a unit test) that invokes pim_agent directly
+    # without a serialization stage having run; platform_description is the
+    # last-resort fallback below that.
     platform_description = context.get("platform_description", "")
-    primary_input = context.get("docs_output") or platform_description
+    primary_input = context.get("serialization_output") or context.get("docs_output") or platform_description
     user_content = primary_input + _constraints_note(context, "pim")
     messages = [
         {"role": "system", "content": _STAGE_SYSTEM_PROMPTS["pim"]},
@@ -197,6 +202,7 @@ def gen_agent(context: dict) -> str:
 
 stage_agents = {
     "docs": docs_agent,
+    "serialization": serialization_agent.serialization_agent,
     "pim": pim_agent,
     "psm": psm_agent,
     "atl": atl_agent,

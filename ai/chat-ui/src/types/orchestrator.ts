@@ -2,7 +2,7 @@
 // and README.md) exactly, this is the single source of truth for that
 // contract on the frontend side.
 
-export const STAGES = ["docs", "pim", "psm", "atl", "acceleo", "generation"] as const
+export const STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"] as const
 export type StageId = (typeof STAGES)[number]
 
 export type OrchestratorEventType =

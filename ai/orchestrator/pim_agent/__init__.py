@@ -6,6 +6,6 @@ package through the public interface re-exported below, without depending on
 any agent's internals.
 """
 
-from .reference_knowledge import GroundingExample, ground
+from .reference_knowledge import GroundingExample, ground, PIM_CONCEPTS, concept_for_entry_title
 
-__all__ = ["GroundingExample", "ground"]
+__all__ = ["GroundingExample", "ground", "PIM_CONCEPTS", "concept_for_entry_title"]

@@ -9,6 +9,7 @@ import type { StageId } from "@/types/orchestrator"
 // case, it's just another entry in STAGES.
 const LABELS: Record<StageId, string> = {
   docs: "Docs",
+  serialization: "Serialization",
   pim: "PIM",
   psm: "PSM",
   atl: "ATL",
