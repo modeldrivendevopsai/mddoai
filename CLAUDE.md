@@ -10,11 +10,16 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 ## Repo Structure
 
 - `main/`, `meta_models/`, `code_generation/`, `designs/`, `feature/`, `update_site/` — the Java/Eclipse MDE engine and its transformation artifacts.
-- `ai/` — the chat-ui + ai-layer product, isolated from the Java engine. See `ai/CLAUDE.md` for folder boundaries.
-- `mddoai-design-system/` — the on-brand component library and Claude Design skill (`/mddoai-design`). Read its `SKILL.md` before doing UI work.
+- `ai/` — the AI product: multiple services (chat UI, backend API, and supporting agents) built on top of the transformation chain. Mostly separate from the Java/Eclipse engine, with one narrow, explicitly documented exception. See `ai/CLAUDE.md` for the documented folder boundaries and the exception's exact scope.
+- `mddoai-design-system/` — the on-brand component library and Claude Design skill (`/mddoai-design`). Read `mddoai-design-system/project/SKILL.md` before doing UI work.
 - `docs/` — misc project docs.
+- `pipeline_tests/`, `install_necessary_packages/`, `viewpointrepresentations/` — supporting material for the MDE engine; match a new file's placement to the existing sibling closest to its purpose.
+- `logo/` and top-level project docs — general project branding and documentation, shared across the MDE engine and the AI product.
+- If a directory doesn't appear anywhere in this list, that's a gap in this section to flag and fix, not a signal that a file placed there is automatically wrong.
 
 ## Agents in `.github/agents/`
+
+These are GitHub Copilot agent definitions, run from VSCode's Copilot Chat agent picker, not tools Claude Code can invoke directly. When a task matches one of their purposes, open the `.agent.md` file and carry out its steps directly instead of trying to call it as a tool. `lint-reviewer`, `oop-reviewer`, and `coverage-reviewer` overlap with the independent-review need described under [Review](#review) below for Java changes specifically; the Review section's `/code-review`/subagent mechanism is what Claude Code itself can actually run.
 
 - `pr-logic-reviewer` — review a PR's actual logic/diff (`pr=<number>`)
 - `pr-description-generator` — write a PR description from the current branch's diff against main
@@ -33,22 +38,29 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - **Do not add a co-author line to any commit.**
 - **Run `git status` before any destructive command** (`checkout --`, `restore`, `reset --hard`, `clean`) on a path that might have uncommitted work.
 - **Confirm before merging PRs**, even on your own branches, unless explicitly told to proceed autonomously.
+- **Name new branches `<type>/<short-description>`** (`feature/`, `fix/`, `docs/`, `refactor/`). Some existing branches (the `feature/*` and `docs/*` ones) already use this pattern; use it going forward.
 
 ## Engineering Standards
 
+A change is **non-trivial** if it touches more than one small file, changes a public interface or contract, changes behavior a test could observe, or touches shared/production config. A one-line fix or a pure rename is trivial. A decision meets the same bar if the change it leads to would meet it. This definition is what "nontrivial"/"non-trivial" means everywhere it's used below.
+
 ### Before you build
 
-- Before writing new code for a capability, check whether a well maintained library, an established design, or an existing pattern already in this repo solves it. Write custom code only when nothing suitable exists, or there's a specific, stated reason existing options don't fit.
+- Before writing new code for a capability, check whether a well maintained library, an established design, or an existing pattern already in this repo solves it (grep this repo for similar functionality; check `build.gradle` or the relevant `requirements.txt`/`package.json` for an already-available library before adding a new dependency). Write custom code only when nothing suitable exists, or there's a specific, stated reason existing options don't fit.
 - For a nontrivial technical decision, do a short, time-boxed research pass comparing the realistic options before committing to an implementation. This is sometimes called a spike: a small, bounded investigation whose only output is a decision, not production code. Note briefly why the chosen approach won.
 
 ### Design
 
 - **Keep things loosely coupled.** When one part of the system needs something from another part, prefer a well defined interface, such as an HTTP API or a function with a clear contract, over reaching into another module's internals or shared global state.
-- **Give each function, class, or service one clear job.** A change in one place should have a small, predictable effect, not a ripple through unrelated code.
+- **Give each function, class, or service one clear job.** A change in one place should have a small, predictable effect, not a ripple through unrelated code. A function or method that's grown past roughly 40-50 lines, or is nested more than 3 levels deep, is a signal to split it.
 - **Do not hardcode values that can change.** A URL, a port, a timeout, a feature flag, a threshold, a secret: all belong in an environment variable or a config file, never a literal buried in source. Never commit a real secret or credential.
 - **Name and explain non-obvious constants.** If a number isn't self-explanatory, give it a name and a short comment on where it came from: measured, a library default, or an engineering guess.
-- **Build only what the current task needs (YAGNI, "you aren't gonna need it").** Don't add options, abstractions, or generalized code paths for a need you're only guessing at — a config system for one deployment target, a plugin architecture for one plugin, generalized dispatch built around a single real case. **This does not cover basic structure for concerns that already concretely exist.** If two or more distinct, real things already sit flattened into one file or folder today, giving them their own files or modules is normal engineering hygiene, not speculative generalization, even if a third might join later. Don't invoke YAGNI to justify skipping real loose coupling or real separation of concerns that are already real, only to defend against ones that are still hypothetical.
-- **Depend on abstractions, not specific implementations**, so an implementation can change without every caller changing with it.
+- **Build only what the current task needs (YAGNI, "you aren't gonna need it").** Don't add options, abstractions, or generalized code paths for a need you're only guessing at: a config system for one deployment target, a plugin architecture for one plugin, generalized dispatch built around a single real case. **This does not cover basic structure for concerns that already concretely exist.** If two or more distinct, real things already sit flattened into one file or folder today, giving them their own files or modules is normal engineering hygiene, not speculative generalization, even if a third might join later. Don't invoke YAGNI to justify skipping real loose coupling or real separation of concerns that are already real, only to defend against ones that are still hypothetical.
+- **Depend on abstractions, not specific implementations**, so an implementation can change without every caller changing with it (e.g. a service depends on an interface like `PaymentGateway`, not directly on a `StripeClient`).
+- **When choosing a structural boundary (a new file, folder, package, or service), weigh any concrete, already-stated future direction for that piece, not just today's literal need.** This is not license to build speculative capability, that's still YAGNI's territory. It applies only when a future need has actually been decided or stated somewhere, not merely imagined ("someone might want this someday" is still speculation; "this will need a different runtime soon, per an actual stated plan" is not):
+  - A piece with a stated, concrete plan to need a different runtime, an independent deploy, or independent scaling soon can get its own boundary now, so it doesn't need a disruptive redesign when that future arrives.
+  - The stated direction must come from the user or existing project docs, never your own inference about what might be needed later.
+  - Record it in writing as part of the same change (a short code comment at the boundary, a note in the relevant README, or a linked issue), so an independent reviewer with no memory of this conversation can verify the justification from the diff alone.
 
 ### Testing
 
@@ -58,14 +70,17 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 
 ### Review
 
-- **After a non-trivial implementation or feature, and before committing it, get an independent review — don't self-certify.** Use the `/code-review` skill for general correctness/reuse/simplification, or spawn an independent, foreground agent (subagent type `Plan`, read-only) as a reviewer with a self-contained prompt that quotes the relevant rules from this file and points it at the real changed files. Either way it should have no memory of the conversation that produced the change, so it forms its own judgment instead of rubber-stamping the reasoning that led there — a reviewer that only sees the diff, not the justification, catches more.
+- **After a non-trivial implementation or feature, and before committing it, get an independent review, don't self-certify.** Use the `/code-review` skill for general correctness/reuse/simplification, or spawn an independent, foreground agent (subagent type `Plan`, read-only) as a reviewer with a self-contained prompt that quotes the relevant rules from this file and points it at the real changed files. Either way it should have no memory of the conversation that produced the change, so it forms its own judgment instead of rubber-stamping the reasoning that led there. A reviewer that only sees the diff, not the justification, catches more. If asked to commit non-trivial work that hasn't been reviewed yet, say so and run the review first, then commit: an explicit request to commit doesn't waive this.
+- **For a change touching auth, secrets, or handling of user-supplied input, also run `/security-review` before merging.**
 - **Tell the reviewer to be strict.** Cite an exact file and line for every finding. Verify claims by reading the real files and running real commands, not by trusting a description of what changed. State plainly when a category has no findings instead of praising it or staying silent. A review that finds nothing wrong should be the rare outcome, not the default one.
+- **The reviewer must check file placement, not just file presence.** For every new file in the diff, it must confirm the file sits in the repo-structure section that actually owns that kind of content, not merely that files exist somewhere reasonable-looking. A new file in the wrong section is a finding on its own, even if the file's contents are otherwise correct, unless the directory it's in has no entry anywhere in [Repo Structure](#repo-structure) yet, in which case that's a gap in this file to flag and fix, not automatically a misplaced file.
 - **Re-verify every finding yourself before acting on it or dismissing it.** A subagent's report describes what it believes it found, not necessarily ground truth. Confirm against the real file before changing anything, and before telling the user something is fine.
 
 ### Scope
 
 - **Keep changes scoped to the task at hand.** Touch only the files a task actually needs. If you notice an unrelated problem while working, note it separately instead of folding a fix into the current change.
 - **Keep a commit small: one logical change.** Not several unrelated things bundled together. A commit you can describe in one sentence is usually the right size.
+- **Do not put files in random places.** Every new file belongs in the section of the repo structure that already owns that kind of content (test fixtures under the matching test-resources tree, docs under `docs/`, AI-layer code under `ai/`, and so on, per [Repo Structure](#repo-structure)). If no existing location fits, decide where the file's proper home is before creating it, don't default to the repo root or the nearest convenient folder. If [Repo Structure](#repo-structure) itself has no entry for the directory you land on, add one as part of the same change, rather than leaving the map incomplete.
 
 ### Documentation
 
@@ -78,4 +93,4 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - Break up any sentence doing more than one job.
 - Prefer a numbered step or a short bullet list over a dense paragraph wherever the content is actually a sequence.
 - Don't sacrifice accuracy for simplicity. Simplify the wording, never the substance; keep every gotcha and warning.
-- No em dashes anywhere. Use a comma, a period, or restructure the sentence.
+- No em dashes inside explanatory sentences or paragraphs. Use a comma, a period, or restructure the sentence. The `` `item` — description `` label-list style used elsewhere in this file (Repo Structure, Agents, section subtitles) is a structural convention, not prose, and stays exempt.
