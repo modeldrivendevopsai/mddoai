@@ -22,6 +22,11 @@ from crawl4ai.utils import normalize_url
 
 # retrieval runs in its own container (needs a real browser via Playwright), so
 # LLM calls go through ai-layer's shared /chat over HTTP, not an in-process import.
+# Deliberately not clients/ai_layer_client.py, despite hitting the same endpoint:
+# that client is synchronous (plain httpx.post), and this module's crawl is
+# async top to bottom (concurrent page fetches via AsyncWebCrawler) — a
+# synchronous call here would block the whole event loop for every ranking/
+# cleanup call, not just this one. Uses httpx.AsyncClient directly instead.
 AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://ai-layer:8000")
 
 logger = logging.getLogger(__name__)
