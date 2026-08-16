@@ -50,9 +50,9 @@ the Orchestrator to eventually drive the pipeline autonomously.
   file: these are already two distinct, real groups today, mirrored on `integration_runner`'s
   own side by `stages/<stage>/actions.py` and `routes/<stage>.py` (see
   [ai/CLAUDE.md](../CLAUDE.md) for the full step-by-step recipe for adding a new one). A future
-  agent with its own real tools (e.g. a validation agent, once `ai/integration_agent`'s
-  already-real `POST /validate/ecore`/`POST /validate/atl` endpoints get wired in) adds one new
-  sibling module here, not a growing edit to an existing one.
+  agent with its own real tools (e.g. a validation agent, once a validation service's
+  already-real endpoints get wired in) adds one new sibling module here, not a growing edit to
+  an existing one.
 - **`tool_calling.py`** — a small, generic, reusable tool-calling engine with zero knowledge of
   MDDOAI, pipelines, or stages, it would work unchanged in a different project. Stays nested
   here rather than becoming its own top-level package: its only real callers (`assistant.py`,
@@ -69,9 +69,13 @@ tools/pipeline_control.py, tools/docs.py ──imports──> tool_calling.py, c
 tool_calling.py                                            (imports none of the above)
 ```
 
-No import at all on `ai/integration_runner`'s Python internals, `ai/clients/retrieval_client.py`,
-or `ai/serialization_agent` — those all moved into `integration_runner`'s own container when it
-became a separate service (see `integration_runner/README.md`'s own module layout).
+No import at all, in this production module graph, on `ai/integration_runner`'s Python internals,
+`ai/clients/retrieval_client.py`, or `ai/serialization_agent` — those all moved into
+`integration_runner`'s own container when it became a separate service (see
+`integration_runner/README.md`'s own module layout). The one exception is
+`tests/test_main.py`'s own test-isolation fixture, which does import `integration_runner`
+directly to reset its run registry between tests — see [Test](#test) below for why that's a
+test-only convenience, not a production dependency.
 
 ## The reply mechanism (`react_to_event()` / `send_message()`)
 
@@ -300,8 +304,9 @@ cp .env.example .env
 # else (e.g. a different port, or a Docker Compose service name).
 ```
 
-This service has no import on `ai-layer`'s or `integration_runner`'s source, only real HTTP
-calls to each. It does need both actually *running* and reachable: narration, `send_message()`'s
+This service's production code has no import on `ai-layer`'s or `integration_runner`'s source,
+only real HTTP calls to each (see [Test](#test) below for the one test-only exception). It does
+need both actually *running* and reachable: narration, `send_message()`'s
 routing decision, and `/providers` all call `ai-layer`'s `/chat`/`/providers` directly; every
 other real capability (running a stage, reviewing it, adding a page to the docs stage's output)
 is a real HTTP call to `integration_runner`.
@@ -327,7 +332,12 @@ No real network calls: `clients.ai_layer_client`'s and `clients.integration_runn
 httpx calls are mocked. `tests/test_main.py` is the one file that goes further — it routes
 `integration_runner_client`'s calls to a REAL, in-process `integration_runner.main.app` via
 `httpx.ASGITransport`, exercising `integration_runner`'s actual validation/busy-guard code, not
-a hand-mocked guess at what it would say.
+a hand-mocked guess at what it would say. Its `real_integration_runner` fixture also imports
+`integration_runner.runs` directly, to reset its run registry between tests — the same
+test-isolation pattern `integration_runner`'s own test suite uses on itself. This is the one
+place this service's test code imports `integration_runner`'s Python internals: it exists only
+to give each test a clean run registry, every actual assertion still goes through the real
+ASGI-routed HTTP call above, never a direct internals call.
 
 - **`tests/test_assistant.py`** — `react_to_event()`/`send_message()`, tool dispatch for every
   declared tool, and the multi-step `add_constraint` → `rerun_stage` sequence.
