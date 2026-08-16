@@ -1,9 +1,9 @@
 """retrieval_client.py unit tests: fetch_documentation()/fetch_page() POST
 to retrieval's real endpoints with the right payload shape. Mocks
 httpx.post directly (the actual network boundary), not the function itself
-— every consumer (integration_runner's docs_stage,
-orchestrator/pipeline_tools.py's fetch_documentation/fetch_page tools) has
-its own tests that mock these functions instead, at their own boundary.
+— every consumer (integration_runner's docs_stage and its own extra
+docs-extending action) has its own tests that mock these functions instead,
+at their own boundary.
 """
 from unittest.mock import patch
 

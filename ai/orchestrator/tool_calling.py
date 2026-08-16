@@ -7,7 +7,7 @@ nothing here refers to a stage, a docs crawl, or any of MDDOAI's own tool
 names. A Tool bundles its own LLM-facing schema and real Python
 implementation as one object, supplied by the caller, so this module only
 ever turns (chat_fn, system_prompt, event, history, tools) into a reply.
-MDDOAI's actual system prompt lives in pipeline_tools.py and its real tools
+MDDOAI's actual system prompt lives in system_prompt.py and its real tools
 live in tools/, not here, that's what keeps this file honestly reusable.
 """
 import json

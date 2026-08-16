@@ -16,7 +16,7 @@ shared pattern from, only
 docs.py's, and generalizing from one case is exactly the guesswork this
 repo's own YAGNI rule warns against.
 
-stage_metadata() is shared by pipeline_tools.py (the system prompt's stage
+stage_metadata() is shared by system_prompt.py (the system prompt's stage
 list) and pipeline_control.py (stage_result/add_constraint's enum
 parameters) — fetched from integration_runner's real GET /stages once and
 cached here, never a second, hardcoded copy that could drift from the real

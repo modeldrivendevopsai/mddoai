@@ -43,7 +43,7 @@ the Orchestrator to eventually drive the pipeline autonomously.
   `chat_log.py`, because both `chat_log.py`'s own narration and `assistant.py`'s `send_message()`
   need the identical truncation, and neither one owns "how we build a prompt from event history"
   more than the other.
-- **`pipeline_tools.py`** — the Orchestrator's system prompt template.
+- **`system_prompt.py`** — the Orchestrator's system prompt template.
 - **`tools/`** — the declared LLM tools, grouped by what they operate on:
   `pipeline_control.py` (generic, stage-agnostic tools) and `docs.py` (docs-stage-specific
   tools), aggregated by `tools/__init__.py`'s `get_tools()`. Split into a package, not one flat
@@ -60,10 +60,10 @@ the Orchestrator to eventually drive the pipeline autonomously.
 
 ```
 main.py ──imports──> assistant.py, chat_log.py, clients.ai_layer_client, clients.integration_runner_client
-assistant.py ──imports──> chat_log.py, event_summarization.py, pipeline_tools.py, tools, tool_calling.py, clients.ai_layer_client, clients.integration_runner_client
+assistant.py ──imports──> chat_log.py, event_summarization.py, system_prompt.py, tools, tool_calling.py, clients.ai_layer_client, clients.integration_runner_client
 chat_log.py ──imports──> event_summarization.py, clients.integration_runner_client
 event_summarization.py                                    (imports none of the above)
-pipeline_tools.py ──imports──> tools                      (stage_metadata(), lazily cached)
+system_prompt.py ──imports──> tools                       (stage_metadata(), lazily cached)
 tools/__init__.py ──imports──> tools.pipeline_control, tools.docs, clients.integration_runner_client
 tools/pipeline_control.py, tools/docs.py ──imports──> tool_calling.py, clients.integration_runner_client
 tool_calling.py                                            (imports none of the above)
@@ -86,7 +86,7 @@ given tools, it can also decide to act (what `send_message()` calls for a human'
 message). Giving it tools is the *only* difference between narrating and acting, same function,
 same system prompt, same dispatch code.
 
-The system prompt (`pipeline_tools.py`) and the tools (`tools/`) aren't hardcoded inside
+The system prompt (`system_prompt.py`) and the tools (`tools/`) aren't hardcoded inside
 `assistant.py`/`tool_calling.py`: adding a new ability means adding one `tool_calling.Tool(...)`
 entry, referencing a real function (usually an `integration_runner_client` function directly),
 nothing else changes. A `Tool` bundles its schema and its real implementation as a single
@@ -345,7 +345,7 @@ ASGI-routed HTTP call above, never a direct internals call.
   narration order and history, failure fallback, per-run isolation, `since_index` slicing.
 - **`tests/test_event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`'s
   own truncation contract, independent of `chat_log.py`/`assistant.py`.
-- **`tests/test_pipeline_tools.py`** — the system prompt template.
+- **`tests/test_system_prompt.py`** — the system prompt template.
 - **`tests/test_tools.py`** — `tools/`'s aggregation, stage-scoping, and caching; the
   `rerun_stage` wrapper's real behavior.
 - **`tests/test_main.py`** — every endpoint above, against a real in-process

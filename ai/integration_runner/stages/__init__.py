@@ -22,10 +22,11 @@ docstring).
 """
 from integration_runner.stages import acceleo, atl, docs, generation, pim, psm, serialization
 
-# One line per stage, used to build the Orchestrator's own narration/tool-
-# routing system prompt (see orchestrator/pipeline_tools.py) so that prompt
-# never needs a manual edit when a stage is added, only this dict does,
-# alongside pipeline.STAGES and stage_agents below.
+# One line per stage. Exposed over HTTP via this service's own GET /stages
+# (routes/core.py) for orchestrator to build its narration/tool-routing
+# system prompt from, so that prompt never needs a manual edit when a stage
+# is added, only this dict does, alongside pipeline.STAGES and stage_agents
+# below.
 STAGE_DESCRIPTIONS: dict[str, str] = {
     "docs": "fetches the platform's real documentation (a real call to retrieval).",
     "serialization": "restructures the fetched documentation into a labeled, PIM-concept-tagged markdown artifact.",

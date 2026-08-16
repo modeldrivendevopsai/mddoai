@@ -2,9 +2,9 @@
 endpoint and returns its parsed JSON response as a plain dict, unmodified;
 list_providers() proxies ai-layer's real GET /providers. These mock
 httpx.post/get directly (the actual network boundary), not chat() itself —
-every consumer (integration_runner's stage agents, orchestrator's
-assistant.py/pipeline_tools.py) has its own tests that mock chat() instead,
-at their own boundary.
+every consumer (integration_runner's stage agents, orchestrator's own
+chat-reply code, retrieval's ranking/cleanup calls) has its own tests that
+mock chat()/achat() instead, at their own boundary.
 """
 from unittest.mock import MagicMock, patch
 

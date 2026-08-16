@@ -23,9 +23,9 @@ _BUSINESS_ERROR_CODES = (400, 404, 409)
 class IntegrationRunnerError(Exception):
     """One of integration_runner's own reported business errors (stale
     stage id, busy, unknown run), not an infrastructure failure. Callers
-    that want the real HTTP status back (main.py's exception handler,
-    pipeline_tools.py's tool impls) read status_code/detail directly rather
-    than parsing str(e)."""
+    that want the real HTTP status back (main.py's exception handler, the
+    orchestrator's own tool implementations) read status_code/detail
+    directly rather than parsing str(e)."""
 
     def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
@@ -58,8 +58,8 @@ def get_status() -> dict:
 
 def get_stage_metadata() -> dict:
     """{"stages": [...], "descriptions": {...}} — static, safe to cache
-    client-side once fetched (see chat_log.py's/pipeline_tools.py's own
-    lazy caching, not done here, this function always makes a real call)."""
+    client-side once fetched (the caller's own lazy caching, not done here,
+    this function always makes a real call)."""
     return _request("GET", "/stages").json()
 
 

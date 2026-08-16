@@ -9,15 +9,15 @@ between narrating and acting, same function, same prompt, same dispatch.
 Composes clients/integration_runner_client.py (the pipeline's real state,
 reached over HTTP, never imported as a package) with chat_log.py (this
 run's chat transcript), event_summarization.py (how a prompt is built from
-event history, shared with chat_log.py's own narration), pipeline_tools.py
-(the system prompt), tools/ (MDDOAI's declared abilities), and
+event history, shared with chat_log.py's own narration), system_prompt.py
+(the system prompt template), tools/ (MDDOAI's declared abilities), and
 tool_calling.py (the generic engine that turns a prompt + tools into a
 reply). None of those know about this file.
 """
 import time
 
 import chat_log
-import pipeline_tools
+import system_prompt
 import tool_calling
 import tools
 from clients import ai_layer_client, integration_runner_client
@@ -28,10 +28,10 @@ def react_to_event(event: dict, history: list[dict] | None = None, use_tools: bo
     status = integration_runner_client.get_status()
     stage = status["current_stage"]
     stage_description = stage if stage is not None else "none, the pipeline hasn't been started"
-    system_prompt = pipeline_tools.get_system_prompt_template().format(current_stage=stage_description)
+    prompt_text = system_prompt.get_system_prompt_template().format(current_stage=stage_description)
     available_tools = tool_calling.load_tools(stage, tools.get_tools()) if use_tools else None
     return tool_calling.build_reply(
-        ai_layer_client.chat, system_prompt, event, history, available_tools, model=status["model"]
+        ai_layer_client.chat, prompt_text, event, history, available_tools, model=status["model"]
     )
 
 
