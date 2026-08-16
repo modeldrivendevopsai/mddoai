@@ -271,17 +271,16 @@ _KNOWLEDGE: list[_KnowledgeEntry] = [
 ]
 
 
-# The nine DevOps PIM concepts (issue #221's AC; the 9-concept set itself is
-# independently corroborated by test_coverage.py's own checklist, sourced
-# from Uldis's paper). Each concept maps to the metamodel-category
-# _KnowledgeEntry title(s) that define it — this only groups existing
-# entries, it adds no new knowledge. DockerContainer folds into "Services",
-# not "Agent": the "Job services" entry explicitly types a Job's `services`
-# property as DockerContainer[*|1] — a direct documented relationship: this
-# metamodel's own text ties DockerContainer to Services, not to Agent (the
-# "Agent types" entry never mentions DockerContainer at all). Expression
-# tree + VariableDeclaration merge into one concept for the same
-# entries-that-clearly-belong-together reasoning.
+# The nine DevOps PIM concepts (issue #221's AC, sourced from Uldis's paper).
+# Each concept maps to the metamodel-category _KnowledgeEntry title(s) that
+# define it — this only groups existing entries, it adds no new knowledge.
+# DockerContainer folds into "Services", not "Agent": the "Job services"
+# entry explicitly types a Job's `services` property as DockerContainer[*|1]
+# — a direct documented relationship: this metamodel's own text ties
+# DockerContainer to Services, not to Agent (the "Agent types" entry never
+# mentions DockerContainer at all). Expression tree + VariableDeclaration
+# merge into one concept for the same entries-that-clearly-belong-together
+# reasoning.
 PIM_CONCEPTS: dict[str, tuple[str, ...]] = {
     "Pipeline": ("Pipeline and PipelineBlock",),
     "Job": ("Job types: ScriptJob and PipelineCallJob",),

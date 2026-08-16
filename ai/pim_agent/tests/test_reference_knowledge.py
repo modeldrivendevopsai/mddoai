@@ -18,7 +18,7 @@ Tests verify:
       query (PR feedback: this previously returned zero results).
 """
 
-from pim_agent import GroundingExample, ground
+from reference_knowledge import GroundingExample, ground
 
 
 def test_ground_matches_metamodel_category():
