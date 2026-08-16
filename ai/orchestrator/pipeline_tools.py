@@ -53,8 +53,13 @@ human's message, decide which tool(s) to call, and in what order:
     GitLab instead", "start over with a new platform") -> call start_pipeline with the
     new platform description and its documentation URL. Do NOT use rerun_stage or
     run_stage for this, those act on the current in-progress pipeline, not a fresh one.
-  - Anything that doesn't map to a pipeline action -> don't call any tool; reply with a
-    clarifying question instead.
+  - A request to start a run (mock or real) that doesn't give a platform name and URL,
+    but explicitly says to just pick one, use anything, or choose randomly -> invent a
+    plausible platform name and a plausible documentation URL yourself, and call
+    start_pipeline with those (set mock=true unless the human asked for a real run).
+    Don't ask a clarifying question in this case, that's what "choose randomly" means.
+  - Anything else that doesn't map to a pipeline action -> don't call any tool; reply
+    with a clarifying question instead.
 
 Prior events/messages, if any, are for context only, only react to the LAST one in the
 conversation.
