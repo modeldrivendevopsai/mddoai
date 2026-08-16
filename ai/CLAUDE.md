@@ -4,8 +4,14 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 
 ## Folder boundaries
 
-- Work on `chat-ui/` (the React frontend) only touches files inside `ai/chat-ui/`.
-- Work on `ai-layer/` (the FastAPI backend) only touches files inside `ai/ai-layer/`.
+- Every real, deployed service under `ai/` only touches files inside its own folder. A service
+  that needs something from another one calls it over real HTTP, never by importing the other
+  service's Python internals directly — see [ai/README.md](./README.md)'s services list and
+  request-path description for which services exist today and how they actually call each other.
+- `clients/` is the one folder under `ai/` that isn't itself a deployed service: a shared package
+  of thin HTTP wrapper functions (one module per sibling service it can reach), imported directly
+  as a Python package by whichever service needs to make that outbound call. This is how real
+  cross-service communication happens in `ai/`, not a second, competing mechanism alongside it.
 - `chat-ui/` and `ai-layer/` never touch the Java/Eclipse code at the repo root.
 - **Exception, deliberate and narrow**: `validator_agent/` wraps headless model/transformation
   validators (`main/src/main/java/mddoai/validation/`, one subpackage per file type) as HTTP
