@@ -20,9 +20,8 @@ events, rather than implementing storage itself — that split IS different
 in kind (storage, not a state transition). This module has no knowledge of
 HTTP, chat, LLM tool-calling, or narration — it only ever records what
 happened. Turning those raw events into a human-readable comment is
-orchestrator's job (see ai/orchestrator/chat_log.py), reached only by
-orchestrator polling this service's own GET /events over HTTP, never by
-this module calling out.
+orchestrator's own job, done entirely by polling this service's own
+GET /events over HTTP, never by this module calling out.
 """
 import threading
 import uuid

@@ -38,11 +38,10 @@ from event_summarization import summarize_for_reaction, summarize_history
 logger = logging.getLogger(__name__)
 
 
-# Late-bound, same reasoning integration_runner/pipeline.py's old
-# set_reactor() had: this module and assistant.py would otherwise need to
-# import each other (this module calls react_to_event() for narration,
-# assistant.py calls into this module to append send_message()'s own
-# turns) — main.py wires the real one in explicitly at startup instead.
+# Late-bound: this module and assistant.py would otherwise need to import
+# each other (this module calls react_to_event() for narration, assistant.py
+# calls into this module to append send_message()'s own turns) — main.py
+# wires the real one in explicitly at startup instead.
 _reactor: Callable[[dict, list[dict] | None], dict] | None = None
 
 

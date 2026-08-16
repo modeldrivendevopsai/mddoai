@@ -1,7 +1,7 @@
 """The generic, stage-agnostic pipeline-lifecycle routes: operate on
 "whichever stage is current," not any specific stage's own real
-capability, so they carry no per-stage awareness (mirrors
-orchestrator/tools/pipeline_control.py's own generic/stage-specific split).
+capability, so they carry no per-stage awareness (mirrors the same
+generic/stage-specific split orchestrator's own declared tools use).
 
 Every endpoint either calls a real registry-level function from runs.py
 (list_runs, reset_pipeline, resume_run, start_pipeline — genuine "which run

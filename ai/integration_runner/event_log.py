@@ -4,9 +4,8 @@ constraint_added, documentation_extended). No reaction, no
 narration, no LLM call, just storage, so this is a separate concern from
 IntegrationRun's stage-advancement rules in pipeline.py, which composes an
 EventLog rather than managing a list itself. Turning these raw facts into a
-human-readable comment is orchestrator's job (see ai/orchestrator/chat_log.py),
-reached only by polling integration_runner's own GET /events over HTTP,
-never by this module calling out.
+human-readable comment is orchestrator's own job, done entirely by polling
+this service's own GET /events over HTTP, never by this module calling out.
 """
 import time
 
