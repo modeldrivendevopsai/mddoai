@@ -1,8 +1,8 @@
-# integration-agent
+# integration_agent
 
 Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services (like `orchestrator`) can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313) and `.atl` transformations (issue #314).
 
-Named `integration-agent`, not `ecore-validator`, because sibling issue #315 (`.mtl`) is expected to add another `/validate/<type>` route to this same service later — one Java-process-spawning FastAPI wrapper, not a new microservice per file type.
+Named `integration_agent`, not `ecore_validator`, because sibling issue #315 (`.mtl`) is expected to add another `/validate/<type>` route to this same service later — one Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `integration-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
 ## Why a subprocess, not an embedded JVM
 
@@ -72,7 +72,7 @@ cd ai && docker compose up --build
 Standalone (needs `main/`'s distribution already built):
 ```
 cd main && ./gradlew installDist
-cd ai/integration-agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib \
+cd ai/integration_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib \
     uvicorn main:app --port 8020
 ```
 
@@ -86,5 +86,5 @@ pytest
 The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
 ```
 cd main && ./gradlew installDist
-cd ai/integration-agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest
+cd ai/integration_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest
 ```

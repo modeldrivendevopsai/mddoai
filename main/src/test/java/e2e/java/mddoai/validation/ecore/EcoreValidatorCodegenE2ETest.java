@@ -65,7 +65,7 @@ public class EcoreValidatorCodegenE2ETest {
 
     // The tests above call EcoreValidator.validateViaCodegen() directly, an in-memory Java
     // call that never touches EcoreValidatorCli's toJson()/escape(). That serialization is
-    // exactly what ai/integration-agent's real subprocess call depends on, and it's the one
+    // exactly what ai/integration_agent's real subprocess call depends on, and it's the one
     // path a real javac error (which routinely spans multiple lines) has to survive intact
     // through, or the Python side misreads a real result as an unparseable-stdout infra
     // failure. Nothing else in this suite exercises codegen mode through the real CLI/JSON
