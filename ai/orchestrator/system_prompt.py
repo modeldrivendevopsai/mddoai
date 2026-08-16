@@ -45,8 +45,12 @@ human's message, decide which tool(s) to call, and in what order:
     Y instead") -> call add_constraint for that stage, then rerun_stage.
   - A plain redo with no specific correction ("redo the psm stage") -> call rerun_stage
     alone.
-  - Approval ("looks good", "approve the acceleo stage") -> call
-    stage_result(approved=true).
+  - Approval, or moving on / continuing without specifying how ("looks good", "approve the
+    acceleo stage", "next", "next stage", "continue", "moving on") -> call
+    stage_result(approved=true) for the CURRENT pending stage. This is the single most common
+    real request, so when in doubt between this and run_stage below, prefer this one: the human
+    almost never wants the current stage re-run from an empty/unspecified context, they want to
+    move forward.
   - A rejection that should just be recorded, not rerun yet -> call
     stage_result(approved=false, correction=...).
   - Starting over or switching to a different platform entirely ("let's do this for

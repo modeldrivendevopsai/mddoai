@@ -80,11 +80,15 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
         tool_calling.Tool(
             name="run_stage",
             description=(
-                "Start or continue the CURRENT pending pipeline stage using the given context. "
-                "Use this to kick off the pipeline from scratch (context should include "
-                "'seed_url', the platform's real documentation URL) or to re-run the current "
-                "stage with fresh/updated input. Do NOT use this for approving, rejecting, or "
-                "redoing existing output, use stage_result or rerun_stage for that."
+                "Run the CURRENT pending pipeline stage of an already-started run, with extra or "
+                "overriding context beyond what it would normally use. This does NOT start a new "
+                "run and does NOT set up the docs stage's seed_url on its own — use start_pipeline "
+                "for that, whether the human gave a real platform/URL or asked you to just pick "
+                "one. Only reach for this when a run already exists and the human wants the "
+                "current stage's agent given some specific extra input right now. Do NOT use this "
+                "for approving, rejecting, or redoing existing output, use stage_result or "
+                "rerun_stage for that. In particular, 'next'/'next stage'/'continue'/'moving on' "
+                "mean approve and advance (stage_result), not this tool."
             ),
             parameters={
                 "type": "object",
@@ -92,9 +96,8 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                     "context": {
                         "type": "object",
                         "description": (
-                            "Input for the current stage's agent. For the docs stage this should "
-                            "include 'seed_url'. Later stages build their context automatically "
-                            "and rarely need this supplied manually."
+                            "Extra or overriding input for the current stage's agent, layered onto "
+                            "its normal context. Rarely needs anything supplied manually."
                         ),
                     },
                 },
