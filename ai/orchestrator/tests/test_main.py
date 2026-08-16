@@ -1,91 +1,102 @@
 """
 FastAPI endpoint tests for the orchestrator service.
 
-Unlike a typical endpoint test, these mock only the network boundary — httpx.post,
-standing in for ai-layer's /chat and retrieval's /fetch — and let the real
-orchestrator.py state machine (run_stage_async, record_review, review, current_stage,
-events) execute for real. This exercises the actual wiring between main.py's routes
-and orchestrator.py's logic, which is exactly the seam this service's independence
-from ai-layer/retrieval depends on.
+Real end-to-end test of the two-service split, not hand-mocked JSON shapes:
+clients/integration_runner_client's httpx calls are routed to a REAL,
+in-process integration_runner.main.app via httpx.ASGITransport — this
+exercises integration_runner's actual FastAPI validation, busy guards, and
+stage staleness checks too, the same ones a real deployed integration_runner
+container would enforce, not orchestrator's own guesses about what they'd
+say. clients/ai_layer_client's and clients/retrieval_client's httpx calls
+(the true external network boundary) are still mocked directly, same as
+every other test in this repo.
 
-run_stage_async() spawns a real background thread (not FastAPI's BackgroundTasks, see
-orchestrator.py), so nothing guarantees it's finished by the time an endpoint's 202
-response comes back — the opposite of the old BackgroundTasks-based design, where
-TestClient happened to run a scheduled task to completion first. Every helper/test
-here that needs a run's outcome calls orchestrator.wait_for_idle() (joining that
-thread) BEFORE the enclosing `with patch("orchestrator.httpx.post", ...)` block exits,
-never after, otherwise the thread's real work races against the mock being torn down.
-test_endpoint_returns_before_background_thread_necessarily_finishes is the explicit,
-minimal check for this, every other test's wait_for_idle() placement depends on it.
-
-Every real action (a stage running, a review being recorded) triggers record_event(),
-which automatically reacts via a real chat() call, so a single endpoint call can trigger
-several httpx.post calls: the docs stage's real retrieval fetch, the real stage agent's
-own chat() call, and one narration chat() call per event recorded — plus, for /nudge,
-one more up front to decide which tool (if any) to call. _dispatcher() routes each
-mocked httpx.post call by target/content rather than requiring every test to hand-count
-and order them, since a background thread's calls can interleave with the calling
-request's own in either order.
+Narration is fully decoupled from the request/response cycle now (see
+chat_log.py): recording a stage event on integration_runner never triggers
+a chat() call by itself, narration only happens lazily, in the background,
+the next time something polls GET /events. Most tests here never poll
+/events, so they never see a narration call at all — only the stage agent's
+own real chat()/retrieval call (mocked). Tests that DO poll /events (and
+therefore want to assert on the resulting narration) wait for chat_log's
+own background thread explicitly (_wait_for_narration()), separately from
+integration_runner's own stage-run thread (integration_runner.runs.wait_for_idle()).
 
 Tests verify:
-  1. POST /start (docs-first now) starts the docs stage running in the background and
-     returns 202 immediately; a downstream failure surfaces as a call_failed event via
-     GET /events, not a 500; 409 if a stage is still running (it resets the pipeline by
-     swapping in a fresh Orchestrator, so without this guard a restart mid-run would
-     silently orphan the old run's background thread instead of rejecting the request).
-  2. POST /review/{stage_id} records the review as an event; approving starts the next
-     stage running in the background (202) or returns {"status": "complete"} directly on
-     the last stage; rejecting returns {"status": "rerun", ...} directly, without
-     starting anything; 400 on stage mismatch or missing correction, 409 if a stage is
-     still running.
-  3. POST /rerun/{stage_id} starts the current stage running again (202); accepts an
-     optional body of structured overrides, but only for the docs stage (retrieval's
-     real parameters); 400 for overrides on any other stage, or stage mismatch; 409 if
-     busy.
-  4. GET /events returns the full (or since_index-sliced) event log, current_stage, and
-     busy.
-  5. POST /nudge dispatches whatever tool call(s) the (mocked) LLM response returns,
-     executing real orchestrator logic; any tool that starts a stage running does so via
-     the same background-thread path as the REST endpoints, so nudge() itself only ever
-     makes its one routing call, never blocking for a stage's duration; returns a
-     clarification directly when no tool is called; converts a downstream error in its
-     own routing call into a 500.
-  6. POST /reset replaces the current run with a fresh, blank one, the empty-state counterpart
-     to /start; the old run isn't deleted, it just stops being current; 409 if a stage is still
-     running, same reasoning as /start.
-  7. POST /resume/{run_id} makes a past run current again, picking up exactly where it left off;
-     404 for an unknown run_id; 409 if a stage is still running, same reasoning as /reset.
+  1. POST /start starts the docs stage running in the background and
+     returns 202 immediately; a downstream failure surfaces as a
+     call_failed event via GET /events, not a 500; 409 if a stage is still
+     running (integration_runner's own busy guard, not orchestrator's).
+  2. POST /review/{stage_id} records the review; approving starts the next
+     stage running (202) or returns {"status": "complete"} on the last
+     stage; rejecting returns {"status": "rerun", ...} without starting
+     anything; 400 on stage mismatch or missing correction, 409 if busy.
+  3. POST /rerun/{stage_id} starts the current stage running again (202);
+     accepts overrides only for the docs stage; 400 for overrides on any
+     other stage, or stage mismatch; 409 if busy.
+  4. GET /events returns the merged (mirrored + narrated) event log,
+     current_stage, and busy, sourced from integration_runner over HTTP.
+  5. POST /message dispatches whatever tool call(s) the (mocked) LLM
+     response returns; returns a clarification directly when no tool is
+     called; converts a downstream error into a 500.
+  6. POST /reset replaces the current run with a fresh, blank one; 409 if busy.
+  7. POST /resume/{run_id} makes a past run current again; 404 for an
+     unknown run_id; 409 if busy.
 """
-import json
-import threading
+import asyncio
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import chat_log
+import integration_runner.main
 import main
-import orchestrator
+from clients import ai_layer_client, integration_runner_client, retrieval_client
+from integration_runner import runs as ir_runs
+from integration_runner.pipeline import IntegrationRun
 
 client = TestClient(main.app)
 
+# Routes integration_runner_client's httpx calls to a REAL, in-process
+# integration_runner.main.app instead of a real network connection —
+# httpx.ASGITransport runs the actual ASGI app in-process, no real socket.
+# ASGITransport only implements the async transport interface (there is no
+# sync equivalent), but integration_runner_client itself is synchronous
+# (matching every other client in this repo), so each call gets its own
+# fresh httpx.AsyncClient + asyncio.run() rather than sharing one client
+# across event loops, which httpx's async client doesn't support safely.
+def _routed_to_integration_runner(method, url, **kwargs):
+    path = url[len(integration_runner_client.INTEGRATION_RUNNER_URL):]
+
+    async def _do_request():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=integration_runner.main.app), base_url="http://ir-test"
+        ) as ac:
+            return await ac.request(method, path, **kwargs)
+
+    return asyncio.run(_do_request())
+
 
 @pytest.fixture(autouse=True)
-def reset_orchestrator_state():
-    """Each test drives the real Orchestrator singleton through its endpoints, so
-    isolate them from each other by swapping in a fresh instance per test. Also
-    resets _runs (reset_pipeline() no longer clears it, see orchestrator.py — it's
-    real in-memory history now, not just per-test scratch state), or any test that
-    calls /start or /reset would leak an Orchestrator into every test after it."""
-    original = orchestrator._default
-    original_runs = dict(orchestrator._runs)
-    orchestrator._default = orchestrator.Orchestrator()
-    orchestrator._runs = {orchestrator._default.run_id: orchestrator._default}
-    yield
-    orchestrator._default = original
-    orchestrator._runs = original_runs
+def real_integration_runner():
+    """Each test drives a real integration_runner.main.app through HTTP, so
+    isolate them from each other by resetting its own run registry between
+    tests (reaching into integration_runner.runs directly, the same state
+    integration_runner's own tests reset — orchestrator no longer holds any
+    of this itself)."""
+    original_default = ir_runs._default
+    original_runs = dict(ir_runs._runs)
+    ir_runs._default = IntegrationRun()
+    ir_runs._runs = {ir_runs._default.run_id: ir_runs._default}
+    with patch.object(integration_runner_client, "httpx") as mock_httpx:
+        mock_httpx.request.side_effect = _routed_to_integration_runner
+        yield
+    ir_runs._default = original_default
+    ir_runs._runs = original_runs
 
 
-def fake_response(content=None, model="gemini/gemini-2.5-flash", tool_calls=None):
+def _fake_httpx_response(content=None, model="gemini/gemini-2.5-flash", tool_calls=None):
     resp = MagicMock()
     resp.raise_for_status.return_value = None
     resp.json.return_value = {"content": content, "model": model, "tool_calls": tool_calls}
@@ -107,39 +118,25 @@ def _fake_fetch_response(pages=None, confidence=0.8):
     return resp
 
 
-def _dispatcher(agent_response_text="Generic stage output", fetch_pages=None, fetch_confidence=0.8,
-                nudge_tool_calls=None, nudge_content=None):
-    """Routes a mocked httpx.post call by target/content: a retrieval-shaped
-    response for /fetch or /fetch/page; for ai-layer's /chat, tells apart a
-    narration call (system prompt mentions "MDDOAI Orchestrator", no tools),
-    /nudge's own routing call (same system prompt, WITH tools, only returns
-    nudge_tool_calls if the caller configured them), and a real stage-agent
-    call (anything else), so tests don't need to hand-count or hand-order
-    every call a background thread and a request can jointly trigger."""
-    def _dispatch(url, json=None, **kwargs):  # noqa: A002 (shadows builtin `json` module, matches httpx's own kwarg name)
-        if url.endswith("/fetch") or url.endswith("/fetch/page"):
-            return _fake_fetch_response(pages=fetch_pages, confidence=fetch_confidence)
-        payload = json or {}
-        system_content = payload.get("messages", [{}])[0].get("content", "")
-        if "MDDOAI Orchestrator" in system_content:
-            if payload.get("tools") and nudge_tool_calls is not None:
-                return fake_response(content=nudge_content, tool_calls=nudge_tool_calls)
-            return fake_response("Noted.")
-        return fake_response(agent_response_text)
-    return _dispatch
+def _wait_for_narration(run_id: str) -> None:
+    thread = chat_log.get_chat_log(run_id)._last_thread
+    if thread is not None:
+        thread.join(timeout=5)
 
 
 def start_pipeline(platform_description="A GitLab CI platform", seed_url="https://example.com/docs"):
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()):
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         response = client.post("/start", json={"platform_description": platform_description, "seed_url": seed_url})
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
     return response
 
 
 def approve(stage_id, agent_response_text="Generic stage output"):
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher(agent_response_text)):
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response(agent_response_text)
         response = client.post(f"/review/{stage_id}", json={"approved": True})
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
     return response
 
 
@@ -155,71 +152,45 @@ def _advance_to_psm(psm_output="PSM description"):
     return approve("pim", agent_response_text=psm_output)
 
 
-# --- background-thread execution (the load-bearing assumption) ------------------
-
-
-def test_endpoint_returns_before_background_thread_necessarily_finishes():
-    """run_stage_async() spawns a real background thread and returns right
-    away, nothing guarantees it's finished by the time the HTTP response
-    comes back — confirmed here by deliberately blocking that thread's first
-    real call until after the response has already arrived and busy has been
-    observed True. Every other test's wait_for_idle() call depends on this
-    being true (that's why it must run inside the mock's `with` block, not
-    after it)."""
-    release = threading.Event()
-
-    def _blocking_dispatch(url, json=None, **kwargs):
-        release.wait(timeout=5)
-        return _dispatcher()(url, json=json, **kwargs)
-
-    with patch("orchestrator.httpx.post", side_effect=_blocking_dispatch):
-        response = client.post(
-            "/start", json={"platform_description": "desc", "seed_url": "https://example.com/docs"}
-        )
-        assert response.status_code == 202
-        assert orchestrator.is_busy() is True
-        release.set()
-        orchestrator.wait_for_idle()
-
-    assert orchestrator.is_busy() is False
-    assert len(orchestrator.events()) > 0
-
-
 # --- POST /start ----------------------------------------------------------------
 
 
 def test_start_endpoint_schedules_docs_stage_and_returns_202():
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         response = client.post(
             "/start", json={"platform_description": "A GitLab CI platform", "seed_url": "https://example.com/docs"}
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
     assert response.json() == {"status": "started", "stage": "docs"}
-    mock_post.assert_any_call(f"{orchestrator.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"}, timeout=180.0)
+    mock_httpx.post.assert_any_call(
+        f"{retrieval_client.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"}, timeout=180.0,
+    )
     # the background run really happened, but it's still current, pending
     # review, approving/rejecting is what advances past it
-    assert orchestrator.current_stage() == "docs"
+    assert ir_runs.current().current_stage == "docs"
 
 
 def test_start_endpoint_records_call_failed_event_on_downstream_error_not_500():
-    with patch("orchestrator.httpx.post", side_effect=RuntimeError("all providers exhausted")):
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.side_effect = RuntimeError("all providers exhausted")
         response = client.post(
             "/start", json={"platform_description": "A GitLab CI platform", "seed_url": "https://example.com/docs"}
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     # /start itself always succeeds (202), it only starts the work
     assert response.status_code == 202
-    events = orchestrator.events()
-    failed = [e for e in events if e["type"] == "call_failed"]
+    failed = [e for e in ir_runs.current().events if e["type"] == "call_failed"]
     assert len(failed) == 1
     assert "all providers exhausted" in failed[0]["data"]["error"]
 
 
-def test_start_endpoint_forwards_the_chosen_model_to_every_real_chat_call():
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+def test_start_endpoint_forwards_the_chosen_model_to_the_stage_run():
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         client.post(
             "/start",
             json={
@@ -228,15 +199,14 @@ def test_start_endpoint_forwards_the_chosen_model_to_every_real_chat_call():
                 "model": "gemini-flash",
             },
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
-    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
-    assert chat_calls  # at least the narration call(s) triggered by /start
-    assert all(c.kwargs["json"]["model"] == "gemini-flash" for c in chat_calls)
+    assert ir_runs.current().model == "gemini-flash"
 
 
 def test_start_endpoint_forwards_docs_options_to_the_real_fetch_call():
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         client.post(
             "/start",
             json={
@@ -249,9 +219,9 @@ def test_start_endpoint_forwards_docs_options_to_the_real_fetch_call():
                 "force_refresh": True,
             },
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
-    fetch_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/fetch")]
+    fetch_calls = [c for c in mock_httpx.post.call_args_list if c.args[0].endswith("/fetch")]
     assert fetch_calls[0].kwargs["json"] == {
         "url": "https://example.com/docs", "hint": "focus on syntax",
         "exclude_urls": ["https://example.com/blog"], "max_pages": 5, "max_depth": 2, "force_refresh": True,
@@ -259,7 +229,7 @@ def test_start_endpoint_forwards_docs_options_to_the_real_fetch_call():
 
 
 def test_start_endpoint_with_mock_skips_the_real_fetch_call():
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
         client.post(
             "/start",
             json={
@@ -268,43 +238,39 @@ def test_start_endpoint_with_mock_skips_the_real_fetch_call():
                 "mock": True,
             },
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
-    fetch_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/fetch")]
-    assert fetch_calls == []
-    body = client.get("/events").json()
-    assert any("MOCKED" in (e.get("data") or {}).get("output", "") for e in body["events"])
+    mock_httpx.post.assert_not_called()
+    events = ir_runs.current().events
+    assert any("MOCKED" in (e.get("data") or {}).get("output", "") for e in events)
 
 
 def test_start_endpoint_omits_model_when_none_chosen():
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         client.post(
             "/start", json={"platform_description": "A GitLab CI platform", "seed_url": "https://example.com/docs"}
         )
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
-    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
-    assert chat_calls
-    assert all(c.kwargs["json"]["model"] is None for c in chat_calls)
+    assert ir_runs.current().model is None
 
 
 def test_start_endpoint_returns_409_while_busy():
-    """Unlike /review, /rerun, and /nudge, this endpoint used to have no busy
-    guard: start_pipeline() swaps in a brand-new Orchestrator, so restarting
-    (or double-clicking Start) mid-run didn't error, it silently orphaned the
-    old run's background thread instead of rejecting the request."""
+    """integration_runner's own busy guard, not orchestrator's — start_pipeline()
+    swaps in a brand-new IntegrationRun, so restarting (or double-clicking
+    Start) mid-run must error, not silently orphan the old run's
+    background thread."""
     start_pipeline()
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
-    with patch("orchestrator.httpx.post") as mock_post:
-        response = client.post(
-            "/start", json={"platform_description": "A different platform", "seed_url": "https://example.com/other"}
-        )
+    response = client.post(
+        "/start", json={"platform_description": "A different platform", "seed_url": "https://example.com/other"}
+    )
 
     assert response.status_code == 409
-    mock_post.assert_not_called()
-    # the busy run's own Orchestrator instance is untouched, nothing was reset
-    assert orchestrator.current_stage() == "docs"
+    # the busy run's own IntegrationRun instance is untouched, nothing was reset
+    assert ir_runs.current().current_stage == "docs"
 
 
 # --- POST /reset -------------------------------------------------------------------
@@ -312,25 +278,25 @@ def test_start_endpoint_returns_409_while_busy():
 
 def test_reset_endpoint_discards_the_current_run():
     start_pipeline()
-    assert len(orchestrator.events()) > 0
+    assert len(ir_runs.current().events) > 0
 
     response = client.post("/reset")
 
     assert response.status_code == 200
     assert response.json() == {"status": "reset"}
-    assert orchestrator.events() == []
-    assert orchestrator.current_stage() == "docs"
+    assert ir_runs.current().events == []
+    assert ir_runs.current().current_stage == "docs"
 
 
 def test_reset_endpoint_returns_409_while_busy():
     start_pipeline()
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
     response = client.post("/reset")
 
     assert response.status_code == 409
     # busy run wasn't discarded
-    assert len(orchestrator.events()) > 0
+    assert len(ir_runs.current().events) > 0
 
 
 # --- POST /resume/{run_id} ----------------------------------------------------------
@@ -338,17 +304,17 @@ def test_reset_endpoint_returns_409_while_busy():
 
 def test_resume_endpoint_makes_a_past_run_current_again():
     start_pipeline(platform_description="Old run")
-    old_run_id = orchestrator.current_run_id()
+    old_run_id = ir_runs.current_run_id()
     start_pipeline(platform_description="Current run")
-    assert old_run_id != orchestrator.current_run_id()
+    assert old_run_id != ir_runs.current_run_id()
 
     response = client.post(f"/resume/{old_run_id}")
 
     assert response.status_code == 200
     assert response.json() == {"run_id": old_run_id, "current_stage": "docs"}
-    assert orchestrator.current_run_id() == old_run_id
+    assert ir_runs.current_run_id() == old_run_id
     # the resumed run's own events are untouched, picked up exactly as they were
-    assert len(orchestrator.events()) > 0
+    assert len(ir_runs.current().events) > 0
 
 
 def test_resume_endpoint_returns_404_for_an_unknown_run_id():
@@ -359,14 +325,14 @@ def test_resume_endpoint_returns_404_for_an_unknown_run_id():
 
 def test_resume_endpoint_returns_409_while_busy():
     start_pipeline(platform_description="Old run")
-    old_run_id = orchestrator.current_run_id()
+    old_run_id = ir_runs.current_run_id()
     start_pipeline(platform_description="Current run")
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
     response = client.post(f"/resume/{old_run_id}")
 
     assert response.status_code == 409
-    assert orchestrator.current_run_id() != old_run_id
+    assert ir_runs.current_run_id() != old_run_id
 
 
 # --- GET /providers ----------------------------------------------------------------
@@ -378,10 +344,11 @@ def test_providers_endpoint_proxies_ai_layer():
     mock_response.raise_for_status.return_value = None
     mock_response.json.return_value = payload
 
-    with patch("orchestrator.httpx.get", return_value=mock_response) as mock_get:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.get.return_value = mock_response
         response = client.get("/providers")
 
-    mock_get.assert_called_once_with(f"{orchestrator.AI_LAYER_URL}/providers", timeout=10.0)
+    mock_httpx.get.assert_called_once_with(f"{ai_layer_client.AI_LAYER_URL}/providers", timeout=10.0)
     assert response.status_code == 200
     assert response.json() == payload
 
@@ -394,7 +361,7 @@ def test_model_endpoint_changes_the_model_for_the_rest_of_the_run():
 
     assert response.status_code == 200
     assert response.json() == {"model": "claude-subscription"}
-    assert orchestrator.current_model() == "claude-subscription"
+    assert ir_runs.current().model == "claude-subscription"
 
 
 def test_model_endpoint_back_to_auto_with_null():
@@ -403,20 +370,20 @@ def test_model_endpoint_back_to_auto_with_null():
     response = client.post("/model", json={"model": None})
 
     assert response.json() == {"model": None}
-    assert orchestrator.current_model() is None
+    assert ir_runs.current().model is None
 
 
 def test_model_endpoint_change_is_picked_up_by_the_next_real_stage_run():
     _advance_to_psm(psm_output="PSM v1")
     client.post("/model", json={"model": "cerebras-120b"})
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PSM v2")) as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("PSM v2")
         response = client.post("/rerun/psm")
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
-    chat_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/chat")]
-    agent_calls = [c for c in chat_calls if "MDDOAI Orchestrator" not in c.kwargs["json"]["messages"][0]["content"]]
+    agent_calls = [c for c in mock_httpx.post.call_args_list]
     assert agent_calls
     assert all(c.kwargs["json"]["model"] == "cerebras-120b" for c in agent_calls)
 
@@ -426,11 +393,13 @@ def test_model_endpoint_change_is_picked_up_by_the_next_real_stage_run():
 
 def test_events_endpoint_returns_full_log_current_stage_and_busy():
     start_pipeline()
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("Noted.")
+        events_response = client.get("/events")
+        _wait_for_narration(ir_runs.current_run_id())
 
-    response = client.get("/events")
-
-    assert response.status_code == 200
-    body = response.json()
+    assert events_response.status_code == 200
+    body = events_response.json()
     assert len(body["events"]) > 0
     assert body["current_stage"] == "docs"
     assert body["busy"] is False
@@ -458,7 +427,7 @@ def test_events_endpoint_since_index_slices_the_log():
 
 def test_events_endpoint_reads_a_past_run_by_id_not_just_default():
     start_pipeline(platform_description="Old run")
-    old_run_id = orchestrator.current_run_id()
+    old_run_id = ir_runs.current_run_id()
     start_pipeline(platform_description="Current run")
 
     response = client.get(f"/events?run_id={old_run_id}")
@@ -466,7 +435,7 @@ def test_events_endpoint_reads_a_past_run_by_id_not_just_default():
     assert response.status_code == 200
     assert response.json()["current_stage"] == "docs"
     assert response.json()["is_current"] is False
-    assert old_run_id != orchestrator.current_run_id()
+    assert old_run_id != ir_runs.current_run_id()
 
 
 def test_events_endpoint_returns_404_for_an_unknown_run_id():
@@ -480,19 +449,19 @@ def test_events_endpoint_returns_404_for_an_unknown_run_id():
 
 def test_runs_endpoint_lists_history_newest_first_with_current_flag():
     start_pipeline(platform_description="First platform")
-    first_id = orchestrator.current_run_id()
+    first_id = ir_runs.current_run_id()
     start_pipeline(platform_description="Second platform")
-    second_id = orchestrator.current_run_id()
+    second_id = ir_runs.current_run_id()
 
     response = client.get("/runs")
 
     assert response.status_code == 200
-    runs = response.json()
-    assert runs[0]["run_id"] == second_id
-    assert runs[0]["is_current"] is True
-    assert runs[1]["run_id"] == first_id
-    assert runs[1]["is_current"] is False
-    assert runs[1]["platform_name"] == "First platform"
+    run_list = response.json()
+    assert run_list[0]["run_id"] == second_id
+    assert run_list[0]["is_current"] is True
+    assert run_list[1]["run_id"] == first_id
+    assert run_list[1]["is_current"] is False
+    assert run_list[1]["platform_name"] == "First platform"
 
 
 # --- POST /review/{stage_id} -------------------------------------------------------
@@ -501,14 +470,15 @@ def test_runs_endpoint_lists_history_newest_first_with_current_flag():
 def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     start_pipeline()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("Serialization output")):
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("Serialization output")
         response = client.post("/review/docs", json={"approved": True})
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
     assert response.json() == {"status": "started", "stage": "serialization"}
     # serialization ran and completed for real, but it's pending review now too
-    assert orchestrator.current_stage() == "serialization"
+    assert ir_runs.current().current_stage == "serialization"
 
 
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():
@@ -516,17 +486,16 @@ def test_review_endpoint_returns_complete_status_on_last_stage_approval():
     approve("psm", "ATL rules")
     approve("atl", "Acceleo template")
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("Final summary")):
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("Final summary")
         response = client.post("/review/acceleo", json={"approved": True})
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
-    assert orchestrator.current_stage() == "generation"
+    assert ir_runs.current().current_stage == "generation"
 
-    # approving the last stage records a review_approved event (one narration
-    # call) but starts nothing, "complete" has no next stage to run
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()):
-        final_response = client.post("/review/generation", json={"approved": True})
+    # approving the last stage has no next stage to run
+    final_response = client.post("/review/generation", json={"approved": True})
 
     assert final_response.status_code == 200
     assert final_response.json() == {"status": "complete"}
@@ -535,48 +504,48 @@ def test_review_endpoint_returns_complete_status_on_last_stage_approval():
 def test_review_endpoint_returns_rerun_status_with_correction_without_scheduling():
     _advance_to_psm()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post(
             "/review/psm", json={"approved": False, "correction": "Missing artifact retention policy"}
         )
 
     assert response.status_code == 200
     assert response.json() == {"status": "rerun", "stage": "psm"}
-    # only the review's own narration call happened, no stage was started
-    assert mock_post.call_count == 1
+    # rejecting doesn't start a stage run — no real chat()/retrieval call at all
+    mock_httpx.post.assert_not_called()
 
 
 def test_review_endpoint_rejects_mismatched_stage_id():
     start_pipeline()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/review/atl", json={"approved": True})
 
     assert response.status_code == 400
     assert "atl" in response.json()["detail"]
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
 def test_review_endpoint_rejects_missing_correction_when_not_approved():
     _advance_to_psm()
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/review/psm", json={"approved": False})
 
     assert response.status_code == 400
     assert "correction" in response.json()["detail"].lower()
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
 def test_review_endpoint_returns_409_while_busy():
     start_pipeline()
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
-    with patch("orchestrator.httpx.post") as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/review/psm", json={"approved": True})
 
     assert response.status_code == 409
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
 # --- POST /rerun/{stage_id} ---------------------------------------------------------
@@ -585,9 +554,10 @@ def test_review_endpoint_returns_409_while_busy():
 def test_rerun_endpoint_schedules_current_stage_again_and_returns_202():
     _advance_to_psm(psm_output="PSM v1")
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PSM v2")):
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("PSM v2")
         response = client.post("/rerun/psm")
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
     assert response.json() == {"status": "started", "stage": "psm"}
@@ -596,32 +566,34 @@ def test_rerun_endpoint_schedules_current_stage_again_and_returns_202():
 def test_rerun_endpoint_accepts_overrides_for_docs_stage():
     start_pipeline(seed_url="https://example.com/wrong-docs")
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher()) as mock_post:
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_fetch_response()
         response = client.post("/rerun/docs", json={"overrides": {"seed_url": "https://example.com/correct-docs"}})
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
-    fetch_calls = [c for c in mock_post.call_args_list if c.args[0].endswith("/fetch")]
+    fetch_calls = [c for c in mock_httpx.post.call_args_list if c.args[0].endswith("/fetch")]
     assert fetch_calls[0].kwargs["json"]["url"] == "https://example.com/correct-docs"
 
 
 def test_rerun_endpoint_rejects_overrides_for_non_docs_stage():
     _advance_to_psm()
 
-    with patch("orchestrator.httpx.post") as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/rerun/psm", json={"overrides": {"hint": "doesn't apply to psm"}})
 
     assert response.status_code == 400
     assert "docs" in response.json()["detail"]
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
 def test_rerun_endpoint_with_no_body_replays_last_context():
     _advance_to_psm(psm_output="PSM v1")
 
-    with patch("orchestrator.httpx.post", side_effect=_dispatcher("PSM v2")):
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("PSM v2")
         response = client.post("/rerun/psm")
-        orchestrator.wait_for_idle()
+        ir_runs.wait_for_idle()
 
     assert response.status_code == 202
 
@@ -629,61 +601,57 @@ def test_rerun_endpoint_with_no_body_replays_last_context():
 def test_rerun_endpoint_rejects_mismatched_stage_id():
     start_pipeline()
 
-    with patch("orchestrator.httpx.post") as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/rerun/atl")
 
     assert response.status_code == 400
     assert "atl" in response.json()["detail"]
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
 def test_rerun_endpoint_returns_409_while_busy():
     start_pipeline()
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
-    with patch("orchestrator.httpx.post") as mock_post:
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/rerun/psm")
 
     assert response.status_code == 409
-    mock_post.assert_not_called()
+    mock_httpx.post.assert_not_called()
 
 
-# --- POST /nudge ------------------------------------------------------------------
+# --- POST /message ------------------------------------------------------------------
 #
 # A tool that starts a stage running (rerun_stage, run_stage, stage_result-
-# approve, start_pipeline) does so via orchestrator.run_stage_async(), the
-# same background-thread path a REST call uses, so /nudge's own response
-# only ever carries {"status": "started", ...}, never the finished stage's
-# output, that shows up in GET /events (or orchestrator.events() here) once
-# the thread completes.
+# approve, start_pipeline) does so via integration_runner's own REST
+# endpoints, the same background-thread path a direct REST call uses, so
+# /message's own response only ever carries {"status": "started", ...},
+# never the finished stage's output — that shows up via GET /events once
+# integration_runner's thread completes.
 
 
-def test_nudge_endpoint_dispatches_rerun_stage_and_returns_started_status():
+def test_message_endpoint_dispatches_rerun_stage_and_returns_started_status():
     _advance_to_psm(psm_output="PSM output")
 
-    dispatcher = _dispatcher(
-        "PSM v2", nudge_tool_calls=[{"function": {"name": "rerun_stage", "arguments": "{}"}}]
-    )
-    with patch("orchestrator.httpx.post", side_effect=dispatcher):
-        response = client.post("/nudge", json={"message": "redo the psm stage"})
-        orchestrator.wait_for_idle()
+    tool_calls = [{"function": {"name": "rerun_stage", "arguments": "{}"}}]
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.side_effect = [
+            _fake_httpx_response(None, tool_calls=tool_calls),  # send_message()'s own routing call
+        ]
+        response = client.post("/message", json={"message": "redo the psm stage"})
 
     assert response.status_code == 200
     body = response.json()
     assert body["tool_called"] == "rerun_stage"
     assert body["result"] == {"status": "started", "stage": "psm"}
-    completed = [e for e in orchestrator.events() if e["type"] == "call_completed"][-1]
-    assert completed["data"] == {"stage": "psm", "output": "PSM v2", "valid": True}
 
 
-def test_nudge_endpoint_returns_clarification_when_no_tool_called():
+def test_message_endpoint_returns_clarification_when_no_tool_called():
     start_pipeline()
 
-    with patch(
-        "orchestrator.httpx.post",
-        return_value=fake_response("Could you clarify which stage you mean?"),
-    ):
-        response = client.post("/nudge", json={"message": "hello there"})
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("Could you clarify which stage you mean?")
+        response = client.post("/message", json={"message": "hello there"})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -694,20 +662,32 @@ def test_nudge_endpoint_returns_clarification_when_no_tool_called():
     }
 
 
-def test_nudge_endpoint_returns_500_on_downstream_error():
-    with patch("orchestrator.httpx.post", side_effect=RuntimeError("all providers exhausted")):
-        response = client.post("/nudge", json={"message": "redo the psm stage"})
+def test_message_endpoint_returns_500_on_downstream_error():
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.side_effect = RuntimeError("all providers exhausted")
+        response = client.post("/message", json={"message": "redo the psm stage"})
 
     assert response.status_code == 500
     assert response.json()["detail"] == "all providers exhausted"
 
 
-def test_nudge_endpoint_returns_409_while_busy():
+def test_message_endpoint_has_no_busy_guard_but_a_dispatched_mutation_still_gets_the_real_409():
+    """Deliberately different from every mutating endpoint above: a message
+    that doesn't need a tool (a status question, small talk) should still
+    get a reply even while a stage is busy, so /message itself never 409s.
+    A tool call that WOULD mutate state still hits integration_runner's
+    real busy guard, surfaced as that step's own {"error": ...} result
+    rather than blocking the whole message (see main.py's own docstring
+    for this endpoint)."""
     start_pipeline()
-    orchestrator._default.busy = True
+    ir_runs.current().busy = True
 
-    with patch("orchestrator.httpx.post") as mock_post:
-        response = client.post("/nudge", json={"message": "anything"})
+    tool_calls = [{"function": {"name": "rerun_stage", "arguments": "{}"}}]
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response(None, tool_calls=tool_calls)
+        response = client.post("/message", json={"message": "redo it"})
 
-    assert response.status_code == 409
-    mock_post.assert_not_called()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tool_called"] == "rerun_stage"
+    assert "still running" in body["result"]["error"]
