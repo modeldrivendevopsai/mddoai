@@ -128,8 +128,13 @@ services:
     expose:
       - "8060"
 
+  # Build context ai/ (not ./retrieval): reaches the sibling clients/
+  # package (retrieval.py's LLM calls go through clients/ai_layer_client.py's
+  # async achat() now).
   retrieval:
-    build: ./retrieval
+    build:
+      context: .
+      dockerfile: retrieval/Dockerfile
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
     expose:

@@ -234,7 +234,12 @@ async def test_llm_rank_links_includes_model_when_provided():
 
 
 @pytest.mark.asyncio
-async def test_llm_rank_links_omits_model_when_not_provided():
+async def test_llm_rank_links_sends_null_model_when_not_provided():
+    # ai_layer_client.achat() always includes "model" in the payload (None
+    # when unset), matching its synchronous chat() counterpart — ai-layer's
+    # own ChatRequest.model: str | None = None treats an omitted key and an
+    # explicit null identically, so this is a wire-format detail, not a
+    # behavior difference.
     links = [make_link("https://docs.example.com/a")]
     seen_payload = {}
 
@@ -253,7 +258,7 @@ async def test_llm_rank_links_omits_model_when_not_provided():
     with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
         await retrieval._llm_rank_links(links)
 
-    assert "model" not in seen_payload
+    assert seen_payload["model"] is None
 
 
 @pytest.mark.asyncio
@@ -951,7 +956,8 @@ async def test_clean_page_content_includes_model_when_provided():
 
 
 @pytest.mark.asyncio
-async def test_clean_page_content_omits_model_when_not_provided():
+async def test_clean_page_content_sends_null_model_when_not_provided():
+    # Same wire-format note as test_llm_rank_links_sends_null_model_when_not_provided.
     markdown = "content cleaned with no model requested"
     seen_payload = {}
 
@@ -970,7 +976,7 @@ async def test_clean_page_content_omits_model_when_not_provided():
     with patch.object(retrieval.httpx, "AsyncClient", return_value=client_cm):
         await retrieval.clean_page_content(markdown)
 
-    assert "model" not in seen_payload
+    assert seen_payload["model"] is None
 
 
 @pytest.mark.asyncio

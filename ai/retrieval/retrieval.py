@@ -20,14 +20,15 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.models import CrawlResult, Link
 from crawl4ai.utils import normalize_url
 
+from clients import ai_layer_client
+
 # retrieval runs in its own container (needs a real browser via Playwright), so
-# LLM calls go through ai-layer's shared /chat over HTTP, not an in-process import.
-# Deliberately not clients/ai_layer_client.py, despite hitting the same endpoint:
-# that client is synchronous (plain httpx.post), and this module's crawl is
-# async top to bottom (concurrent page fetches via AsyncWebCrawler) — a
-# synchronous call here would block the whole event loop for every ranking/
-# cleanup call, not just this one. Uses httpx.AsyncClient directly instead.
-AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://ai-layer:8000")
+# LLM calls go through ai-layer's shared /chat over HTTP, via
+# clients/ai_layer_client.py's achat() — the async counterpart to that
+# module's synchronous chat(), since this module's crawl is async top to
+# bottom (concurrent page fetches via AsyncWebCrawler) and a synchronous
+# call would block the whole event loop for every ranking/cleanup call, not
+# just this one.
 
 logger = logging.getLogger(__name__)
 
@@ -269,14 +270,9 @@ async def _llm_rank_links(links: list[Link], hint: str | None = None, model: str
         {"role": "system", "content": _LINK_RANKING_PROMPT},
         {"role": "user", "content": user_content},
     ]
-    payload = {"messages": messages}
-    if model is not None:
-        payload["model"] = model
     try:
         async with httpx.AsyncClient(timeout=_AI_LAYER_TIMEOUT) as client:
-            response = await client.post(f"{AI_LAYER_URL}/chat", json=payload)
-            response.raise_for_status()
-            content = response.json()["content"]
+            content = (await ai_layer_client.achat(client, messages, model=model))["content"]
     except Exception:
         logger.warning("_llm_rank_links: ranking call failed, falling back to statistical order", exc_info=True)
         return [link.href for link in links]
@@ -428,13 +424,8 @@ async def _clean_chunk(client: httpx.AsyncClient, chunk: str, model: str | None 
         {"role": "system", "content": _CLEAN_CONTENT_PROMPT},
         {"role": "user", "content": chunk},
     ]
-    payload = {"messages": messages}
-    if model is not None:
-        payload["model"] = model
     try:
-        response = await client.post(f"{AI_LAYER_URL}/chat", json=payload)
-        response.raise_for_status()
-        cleaned = response.json()["content"].strip()
+        cleaned = (await ai_layer_client.achat(client, messages, model=model))["content"].strip()
     except Exception:
         logger.warning("clean_page_content: chunk cleanup call failed, keeping chunk as-is", exc_info=True)
         return chunk
