@@ -17,6 +17,21 @@ export type OrchestratorEventType =
   | "user_message"
   | "message"
 
+// The 7 types integration_runner itself reports as raw pipeline facts — a
+// real signal that a run has actually started. The other 3 (tool_called,
+// user_message, message) are chat-layer-only: send_message() appends them
+// for a plain conversational turn too, even when the LLM decides not to
+// call any tool, so their presence alone doesn't mean a real run exists.
+export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
+  "call_started",
+  "call_completed",
+  "call_failed",
+  "review_approved",
+  "review_rejected",
+  "constraint_added",
+  "documentation_extended",
+]
+
 export interface OrchestratorEvent {
   type: OrchestratorEventType
   stage: StageId | null

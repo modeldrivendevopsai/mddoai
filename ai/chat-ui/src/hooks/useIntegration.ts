@@ -10,6 +10,7 @@ import {
   startPipeline,
 } from "@/services/orchestrator.service"
 import type { DocsOptions } from "@/services/orchestrator.service"
+import { PIPELINE_EVENT_TYPES } from "@/types/orchestrator"
 import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
 
 // Real backend error messages (see orchestrator.service's errorFor())
@@ -68,9 +69,13 @@ export function useIntegration(runId?: string) {
     isCurrentRef.current = body.is_current
     // current_stage defaults to "docs" (index 0) even on a completely fresh,
     // never-started Orchestrator, it's only ever null once the whole
-    // pipeline finishes. events.length is the only real signal that /start
-    // has actually been called.
-    setStarted(allEventsRef.current.length > 0)
+    // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
+    // only real signal that /start has actually been called — plain chat
+    // events (user_message/message/tool_called) can exist with zero real
+    // pipeline activity, e.g. the LLM just asking a clarifying question, so
+    // events.length alone isn't enough (a false positive here shows the
+    // Stepper as "reviewing" and enables Retry for a stage that never ran).
+    setStarted(allEventsRef.current.some((e) => PIPELINE_EVENT_TYPES.includes(e.type)))
     doneRef.current = !body.busy && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
