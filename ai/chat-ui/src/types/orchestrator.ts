@@ -11,6 +11,9 @@ export type OrchestratorEventType =
   | "call_failed"
   | "review_approved"
   | "review_rejected"
+  | "constraint_added"
+  | "documentation_extended"
+  | "tool_called"
   | "user_message"
   | "message"
 
@@ -18,11 +21,12 @@ export interface OrchestratorEvent {
   type: OrchestratorEventType
   stage: StageId | null
   timestamp: number
-  // Structured events (call_started/call_completed/call_failed/review_*/
-  // user_message) carry "data"; narration/reply events carry "text" instead,
-  // plus "model" naming which LLM produced that reply (null for a purely
-  // structured event, or when narration itself failed, see orchestrator.py's
-  // record_event()).
+  // Every structured event type above except "message"/"user_message"
+  // carries "data" — the real, complete fact integration_runner (or, for
+  // tool_called, orchestrator itself) recorded, not just prose about it.
+  // "message"/"user_message" carry "text" instead, plus "model" naming
+  // which LLM produced that reply (null for a purely structured event, or
+  // when narration itself failed, see chat_log.py's own narration logic).
   data?: Record<string, unknown>
   text?: string
   model?: string | null
@@ -38,9 +42,9 @@ export interface EventsResponse {
   is_current: boolean
 }
 
-// One entry per run this backend process has seen (in-memory only, see
-// orchestrator.py's list_runs()) — the sidebar's session list. is_current
-// is false for anything but the live run; those are read-only history.
+// One entry per run the backend has seen (in-memory only) — the sidebar's
+// session list. is_current is false for anything but the live run; those
+// are read-only history.
 export interface RunSummary {
   run_id: string
   platform_name: string | null
@@ -81,23 +85,23 @@ export interface RerunOverrides {
   max_pages?: number
   max_depth?: number
   force_refresh?: boolean
-  // Skips the real crawl, docs_agent returns canned placeholder output
-  // instead (see ai/orchestrator/stage_agents.py) — for local dev, so a run
-  // doesn't have to wait on a real crawl every time.
+  // Skips the real crawl, the docs stage returns canned placeholder output
+  // instead — for local dev, so a run doesn't have to wait on a real crawl
+  // every time.
   mock?: boolean
 }
 
-export interface NudgeStep {
+export interface MessageStep {
   tool: string
   arguments: Record<string, unknown>
   result: unknown
 }
 
-export interface NudgeResponse {
+export interface MessageResponse {
   tool_called: string | null
   result: unknown
   message?: string
-  steps?: NudgeStep[]
+  steps?: MessageStep[]
 }
 
 export interface Provider {

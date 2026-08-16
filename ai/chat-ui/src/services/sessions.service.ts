@@ -1,8 +1,7 @@
 /**
  * Sessions data service — backed by ai/orchestrator's real run history
- * (GET /runs, in-memory for the life of that process, see
- * orchestrator.py's list_runs()). Components depend only on
- * getSessions()/closeSession()'s signatures, not on this.
+ * (GET /runs, in-memory for the life of the backend process). Components
+ * depend only on getSessions()/closeSession()'s signatures, not on this.
  */
 import { getRuns } from './orchestrator.service';
 import type { RunSummary } from '@/types/orchestrator';

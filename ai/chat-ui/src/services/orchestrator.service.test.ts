@@ -3,11 +3,11 @@ import {
   getEvents,
   getProviders,
   getRuns,
-  nudge,
   rerunStage,
   resetPipeline,
   resumeRun,
   reviewStage,
+  sendMessage,
   setModel,
   startPipeline,
 } from "./orchestrator.service"
@@ -234,14 +234,14 @@ describe("orchestratorService", () => {
     await expect(getRuns()).rejects.toThrow("Runs request failed: 500")
   })
 
-  it("nudge posts the message and returns the reply", async () => {
+  it("sendMessage posts the message and returns the reply", async () => {
     const payload = { tool_called: "rerun_stage", result: { status: "started", stage: "psm" } }
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
     vi.stubGlobal("fetch", mockFetch)
 
-    const result = await nudge("redo the psm stage")
+    const result = await sendMessage("redo the psm stage")
 
-    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/nudge", {
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: "redo the psm stage" }),
@@ -249,10 +249,10 @@ describe("orchestratorService", () => {
     expect(result).toEqual(payload)
   })
 
-  it("nudge throws with the status code on a non-ok response", async () => {
+  it("sendMessage throws with the status code on a non-ok response", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 409 }))
 
-    await expect(nudge("anything")).rejects.toThrow("Nudge request failed: 409")
+    await expect(sendMessage("anything")).rejects.toThrow("Message request failed: 409")
   })
 
   it("setModel posts the chosen model", async () => {
@@ -333,6 +333,6 @@ describe("orchestratorService", () => {
       })
     )
 
-    await expect(nudge("anything")).rejects.toThrow("all providers exhausted")
+    await expect(sendMessage("anything")).rejects.toThrow("all providers exhausted")
   })
 })

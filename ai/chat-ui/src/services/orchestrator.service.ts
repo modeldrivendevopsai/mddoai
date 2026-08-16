@@ -1,6 +1,6 @@
 import type {
   EventsResponse,
-  NudgeResponse,
+  MessageResponse,
   Provider,
   RerunOverrides,
   ResetResponse,
@@ -18,7 +18,7 @@ import type {
 
 // FastAPI's HTTPException responses carry a real, useful {"detail": "..."}
 // body (e.g. "'psm' is not the current pending stage", or a downstream
-// error's own message on /nudge's 500). Surface that instead of just the
+// error's own message on /message's 500). Surface that instead of just the
 // status code, a bare "request failed: 500" told a real user nothing.
 async function errorFor(label: string, res: Response): Promise<Error> {
   try {
@@ -153,8 +153,8 @@ export async function getEvents(sinceIndex = 0, runId?: string): Promise<EventsR
   return res.json()
 }
 
-// In-memory only (see orchestrator.py's list_runs()) — every run this
-// process has seen, newest first, not persisted across a backend restart.
+// In-memory only (see integration_runner/runs.py's list_runs()) — every
+// run this process has seen, newest first, not persisted across a restart.
 export async function getRuns(): Promise<RunSummary[]> {
   const res = await fetch("/orchestrator-api/runs")
 
@@ -165,24 +165,24 @@ export async function getRuns(): Promise<RunSummary[]> {
   return res.json()
 }
 
-export async function nudge(message: string): Promise<NudgeResponse> {
-  const res = await fetch("/orchestrator-api/nudge", {
+export async function sendMessage(message: string): Promise<MessageResponse> {
+  const res = await fetch("/orchestrator-api/message", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
   })
 
   if (!res.ok) {
-    throw await errorFor("Nudge", res)
+    throw await errorFor("Message", res)
   }
 
   return res.json()
 }
 
 // Changes the model for the rest of the run, not just what /start chose,
-// every subsequent real chat() call (a stage run, a retry, or a nudge)
-// picks this up. undefined/omitted means back to ai-layer's own automatic
-// routing.
+// every subsequent real chat() call (a stage run, a retry, or a chat
+// message) picks this up. undefined/omitted means back to ai-layer's own
+// automatic routing.
 export async function setModel(model?: string): Promise<{ model: string | null }> {
   const res = await fetch("/orchestrator-api/model", {
     method: "POST",

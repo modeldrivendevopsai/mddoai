@@ -14,8 +14,8 @@ function parseExcludeUrls(text: string): string[] {
     .filter(Boolean)
 }
 
-// Mock skips the real crawl entirely (see stage_agents.py's docs_agent), so
-// requiring a real platform name/URL first is pointless busywork when
+// Mock skips the real crawl entirely on the backend, so requiring a real
+// platform name/URL first is pointless busywork when
 // you're just testing the rest of the integration. Used only as a fallback
 // for whichever field is actually left blank (see handleSubmit) — a field
 // the human did fill in is never overwritten, even with mock checked.
@@ -27,12 +27,11 @@ const MOCK_DOCUMENTATION_URL = "https://example.com/mock-docs"
 // Shown before any run exists (IntegrationScreen's !started branch) — not a
 // generic "start a run" form, almost every field here is the docs stage's
 // own real input: documentation URL + retrieval's own real retry/steer
-// levers (hint, exclude URLs, max pages/depth, force refresh, mock — see
-// ai/retrieval/README.md) as an Advanced section, sent to ai/orchestrator's
-// /start alongside them (see main.py's StartRequest and stage_agents.py's
-// docs_agent, which reads exactly these fields from context). The one field
-// that ISN'T docs-specific is platform name (platform_description) — docs
-// itself never reads it, but every later stage (PIM/PSM/...) falls back to
+// levers (hint, exclude URLs, max pages/depth, force refresh, mock) as an
+// Advanced section, sent to orchestrator's own start-pipeline request
+// alongside them. The one field that ISN'T docs-specific is platform name
+// (platform_description) — docs itself never reads it, but every later
+// stage (PIM/PSM/...) falls back to
 // it, so it's collected once here rather than re-asked per stage. Filed
 // next to DocsStagePanel.tsx (its output-review counterpart), not merged
 // into it: input-collection and output-review are different enough shapes

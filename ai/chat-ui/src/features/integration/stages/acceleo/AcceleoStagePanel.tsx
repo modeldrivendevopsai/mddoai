@@ -8,9 +8,9 @@ import type { StagePanelProps } from "../StagePanelProps"
 // Acceleo's own stage panel — approve/retry when Acceleo is the live pending stage
 // (onApprove/onRetry given), a read-only "back to current" view when it's a
 // past stage being viewed via the Stepper (onBack given instead). Its own
-// file, not a shared component parameterized by StageId: Acceleo's real output
-// and prompt (see ai/orchestrator/stage_agents.py's acceleo_agent) are free to
-// diverge from the other five stages without touching them.
+// file, not a shared component parameterized by StageId: Acceleo's real
+// backend output and prompt are free to diverge from the other five stages'
+// own, independently, without touching them.
 export function AcceleoStagePanel({ busy, latestResult, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
   const [correction, setCorrection] = useState("")
   const failed = latestResult?.type === "call_failed"

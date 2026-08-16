@@ -5,7 +5,7 @@
    own textareaStyle sets border color inline, and an inline style always
    wins over a stylesheet rule for the same property regardless of
    pseudo-class, so a border-color override here would silently never apply
-   (same reasoning as chat.css's .mddoai-chat-nudge). */
+   (same reasoning as chat.css's .mddoai-chat-message-input). */
 .orch-field {
   transition: box-shadow var(--duration-fast) var(--ease-out);
 }

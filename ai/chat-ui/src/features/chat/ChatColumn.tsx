@@ -10,8 +10,8 @@ interface ChatColumnProps {
   onSend: (message: string) => void
   onModelChange: (model?: string) => void
   // True while viewing a past (non-current) run from the sidebar's history —
-  // nudging or changing the model would silently act on the live run
-  // instead, not the one on screen, so both are disabled.
+  // sending a message or changing the model would silently act on the live
+  // run instead, not the one on screen, so both are disabled.
   readOnly?: boolean
 }
 
@@ -24,10 +24,10 @@ const INTRO_TEXT =
 export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnly = false }: ChatColumnProps) {
   const [value, setValue] = useState("")
   const [providers, setProviders] = useState<Provider[]>([])
-  // Nudging (and picking a model) is a real capability before a run has
-  // started too: /nudge only guards on is_busy(), not on whether /start has
-  // ever been called (current_stage defaults to STAGES[0] regardless), and
-  // the tool-calling layer can itself invoke start_pipeline from a nudge.
+  // Sending a message (and picking a model) is a real capability before a
+  // run has started too: /message has no busy guard at all (unlike every
+  // other mutating endpoint, see main.py's own docstring for why), and the
+  // tool-calling layer can itself invoke start_pipeline from a message.
   // Only an in-flight call, or viewing read-only history, blocks input.
   const disabled = busy || readOnly
   const logRef = useRef<HTMLDivElement>(null)
@@ -103,9 +103,9 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
 
       {/* Carried over from the old single-screen chat UI's own model picker,
           positioned the same way, right above the input. Unlike that one
-          (which only ever affected the next message), this one changes
-          Orchestrator.model for the rest of the run, every subsequent stage
-          run/retry/nudge, not just the next nudge, see useIntegration's
+          (which only ever affected the next message), this one changes the
+          run's model for the rest of it, every subsequent stage run/retry/
+          message, not just the next message, see useIntegration's
           changeModel. */}
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <select
@@ -135,7 +135,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
       </div>
 
       <div
-        className="mddoai-chat-nudge"
+        className="mddoai-chat-message-input"
         style={{
           background: "var(--surface-card)",
           border: "1px solid var(--border-strong)",
@@ -155,7 +155,7 @@ export function ChatColumn({ events, busy, model, onSend, onModelChange, readOnl
               handleSubmit()
             }
           }}
-          placeholder="Nudge the Orchestrator.."
+          placeholder="Message the Orchestrator.."
           rows={1}
           disabled={disabled}
           style={{
@@ -259,6 +259,15 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   call_failed: { bg: "var(--danger-100)", fg: "var(--danger-500)", dot: "var(--danger-500)", label: "Failed" },
   review_approved: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Approved" },
   review_rejected: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Rejected" },
+  // The two below are real, recorded backend facts, not just prose — same
+  // "info" treatment, distinct from the
+  // stage-lifecycle colors above.
+  constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Constraint added" },
+  documentation_extended: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Page added to docs" },
+  // A dispatched tool call's own real arguments/result (see assistant.py's
+  // send_message()) — distinct from the "message" turn right after it,
+  // which is just the AI's own prose summary of what it just did.
+  tool_called: { bg: "var(--brand-faint)", fg: "var(--text-muted)", dot: "var(--text-faint)", label: "Tool called" },
   message: { bg: "", fg: "", dot: "", label: "" },
   user_message: { bg: "", fg: "", dot: "", label: "" },
 }
@@ -269,6 +278,9 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
   if (event.type === "call_failed") return typeof data.error === "string" ? data.error : undefined
   if (event.type === "call_completed") return data.valid === false ? "output didn't pass validation" : undefined
   if (event.type === "review_rejected") return typeof data.correction === "string" ? data.correction : undefined
+  if (event.type === "constraint_added") return typeof data.constraint === "string" ? data.constraint : undefined
+  if (event.type === "documentation_extended") return typeof data.url === "string" ? data.url : undefined
+  if (event.type === "tool_called") return typeof data.tool === "string" ? data.tool : undefined
   return undefined
 }
 

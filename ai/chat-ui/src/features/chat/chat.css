@@ -15,7 +15,7 @@
   }
 }
 
-/* Focus ring for the nudge input's wrapper (:focus-within, since the ring
+/* Focus ring for the message input's wrapper (:focus-within, since the ring
    belongs on the bordered wrapper div, not the borderless <textarea>
    itself). box-shadow only, not border-color: the wrapper's own inline
    style already sets a border color, and an inline style always wins over
@@ -23,9 +23,9 @@
    border-color override here would silently never apply (see
    mddoai-design-system's README.md: "Focus:... always visible, never
    removed" — box-shadow is the part that actually can and does apply). */
-.mddoai-chat-nudge {
+.mddoai-chat-message-input {
   transition: box-shadow var(--duration-fast) var(--ease-out);
 }
-.mddoai-chat-nudge:focus-within {
+.mddoai-chat-message-input:focus-within {
   box-shadow: var(--ring-brand);
 }
