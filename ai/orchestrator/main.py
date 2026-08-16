@@ -26,6 +26,11 @@ def integration_runner_error_handler(request: Request, exc: IntegrationRunnerErr
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 class StartRequest(BaseModel):
     platform_description: str
     seed_url: str

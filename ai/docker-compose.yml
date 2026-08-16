@@ -43,9 +43,9 @@ services:
       - INTEGRATION_RUNNER_URL=http://integration-runner:8050
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
       integration-runner:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8001"
 
@@ -70,11 +70,11 @@ services:
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
       retrieval:
-        condition: service_started
+        condition: service_healthy
       serialization-agent:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8050"
 
@@ -104,7 +104,7 @@ services:
       - ../meta_models:/meta_models:ro
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8040"
 
@@ -122,9 +122,9 @@ services:
       - PIM_AGENT_URL=http://pim-agent:8030
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
       pim-agent:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8060"
 
@@ -155,7 +155,7 @@ services:
       - no-new-privileges:true
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
 
   # Overrides the Dockerfile's static build with Vite's own dev server.
   chat-ui:
@@ -173,7 +173,7 @@ services:
       - "5173:5173"
     depends_on:
       orchestrator:
-        condition: service_started
+        condition: service_healthy
 
   # One-shot: builds main/'s Gradle distribution into the main-build-output
   # volume, so validator-agent doesn't need its own Gradle toolchain.
