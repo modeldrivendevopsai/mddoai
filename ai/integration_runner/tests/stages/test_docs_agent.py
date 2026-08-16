@@ -94,3 +94,15 @@ def test_docs_stage_crawls_for_real_when_mock_context_flag_is_falsy():
         docs_stage.docs_stage({"seed_url": "https://example.com/docs", "mock": False})
 
     mock_httpx.post.assert_called_once()
+
+
+def test_docs_stage_raises_a_clear_error_on_empty_seed_url_instead_of_calling_retrieval():
+    # Regression test: the run_stage tool can be called with an empty
+    # context before any real run has set a seed_url via start_pipeline -
+    # this used to silently reach retrieval with url="", surfacing as
+    # retrieval's own generic 422 rather than a clear, actionable message.
+    with patch.object(retrieval_client, "httpx") as mock_httpx:
+        with pytest.raises(ValueError, match="needs a seed_url"):
+            docs_stage.docs_stage({})
+
+    mock_httpx.post.assert_not_called()

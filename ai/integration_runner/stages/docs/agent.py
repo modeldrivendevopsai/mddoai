@@ -50,6 +50,18 @@ def docs_stage(context: dict) -> str:
             f"[MOCKED] Skipped the real crawl of {seed_url}. "
             f"This is placeholder output for testing the pipeline's mechanics, not real documentation."
         )
+    if not seed_url:
+        # A real, actionable failure instead of retrieval's own generic 422
+        # for an empty/invalid URL: this stage has nothing to crawl without
+        # one. Real gap this closes: the run_stage tool can be called with
+        # an empty/missing context before a real run has ever been started
+        # via start_pipeline, which used to silently reach retrieval with an
+        # empty seed_url.
+        raise ValueError(
+            "The docs stage needs a seed_url (the platform's real documentation URL) to fetch "
+            "from — none was given. Start a real run with start_pipeline, or set mock=true to "
+            "skip the crawl entirely."
+        )
     constraints = context.get("constraints", {}).get("docs", [])
     hint = context.get("hint") or (" ".join(constraints) if constraints else None)
 
