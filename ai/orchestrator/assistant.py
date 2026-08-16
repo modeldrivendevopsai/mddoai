@@ -26,10 +26,21 @@ from event_summarization import summarize_for_reaction, summarize_history
 
 def react_to_event(event: dict, history: list[dict] | None = None, use_tools: bool = False) -> dict:
     status = integration_runner_client.get_status()
-    stage = status["current_stage"]
-    stage_description = stage if stage is not None else "none, the pipeline hasn't been started"
+    live_stage = status["current_stage"]
+    # The prompt's "current pending stage" line describes THIS event, not
+    # necessarily whatever's live by the time this actually runs: narration
+    # happens on a background thread (see chat_log.py), and a fast
+    # placeholder stage can advance past the event being narrated before
+    # that thread's LLM call even starts — event["stage"] (set by both real
+    # callers: chat_log.py's narration and send_message()'s own synthetic
+    # user_message event, below) is what this reaction is actually about,
+    # a live re-fetch is not. Tool availability below still needs the live
+    # stage, not the event's: a tool call decided here acts on the pipeline
+    # as it is right now, not as it was when the event was recorded.
+    event_stage = event.get("stage")
+    stage_description = event_stage or live_stage or "none, the pipeline hasn't been started"
     prompt_text = system_prompt.get_system_prompt_template().format(current_stage=stage_description)
-    available_tools = tool_calling.load_tools(stage, tools.get_tools()) if use_tools else None
+    available_tools = tool_calling.load_tools(live_stage, tools.get_tools()) if use_tools else None
     return tool_calling.build_reply(
         ai_layer_client.chat, prompt_text, event, history, available_tools, model=status["model"]
     )

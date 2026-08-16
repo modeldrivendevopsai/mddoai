@@ -205,3 +205,22 @@ def test_react_to_event_without_tools_only_narrates_and_never_dispatches():
     assert result == {"tool_called": None, "result": None, "message": "Fetching docs now.", "model": "test-model"}
     assert "tools" not in mock_chat.call_args.kwargs
     assert "tool_choice" not in mock_chat.call_args.kwargs
+
+
+def test_react_to_event_describes_the_events_own_stage_not_a_stale_live_one():
+    # Regression test: narration runs on a background thread (chat_log.py),
+    # so by the time this actually calls chat(), the pipeline can have
+    # already advanced past the event being narrated - a fast placeholder
+    # stage can finish before the LLM narration call even starts. The
+    # system prompt must describe event["stage"] (pim, what this event is
+    # actually about), never live get_status() (psm here, what's live by
+    # the time this call happens) - conflating the two previously produced
+    # narration that named the wrong stage.
+    event = {"type": "review_approved", "stage": "pim", "data": {}, "timestamp": 1.0}
+    with patch.object(integration_runner_client, "get_status", return_value=_status(current_stage="psm")):
+        with patch.object(ai_layer_client, "chat", return_value=ok_response("Noted.")) as mock_chat:
+            assistant.react_to_event(event, [])
+
+    system_prompt_text = mock_chat.call_args.args[0][0]["content"]
+    assert "is: pim" in system_prompt_text
+    assert "is: psm" not in system_prompt_text
