@@ -7,8 +7,8 @@ Agent" splitting the real metamodel/model and feeding PIM Agent/PSM Agent
 directly, a materially heavier job than today's plain keyword-matched
 ground(). Given MDDOAI's real metamodels are Java/EMF (see the repo root's
 main/, meta_models/), that likely means the same real Java/EMF/Gradle
-toolchain ai/integration_agent already needs for the same reason, matching
-its established shape, though the diagram itself specifies the capability,
+subprocess-wrapped-as-HTTP toolchain another service in this repo already
+needs for the same reason, though the diagram itself specifies the capability,
 not the runtime, so that specific inference is engineering judgment, not a
 literal quote. Today's actual capability (ground()/PIM_CONCEPTS) is still
 plain Python; that migration is separate future work, not built here

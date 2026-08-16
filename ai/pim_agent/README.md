@@ -19,8 +19,8 @@ concrete, already-documented reason, not a speculative one: `MDDOAI_Agentic_Arch
 Agent" splitting the real metamodel and feeding it to the PIM Agent directly, a materially
 heavier job than today's keyword-matched `ground()`. Given MDDOAI's real metamodels are
 Java/EMF (`main/`, `meta_models/` at the repo root), that likely means the same Java/EMF/Gradle
-toolchain `ai/integration_agent/` already needs for the same reason, matching its established
-shape, though that specific runtime is this codebase's own engineering inference, not something
+subprocess-wrapped-as-HTTP toolchain another service in this repo already needs for the same
+reason, though that specific runtime is this codebase's own engineering inference, not something
 the diagram itself states. Today's code is still plain Python, that migration is separate, real,
 future work, not built here.
 

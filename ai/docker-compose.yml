@@ -171,7 +171,7 @@ services:
         condition: service_started
 
   # One-shot: builds main/'s Gradle distribution into the main-build-output
-  # volume, so integration-agent doesn't need its own Gradle toolchain.
+  # volume, so validator-agent doesn't need its own Gradle toolchain.
   # main-gradle-cache persists so repeat builds are fast.
   gradle-builder:
     image: gradle:8.14.3-jdk21-alpine
@@ -187,14 +187,14 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313) and .atl (issue #314). Named integration-agent, not
+  # .ecore (issue #313) and .atl (issue #314). Named validator-agent, not
   # ecore-validator: #315 (.mtl) is expected to add another sibling
   # /validate/<type> route to this same service later.
-  integration-agent:
+  validator-agent:
     build:
-      context: ./integration_agent
+      context: ./validator_agent
     env_file:
-      - path: ./integration_agent/.env
+      - path: ./validator_agent/.env
         required: false
     volumes:
       - main-build-output:/main-build:ro

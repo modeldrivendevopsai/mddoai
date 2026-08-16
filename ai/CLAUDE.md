@@ -7,14 +7,14 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 - Work on `chat-ui/` (the React frontend) only touches files inside `ai/chat-ui/`.
 - Work on `ai-layer/` (the FastAPI backend) only touches files inside `ai/ai-layer/`.
 - `chat-ui/` and `ai-layer/` never touch the Java/Eclipse code at the repo root.
-- **Exception, deliberate and narrow**: `integration_agent/` wraps headless model/transformation
+- **Exception, deliberate and narrow**: `validator_agent/` wraps headless model/transformation
   validators (`main/src/main/java/mddoai/validation/`, one subpackage per file type) as HTTP
   routes, since a Python process can't call a JVM library directly. Its Python code lives in
-  `ai/integration_agent/`; it also owns every `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`
-  class (recursive, any depth under `validation/`), a thin entrypoint that `integration_agent`
+  `ai/validator_agent/`; it also owns every `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`
+  class (recursive, any depth under `validation/`), a thin entrypoint that `validator_agent`
   invokes as a subprocess (`java -cp .../lib/* ...*ValidatorCli <args>`), reading structured JSON
   off stdout — it never links against or imports Java code directly. Everything else under
-  `mddoai.validation` is owned by the Java/Eclipse work, not by `integration_agent`. Both rules
+  `mddoai.validation` is owned by the Java/Eclipse work, not by `validator_agent`. Both rules
   (subprocess boundary, ownership split) are stated by naming pattern and path, not by
   enumerating specific classes or file types, so adding a new validator never requires an edit
   here. This exception does not extend to `chat-ui` or `ai-layer`, and does not license any

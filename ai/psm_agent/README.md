@@ -16,9 +16,10 @@ Own container, own port (8040). Promoted out of `orchestrator`'s own container f
 documented reason as `pim_agent` (see its own README): `MDDOAI_Agentic_Architecture.drawio`'s
 Phase 1 plan has the same Graph-RAG "RAG Agent" splitting the real model and feeding it to the
 PSM Agent directly, beyond today's plain text comparison. Today's code is still plain Python,
-a real Java/EMF/Gradle migration (matching `ai/integration_agent/`'s shape) is separate, real,
-future work, not built here — see `pim_agent/README.md` for why that specific runtime is a
-reasonable inference from the documented plan, not something the plan states outright.
+a real Java/EMF/Gradle migration (the same subprocess-wrapped-as-HTTP pattern already used
+elsewhere in this repo for JVM-backed validation) is separate, real, future work, not built
+here — see `pim_agent/README.md` for why that specific runtime is a reasonable inference from
+the documented plan, not something the plan states outright.
 
 There is no single `psmMM.ecore` in this repo: MDDOAI's PSM is realized per target platform
 (`gitlabMM.ecore`, `githubMM.ecore`, and `bitbucketMM.ecore` once added, all under the repo

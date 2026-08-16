@@ -8,11 +8,11 @@ the one place that assembles every group into the single list
 tool_calling.load_tools() filters by stage.
 
 A future agent that gets its own real tools (e.g. a validation agent, once
-ai/integration_agent's already-real POST /validate/ecore and
-POST /validate/atl endpoints get wired into the live pipeline) adds one new
-sibling module here and one line in get_tools() below, not a growing edit
-to an existing file. Not built speculatively now: there's no second real
-per-stage-tool example yet to generalize a shared pattern from, only
+a validation service's already-real endpoints get wired into the live
+pipeline) adds one new sibling module here and one line in get_tools()
+below, not a growing edit to an existing file. Not built speculatively
+now: there's no second real per-stage-tool example yet to generalize a
+shared pattern from, only
 docs.py's, and generalizing from one case is exactly the guesswork this
 repo's own YAGNI rule warns against.
 

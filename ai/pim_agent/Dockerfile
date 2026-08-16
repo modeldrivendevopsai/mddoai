@@ -1,9 +1,10 @@
 # Plain Python for now: today's real capability (ground()/PIM_CONCEPTS) is
 # pure Python, no Java involved. A future migration to a JDK-based shape
-# matching integration_agent's (when pim_agent takes on the heavier
-# Graph-RAG-fed generation job MDDOAI_Agentic_Architecture.drawio's Phase 1
-# plan describes, see __init__.py) is separate future work, not built
-# speculatively here.
+# (the same Java/EMF/Gradle subprocess-wrapped-as-HTTP pattern already used
+# elsewhere in this repo for JVM-backed validation, when pim_agent takes on
+# the heavier Graph-RAG-fed generation job MDDOAI_Agentic_Architecture.drawio's
+# Phase 1 plan describes, see __init__.py) is separate future work, not
+# built speculatively here.
 FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
