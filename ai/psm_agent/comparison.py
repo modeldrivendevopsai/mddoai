@@ -1,7 +1,7 @@
 """PSM Knowledge Agent: compares serialized platform documentation against one of
 MDDOAI's platform-specific metamodels (PSM) and reports missing or outdated parts.
 
-Unlike pim_agent's ground(), this makes a real LLM call (via orchestrator.chat(),
+Unlike pim_agent's ground(), this makes a real LLM call (via ai_layer_client.chat(),
 the same ai-layer /chat convention every other agent in this repo uses) rather than
 matching against a static knowledge list: the comparison itself, not just grounding
 context, is the point of this agent.
@@ -12,20 +12,28 @@ metamodel to compare against is a parameter, not a fixed path. DEFAULT_PSM_METAM
 points at gitlabMM.ecore since MDDOAI targets GitLab specifically (see pim_agent's own
 reusability notes), but any of the three can be passed explicitly (bitbucketMM.ecore's
 path too, once that metamodel exists).
+
+META_MODELS_DIR (env-configurable) is where meta_models/ (the real Java/Eclipse
+metamodel source tree, outside ai/ entirely) is reachable from inside this
+container. Defaults to the real relative repo path for local/non-Docker dev;
+the real docker-compose entry sets it to the container's mount point.
 """
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
-import orchestrator
+from clients import ai_layer_client
 
 logger = logging.getLogger(__name__)
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+_META_MODELS_DIR = os.environ.get(
+    "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
+)
 DEFAULT_PSM_METAMODEL_PATH = str(
-    _REPO_ROOT / "meta_models" / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
+    Path(_META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
 )
 
 _SYSTEM_PROMPT = """You are the MDDOAI PSM (Platform-Specific Model) knowledge agent. You are \
@@ -125,14 +133,10 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
     """Compare serialized docs against a PSM metamodel, return suggestions about
     missing or outdated parts.
 
-    NOTE on `serialized_docs`: this is currently treated as opaque text. The "Serialization
-    agent" that would parse raw platform documentation into a structured, labeled format
-    (issue #221, Documentation Parser) does not exist yet, so there is no defined schema for
-    "serialized docs" to validate or destructure against. This function hands the raw string
-    to the LLM as-is and lets it do the interpretation, the same posture the retrieval
-    service's clean_page_content() takes toward raw markdown. This is not a TODO to resolve
-    now; it's a flag that this interface may need revisiting once #221 lands and the real
-    output shape is known.
+    NOTE on `serialized_docs`: this is currently treated as opaque text. This
+    function hands the raw string to the LLM as-is and lets it do the
+    interpretation, the same posture the retrieval service's
+    clean_page_content() takes toward raw markdown.
 
     `psm_metamodel_path` defaults to DEFAULT_PSM_METAMODEL_PATH (gitlabMM.ecore) when not
     given; pass githubMM.ecore's path explicitly to compare against a different platform's
@@ -149,6 +153,6 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
-    response = orchestrator.chat(messages)
+    response = ai_layer_client.chat(messages)
     content = response["content"] or ""
     return _parse_suggestions(content)
