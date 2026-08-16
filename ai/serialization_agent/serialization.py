@@ -5,26 +5,29 @@ concepts, for the pim stage (and any future stage) to build on.
 Three steps, matching the architecture diagram exactly (one LLM call, not
 three): an LLM call extracts pipeline/job/task-shaped fragments from the raw
 prose (_extract_fragments); each fragment is then labeled deterministically
-against pim_agent's real PIM_CONCEPTS via ground() (_label_fragment, no LLM
-call); the labeled fragments are assembled into markdown by plain string
-formatting (_build_markdown, no LLM call). A fragment ground() can't match to
-any of the 9 concepts is never dropped, it's kept under an "Unrecognized"
-section — the point of this stage is complete, honest restructuring, not
-lossy filtering.
+against pim_agent's real PIM concepts via pim_agent_client.ground()
+(_label_fragment, no LLM call); the labeled fragments are assembled into
+markdown by plain string formatting (_build_markdown, no LLM call). A
+fragment ground() can't match to any of the 9 concepts is never dropped,
+it's kept under an "Unrecognized" section — the point of this stage is
+complete, honest restructuring, not lossy filtering.
+
+pim_agent is a real, separate service (own container, see ai/pim_agent/),
+reached via clients/pim_agent_client.py, not a local package import — its
+/concepts response is fetched once per stage run and threaded through the
+helpers below, rather than re-fetched on every call.
 
 Known limitation (Phase 0 MVP, matching pim_agent's own "not RAG" framing):
 "matched" here means "ground() returned at least one metamodel-category
-result," there's no score threshold, since GroundingExample doesn't expose
-its match score (see reference_knowledge.py's _score, internal to that
-module). A future change to expose match confidence would touch
-GroundingExample's own documented "stable public contract" and deserves its
+result," there's no score threshold, since pim_agent's /ground response
+doesn't expose its match score. A future change to expose match confidence
+would touch pim_agent's own documented public API contract and deserves its
 own review, not a drive-by change bundled into this stage.
 """
 import json
 import re
 
-import orchestrator
-from pim_agent import ground, PIM_CONCEPTS, concept_for_entry_title
+from clients import ai_layer_client, pim_agent_client
 
 _EXTRACTION_SYSTEM_PROMPT = (
     "You are the MDDOAI Serialization agent's extraction step. Given raw CI/CD "
@@ -40,16 +43,16 @@ _EXTRACTION_SYSTEM_PROMPT = (
 )
 
 
-def _concept_context() -> str:
+def _concept_context(concepts: dict[str, list[str]]) -> str:
     """Builds the 'known PIM concepts' block fed into extraction by calling
-    ground() once per PIM_CONCEPTS key, rather than hardcoding concept
-    descriptions as prompt text — this tracks reference_knowledge.py
-    automatically if its metamodel entries ever change."""
+    pim_agent's real /ground once per concept, rather than hardcoding concept
+    descriptions as prompt text — this tracks pim_agent's own reference
+    knowledge automatically if its metamodel entries ever change."""
     lines = []
-    for concept in PIM_CONCEPTS:
-        matches = ground(concept, top_k=1)
+    for concept in concepts:
+        matches = pim_agent_client.ground(concept, top_k=1)
         if matches:
-            lines.append(f"- {concept}: {matches[0].content.splitlines()[0]}")
+            lines.append(f"- {concept}: {matches[0]['content'].splitlines()[0]}")
     return "\n".join(lines)
 
 
@@ -65,13 +68,13 @@ def _strip_code_fence(raw: str) -> str:
     return match.group(1) if match else raw
 
 
-def _extract_fragments(docs_text: str, model: str | None) -> list[dict]:
-    user_content = f"Known PIM concepts for context:\n{_concept_context()}\n\n---\n\n{docs_text}"
+def _extract_fragments(docs_text: str, model: str | None, concepts: dict[str, list[str]]) -> list[dict]:
+    user_content = f"Known PIM concepts for context:\n{_concept_context(concepts)}\n\n---\n\n{docs_text}"
     messages = [
         {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
-    raw = orchestrator.chat(messages, model=model)["content"] or ""
+    raw = ai_layer_client.chat(messages, model=model)["content"] or ""
     try:
         fragments = json.loads(_strip_code_fence(raw))
         if not isinstance(fragments, list):
@@ -98,18 +101,31 @@ def _extract_fragments(docs_text: str, model: str | None) -> list[dict]:
 _GROUND_ALL_RESULTS = 1000
 
 
-def _label_fragment(fragment: dict) -> dict:
+def _concept_for_entry_title(concepts: dict[str, list[str]], title: str) -> str | None:
+    """Reverse lookup: the concepts key whose grouped titles include the
+    given metamodel-category entry title, or None if it's not a
+    concept-labeling target. Mirrors pim_agent's own reference_knowledge.py
+    concept_for_entry_title(), reimplemented client-side against the fetched
+    /concepts response since that's the real, current data, not a
+    locally-duplicated copy that could drift."""
+    for concept, titles in concepts.items():
+        if title in titles:
+            return concept
+    return None
+
+
+def _label_fragment(fragment: dict, concepts: dict[str, list[str]]) -> dict:
     query = f"{fragment.get('name', '')} {fragment.get('raw_text', '')}"
-    matches = [g for g in ground(query, top_k=_GROUND_ALL_RESULTS) if g.category == "metamodel"]
-    concept = concept_for_entry_title(matches[0].title) if matches else None
+    matches = [g for g in pim_agent_client.ground(query, top_k=_GROUND_ALL_RESULTS) if g["category"] == "metamodel"]
+    concept = _concept_for_entry_title(concepts, matches[0]["title"]) if matches else None
     return {**fragment, "concept": concept, "matched": concept is not None}
 
 
 _PAGE_COUNT_RE = re.compile(r"Fetched (\d+) page")
 
 
-def _build_markdown(labeled_fragments: list[dict], page_count: str) -> str:
-    by_concept: dict[str, list[dict]] = {concept: [] for concept in PIM_CONCEPTS}
+def _build_markdown(labeled_fragments: list[dict], page_count: str, concepts: dict[str, list[str]]) -> str:
+    by_concept: dict[str, list[dict]] = {concept: [] for concept in concepts}
     unrecognized: list[dict] = []
     for fragment in labeled_fragments:
         if fragment["matched"]:
@@ -136,12 +152,13 @@ def _build_markdown(labeled_fragments: list[dict], page_count: str) -> str:
 def serialization_agent(context: dict) -> str:
     """The serialization stage: reads context["docs_output"] (docs_agent's raw
     concatenated per-page markdown), extracts structural fragments, labels
-    each against the 9 PIM concepts, and returns a structured markdown
-    artifact with one section per concept plus Unrecognized."""
+    each against pim_agent's real PIM concepts, and returns a structured
+    markdown artifact with one section per concept plus Unrecognized."""
     docs_output = context.get("docs_output", "")
     page_count_match = _PAGE_COUNT_RE.search(docs_output)
     page_count = f"{page_count_match.group(1)} page(s)" if page_count_match else "page count unknown"
 
-    fragments = _extract_fragments(docs_output, context.get("model"))
-    labeled = [_label_fragment(fragment) for fragment in fragments]
-    return _build_markdown(labeled, page_count)
+    concepts = pim_agent_client.concepts()
+    fragments = _extract_fragments(docs_output, context.get("model"), concepts)
+    labeled = [_label_fragment(fragment, concepts) for fragment in fragments]
+    return _build_markdown(labeled, page_count, concepts)
