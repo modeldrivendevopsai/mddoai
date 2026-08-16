@@ -28,6 +28,7 @@ truncation this module's own narration does, and neither module owns that
 concern more than the other.
 """
 import logging
+import re
 import threading
 import time
 from typing import Callable
@@ -36,6 +37,24 @@ from clients import integration_runner_client
 from event_summarization import summarize_for_reaction, summarize_history
 
 logger = logging.getLogger(__name__)
+
+# A weaker/faster model can ignore the "no tools = plain prose only"
+# instruction (see system_prompt.py) and write a JSON-shaped fake tool call
+# directly into its narration text instead - narration never passes tools=,
+# so it has no real way to act, but nothing stops it writing text that looks
+# like it did. Confirmed against a real run (cerebras/gpt-oss-120b): e.g.
+# `We need to call the run_stage tool...{"tool": "run_stage", ...}`. A
+# stricter prompt instruction reduces this but doesn't reliably eliminate it
+# on a model that's already not following the existing one, so this is
+# caught here too, not left to the prompt alone.
+_LEAKED_TOOL_CALL_RE = re.compile(r'["\']tool["\']\s*:')
+
+
+def _sanitize_narration_text(text: str) -> str:
+    if _LEAKED_TOOL_CALL_RE.search(text):
+        logger.warning("narration text looked like a leaked fake tool call, replaced: %r", text[:300])
+        return "(a stage transition happened; narration for it was malformed and skipped)"
+    return text
 
 
 # Late-bound: this module and assistant.py would otherwise need to import
@@ -109,7 +128,7 @@ def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict
                     if _reactor is None:
                         raise RuntimeError("no reactor wired in, see set_reactor()")
                     reply = _reactor(summarize_for_reaction(event), history)
-                    text = reply.get("message") or "(no reply)"
+                    text = _sanitize_narration_text(reply.get("message") or "(no reply)")
                     model = reply.get("model")
                 except Exception:
                     logger.exception("narration failed for run %s, event %s", run_id, event.get("type"))

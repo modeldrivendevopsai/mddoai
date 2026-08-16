@@ -164,6 +164,31 @@ def test_long_fields_truncated_for_narration_but_not_in_the_mirrored_transcript(
     assert transcript[0]["data"]["output"] == long_output
 
 
+def test_leaked_fake_tool_call_in_narration_text_is_replaced():
+    # Regression test: a weaker/faster model can ignore the "no tools" system
+    # prompt instruction and write a JSON-shaped fake tool call directly into
+    # its narration text (confirmed against a real run, cerebras/gpt-oss-120b)
+    # instead of plain prose. Narration never passes tools=, so this was never
+    # a real dispatched call, just malformed, confusing text that shouldn't
+    # reach a human as-is.
+    def _leaky_reactor(event, history):
+        return {"message": 'We need to call run_stage.{"tool": "run_stage", "arguments": {}}', "model": "cerebras"}
+
+    original = chat_log._reactor
+    chat_log.set_reactor(_leaky_reactor)
+    try:
+        raw_event = {"type": "call_completed", "stage": "docs", "data": {}, "timestamp": 1.0}
+        with patch.object(integration_runner_client, "get_events", return_value=_raw_events_response("run-8", [raw_event])):
+            chat_log.get_events(run_id="run-8")
+        _wait_for_narration("run-8")
+
+        transcript = chat_log.get_chat_log("run-8").events
+        assert '"tool"' not in transcript[1]["text"]
+        assert transcript[1]["text"] == "(a stage transition happened; narration for it was malformed and skipped)"
+    finally:
+        chat_log.set_reactor(original)
+
+
 def test_different_runs_get_independent_chat_logs(fake_reactor):
     event_a = {"type": "call_started", "stage": "docs", "data": {"platform_description": "A"}, "timestamp": 1.0}
     event_b = {"type": "call_started", "stage": "docs", "data": {"platform_description": "B"}, "timestamp": 1.0}
