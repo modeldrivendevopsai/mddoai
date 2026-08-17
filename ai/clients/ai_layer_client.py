@@ -7,6 +7,11 @@ import os
 import httpx
 
 AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://localhost:8000")
+# 15 minutes: real free-tier LLM latency (rate-limit backoff, a long prompt, a
+# slow provider) is unpredictable enough that a tighter default just trades a
+# slow-but-real answer for a false failure. Every caller in this repo shares
+# this one default rather than tuning a different number per call site.
+LLM_CHAT_TIMEOUT = float(os.environ.get("LLM_CHAT_TIMEOUT", "900.0"))
 
 
 def _chat_payload(
@@ -25,13 +30,14 @@ def chat(
     model: str | None = None,
     tools: list[dict] | None = None,
     tool_choice: str | None = None,
+    timeout: float = LLM_CHAT_TIMEOUT,
 ) -> dict:
     """POST to ai-layer's /chat endpoint, returns its parsed JSON response
     directly: {"model": ..., "content": str | None, "tool_calls": [{"function":
     {"name": ..., "arguments": "..."}}] | None}. content is None when the
     model responded with only tool calls."""
     payload = _chat_payload(messages, model, tools, tool_choice)
-    response = httpx.post(f"{AI_LAYER_URL}/chat", json=payload, timeout=120.0)
+    response = httpx.post(f"{AI_LAYER_URL}/chat", json=payload, timeout=timeout)
     response.raise_for_status()
     return response.json()
 

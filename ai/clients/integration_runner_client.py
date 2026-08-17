@@ -16,6 +16,10 @@ import os
 import httpx
 
 INTEGRATION_RUNNER_URL = os.environ.get("INTEGRATION_RUNNER_URL", "http://localhost:8050")
+# 16 minutes: real margin above retrieval_client.RETRIEVAL_TIMEOUT (15 min),
+# for /docs/extend specifically — see add_page_to_docs's own docstring for
+# why that one endpoint needs more than the fast-bookkeeping default below.
+DOCS_EXTEND_TIMEOUT = float(os.environ.get("DOCS_EXTEND_TIMEOUT", "960.0"))
 
 _BUSINESS_ERROR_CODES = (400, 404, 409)
 
@@ -33,8 +37,8 @@ class IntegrationRunnerError(Exception):
         super().__init__(detail)
 
 
-def _request(method: str, path: str, **kwargs) -> httpx.Response:
-    response = httpx.request(method, f"{INTEGRATION_RUNNER_URL}{path}", timeout=10.0, **kwargs)
+def _request(method: str, path: str, timeout: float = 10.0, **kwargs) -> httpx.Response:
+    response = httpx.request(method, f"{INTEGRATION_RUNNER_URL}{path}", timeout=timeout, **kwargs)
     if response.status_code in _BUSINESS_ERROR_CODES:
         try:
             detail = response.json().get("detail", response.text)
@@ -108,8 +112,17 @@ def add_page_to_docs(url: str, force_refresh: bool = False) -> dict:
     """Fetches one specific page for real and appends it to the docs
     stage's current pending output — the add_page_to_docs tool's real HTTP
     target (POST /docs/extend). An add, not a replace: steering/redoing the
-    whole crawl instead goes through rerun_stage(), not this."""
-    return _request("POST", "/docs/extend", json={"url": url, "force_refresh": force_refresh}).json()
+    whole crawl instead goes through rerun_stage(), not this.
+
+    16-minute timeout, not the client's usual 10s default: unlike every other
+    endpoint here, /docs/extend runs a real page fetch synchronously inline
+    (retrieval_client.fetch_page's own budget is 15 minutes, deliberately
+    generous for real free-tier LLM latency) instead of kicking off
+    background work and returning immediately, so it needs real margin above
+    that inner budget rather than a quick-response default."""
+    return _request(
+        "POST", "/docs/extend", timeout=DOCS_EXTEND_TIMEOUT, json={"url": url, "force_refresh": force_refresh}
+    ).json()
 
 
 def set_model(model: str | None) -> dict:

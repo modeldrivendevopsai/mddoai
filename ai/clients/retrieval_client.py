@@ -7,6 +7,12 @@ import os
 import httpx
 
 RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://localhost:8010")
+# 15 minutes, matching ai_layer_client.LLM_CHAT_TIMEOUT: a real crawl or page
+# fetch can involve retrieval's own real render/fetch time on top of its
+# chunk-cleanup LLM calls, and real free-tier LLM latency is unpredictable
+# enough that a tighter default just trades a slow-but-real answer for a
+# false failure.
+RETRIEVAL_TIMEOUT = float(os.environ.get("RETRIEVAL_TIMEOUT", "900.0"))
 
 
 def fetch_documentation(
@@ -32,7 +38,7 @@ def fetch_documentation(
     ):
         if value is not None:
             payload[key] = value
-    response = httpx.post(f"{RETRIEVAL_URL}/fetch", json=payload, timeout=180.0)
+    response = httpx.post(f"{RETRIEVAL_URL}/fetch", json=payload, timeout=RETRIEVAL_TIMEOUT)
     response.raise_for_status()
     return response.json()
 
@@ -42,7 +48,7 @@ def fetch_page(url: str, force_refresh: bool = False) -> dict:
     one specific known page directly rather than re-running a full crawl.
     Returns the raw Page dict."""
     response = httpx.post(
-        f"{RETRIEVAL_URL}/fetch/page", json={"url": url, "force_refresh": force_refresh}, timeout=60.0
+        f"{RETRIEVAL_URL}/fetch/page", json={"url": url, "force_refresh": force_refresh}, timeout=RETRIEVAL_TIMEOUT
     )
     response.raise_for_status()
     return response.json()

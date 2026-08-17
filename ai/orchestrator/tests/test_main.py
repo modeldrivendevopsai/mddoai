@@ -166,7 +166,8 @@ def test_start_endpoint_schedules_docs_stage_and_returns_202():
     assert response.status_code == 202
     assert response.json() == {"status": "started", "stage": "docs"}
     mock_httpx.post.assert_any_call(
-        f"{retrieval_client.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"}, timeout=180.0,
+        f"{retrieval_client.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"},
+        timeout=retrieval_client.RETRIEVAL_TIMEOUT,
     )
     # the background run really happened, but it's still current, pending
     # review, approving/rejecting is what advances past it

@@ -209,10 +209,12 @@ DEDUPE_MIN_PARAGRAPH_CHARS: 40
 # --- ai-layer HTTP call ---------------------------------------------------------
 
 # HTTP timeout (seconds) for every call to ai-layer's /chat, both link-ranking
-# and cleanup calls. A generous round number chosen to tolerate the router's
-# free-tier providers being slow under load, not measured against their actual
-# worst-case latency.
-AI_LAYER_TIMEOUT: 60.0
+# and cleanup calls. Matches ai_layer_client.chat()'s own default (900s / 15
+# min) elsewhere in this repo: real free-tier LLM latency is unpredictable
+# enough that a tighter budget just trades a slow-but-real answer for a
+# false failure, observed for real (a 60s value here caused a genuine
+# httpx.ReadTimeout on a real page's chunk cleanup).
+AI_LAYER_TIMEOUT: 900.0
 
 # --- AdaptiveCrawler stop conditions ---------------------------------------------
 

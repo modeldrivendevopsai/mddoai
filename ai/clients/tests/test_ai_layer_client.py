@@ -23,7 +23,7 @@ def test_chat_posts_to_ai_layer_url_with_messages_and_model():
     mock_post.assert_called_once_with(
         f"{ai_layer_client.AI_LAYER_URL}/chat",
         json={"messages": messages, "model": "auto"},
-        timeout=120.0,
+        timeout=ai_layer_client.LLM_CHAT_TIMEOUT,
     )
     assert result["content"] == "hello"
     assert result["model"] == "gemini/gemini-2.5-flash"

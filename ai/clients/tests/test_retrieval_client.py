@@ -17,7 +17,8 @@ def test_fetch_documentation_posts_url_and_omits_unset_optional_params():
         retrieval_client.fetch_documentation("https://example.com/docs")
 
     mock_httpx.post.assert_called_once_with(
-        f"{retrieval_client.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"}, timeout=180.0,
+        f"{retrieval_client.RETRIEVAL_URL}/fetch", json={"url": "https://example.com/docs"},
+        timeout=retrieval_client.RETRIEVAL_TIMEOUT,
     )
 
 
@@ -44,5 +45,5 @@ def test_fetch_page_posts_url_and_force_refresh():
     mock_httpx.post.assert_called_once_with(
         f"{retrieval_client.RETRIEVAL_URL}/fetch/page",
         json={"url": "https://example.com/docs/specific-page", "force_refresh": True},
-        timeout=60.0,
+        timeout=retrieval_client.RETRIEVAL_TIMEOUT,
     )
