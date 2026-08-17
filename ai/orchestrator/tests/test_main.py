@@ -410,11 +410,11 @@ def test_events_endpoint_returns_full_log_current_stage_and_busy():
 
 def test_events_endpoint_reports_the_current_model():
     start_pipeline()
-    client.post("/model", json={"model": "groq-llama"})
+    client.post("/model", json={"model": "groq-oss-120b"})
 
     response = client.get("/events")
 
-    assert response.json()["model"] == "groq-llama"
+    assert response.json()["model"] == "groq-oss-120b"
 
 
 def test_events_endpoint_since_index_slices_the_log():
