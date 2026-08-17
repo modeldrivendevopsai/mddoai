@@ -276,7 +276,6 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
   const data = event.data
   if (!data) return undefined
   if (event.type === "call_failed") return typeof data.error === "string" ? data.error : undefined
-  if (event.type === "call_completed") return data.valid === false ? "output didn't pass validation" : undefined
   if (event.type === "review_rejected") return typeof data.correction === "string" ? data.correction : undefined
   if (event.type === "constraint_added") return typeof data.constraint === "string" ? data.constraint : undefined
   if (event.type === "documentation_extended") return typeof data.url === "string" ? data.url : undefined

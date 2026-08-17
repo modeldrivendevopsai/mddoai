@@ -231,7 +231,7 @@ Response:
   "events": [
     { "type": "call_started", "stage": "docs", "data": {"seed_url": "..."}, "timestamp": 1234.5 },
     { "type": "message", "stage": "docs", "text": "Fetching TeamCity's documentation now.", "model": "gemini-flash", "timestamp": 1234.6 },
-    { "type": "call_completed", "stage": "docs", "data": {"stage": "docs", "output": "...", "valid": true}, "timestamp": 1240.1 },
+    { "type": "call_completed", "stage": "docs", "data": {"stage": "docs", "output": "..."}, "timestamp": 1240.1 },
     { "type": "message", "stage": "docs", "text": "Retrieval completed: found 6 pages, confidence 0.82.", "model": "gemini-flash", "timestamp": 1240.2 }
   ],
   "current_stage": "docs",
