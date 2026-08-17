@@ -52,7 +52,7 @@ from fastapi.testclient import TestClient
 import chat_log
 import integration_runner.main
 import main
-from clients import ai_layer_client, integration_runner_client, retrieval_client
+from clients import ai_layer_client, integration_runner_client, retrieval_client, serialization_agent_client
 from integration_runner import runs as ir_runs
 from integration_runner.pipeline import IntegrationRun
 
@@ -145,9 +145,16 @@ def _advance_to_psm(psm_output="PSM description"):
     serialization then pim, landing on psm with the given output. Every
     endpoint test that isn't specifically about the docs/serialization/pim
     stages builds on this instead of hand-rolling the docs fetch and the
-    serialization/pim approvals."""
+    serialization/pim approvals.
+
+    Approving docs starts serialization's real run, which calls
+    serialization_agent_client.serialize() (a separate service), not
+    ai_layer_client like every other placeholder stage — needs its own
+    mock, or serialization never actually completes and the next approval
+    is rejected."""
     start_pipeline()
-    approve("docs")
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
+        approve("docs")
     approve("serialization")
     return approve("pim", agent_response_text=psm_output)
 
@@ -471,8 +478,7 @@ def test_runs_endpoint_lists_history_newest_first_with_current_flag():
 def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     start_pipeline()
 
-    with patch.object(ai_layer_client, "httpx") as mock_httpx:
-        mock_httpx.post.return_value = _fake_httpx_response("Serialization output")
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
         response = client.post("/review/docs", json={"approved": True})
         ir_runs.wait_for_idle()
 
@@ -480,6 +486,7 @@ def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     assert response.json() == {"status": "started", "stage": "serialization"}
     # serialization ran and completed for real, but it's pending review now too
     assert ir_runs.current().current_stage == "serialization"
+    assert ir_runs.current().last_completed_stage == "serialization"
 
 
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():

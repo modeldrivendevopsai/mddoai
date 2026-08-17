@@ -1,4 +1,4 @@
-"""pipeline.py unit tests: the pipeline state machine (STAGES, validate(),
+"""pipeline.py unit tests: the pipeline state machine (STAGES,
 class IntegrationRun — run_stage, rerun, advance_stage, add_constraint,
 review, record_review, record_event, run_stage_async). No real API calls —
 ai_layer_client.chat is mocked.
@@ -14,16 +14,14 @@ send_message()'s own narration+tool-dispatch tests) can just mock chat()
 directly with a plain return_value/side_effect here.
 
 Tests verify:
-  1. is_good_enough()/validate() reject empty/error-marker responses and accept
-     good ones.
-  2. IntegrationRun.run_stage() looks up the current stage's agent (via
-     stages/), validates its output, and reports the current stage.
-  3. IntegrationRun.advance_stage()/review() move through STAGES and handle
+  1. IntegrationRun.run_stage() looks up the current stage's agent (via
+     stages/) and reports the current stage.
+  2. IntegrationRun.advance_stage()/review() move through STAGES and handle
      approval vs. rejection (constraint recording) correctly.
-  4. run_stage()/rerun() pick up constraints recorded via add_constraint() since
+  3. run_stage()/rerun() pick up constraints recorded via add_constraint() since
      the last run — verifying corrections are actually threaded into the agent's
      prompt, not just stored and left unused.
-  5. review() on approval starts the next stage running in the background (not
+  4. review() on approval starts the next stage running in the background (not
      just advancing the pointer), threading the approved stage's output into the
      next stage's context under the right f"{stage_id}_output" key, and
      accumulating outputs across approvals so the final generation stage sees
@@ -32,9 +30,9 @@ Tests verify:
      thread is joined (IntegrationRun._last_thread.join()), never after the
      `with` block that installed it has already exited, otherwise the thread's
      real work races against the mock being torn down.
-  6. record_event() appends a raw event and returns it, with no reaction of
+  5. record_event() appends a raw event and returns it, with no reaction of
      any kind — no chat() call, nothing else touched.
-  7. run_stage_async() sets busy synchronously before the background thread
+  6. run_stage_async() sets busy synchronously before the background thread
      starts, and records call_completed/call_failed depending on outcome.
 """
 import threading
@@ -45,39 +43,6 @@ import pytest
 from clients import ai_layer_client
 from integration_runner import pipeline
 from helpers import _fast_forward_to_psm, ok_response
-
-
-def test_is_good_enough_rejects_empty():
-    assert not pipeline.is_good_enough("")
-    assert not pipeline.is_good_enough("   ")
-
-
-def test_is_good_enough_rejects_error_markers():
-    assert not pipeline.is_good_enough("I cannot help with that.")
-    assert not pipeline.is_good_enough("I don't know how to do that.")
-    assert not pipeline.is_good_enough("Sorry, an error occurred.")
-
-
-def test_is_good_enough_accepts_valid_response():
-    assert pipeline.is_good_enough("Here are the pipeline stages you need: build, test, deploy.")
-
-
-def test_is_good_enough_accepts_technical_content_that_mentions_error_handling():
-    # "error" as a bare substring must not trip the refusal check — legitimate
-    # generated content (e.g. an Acceleo template) routinely discusses error
-    # handling as a concept, distinct from the agent itself reporting a failure.
-    content = (
-        "The template defines an onDependencyFailure block that invokes the "
-        "errorHandler class, catching IOError and surfacing an error code to "
-        "the pipeline's error-handling policy."
-    )
-    assert pipeline.is_good_enough(content)
-
-
-def test_validate_reuses_is_good_enough():
-    assert pipeline.validate("A real response.")
-    assert not pipeline.validate("")
-    assert not pipeline.validate("I cannot help with that.")
 
 
 def test_stages_order():
@@ -98,14 +63,14 @@ def test_integration_run_accepts_an_explicit_run_id():
     assert o.run_id == "a-fixed-id"
 
 
-def test_run_stage_calls_current_stage_agent_and_validates_output():
+def test_run_stage_calls_current_stage_agent_and_reports_its_output():
     o = pipeline.IntegrationRun()
     _fast_forward_to_psm(o)
     with patch.object(ai_layer_client, "chat", return_value=ok_response("PSM description")) as mock_chat:
         result = o.run_stage({"platform_description": "A GitLab CI platform"})
 
     assert mock_chat.call_count == 1
-    assert result == {"stage": "psm", "output": "PSM description", "valid": True}
+    assert result == {"stage": "psm", "output": "PSM description"}
 
 
 def test_run_stage_threads_the_chosen_model_into_the_agent_s_context():
@@ -116,15 +81,6 @@ def test_run_stage_threads_the_chosen_model_into_the_agent_s_context():
         o.run_stage({"platform_description": "A GitLab CI platform"})
 
     assert mock_chat.call_args.kwargs["model"] == "mistral-small"
-
-
-def test_run_stage_reports_invalid_output():
-    o = pipeline.IntegrationRun()
-    _fast_forward_to_psm(o)
-    with patch.object(ai_layer_client, "chat", return_value=ok_response("I cannot help with that.")):
-        result = o.run_stage({"platform_description": "A GitLab CI platform"})
-
-    assert result["valid"] is False
 
 
 def test_run_stage_incorporates_constraints_added_since_the_last_run():
@@ -156,7 +112,7 @@ def test_rerun_replays_the_last_context_and_picks_up_new_constraints():
 
     assert result == {"status": "started", "stage": "psm"}
     completed = next(e for e in o.events if e["type"] == "call_completed")
-    assert completed["data"] == {"stage": "psm", "output": "PSM v2", "valid": True}
+    assert completed["data"] == {"stage": "psm", "output": "PSM v2"}
     assert mock_chat.call_count == 1
     sent_content = mock_chat.call_args.args[0][1]["content"]
     assert sent_content.startswith("A GitLab CI platform")
@@ -218,7 +174,7 @@ def test_review_approved_starts_next_stage_and_it_completes_with_the_right_input
     assert result == {"status": "started", "stage": "atl"}
     assert o.current_stage == "atl"
     completed = next(e for e in o.events if e["type"] == "call_completed")
-    assert completed["data"] == {"stage": "atl", "output": "ATL rules", "valid": True}
+    assert completed["data"] == {"stage": "atl", "output": "ATL rules"}
     assert mock_chat.call_count == 1
     assert mock_chat.call_args.args[0][1]["content"].startswith("PSM description")
 
@@ -241,7 +197,7 @@ def test_review_approved_accumulates_outputs_through_generation():
 
     assert result == {"status": "started", "stage": "generation"}
     completed = [e for e in o.events if e["type"] == "call_completed"][-1]
-    assert completed["data"] == {"stage": "generation", "output": "Final summary", "valid": True}
+    assert completed["data"] == {"stage": "generation", "output": "Final summary"}
     assert mock_chat.call_count == 1
     user_content = mock_chat.call_args.args[0][1]["content"]
     assert "PSM description" in user_content
@@ -252,6 +208,7 @@ def test_review_approved_accumulates_outputs_through_generation():
 def test_review_approved_on_last_stage_returns_complete():
     o = pipeline.IntegrationRun()
     o.current_stage_index = len(pipeline.STAGES) - 1
+    o.last_completed_stage = "generation"  # stands in for a real run_stage() call, like _fast_forward_to_psm does for current_stage_index
     result = o.review("generation", approved=True)
 
     assert result == {"status": "complete"}
@@ -289,6 +246,28 @@ def test_record_review_rejects_missing_correction_when_not_approved():
         o.record_review("psm", approved=False)
 
 
+def test_record_review_rejects_approval_when_current_stage_never_completed():
+    # Nothing has run yet for the current stage (psm) - approving it would
+    # silently forward the PREVIOUS stage's last_output onward, mislabeled as
+    # psm's own output. Regression test for a real bug: a failed stage's
+    # review(approved=True) used to succeed anyway.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_psm(o)
+    with pytest.raises(ValueError, match="hasn't completed successfully"):
+        o.record_review("psm", approved=True)
+
+
+def test_record_review_rejects_approval_after_a_failed_attempt():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_psm(o)
+    with patch.object(ai_layer_client, "chat", side_effect=RuntimeError("all providers exhausted")):
+        with pytest.raises(RuntimeError):
+            o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    with pytest.raises(ValueError, match="hasn't completed successfully"):
+        o.record_review("psm", approved=True)
+
+
 def test_record_review_approved_advances_without_running_next_stage():
     o = pipeline.IntegrationRun()
     _fast_forward_to_psm(o)
@@ -312,6 +291,7 @@ def test_record_review_approved_advances_without_running_next_stage():
 def test_record_review_approved_on_last_stage_returns_complete():
     o = pipeline.IntegrationRun()
     o.current_stage_index = len(pipeline.STAGES) - 1
+    o.last_completed_stage = "generation"  # stands in for a real run_stage() call, like _fast_forward_to_psm does for current_stage_index
     result = o.record_review("generation", approved=True)
 
     assert result == {"status": "complete"}
@@ -389,7 +369,7 @@ def test_run_stage_async_records_call_completed_on_success():
     assert "call_completed" in types
     assert "call_failed" not in types
     completed = next(e for e in o.events if e["type"] == "call_completed")
-    assert completed["data"] == {"stage": "psm", "output": "PSM description", "valid": True}
+    assert completed["data"] == {"stage": "psm", "output": "PSM description"}
 
 
 def test_run_stage_async_records_call_failed_on_agent_error():

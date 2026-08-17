@@ -2,7 +2,7 @@
 running the current stage's agent, and the review/constraint/threading
 mechanics around that. Every method here mutates one of the state
 machine's own core fields (current_stage_index, busy, last_context,
-last_output, constraints, model) as part of what it does; nearly all also
+last_output, last_completed_stage, constraints, model) as part of what it does; nearly all also
 record_event() as a byproduct of that real transition (add_constraint ->
 constraint_added, record_review -> review_approved/review_rejected, the
 run_stage_async worker -> call_started/call_completed/call_failed).
@@ -38,20 +38,6 @@ from integration_runner.event_log import EventLog
 # the stage's next run.
 STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 
-_ERROR_MARKERS = ("i cannot", "i don't know", "i do not know", "an error occurred", "sorry, an error")
-
-
-def is_good_enough(response: str) -> bool:
-    """Non-empty and free of obvious refusal/error markers."""
-    if not response or not response.strip():
-        return False
-    lowered = response.lower()
-    return not any(marker in lowered for marker in _ERROR_MARKERS)
-
-
-def validate(output: str) -> bool:
-    return is_good_enough(output)
-
 
 class IntegrationRun:
     """Tracks progress through STAGES and runs each stage's agent."""
@@ -69,6 +55,16 @@ class IntegrationRun:
         self.constraints: dict[str, list[str]] = {}
         self.last_context: dict = {}
         self.last_output: str | None = None
+        # Which stage last_output actually belongs to, set only on a real
+        # call_completed, never on call_failed or while a run is still in
+        # flight. review()'s own guard reads this: without it, approving a
+        # stage whose last attempt failed (or hasn't run at all yet) would
+        # silently forward the PREVIOUS stage's last_output onward, mislabeled
+        # under the failed stage's own output key (observed for real: a
+        # serialization-agent 500 left last_output holding docs' raw text,
+        # and a naive review(approved=True) would have forwarded that to pim
+        # as "serialization_output" without error).
+        self.last_completed_stage: str | None = None
         self.event_log = EventLog()
         # Chosen once via start_pipeline()'s optional model param, applied to
         # every real chat() call the placeholder stage agents make for this
@@ -109,7 +105,8 @@ class IntegrationRun:
         enriched_context = {**context, "constraints": self.constraints, "model": self.model}
         output = agent(enriched_context)
         self.last_output = output
-        return {"stage": stage, "output": output, "valid": validate(output)}
+        self.last_completed_stage = stage
+        return {"stage": stage, "output": output}
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
@@ -160,10 +157,18 @@ class IntegrationRun:
 
     def _validate_review(self, stage_id: str, approved: bool, correction: str | None) -> None:
         """A stale or hallucinated stage_id, or an approval=False with no
-        correction, can't silently corrupt pipeline state."""
+        correction, can't silently corrupt pipeline state. Nor can approving
+        a stage that hasn't actually produced a fresh output yet — still
+        running, never started, or its last real attempt failed — since
+        there'd be nothing real for the human to have reviewed."""
         if stage_id != self.current_stage:
             raise ValueError(
                 f"'{stage_id}' is not the current pending stage (current: {self.current_stage!r})."
+            )
+        if approved and self.last_completed_stage != stage_id:
+            raise ValueError(
+                f"Cannot approve '{stage_id}': it hasn't completed successfully yet (still "
+                f"running, never started, or its last attempt failed). Rerun it first."
             )
         if not approved and not correction:
             raise ValueError("correction is required when approved is False.")

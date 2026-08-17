@@ -203,14 +203,6 @@ HTTP POST wrapper with no business logic of its own; `orchestrator/tools/docs.py
 LLM-facing schema (name/description/parameters), a different kind of thing (chat-layer metadata,
 not a second implementation).
 
-### `validate()`
-
-`validate(output)` wraps `is_good_enough(output)`: the output must be non-empty and free of
-refusal markers (`"I cannot"`, `"I don't know"`, `"I do not know"`) or explicit error markers
-(`"an error occurred"`, `"sorry, an error"`). The markers are deliberately narrow phrases, not a
-bare `"error"` substring match, generated content that legitimately *discusses* error handling
-isn't flagged as a bad response. Applied to every stage's output before a human ever sees it.
-
 ### The event log: every real action becomes a real, persisted event
 
 Every `IntegrationRun` instance holds its own `EventLog` (`event_log.py`, exposed as the
@@ -233,11 +225,15 @@ double-click, not a task queue.
 ### The human review loop
 
 Progress through `STAGES` is tracked by an `IntegrationRun` instance
-(`current_stage_index`, `constraints`, `last_context`, `last_output`, `events`, `busy`); a
-module-level default instance in `runs.py` (reached via `runs.current()`) backs the REST API.
+(`current_stage_index`, `constraints`, `last_context`, `last_output`, `last_completed_stage`,
+`events`, `busy`); a module-level default instance in `runs.py` (reached via `runs.current()`)
+backs the REST API.
 
-1. **`run_stage(context)`** — looks up the current stage's agent, calls it, validates the
-   output, returns `{"stage": ..., "output": ..., "valid": bool}`. Doesn't advance the pipeline;
+1. **`run_stage(context)`** — looks up the current stage's agent, calls it, and returns
+   `{"stage": ..., "output": ...}`. Only on success does it set `last_completed_stage` to this
+   stage — `/review`'s approval path checks that field and refuses to approve a stage whose last
+   real attempt failed or is still running, so a failure can never silently forward the previous
+   stage's stale output onward under the failed stage's own name. Doesn't advance the pipeline;
    the current stage stays pending until a human reviews it.
 2. A human reviews the stage's `output` (via `POST /review/{stage_id}`, below) — optionally
    after adding one more known page via `POST /docs/extend` first, on the docs stage.
