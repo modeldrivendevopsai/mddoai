@@ -78,6 +78,33 @@ def test_all_free_exhausted_falls_back_to_commercial():
     assert any(not is_commercial(m) for m in called), "No free provider was tried before falling back"
 
 
+def test_fallback_logger_extracts_model_and_error_from_litellm_kwargs():
+    # Real incident this covers: two consecutive real calls explicitly
+    # requesting cerebras-120b and groq-oss-120b both came back attributed
+    # to mistral-small-latest instead, with nothing in the logs explaining
+    # why — log_call() only ever logged the model that ultimately succeeded.
+    #
+    # litellm dispatches log_failure_event on its own background thread/queue,
+    # not synchronously with Router.completion() returning, which makes
+    # asserting against a real fallback flaky/timing-dependent in a fast unit
+    # test — confirmed working for real instead via a live Docker run (see
+    # logger.py's log_deployment_failure docstring). This tests our own
+    # extraction logic directly and deterministically: given the kwargs shape
+    # litellm's CustomLogger callback actually receives, does it pull out the
+    # right model/error and forward them correctly.
+    logged = []
+    with patch.object(router_module, "log_deployment_failure", side_effect=lambda m, e: logged.append((m, e))):
+        router_module._FallbackLogger().log_failure_event(
+            kwargs={"model": "gemini-2.5-flash", "exception": rate_limit("gemini-2.5-flash")},
+            response_obj=None, start_time=None, end_time=None,
+        )
+
+    assert len(logged) == 1
+    model, error = logged[0]
+    assert model == "gemini-2.5-flash"
+    assert "Rate limit exceeded" in error
+
+
 def test_providers_1_to_3_fail_groq_handles_it():
     router, primary = make_router()
     called = []
