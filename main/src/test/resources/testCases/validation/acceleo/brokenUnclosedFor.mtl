@@ -1,0 +1,15 @@
+[comment encoding = UTF-8 /]
+[module brokenUnclosedFor('http://www.mddoai.com/mddoai/metamodel/gitlab')]
+
+[template public generateElement(aPipeline : Pipeline)]
+[comment @main/]
+[file ('.gitlab-ci.yml', false, 'UTF-8')]
+[generateStages(aPipeline.stages)/]
+[/file]
+[/template]
+
+[template public generateStages(stages : OrderedSet(String))]
+stages:
+[for (stage: String | stages)]
+  - [stage/]
+[/template]

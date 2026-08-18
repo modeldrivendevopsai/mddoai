@@ -5,9 +5,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from validator_runner import (
+    AcceleoValidationResult,
     AtlValidationResult,
     EcoreValidationResult,
     ValidatorInfraError,
+    run_acceleo_validator,
     run_atl_validator,
     run_ecore_validator,
 )
@@ -32,6 +34,11 @@ class EcoreValidateRequest(BaseModel):
 class AtlValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .atl source content.")
+
+
+class AcceleoValidateRequest(BaseModel):
+    filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
+    content: str = Field(..., min_length=1, description="Raw .mtl source content.")
 
 
 @app.get("/health")
@@ -69,5 +76,22 @@ def validate_atl_endpoint(request: AtlValidateRequest) -> AtlValidationResult:
         logger.error("POST /validate/atl infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /validate/atl done filename=%s valid=%s duration_ms=%d",
+                request.filename, result["valid"], result["duration_ms"])
+    return result
+
+
+@app.post("/validate/acceleo", response_model=AcceleoValidationResult)
+def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidationResult:
+    content_bytes = len(request.content.encode("utf-8"))
+    if content_bytes > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+
+    logger.info("POST /validate/acceleo filename=%s bytes=%d", request.filename, content_bytes)
+    try:
+        result = run_acceleo_validator(request.content, request.filename)
+    except ValidatorInfraError as e:
+        logger.error("POST /validate/acceleo infra failure: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("POST /validate/acceleo done filename=%s valid=%s duration_ms=%d",
                 request.filename, result["valid"], result["duration_ms"])
     return result

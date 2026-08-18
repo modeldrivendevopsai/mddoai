@@ -68,6 +68,23 @@ dependencies {
         exclude group: 'org.eclipse.m2m.atl', module: 'org.eclipse.m2m.atl.core.emf'
     }
 
+    // org.eclipse.acceleo.parser (AcceleoMainCompiler/AcceleoCompilerHelper - the
+    // classic .mtl -> .emtl compiler used by AcceleoValidator, #315) is vendored
+    // in libs/ for the same reason atl.common/atl.core/atl.core.emf are above: it
+    // isn't published to Maven Central or any repository already declared here,
+    // only to Eclipse's own update-site archive. Picked up automatically via the
+    // fileTree(dir: 'libs') dependency already declared above - no separate
+    // coordinate needed.
+    //   File:    libs/org.eclipse.acceleo.parser_3.7.14.202311201319.jar
+    //   Source:  https://download.eclipse.org/acceleo/updates/releases/3.7/R202311201319/plugins/org.eclipse.acceleo.parser_3.7.14.202311201319.jar
+    //   Version: 3.7.14.202311201319, matching the org.eclipse.acceleo.{common,engine,model,profiler}
+    //            jars already vendored here (same release qualifier, R202311201319).
+    //   SHA-256: 2624546cc388b83c60e6441f4ed0986577e5d1040e66a2114edf4afea6790572
+    //   Its own Require-Bundle (org.eclipse.acceleo.model, org.eclipse.ocl.ecore,
+    //   org.eclipse.acceleo.common, org.eclipse.core.runtime) and Import-Package
+    //   (com.google.guava, version range [27.0.0,33.0.0)) are already satisfied by
+    //   dependencies declared elsewhere in this file / already-vendored libs/ jars.
+
     // https://mvnrepository.com/artifact/com.google.guava/guava
     implementation 'com.google.guava:guava:32.1.3-jre'
 
