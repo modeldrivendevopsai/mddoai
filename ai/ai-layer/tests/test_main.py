@@ -68,7 +68,7 @@ def test_providers_reports_available_true_for_every_env_var_backed_key():
     assert by_name["gemini-flash"] is True
     assert by_name["mistral-small"] is True
     assert by_name["cerebras-120b"] is True
-    assert by_name["groq-llama"] is True
+    assert by_name["groq-oss-120b"] is True
     assert by_name["claude"] is True
 
 
@@ -88,7 +88,7 @@ def test_providers_reports_available_false_for_a_provider_missing_its_key():
 
         response = TestClient(main.app).get("/providers")
         by_name = {p["name"]: p["available"] for p in response.json()}
-        assert by_name["groq-llama"] is False
+        assert by_name["groq-oss-120b"] is False
         assert by_name["gemini-flash"] is True  # unaffected providers stay available
     finally:
         if saved is not None:

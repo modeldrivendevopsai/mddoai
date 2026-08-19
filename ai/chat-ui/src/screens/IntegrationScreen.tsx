@@ -81,7 +81,7 @@ export default function IntegrationScreen() {
     start,
     approve,
     retry,
-    sendNudge,
+    sendMessage,
     changeModel,
     reset,
     resume,
@@ -94,10 +94,10 @@ export default function IntegrationScreen() {
   // handleRestart's "re-run the same platform" below: "Add a new platform"
   // means a different platform, an empty DocsStartForm is the right result.
   // No confirm(): the current run isn't deleted, it stays viewable and
-  // resumable as history (see orchestrator.py's reset_pipeline(), which
-  // keeps it in _runs, and POST /resume/{run_id}), it just stops being the
-  // live/interactive one until resumed. Skipped when nothing's actually
-  // running yet, so clicking it from an already-blank form is silent.
+  // resumable as history (the backend keeps it, and POST /resume/{run_id}
+  // can bring it back), it just stops being the live/interactive one until
+  // resumed. Skipped when nothing's actually running yet, so clicking it
+  // from an already-blank form is silent.
   useEffect(() => {
     if (searchParams.get("new") !== "1") return
     if (started) void reset()
@@ -212,10 +212,10 @@ export default function IntegrationScreen() {
             Platform integration
           </h1>
           {/* Restarting moves the live run to read-only history rather than
-              deleting it (see orchestrator.py's reset_pipeline()), so it's
-              meaningless while already looking at read-only history — only
-              ever acts on the current run either way. No confirm(): Resume
-              (in the read-only banner below) can always bring it back, so
+              deleting it, so it's meaningless while already looking at
+              read-only history — only ever acts on the current run either
+              way. No confirm(): Resume (in the read-only banner below) can
+              always bring it back, so
               this was never actually a one-way action worth interrupting
               for. */}
           <Button variant="secondary" size="sm" disabled={!started || busy || !isCurrent} onClick={handleRestart}>
@@ -308,7 +308,7 @@ export default function IntegrationScreen() {
             events={events}
             busy={busy}
             model={model}
-            onSend={sendNudge}
+            onSend={sendMessage}
             onModelChange={changeModel}
             readOnly={!isCurrent}
           />

@@ -1,35 +1,34 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import assistant
-import orchestrator
-from orchestrator import (
-    current_model,
-    current_run_id,
-    current_stage,
-    events,
-    get_run_events,
-    is_busy,
-    list_providers,
-    list_runs,
-    reset_pipeline,
-    resume_run,
-    rerun_stage,
-    review,
-    set_model,
-    start_pipeline,
-)
+import chat_log
+from clients import ai_layer_client, integration_runner_client
+from clients.integration_runner_client import IntegrationRunnerError
 
-# Every recorded event reacts automatically (see orchestrator.record_event()),
-# but orchestrator.py has no knowledge of assistant.py, it only exposes a
-# blank hook. This wires the real reactor in, explicitly, at startup, rather
-# than as an easy-to-miss side effect of importing assistant.py elsewhere.
-orchestrator.set_reactor(assistant.react_to_event)
+# Every new raw pipeline event chat_log notices gets narrated via the
+# wired-in reactor (see chat_log.set_reactor()'s own docstring for why this
+# is late-bound rather than a direct import both ways). Wired explicitly at
+# startup, not as a side effect of importing assistant.py elsewhere.
+chat_log.set_reactor(assistant.react_to_event)
 
 app = FastAPI(title="MDDOAI Orchestrator")
 
-_BUSY_DETAIL = "A stage is still running, try again shortly."
+
+@app.exception_handler(IntegrationRunnerError)
+def integration_runner_error_handler(request: Request, exc: IntegrationRunnerError):
+    """integration_runner's own busy/stale-stage/unknown-run errors, caught
+    once here instead of a try/except at every endpoint below: this is what
+    lets every endpoint stay a plain, thin forwarding call. Reconstructs
+    the real status code and message integration_runner itself reported,
+    rather than degrading to a generic httpx error string."""
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 class StartRequest(BaseModel):
@@ -43,10 +42,9 @@ class StartRequest(BaseModel):
     max_pages: int | None = Field(default=None, ge=1)
     max_depth: int | None = Field(default=None, ge=1)
     force_refresh: bool | None = None
-    # Skips the real crawl entirely, docs_agent returns canned placeholder
-    # output instead (see stage_agents.py) — for local dev, where a real
-    # crawl is slow enough to make iterating on the rest of the pipeline
-    # painful.
+    # Skips the real crawl entirely, the docs stage returns canned
+    # placeholder output instead — for local dev, where a real crawl is
+    # slow enough to make iterating on the rest of the pipeline painful.
     mock: bool | None = None
 
 
@@ -69,7 +67,7 @@ class RerunRequest(BaseModel):
     overrides: RerunOverrides | None = None
 
 
-class NudgeRequest(BaseModel):
+class MessageRequest(BaseModel):
     message: str
 
 
@@ -79,24 +77,12 @@ class ModelRequest(BaseModel):
 
 @app.get("/events")
 def events_endpoint(since_index: int = 0, run_id: str | None = None):
-    if run_id is None or run_id == current_run_id():
-        return {
-            "events": events()[since_index:],
-            "current_stage": current_stage(),
-            "busy": is_busy(),
-            "model": current_model(),
-            "is_current": True,
-        }
-    # A past run: read-only, no polling loop needed, always the full list.
-    result = get_run_events(run_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"No run with id {run_id!r}")
-    return result
+    return chat_log.get_events(run_id=run_id, since_index=since_index)
 
 
 @app.get("/runs")
 def runs_endpoint():
-    return list_runs()
+    return integration_runner_client.list_runs()
 
 
 @app.post("/model")
@@ -104,69 +90,44 @@ def model_endpoint(request: ModelRequest):
     """Changes the model for the rest of the run, not just what /start chose,
     every subsequent real chat() call picks this up. None means ai-layer's
     own automatic routing."""
-    set_model(request.model)
-    return {"model": request.model}
+    return integration_runner_client.set_model(request.model)
 
 
 @app.post("/start", status_code=202)
 def start_endpoint(request: StartRequest):
-    # Unlike /review, /rerun, and /nudge, this used to have no busy guard:
-    # start_pipeline() swaps in a brand-new Orchestrator, so a double-click
-    # (or a restart while a stage is genuinely still running) didn't error,
-    # it silently orphaned the old run's background thread, which kept
-    # burning a real retrieval crawl or LLM call to write its result into an
-    # Orchestrator instance nothing could ever read again.
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     docs_options = request.model_dump(
         include={"hint", "exclude_urls", "max_pages", "max_depth", "force_refresh", "mock"}, exclude_none=True
     )
-    return start_pipeline(request.platform_description, request.seed_url, request.model, docs_options)
+    return integration_runner_client.start_pipeline(
+        request.platform_description, request.seed_url, request.model, docs_options
+    )
 
 
 @app.post("/reset")
 def reset_endpoint():
     """Replaces the current run with a fresh, blank one — the empty-state
     counterpart to /start, and the "give up on this one" counterpart to
-    /resume below. The old run isn't deleted, reset_pipeline() keeps it in
-    _runs, it just stops being current. Same busy guard as every other
-    mutating endpoint, for the same reason /start's guard exists: swapping
-    the Orchestrator instance out from under a genuinely in-flight
-    background thread just orphans it."""
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    reset_pipeline()
-    return {"status": "reset"}
+    /resume below. The old run isn't deleted, integration_runner keeps it
+    in its own run history, it just stops being current."""
+    return integration_runner_client.reset_pipeline()
 
 
 @app.post("/resume/{run_id}")
 def resume_endpoint(run_id: str):
-    """Makes a past run current again, so it can be approved/retried/nudged
-    like any other live run, picking up exactly where it left off. Same
-    busy guard as /reset and /start, for the same reason: swapping _default
-    out from under a genuinely in-flight background thread just orphans it.
-    404 for an unknown run_id."""
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    try:
-        return resume_run(run_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    """Makes a past run current again, so it can be approved/retried/
+    messaged like any other live run, picking up exactly where it left
+    off. 404 for an unknown run_id, surfaced via IntegrationRunnerError."""
+    return integration_runner_client.resume_run(run_id)
 
 
 @app.get("/providers")
 def providers_endpoint():
-    return list_providers()
+    return ai_layer_client.list_providers()
 
 
 @app.post("/review/{stage_id}")
 def review_endpoint(stage_id: str, request: ReviewRequest):
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    try:
-        result = review(stage_id, request.approved, request.correction)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    result = integration_runner_client.review(stage_id, request.approved, request.correction)
     if result["status"] == "started":
         return JSONResponse(status_code=202, content=result)
     return result
@@ -174,25 +135,20 @@ def review_endpoint(stage_id: str, request: ReviewRequest):
 
 @app.post("/rerun/{stage_id}", status_code=202)
 def rerun_endpoint(stage_id: str, request: RerunRequest | None = None):
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    if stage_id != current_stage():
-        raise HTTPException(
-            status_code=400,
-            detail=f"'{stage_id}' is not the current pending stage (current: {current_stage()!r}).",
-        )
-    overrides = request.overrides.model_dump(exclude_none=True) if request and request.overrides else {}
-    try:
-        return rerun_stage(overrides)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    overrides = request.overrides.model_dump(exclude_none=True) if request and request.overrides else None
+    return integration_runner_client.rerun_stage(stage_id, overrides)
 
 
-@app.post("/nudge")
-def nudge_endpoint(request: NudgeRequest):
-    if is_busy():
-        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+@app.post("/message")
+def message_endpoint(request: MessageRequest):
+    # Deliberately no busy pre-check here, unlike every endpoint above: a
+    # message that doesn't need a tool (a status question, small talk)
+    # should still get a reply even while a stage is running. Any tool call
+    # that WOULD mutate state still hits the real busy guard, inside
+    # tool_calling.dispatch_tool()'s own per-call try/except, surfaced as
+    # that step's own {"error": ...} result rather than blocking the whole
+    # message.
     try:
-        return assistant.nudge(request.message)
+        return assistant.send_message(request.message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

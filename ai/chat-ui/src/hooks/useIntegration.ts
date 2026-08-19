@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getEvents,
-  nudge as nudgeApi,
   rerunStage,
   resetPipeline,
   resumeRun,
   reviewStage,
+  sendMessage as sendMessageApi,
   setModel as setModelApi,
   startPipeline,
 } from "@/services/orchestrator.service"
 import type { DocsOptions } from "@/services/orchestrator.service"
+import { PIPELINE_EVENT_TYPES } from "@/types/orchestrator"
 import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
 
 // Real backend error messages (see orchestrator.service's errorFor())
@@ -53,9 +54,9 @@ export function useIntegration(runId?: string) {
   // pipeline finished (current_stage null) or it never started (no events
   // yet). The recurring interval poll skips its fetch entirely while this is
   // true, an idle tab left open otherwise hits the backend forever for
-  // nothing. Action-triggered fetches (approve/retry/nudge/reset) never
-  // check this, they always fetch, since they just did something that can
-  // legitimately change state.
+  // nothing. Action-triggered fetches (approve/retry/send a message/reset)
+  // never check this, they always fetch, since they just did something
+  // that can legitimately change state.
   const doneRef = useRef(false)
 
   const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
@@ -68,9 +69,13 @@ export function useIntegration(runId?: string) {
     isCurrentRef.current = body.is_current
     // current_stage defaults to "docs" (index 0) even on a completely fresh,
     // never-started Orchestrator, it's only ever null once the whole
-    // pipeline finishes. events.length is the only real signal that /start
-    // has actually been called.
-    setStarted(allEventsRef.current.length > 0)
+    // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
+    // only real signal that /start has actually been called — plain chat
+    // events (user_message/message/tool_called) can exist with zero real
+    // pipeline activity, e.g. the LLM just asking a clarifying question, so
+    // events.length alone isn't enough (a false positive here shows the
+    // Stepper as "reviewing" and enables Retry for a stage that never ran).
+    setStarted(allEventsRef.current.some((e) => PIPELINE_EVENT_TYPES.includes(e.type)))
     doneRef.current = !body.busy && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
@@ -90,11 +95,12 @@ export function useIntegration(runId?: string) {
   }, [applyEvents, runId])
 
   // Used after start/reset (which already clear allEventsRef themselves) and
-  // after a nudge, since nudge's tool-calling can itself call start_pipeline
-  // (see pipeline_tools.py's start_pipeline tool), resetting the backend's
-  // own event indices in a way this hook can't predict in advance, there's
-  // no run identity yet to detect that safely, so nudge always does a full
-  // refetch rather than risk merging two different runs' events together.
+  // after sending a chat message, since its tool-calling can itself call
+  // start_pipeline (see tools/pipeline_control.py's start_pipeline tool),
+  // resetting the backend's own event indices in a way this hook can't
+  // predict in advance, there's no run identity yet to detect that safely,
+  // so sending a message always does a full refetch rather than risk
+  // merging two different runs' events together.
   const fetchFull = useCallback(async () => {
     if (pollingRef.current) return
     pollingRef.current = true
@@ -199,11 +205,11 @@ export function useIntegration(runId?: string) {
     [fetchIncremental]
   )
 
-  const sendNudge = useCallback(
+  const sendMessage = useCallback(
     async (message: string) => {
       setError(null)
       try {
-        await nudgeApi(message)
+        await sendMessageApi(message)
         await fetchFull()
       } catch (err) {
         setError(messageFor(err, "Could not reach the Orchestrator."))
@@ -213,9 +219,10 @@ export function useIntegration(runId?: string) {
   )
 
   // Changes the model for the rest of the run (every subsequent stage run,
-  // retry, or nudge), not just what /start chose, callable any time, not
-  // only up front. Updates local state optimistically, since /model's own
-  // response already confirms it, no need to wait for the next poll tick.
+  // retry, or chat message), not just what /start chose, callable any
+  // time, not only up front. Updates local state optimistically, since
+  // /model's own response already confirms it, no need to wait for the
+  // next poll tick.
   const changeModel = useCallback(async (nextModel?: string) => {
     setError(null)
     try {
@@ -228,10 +235,10 @@ export function useIntegration(runId?: string) {
 
   // Replaces the current run with a fresh, blank one — the manual escape
   // hatch for "I don't want to wait for/continue this run." The old run
-  // isn't deleted (see orchestrator.py's reset_pipeline(), which keeps it
-  // in history), it just stops being the live/interactive one. 409s while
-  // a stage is genuinely busy (same guard /start has), surfaced as a real
-  // error rather than silently no-op-ing.
+  // isn't deleted, the backend keeps it in history, it just stops being
+  // the live/interactive one. 409s while a stage is genuinely busy (same
+  // guard /start has), surfaced as a real error rather than silently
+  // no-op-ing.
   const reset = useCallback(async () => {
     setError(null)
     try {
@@ -275,7 +282,7 @@ export function useIntegration(runId?: string) {
     start,
     approve,
     retry,
-    sendNudge,
+    sendMessage,
     changeModel,
     reset,
     resume,

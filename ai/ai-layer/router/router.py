@@ -1,11 +1,32 @@
 import litellm
 from litellm import Router
+from litellm.integrations.custom_logger import CustomLogger
 from litellm.types.router import Deployment, LiteLLM_Params
 from .config import AVAILABLE, _get_oauth_token
-from .logger import log_call
+from .logger import log_call, log_deployment_failure
 
 if not AVAILABLE:
     raise RuntimeError("No API keys configured. Add at least one key to .env (see .env.example).")
+
+
+class _FallbackLogger(CustomLogger):
+    """Logs every individual deployment failure litellm's Router hits while
+    working through the fallback chain — without this, a request that
+    silently falls back through 1-2 failed providers before succeeding is
+    indistinguishable in the logs from one that hit its first choice
+    cleanly (see log_deployment_failure's own docstring for the real
+    incident that surfaced this gap). log_call() (below) still logs the one
+    model that ultimately succeeded; this only covers the failed attempts
+    along the way."""
+
+    def log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        log_deployment_failure(kwargs.get("model", "unknown"), str(kwargs.get("exception", "unknown error")))
+
+    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        self.log_failure_event(kwargs, response_obj, start_time, end_time)
+
+
+litellm.callbacks = [_FallbackLogger()]
 
 _names = [m["name"] for m in AVAILABLE]
 _tier  = {m["model"]: m["tier"] for m in AVAILABLE}

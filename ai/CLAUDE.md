@@ -4,17 +4,23 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 
 ## Folder boundaries
 
-- Work on `chat-ui/` (the React frontend) only touches files inside `ai/chat-ui/`.
-- Work on `ai-layer/` (the FastAPI backend) only touches files inside `ai/ai-layer/`.
+- Every real, deployed service under `ai/` only touches files inside its own folder. A service
+  that needs something from another one calls it over real HTTP, never by importing the other
+  service's Python internals directly — see [ai/README.md](./README.md)'s services list and
+  request-path description for which services exist today and how they actually call each other.
+- `clients/` is the one folder under `ai/` that isn't itself a deployed service: a shared package
+  of thin HTTP wrapper functions (one module per sibling service it can reach), imported directly
+  as a Python package by whichever service needs to make that outbound call. This is how real
+  cross-service communication happens in `ai/`, not a second, competing mechanism alongside it.
 - `chat-ui/` and `ai-layer/` never touch the Java/Eclipse code at the repo root.
-- **Exception, deliberate and narrow**: `integration-agent/` wraps headless model/transformation
+- **Exception, deliberate and narrow**: `validator_agent/` wraps headless model/transformation
   validators (`main/src/main/java/mddoai/validation/`, one subpackage per file type) as HTTP
   routes, since a Python process can't call a JVM library directly. Its Python code lives in
-  `ai/integration-agent/`; it also owns every `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`
-  class (recursive, any depth under `validation/`), a thin entrypoint that `integration-agent`
+  `ai/validator_agent/`; it also owns every `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`
+  class (recursive, any depth under `validation/`), a thin entrypoint that `validator_agent`
   invokes as a subprocess (`java -cp .../lib/* ...*ValidatorCli <args>`), reading structured JSON
   off stdout — it never links against or imports Java code directly. Everything else under
-  `mddoai.validation` is owned by the Java/Eclipse work, not by `integration-agent`. Both rules
+  `mddoai.validation` is owned by the Java/Eclipse work, not by `validator_agent`. Both rules
   (subprocess boundary, ownership split) are stated by naming pattern and path, not by
   enumerating specific classes or file types, so adding a new validator never requires an edit
   here. This exception does not extend to `chat-ui` or `ai-layer`, and does not license any
@@ -22,6 +28,24 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`chat-ui/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
+
+## Adding to `integration_runner`'s pipeline: stages and their tools
+
+`integration_runner/stages/<stage>/` holds one folder per pipeline stage: `agent.py` (the stage's own real capability, a plain `(context: dict) -> str` function with no knowledge of a run, dispatched by name from `stages/__init__.py`'s `stage_agents` dict) and, only once a stage actually has one, `actions.py` (extra real, run-aware capabilities beyond running the stage itself — see `integration_runner/stages/docs/actions.py` for a full worked example). Don't add a stage's `actions.py` before that stage actually needs one.
+
+**Replacing a placeholder stage agent with a real implementation:**
+1. Rewrite `stages/<stage>/agent.py`'s real logic, keeping the same function name and `(context: dict) -> str` signature the placeholder had.
+2. Nothing else changes: `stages/__init__.py` already points `stage_agents[stage]` at that function by name, and `pipeline.py` only ever reads `stages.stage_agents[stage]`, never a specific stage's own module.
+
+**Adding a new real, chat-callable capability for a stage** (something beyond running/rerunning the stage itself, e.g. an action targeting one specific piece of a stage's existing output):
+1. Write the real implementation in `stages/<stage>/actions.py` (create it if this stage doesn't have one yet) as a function taking the run instance as its first argument and mutating it directly. It must have real effect, actually changing what the run holds, not just log a summary of what happened: any chat-callable action must invoke the same real state-changing path a manual or direct REST caller would use for the same intent, never a weaker echo of it.
+2. Expose it over HTTP in `routes/<stage>.py` (create it if this stage doesn't have its own routes file yet, matching `routes/docs.py`'s shape), calling the action directly against `runs.current()`, with the same busy-guard pattern every other mutating endpoint already uses. Register a new router file in `main.py`.
+3. Add a thin wrapper for it in `clients/integration_runner_client.py`: the HTTP call only, no business logic there.
+4. Declare the tool in `orchestrator/tools/<stage>.py` (create it if this stage doesn't have its own tools file yet, matching `tools/docs.py`'s shape): a name and description that describe the real effect in plain language for an LLM's own decision-making, not the internal implementation, restricted to the stages it's actually valid for via the tool's own `stages=` list, with `impl` pointing at the new client function.
+5. If that tools file is new, register it in `orchestrator/tools/__init__.py`'s aggregation.
+6. Add real tests: the action's own behavior under `integration_runner/tests/stages/`, and the tool's wiring in `orchestrator/tests/test_tools.py`.
+
+**Extending an existing generic tool instead of adding a new one:** if the new capability is really a variant of an existing stage-agnostic action (e.g. a new kind of override for rerunning the current stage), extend that tool's own schema and its underlying endpoint's request model instead of creating a parallel tool. A REST endpoint already accepting a parameter and the chat tool's own schema exposing that same parameter to the LLM are two different things, both need updating — see `rerun_stage`'s own docstring in `orchestrator/tools/pipeline_control.py` for a real example of that gap and its fix.
 
 ## Design System Skill
 

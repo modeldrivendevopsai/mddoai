@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Thin process-boundary wrapper around AtlValidator, for invocation as a
- * separate OS process (e.g. from ai/integration-agent's Python service).
+ * separate OS process (e.g. from ai/validator_agent's Python service).
  * Deliberately NOT wired into Main.java's transformation switch (reserved
  * for #316) — this is its own entrypoint, invoked directly with
  * {@code java -cp <lib>/* main.java.mddoai.validation.atl.AtlValidatorCli <path>}

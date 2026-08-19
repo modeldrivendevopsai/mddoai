@@ -17,24 +17,124 @@ services:
     ports:
       - "8000:8000"
 
+  # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
+  # Python packages (orchestrator/, clients/) into one container. Before
+  # integration_runner became its own service (see below), this also
+  # assembled integration_runner/ and serialization_agent/ into the same
+  # image — orchestrator/Dockerfile shrinking to one sibling copy is a real
+  # signal that split reduced coupling, not just relocated it.
   orchestrator:
     build:
-      context: ./orchestrator
+      context: .
+      dockerfile: orchestrator/Dockerfile
     env_file:
       - path: ./orchestrator/.env
         required: false
     environment:
+      # ai_layer_client.chat() is still called directly here (narration and
+      # send_message()'s own tool-routing decision, see assistant.py), and
+      # main.py's /providers proxies ai_layer_client.list_providers() too —
+      # orchestrator is still the LLM-chat layer. It has no import on
+      # clients/retrieval_client.py at all anymore, though: the
+      # add_page_to_docs tool calls integration_runner's own POST
+      # /docs/extend now (see tools/docs.py), not retrieval directly, so
+      # RETRIEVAL_URL isn't needed here.
       - AI_LAYER_URL=http://ai-layer:8000
-      - RETRIEVAL_URL=http://retrieval:8010
+      - INTEGRATION_RUNNER_URL=http://integration-runner:8050
     depends_on:
       ai-layer:
-        condition: service_started
-      retrieval:
-        condition: service_started
+        condition: service_healthy
+      integration-runner:
+        condition: service_healthy
     expose:
       - "8001"
+
+  # Own container, own real REST API — the pipeline state machine, run
+  # history, and stage agents, promoted out of orchestrator's own container
+  # so the two communicate only over HTTP (see integration_runner/main.py
+  # and clients/integration_runner_client.py), not by orchestrator importing
+  # this package's Python internals directly the way it used to. Build
+  # context ai/ (not ./integration_runner): reaches the sibling clients/
+  # package, the HTTP clients for every real capability its stages call out
+  # for.
+  integration-runner:
+    build:
+      context: .
+      dockerfile: integration_runner/Dockerfile
+    env_file:
+      - path: ./integration_runner/.env
+        required: false
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+      - RETRIEVAL_URL=http://retrieval:8010
+      - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
+    depends_on:
+      ai-layer:
+        condition: service_healthy
+      retrieval:
+        condition: service_healthy
+      serialization-agent:
+        condition: service_healthy
+    expose:
+      - "8050"
+
+  # Own container: a concrete, stated future need, not speculative — see
+  # pim_agent/__init__.py's own comment for the real cited source
+  # (MDDOAI_Agentic_Architecture.drawio's Phase 1 plan) and what it does vs.
+  # doesn't establish. Today's real capability (ground()/PIM_CONCEPTS) is
+  # still plain Python — see pim_agent/Dockerfile's own comment.
+  pim-agent:
+    build: ./pim_agent
+    expose:
+      - "8030"
+
+  # Own container, same reasoning as pim-agent. Not wired into the live
+  # pipeline's psm stage yet (still a placeholder LLM prompt), kept callable
+  # via POST /compare for future integration. Needs read access to meta_models/ (the real
+  # .ecore PSM metamodels, outside ai/ entirely) — mounted read-only rather
+  # than copied into the image, so a metamodel change doesn't need a rebuild.
+  psm-agent:
+    build:
+      context: .
+      dockerfile: psm_agent/Dockerfile
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+      - META_MODELS_DIR=/meta_models
+    volumes:
+      - ../meta_models:/meta_models:ro
+    depends_on:
+      ai-layer:
+        condition: service_healthy
+    expose:
+      - "8040"
+
+  # Own container, same reasoning as pim-agent/psm-agent: a real pipeline
+  # capability (the docs stage's raw output -> a PIM-concept-labeled
+  # markdown artifact) gets independent deployability, not bundled into
+  # whichever process happens to call it. Calls ai-layer directly (its own
+  # extraction LLM call) and pim-agent (concept grounding).
+  serialization-agent:
+    build:
+      context: .
+      dockerfile: serialization_agent/Dockerfile
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+      - PIM_AGENT_URL=http://pim-agent:8030
+    depends_on:
+      ai-layer:
+        condition: service_healthy
+      pim-agent:
+        condition: service_healthy
+    expose:
+      - "8060"
+
+  # Build context ai/ (not ./retrieval): reaches the sibling clients/
+  # package (retrieval.py's LLM calls go through clients/ai_layer_client.py's
+  # async achat() now).
   retrieval:
-    build: ./retrieval
+    build:
+      context: .
+      dockerfile: retrieval/Dockerfile
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
     expose:
@@ -55,7 +155,7 @@ services:
       - no-new-privileges:true
     depends_on:
       ai-layer:
-        condition: service_started
+        condition: service_healthy
 
   # Overrides the Dockerfile's static build with Vite's own dev server.
   chat-ui:
@@ -73,10 +173,10 @@ services:
       - "5173:5173"
     depends_on:
       orchestrator:
-        condition: service_started
+        condition: service_healthy
 
   # One-shot: builds main/'s Gradle distribution into the main-build-output
-  # volume, so integration-agent doesn't need its own Gradle toolchain.
+  # volume, so validator-agent doesn't need its own Gradle toolchain.
   # main-gradle-cache persists so repeat builds are fast.
   gradle-builder:
     image: gradle:8.14.3-jdk21-alpine
@@ -92,14 +192,14 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313) and .atl (issue #314). Named integration-agent, not
+  # .ecore (issue #313) and .atl (issue #314). Named validator-agent, not
   # ecore-validator: #315 (.mtl) is expected to add another sibling
   # /validate/<type> route to this same service later.
-  integration-agent:
+  validator-agent:
     build:
-      context: ./integration-agent
+      context: ./validator_agent
     env_file:
-      - path: ./integration-agent/.env
+      - path: ./validator_agent/.env
         required: false
     volumes:
       - main-build-output:/main-build:ro

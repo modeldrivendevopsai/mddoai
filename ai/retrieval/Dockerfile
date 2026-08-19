@@ -2,10 +2,16 @@
 # three browser engines (Chromium, Firefox, WebKit, ~2GB) and we only use Chromium.
 # crawl4ai-setup installs its own Chromium (via patchright) plus the OS-level
 # shared libraries it needs, --with-deps handles the apt-get itself.
+#
+# Build context is set to ai/ (not ./retrieval) in docker-compose.yml, so this
+# can reach the sibling clients/ package (real dependency: retrieval.py's LLM
+# calls go through clients/ai_layer_client.py's async achat() now, not raw
+# httpx) — same multi-folder pattern integration_runner/psm_agent/
+# serialization_agent already use.
 FROM python:3.12-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY retrieval/requirements.txt ./retrieval/requirements.txt
+RUN pip install --no-cache-dir -r retrieval/requirements.txt
 
 # Create the runtime user and point HOME at its directory before crawl4ai-setup
 # runs, so the browser cache (~/.cache/ms-playwright) and crawl4ai's own state
@@ -17,10 +23,13 @@ ENV HOME=/home/retrieval
 RUN crawl4ai-setup
 RUN chown -R retrieval:retrieval /home/retrieval
 
-COPY . .
+COPY retrieval/ ./retrieval/
+COPY clients/ ./clients/
 RUN chown -R retrieval:retrieval /app
 USER retrieval
 
+WORKDIR /app/retrieval
+ENV PYTHONPATH=/app/retrieval:/app
 EXPOSE 8010
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=5)" || exit 1

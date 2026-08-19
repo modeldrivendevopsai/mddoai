@@ -4,16 +4,12 @@ LLM router for MDDOAI. Exposes a FastAPI service that agents (including the stan
 
 ## Provider priority
 
-| Priority | Provider | Model |
-|---|---|---|
-| 1 | Google AI Studio | `gemini/gemini-2.5-flash` |
-| 2 | Mistral | `mistral/mistral-small-2506` |
-| 3 | Cerebras | `cerebras/gpt-oss-120b` |
-| 4 | Groq | `groq/llama-3.3-70b-versatile` |
-| 5 (Claude Pro/Max subscription) | Anthropic | `anthropic/claude-haiku-4-5` |
-| 6 (commercial fallback) | Anthropic | `anthropic/claude-sonnet-4-6` |
-
-Providers with no API key set are skipped silently at startup.
+Priority order is exactly the top-to-bottom order of the `MODELS` list in
+[`router/config.py`](router/config.py) — that list is the one source of truth, not repeated here
+since it changes independently (a provider retiring a model ID, or a reordering like this one,
+would otherwise mean remembering to update this file too every time). A provider with no API key
+set is skipped silently at startup (see `AVAILABLE` in the same file). Free tiers come first;
+the Claude Pro/Max subscription and commercial Anthropic key are the last resorts.
 
 ## Setup
 
