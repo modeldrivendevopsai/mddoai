@@ -45,6 +45,21 @@ public final class AcceleoValidator {
                     ValidationIssue.Severity.ERROR, "File does not exist: " + mtlFilePath, mtlFilePath)));
         }
 
+        // AcceleoCompilerHelper scans its source folder for files ending in
+        // ".mtl" rather than parsing the single file it's given directly (unlike
+        // EcoreValidator's resource.load() or AtlValidator's compiler.compile(
+        // Reader, ...), which both parse content regardless of filename). A file
+        // copied into that folder under any other extension is invisible to the
+        // scan: execute() finds nothing to compile, doesn't throw, and this
+        // method would otherwise report a trivial, wrong "valid" result -
+        // confirmed empirically (a non-.mtl file with garbage or even another
+        // file type's real content silently reports valid:true).
+        if (!file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".mtl")) {
+            return ValidationResult.of(List.of(new ValidationIssue(
+                    ValidationIssue.Severity.ERROR,
+                    "Not a .mtl file: " + mtlFilePath, mtlFilePath)));
+        }
+
         // AcceleoCompilerHelper compiles a whole source folder, not a single file
         // (unlike AtlStandaloneCompiler.compile(Reader, target)) - so the target
         // file is isolated into its own temp source folder first.

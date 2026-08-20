@@ -29,4 +29,19 @@ public class AcceleoValidatorInputGuardTest {
         assertFalse(result.valid());
         assertEquals(1, result.issues().size());
     }
+
+    @Test
+    public void validateRejectsFileWithoutMtlExtensionInsteadOfFalsePositive() {
+        // AcceleoCompilerHelper compiles a whole source folder and finds files by
+        // their ".mtl" extension, not by parsing whatever single file it's handed
+        // (unlike EcoreValidator/AtlValidator, which parse content directly). A
+        // non-.mtl file dropped into that folder is invisible to the compiler's
+        // scan, so execute() would otherwise finish having "compiled" nothing and
+        // report a false valid:true - regardless of how malformed its content is.
+        ValidationResult result = AcceleoValidator.validate(
+                "./src/test/resources/testCases/validation/acceleo/notActuallyMtl.txt");
+
+        assertFalse(result.valid(), "a non-.mtl file must never be reported as a valid Acceleo module");
+        assertEquals(1, result.issues().size());
+    }
 }
