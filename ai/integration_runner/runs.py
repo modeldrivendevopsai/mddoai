@@ -114,15 +114,27 @@ def start_pipeline(
     model: str | None = None,
     docs_options: dict | None = None,
 ) -> dict:
-    """Reset the pipeline and start the docs stage running in the
-    background — the one place this registry still does more than pure
-    bookkeeping, since starting a genuinely NEW run means swapping in a
-    fresh IntegrationRun (reset_pipeline()) before that new instance can
-    start anything on itself. docs_options is the same shape rerun()'s
-    overrides accepts for the docs stage (hint, exclude_urls, max_pages,
-    max_depth, force_refresh) — set once here up front instead of only
-    being reachable via a retry."""
-    reset_pipeline()
+    """Start the docs stage running in the background, against a genuinely
+    new run only if the current one isn't already a blank slot — the one
+    place this registry still does more than pure bookkeeping.
+
+    A blank slot (zero events: nothing has run on it yet) can come from
+    reset_pipeline() itself, or from resume_run() bringing back a past run
+    that was reset-and-then-abandoned before ever being started. Reusing it
+    in place, same run_id, rather than discarding it for yet another fresh
+    IntegrationRun, is what lets "Resume this run" -> fill in the start
+    form actually continue that resumed run: without this, the instant
+    Start was clicked it would silently swap in a different run anyway,
+    stranding the one that was just resumed as a second, permanently-empty
+    history entry. A run that already has events (mid-pipeline, or fully
+    complete) still always gets a fresh IntegrationRun, e.g. Restart's own
+    "re-run the same platform from scratch" call to this same function.
+
+    docs_options is the same shape rerun()'s overrides accepts for the docs
+    stage (hint, exclude_urls, max_pages, max_depth, force_refresh) — set
+    once here up front instead of only being reachable via a retry."""
+    if _default.events:
+        reset_pipeline()
     _default.set_model(model)
     context = {"platform_description": platform_description, "seed_url": seed_url, **(docs_options or {})}
     return _default.start_stage_run(context)
