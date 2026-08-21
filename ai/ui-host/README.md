@@ -1,4 +1,4 @@
-# chat-ui
+# ui-host
 
 The UI for MDDOAI. A router-based SPA with a persistent shell (sidebar + top bar) around two
 screens: a landing page and a platform-integration dashboard. See [CLAUDE.md](./CLAUDE.md) for
@@ -95,19 +95,19 @@ reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s
 there even though the image rebuilt with it. Force a fresh volume with:
 
 ```bash
-docker compose up -d --build --renew-anon-volumes chat-ui
+docker compose up -d --build --renew-anon-volumes ui-host
 ```
 
 Symptom if you skip this: Vite's overlay reports `Failed to resolve import "..."` for the
 package you just added, even though `npm ci` clearly succeeded during the image build.
 
 **If an edit to a source file doesn't show up in the browser** (no `[vite] hmr update` line in
-`docker compose logs chat-ui`, page keeps serving the old version even after a hard refresh):
+`docker compose logs ui-host`, page keeps serving the old version even after a hard refresh):
 Docker Desktop on Windows doesn't always forward native filesystem change events through the
 bind mount into the Linux container, so Vite's watcher silently misses the edit. `vite.config.ts`
 enables polling (`server.watch.usePolling`) whenever `CHOKIDAR_USEPOLLING=true` is set, which
 `docker-compose.yml` sets for exactly this reason, if you still hit this, confirm that env var
-made it into the running container (`docker compose exec chat-ui printenv CHOKIDAR_USEPOLLING`).
+made it into the running container (`docker compose exec ui-host printenv CHOKIDAR_USEPOLLING`).
 
 ## Project structure
 

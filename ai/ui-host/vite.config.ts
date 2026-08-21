@@ -35,7 +35,7 @@ export default defineConfig({
         // docker-compose.yml sets this to orchestrator:8001 (Docker service
         // name); the fallback here is for running npm run dev outside
         // Docker. ai/orchestrator is internal-only (expose, not ports, in
-        // docker-compose.yml) — every real call chat-ui makes goes through
+        // docker-compose.yml) — every real call ui-host makes goes through
         // this one proxy now, orchestrator itself is the only thing that
         // talks to ai-layer/retrieval (see ai/README.md).
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',

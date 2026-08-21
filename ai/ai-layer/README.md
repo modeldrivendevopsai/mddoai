@@ -1,6 +1,6 @@
 # ai-layer
 
-LLM router for MDDOAI. Exposes a FastAPI service that agents (including the standalone `orchestrator` service — see `../orchestrator/README.md`) and the chat-ui call over HTTP. Free providers are tried first in priority order; commercial Claude is the last resort.
+LLM router for MDDOAI. Exposes a FastAPI service that agents (including the standalone `orchestrator` service — see `../orchestrator/README.md`) and `ui-host` call over HTTP. Free providers are tried first in priority order; commercial Claude is the last resort.
 
 ## Provider priority
 
