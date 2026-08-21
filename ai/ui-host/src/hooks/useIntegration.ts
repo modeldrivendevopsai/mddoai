@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getEvents,
+  getProviders,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -11,7 +12,7 @@ import {
 } from "@/services/orchestrator.service"
 import type { DocsOptions } from "@/services/orchestrator.service"
 import { PIPELINE_EVENT_TYPES } from "@/types/orchestrator"
-import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
+import type { OrchestratorEvent, Provider, StageId } from "@/types/orchestrator"
 
 // Real backend error messages (see orchestrator.service's errorFor())
 // are actually useful, e.g. "'psm' is not the current pending stage" or a
@@ -38,6 +39,10 @@ export function useIntegration(runId?: string) {
   const [busy, setBusy] = useState(false)
   const [started, setStarted] = useState(false)
   const [model, setModelState] = useState<string | null>(null)
+  // Fetched once, not polled — ChatColumn's own model picker used to fetch
+  // this itself; moved here so it stays purely prop-driven like every other
+  // federated remote (see ai/ui-remote-chat/README.md).
+  const [providers, setProviders] = useState<Provider[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isCurrent, setIsCurrent] = useState(true)
   const pollingRef = useRef(false)
@@ -58,6 +63,15 @@ export function useIntegration(runId?: string) {
   // never check this, they always fetch, since they just did something
   // that can legitimately change state.
   const doneRef = useRef(false)
+
+  // Providers don't depend on runId (it's a global, not a per-run list), so
+  // this fetches once per mount rather than re-running alongside the
+  // runId-keyed polling effect below.
+  useEffect(() => {
+    getProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]))
+  }, [])
 
   const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
     allEventsRef.current = replace ? body.events : [...allEventsRef.current, ...body.events]
@@ -277,6 +291,7 @@ export function useIntegration(runId?: string) {
     busy,
     started,
     model,
+    providers,
     error,
     isCurrent,
     start,

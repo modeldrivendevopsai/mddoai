@@ -1,17 +1,32 @@
-import { useEffect, useState } from "react"
+import { Suspense, lazy, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useIntegration } from "@/hooks/useIntegration"
-import { Stepper } from "@/features/integration/Stepper"
 import { STAGE_PANELS } from "@/features/integration/stages/registry"
-import { ChatColumn } from "@/features/chat/ChatColumn"
-import { DocsStartForm } from "@/features/integration/stages/docs/DocsStartForm"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
 import type { StageId } from "@/types/orchestrator"
 
+// Stepper, ChatColumn, and the docs stage's start form are each their own
+// Module Federation remote too (ui-remote-stepper, ui-remote-chat,
+// ui-remote-stage-docs — see ai/docker-compose.yml), same lazy/federated
+// pattern as STAGE_PANELS in registry.ts, and same reason: React.lazy needs
+// a default export, each remote exposes a named one instead.
+const Stepper = lazy(() => import("uiRemoteStepper/Stepper").then((m) => ({ default: m.Stepper })))
+const ChatColumn = lazy(() => import("uiRemoteChat/ChatColumn").then((m) => ({ default: m.ChatColumn })))
+const DocsStartForm = lazy(() =>
+  import("uiRemoteStageDocs/DocsStartForm").then((m) => ({ default: m.DocsStartForm }))
+)
+
+// Shown in place of a federated remote while its own bundle is still
+// loading — a real Suspense fallback, not a skeleton screen, deliberately
+// plain since this only shows on first paint of a not-yet-cached remote.
+function RemoteLoading() {
+  return <div style={{ padding: "var(--space-4)", color: "var(--text-muted)" }}>Loading…</div>
+}
+
 // "Nothing left to review" is a screen-level state (the whole run finished),
-// not any one stage's concern — kept here rather than duplicated across all
-// six stage panels in @/features/integration/stages/.
+// not any one stage's concern — kept here rather than duplicated across
+// every stage panel's own ui-remote-stage-* package.
 function CompletePanel() {
   return (
     <div
@@ -76,6 +91,7 @@ export default function IntegrationScreen() {
     busy,
     started,
     model,
+    providers,
     error,
     isCurrent,
     start,
@@ -222,13 +238,15 @@ export default function IntegrationScreen() {
             Restart
           </Button>
         </div>
-        <Stepper
-          currentStage={currentStage}
-          busy={busy}
-          started={started}
-          selectedStage={viewedStage}
-          onSelectStage={started ? setViewedStage : undefined}
-        />
+        <Suspense fallback={<RemoteLoading />}>
+          <Stepper
+            currentStage={currentStage}
+            busy={busy}
+            started={started}
+            selectedStage={viewedStage}
+            onSelectStage={started ? setViewedStage : undefined}
+          />
+        </Suspense>
       </header>
 
       {/* Only a defined runId can ever be non-current (the live run always
@@ -304,24 +322,29 @@ export default function IntegrationScreen() {
         }}
       >
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <ChatColumn
-            events={events}
-            busy={busy}
-            model={model}
-            onSend={sendMessage}
-            onModelChange={changeModel}
-            readOnly={!isCurrent}
-          />
+          <Suspense fallback={<RemoteLoading />}>
+            <ChatColumn
+              events={events}
+              busy={busy}
+              model={model}
+              providers={providers}
+              onSend={sendMessage}
+              onModelChange={changeModel}
+              readOnly={!isCurrent}
+            />
+          </Suspense>
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {started ? (
-            renderStagePane()
+            <Suspense fallback={<RemoteLoading />}>{renderStagePane()}</Suspense>
           ) : isCurrent ? (
-            <DocsStartForm
-              onStart={(platformName, documentationUrl, docsOptions) =>
-                start(platformName, documentationUrl, model ?? undefined, docsOptions)
-              }
-            />
+            <Suspense fallback={<RemoteLoading />}>
+              <DocsStartForm
+                onStart={(platformName, documentationUrl, docsOptions) =>
+                  start(platformName, documentationUrl, model ?? undefined, docsOptions)
+                }
+              />
+            </Suspense>
           ) : (
             <NoStagesRanPanel />
           )}
