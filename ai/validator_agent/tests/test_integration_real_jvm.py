@@ -77,3 +77,26 @@ def test_real_atl_validation_of_invalid_fixture():
     body = response.json()
     assert body["valid"] is False
     assert len(body["issues"]) > 0
+
+
+def test_real_acceleo_validation_of_valid_fixture():
+    content = (FIXTURES_DIR / "valid.mtl").read_text(encoding="utf-8")
+
+    response = client.post("/validate/acceleo", json={"filename": "valid.mtl", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True, f"expected clean compile, got: {body['issues']}"
+    assert body["issues"] == []
+    assert body["duration_ms"] >= 0
+
+
+def test_real_acceleo_validation_of_invalid_fixture():
+    content = (FIXTURES_DIR / "invalid.mtl").read_text(encoding="utf-8")
+
+    response = client.post("/validate/acceleo", json={"filename": "invalid.mtl", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is False
+    assert any("terminated" in issue["message"].lower() for issue in body["issues"])

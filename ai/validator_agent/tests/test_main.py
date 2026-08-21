@@ -122,3 +122,53 @@ def test_validate_atl_rejects_missing_content():
     response = client.post("/validate/atl", json={"filename": "sample.atl"})
 
     assert response.status_code == 422
+
+
+def fake_acceleo_result(valid=True, issues=None, duration_ms=42):
+    return {"valid": valid, "issues": issues or [], "duration_ms": duration_ms}
+
+
+def test_validate_acceleo_returns_200_with_valid_true():
+    with patch("main.run_acceleo_validator", return_value=fake_acceleo_result(valid=True)):
+        response = client.post("/validate/acceleo", json={
+            "filename": "generate.mtl", "content": "[module generate('http://x')]",
+        })
+
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+
+
+def test_validate_acceleo_returns_200_with_valid_false_and_issues():
+    issues = [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}]
+    with patch("main.run_acceleo_validator", return_value=fake_acceleo_result(valid=False, issues=issues)):
+        response = client.post("/validate/acceleo", json={
+            "filename": "generate.mtl", "content": "[module generate('http://x')]",
+        })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is False
+    assert body["issues"] == issues
+
+
+def test_validate_acceleo_returns_500_on_infra_error():
+    with patch("main.run_acceleo_validator", side_effect=ValidatorInfraError("java not found")):
+        response = client.post("/validate/acceleo", json={
+            "filename": "generate.mtl", "content": "[module generate('http://x')]",
+        })
+
+    assert response.status_code == 500
+    assert "java not found" in response.json()["detail"]
+
+
+def test_validate_acceleo_rejects_oversized_content():
+    oversized = "x" * (main.MAX_CONTENT_BYTES + 1)
+    response = client.post("/validate/acceleo", json={"filename": "generate.mtl", "content": oversized})
+
+    assert response.status_code == 413
+
+
+def test_validate_acceleo_rejects_missing_content():
+    response = client.post("/validate/acceleo", json={"filename": "generate.mtl"})
+
+    assert response.status_code == 422

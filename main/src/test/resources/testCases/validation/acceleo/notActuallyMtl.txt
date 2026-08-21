@@ -1,0 +1,3 @@
+This is plain text, not Acceleo module source. It exists to prove that a
+file lacking the .mtl extension is rejected before ever reaching
+AcceleoCompilerHelper, instead of silently reporting a trivial "valid" pass.
