@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSessions, closeSession } from '../services/sessions.service';
 import type { Session, SessionType } from '../services/sessions.service';
-import { Icon } from '../design-system';
+import { Icon } from 'design-system';
 import './sessions-list.css';
 
 /**

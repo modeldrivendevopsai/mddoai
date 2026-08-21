@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
-import '../design-system/tokens.css';
+import 'design-system/tokens.css';
 import './app-shell.css';
 
 /**

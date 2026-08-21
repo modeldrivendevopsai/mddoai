@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Panel, Button, StatusPill } from '../design-system';
+import { Panel, Button, StatusPill } from 'design-system';
 import { getPlatforms } from '../services/platforms.service';
 import type { Platform } from '../services/platforms.service';
 import { START_OPTIONS, FLOW_CAPTIONS } from '../config/startOptions.config';

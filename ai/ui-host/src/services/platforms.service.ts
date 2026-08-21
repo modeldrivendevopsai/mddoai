@@ -1,4 +1,4 @@
-import type { StatusPillVariant } from '../design-system/components/StatusPill';
+import type { StatusPillVariant } from 'design-system';
 
 /**
  * Platforms data service. Same pattern as sessions.service.ts: mock data

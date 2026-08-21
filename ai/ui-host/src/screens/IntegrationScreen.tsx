@@ -5,7 +5,7 @@ import { Stepper } from "@/features/integration/Stepper"
 import { STAGE_PANELS } from "@/features/integration/stages/registry"
 import { ChatColumn } from "@/features/chat/ChatColumn"
 import { DocsStartForm } from "@/features/integration/stages/docs/DocsStartForm"
-import { Button } from "@/design-system"
+import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
 import type { StageId } from "@/types/orchestrator"
 

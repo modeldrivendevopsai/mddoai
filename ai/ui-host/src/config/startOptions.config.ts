@@ -1,4 +1,4 @@
-import type { PanelTone } from '../design-system/components/Panel';
+import type { PanelTone } from 'design-system';
 
 /**
  * Start-screen option cards + flow captions, as data. Copy edits or a

@@ -1,4 +1,4 @@
-import { Button } from '../design-system';
+import { Button } from 'design-system';
 import { SIDEBAR_ACTIONS } from '../config/sidebar.config';
 import type { SessionType } from '../services/sessions.service';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tabs, Icon } from '../design-system';
+import { Tabs, Icon } from 'design-system';
 import { SIDEBAR_TABS } from '../config/sidebar.config';
 import { SidebarActions } from './SidebarActions';
 import { SessionsList } from './SessionsList';

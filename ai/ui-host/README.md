@@ -11,7 +11,7 @@ the full product and design spec.
 | Build tool / dev server | [Vite](https://vite.dev/) | [Guide](https://vite.dev/guide/) |
 | UI framework | [React 19](https://react.dev/) + TypeScript | [React docs](https://react.dev/learn) · [TS handbook](https://www.typescriptlang.org/docs/handbook/intro.html) |
 | Routing | [react-router-dom](https://reactrouter.com/) | [Docs](https://reactrouter.com/en/main) |
-| Styling | Inline `style={{ }}` against `design-system/tokens.css`'s tokens, plus small per-component `.css` files for the rules inline styles can't express | see [CLAUDE.md](./CLAUDE.md)'s Design System section |
+| Styling | Inline `style={{ }}` against the `design-system` package's `tokens.css`, plus small per-component `.css` files for the rules inline styles can't express | see [CLAUDE.md](./CLAUDE.md)'s Design System section |
 | Testing | [Vitest](https://vitest.dev/) | [Docs](https://vitest.dev/guide/) |
 
 ## Prerequisites
@@ -40,21 +40,23 @@ Where things live:
 
 - **Platform integration dashboard** `src/screens/IntegrationScreen.tsx`, composing
   `src/features/chat/` (the Orchestrator's own chat log, nudge input, model picker) and
-  `src/features/integration/` (the stepper, the six per-stage panels under `stages/`, and their
-  shared display primitives), its own real API client `src/services/orchestrator.service.ts`,
-  polling hook `src/hooks/useIntegration.ts`, and REST-contract types `src/types/orchestrator.ts`.
+  `src/features/integration/` (the stepper and the per-stage panels under `stages/`, see
+  `stages/registry.ts` for the current, exact set), its own real API client
+  `src/services/orchestrator.service.ts`, polling hook `src/hooks/useIntegration.ts`, and
+  REST-contract types `src/types/orchestrator.ts`.
 - **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
   with mock data from `src/services/platforms.service.ts`.
 - **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
   sourced from `src/config/sidebar.config.ts` and `src/services/sessions.service.ts`.
-- **Component primitives** `src/design-system/` (this app's own port of the real MDDOAI Design
-  System: tokens, Button, Panel, Tabs, StatusPill, Icon).
+- **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
+  under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
 - **Backend contract** All real network calls go through `src/services/orchestrator.service.ts`,
   which only ever talks to `ai/orchestrator` (never the Java backend, `ai-layer`, or
   `ai/retrieval` directly, `ai/orchestrator` itself is the only thing that talks to those, see
   `ai/README.md`).
 
-The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`).
+The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`) —
+`design-system` isn't under `src/` any more, so it's imported by its bare package name instead.
 
 ## Test
 
@@ -89,6 +91,10 @@ npm run preview    # serve the production build locally
 is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full
 compose setup.
 
+Build context is `ai/`, not this folder alone, and the sibling `design-system` package gets its
+own bind mount too — see this package's own `CLAUDE.md`'s Docker section for why (both come from
+`package.json` depending on `design-system` via a local `file:` path).
+
 **After adding a new npm dependency**, a plain `docker compose up --build` isn't enough: Compose
 reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s
 `/app/node_modules` entry) across recreation by default, so the new package won't actually be
@@ -112,8 +118,9 @@ made it into the running container (`docker compose exec ui-host printenv CHOKID
 ## Project structure
 
 Everything lives under `src/`: `screens/` holds the app's two screens, `layout/` holds the
-persistent shell, `design-system/` holds this app's shared component/token primitives,
-`features/` holds `chat/` and `integration/` (see CLAUDE.md's Design System section for the full
-breakdown), `services/` holds the files that call the backend or provide mock data, `hooks/`
-holds `useIntegration`, and `types/orchestrator.ts` holds the shared REST-contract types. See
+persistent shell, `features/` holds `chat/` and `integration/` (see CLAUDE.md's Design System
+section for the full breakdown), `services/` holds the files that call the backend or provide
+mock data, `hooks/` holds `useIntegration`, and `types/orchestrator.ts` holds the shared
+REST-contract types. Shared component/token primitives live in the sibling `design-system`
+package (`ai/design-system`), not under this app's own `src/`. See
 `ai/README.md` for how the full stack fits together.

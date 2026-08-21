@@ -2,9 +2,17 @@
 
 ## Project Overview
 
-This is the UI for MDDOAI, a system that generates CI/CD pipeline configurations from software architecture models. It lives inside the `mddoai` monorepo at `ai/ui-host/`.
+This is the UI host for MDDOAI, a system that generates CI/CD pipeline configurations from software architecture models. It lives inside the `mddoai` monorepo at `ai/ui-host/`.
 
-All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Eclipse codebase at the repo root. This CLAUDE.md only covers `ui-host/`, see `ai/README.md` for how this service fits into the rest of the stack.
+All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Eclipse codebase at the repo root. This CLAUDE.md only covers `ui-host/`, see `ai/README.md` for how this service fits into the rest of the stack, and `ai/CLAUDE.md`'s folder-boundaries section for the `ui-` naming convention shared with the `ui-remote-*` packages this host will compose with once they exist.
+
+`ui-host` is a Module Federation host: it owns routing, shell layout, and all real state/backend
+calls; independently-liftable UI sections (a pipeline stage's own panel, the chat column, the
+stepper) are meant to become their own `ui-remote-*` packages, each its own container, consumed
+here via a federated import rather than a source import. That split is a real, ongoing piece of
+work (see the repo's issue tracker for "Update the UI to separate docker containers"), landing one
+piece at a time — check each stage/section's own doc note below for whether it's local to this
+package today or already lifted out.
 
 The app is a router-based SPA with a persistent shell, `AppShell` (sidebar + top bar), wrapping two screens:
 
@@ -30,7 +38,7 @@ Naming note, since it's easy to get backwards: this screen and its supporting co
 
 - **Vite + React + TypeScript**, no Next.js, no SSR
 - **`react-router-dom`** for the shell/routing described above
-- Styling is inline `style={{ ... }}` against `design-system/tokens.css`'s `var(--...)` custom properties, plus small per-component `.css` files for the handful of rules (`:focus`, `@keyframes`) inline styles can't express — see Design System below. No Tailwind, no shadcn.
+- Styling is inline `style={{ ... }}` against the `design-system` package's `tokens.css` `var(--...)` custom properties, plus small per-component `.css` files for the handful of rules (`:focus`, `@keyframes`) inline styles can't express — see Design System below. No Tailwind, no shadcn.
 - **Vitest** — testing
 
 ---
@@ -67,13 +75,35 @@ Clicking a row navigates to `/integration?run=<run_id>`, which `IntegrationScree
 
 ## Design System
 
-`src/design-system/` is the single, shared component/token library for the whole app (tokens.css, Button, Panel, Tabs, StatusPill, Icon), ported verbatim (values only) from the real MDDOAI Design System reference (`mddoai-design-system/project/`, a set of Claude-Design HTML/JSX prototypes to copy from, not an installable package). Violet brand (`--brand`, `#684aeb`), Space Grotesk for display/headings, IBM Plex Sans for body, IBM Plex Mono for code/output, light mode only. Fonts are self-hosted via `@fontsource*`/`@fontsource-variable*` packages, not the design system's own remote Google Fonts import.
+`ai/design-system` (a sibling package, not a folder under this app's own `src/`) is the single,
+shared component/token library for the whole app — see its own `src/index.ts` barrel export for
+the current, exact list of what it exports, don't rely on any other doc's enumeration of it going
+forward. Ported verbatim (values only) from the real MDDOAI Design System reference
+(`mddoai-design-system/project/` at the repo root, a set of Claude-Design HTML/JSX prototypes to
+copy from, not an installable package). Violet brand (`--brand`, `#684aeb`), Space Grotesk for
+display/headings, IBM Plex Sans for body, IBM Plex Mono for code/output, light mode only. Fonts
+are self-hosted via `@fontsource*`/`@fontsource-variable*` packages, not the design system's own
+remote Google Fonts import — `ibm-plex-mono` imports the `latin-<weight>.css` variant
+specifically, not the bare `<weight>.css`, since the unscoped file bundles cyrillic/vietnamese
+subsets this English-only app never renders; `ibm-plex-sans`/`space-grotesk` don't offer that
+per-subset split for their variable-weight builds, so they stay on the bundled file.
+
+This package lives outside `ui-host` on purpose: it's a real dependency (`"design-system":
+"file:../design-system"` in `package.json`, a local npm path dependency, no workspace setup
+needed), not a copy, so every future `ui-remote-*` package can depend on the exact same one. See
+`ai/design-system/README.md` for why it's a plain dependency and not a Module Federation remote
+despite being shared code, and its own npm-local-path Windows-symlink caveat.
 
 `src/features/` holds everything built on top of those shared tokens, one folder per real concern, neither of which imports from the other — `IntegrationScreen.tsx` itself is the only place that wires them together:
 
 - `src/features/chat/` — `ChatColumn`, the Orchestrator's own chat log, nudge input, and model picker. This is "the Orchestrator" in the UI: the chat persona/controller, not the whole 7-stage screen.
-- `src/features/integration/` — the stepper, the seven stage panels, and their shared display primitive:
-  - `Stepper.tsx`, `CodeBlock.tsx`, `stageEvents.ts`, `integration.css` at the top level.
+- `src/features/integration/` — the stepper and the seven stage panels, all still local to this
+  package today (candidates for their own `ui-remote-*` package, not yet lifted out):
+  - `Stepper.tsx`, `stageEvents.ts`, `integration.css` at the top level. `CodeBlock.tsx` (the
+    panels' shared output-display primitive) now lives in the `design-system` package instead,
+    imported from there alongside every other shared primitive — it moved there not because it's
+    stage-specific, but because multiple otherwise-unrelated consumers need the exact same one,
+    not their own copy, the same reason anything else in that package lives there.
   - `stages/registry.ts` and `stages/StagePanelProps.ts` — cross-stage plumbing (see below).
   - `stages/{docs,serialization,pim,psm,atl,acceleo,generation}/` — **one subfolder per real `StageId`**, each holding that stage's own `XStagePanel.tsx`. `docs/` also holds `DocsStartForm.tsx` and `FormField.tsx` (explained below) — real and intentional, not a leftover: `docs` is the one stage with a real, extra input-collection need the other six don't share. Nothing about this structure requires every stage folder to stay the same size; each is free to grow whatever files its own stage's real needs require.
 
@@ -90,6 +120,14 @@ Component styling throughout `src/features/` uses inline `style={{ ... }}` refer
 ## Docker
 
 `docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies `/orchestrator-api` to `ai/orchestrator` by its Compose service name; `orchestrator` is internal-only. See `ai/README.md` for the full topology.
+
+Build context is `ai/`, not this folder alone — `package.json`'s `design-system` dependency is a
+sibling package (a local `file:` path), and Docker can't `COPY` from outside its build context, so
+the Dockerfile copies both packages in, keeping them siblings in the image the same way they are
+on disk (see the Dockerfile's own comment). `docker-compose.yml` bind-mounts `ai/design-system`
+into the running container at the same path the image build baked its `node_modules` symlink to
+point at, so a live edit to that package's source reaches this dev server the same way an edit to
+this package's own source does, no rebuild needed.
 
 ---
 

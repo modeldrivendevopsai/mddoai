@@ -158,8 +158,18 @@ services:
         condition: service_healthy
 
   # Overrides the Dockerfile's static build with Vite's own dev server.
+  # Build context is ai/, not ai/ui-host/: package.json depends on
+  # design-system via a local "file:../design-system" path, and Docker can't
+  # COPY from outside its build context (see ui-host/Dockerfile's own
+  # comment). design-system gets its own bind mount below for the same
+  # reason ui-host itself does — so live edits to its source reach the
+  # running dev server without an image rebuild, matching the symlink's
+  # real target path (/design-system, a sibling of /app) that npm ci baked
+  # into the image at build time.
   ui-host:
-    build: ./ui-host
+    build:
+      context: .
+      dockerfile: ui-host/Dockerfile
     command: npm run dev -- --host 0.0.0.0
     environment:
       - VITE_ORCHESTRATOR_PROXY_TARGET=http://orchestrator:8001
@@ -169,6 +179,7 @@ services:
     volumes:
       - ./ui-host:/app
       - /app/node_modules
+      - ./design-system:/design-system
     ports:
       - "5173:5173"
     depends_on:

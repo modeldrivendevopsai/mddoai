@@ -1,7 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button } from "@/design-system"
-import { CodeBlock } from "../../CodeBlock"
+import { Button, CodeBlock } from "design-system"
 import "../../integration.css"
 import type { StagePanelProps } from "../StagePanelProps"
 

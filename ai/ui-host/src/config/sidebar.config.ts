@@ -1,5 +1,5 @@
 import type { SessionType } from '../services/sessions.service';
-import type { IconName } from '../design-system/components/Icon';
+import type { IconName } from 'design-system';
 
 /**
  * Sidebar navigation config. Adding/renaming/reordering a tab or an action

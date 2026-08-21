@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Button } from "@/design-system"
+import { Button } from "design-system"
 import { TextField, NumberField, TextAreaField } from "./FormField"
 import type { DocsOptions } from "@/services/orchestrator.service"
 

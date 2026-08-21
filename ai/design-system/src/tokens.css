@@ -14,9 +14,14 @@
 @import "@fontsource-variable/space-grotesk/wght.css";
 @import "@fontsource-variable/ibm-plex-sans/wght.css";
 @import "@fontsource-variable/ibm-plex-sans/wght-italic.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
+/* latin-<weight>, not the bare <weight>.css: the app is English-only, the
+   unscoped file bundles cyrillic/cyrillic-ext/vietnamese subsets nobody
+   here ever renders. ibm-plex-sans/space-grotesk above don't offer this
+   per-subset split in the installed Fontsource version (variable-weight
+   packages only ship the all-subsets file), so they stay as-is. */
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
 
 :root {
   /* --- colors.css --- */
