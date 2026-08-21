@@ -38,12 +38,13 @@ Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top b
 
 Where things live:
 
-- **Platform integration dashboard** `src/screens/IntegrationScreen.tsx`, composing
-  `src/features/chat/` (the Orchestrator's own chat log, nudge input, model picker) and
-  `src/features/integration/` (the stepper and the per-stage panels under `stages/`, see
-  `stages/registry.ts` for the current, exact set), its own real API client
-  `src/services/orchestrator.service.ts`, polling hook `src/hooks/useIntegration.ts`, and
-  REST-contract types `src/types/orchestrator.ts`.
+- **Platform integration dashboard** `src/screens/IntegrationScreen.tsx`, composing the chat
+  column, the stepper, and the current pipeline stage's own panel — each its own Module
+  Federation remote (`ai/ui-remote-chat`, `ai/ui-remote-stepper`, `ai/ui-remote-stage-*`, loaded
+  via `src/features/integration/stages/registry.ts` for the stage panels; see `vite.config.ts`'s
+  `federation()` config for the current, exact remotes list), not local source under this app's
+  own `src/`. Backed by its own real API client `src/services/orchestrator.service.ts`, polling
+  hook `src/hooks/useIntegration.ts`, and REST-contract types `src/types/orchestrator.ts`.
 - **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
   with mock data from `src/services/platforms.service.ts`.
 - **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
@@ -95,6 +96,14 @@ Build context is `ai/`, not this folder alone, and the sibling `design-system` p
 own bind mount too — see this package's own `CLAUDE.md`'s Docker section for why (both come from
 `package.json` depending on `design-system` via a local `file:` path).
 
+This is also the Module Federation host: it loads the chat column, the stepper, and each pipeline
+stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.md`'s services list
+for the current set and their ports). Each remote's `remoteEntry.js` is fetched by the **browser**
+directly against that remote's own published port, not proxied by this dev server — see this
+package's own `CLAUDE.md`'s Docker section for the full mechanics. If a remote's container isn't
+running, its piece of the screen shows the `<Suspense>` fallback indefinitely rather than the real
+panel/chat/stepper; `docker compose up --build` from `ai/` starts every remote alongside this host.
+
 **After adding a new npm dependency**, a plain `docker compose up --build` isn't enough: Compose
 reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s
 `/app/node_modules` entry) across recreation by default, so the new package won't actually be
@@ -118,9 +127,11 @@ made it into the running container (`docker compose exec ui-host printenv CHOKID
 ## Project structure
 
 Everything lives under `src/`: `screens/` holds the app's two screens, `layout/` holds the
-persistent shell, `features/` holds `chat/` and `integration/` (see CLAUDE.md's Design System
-section for the full breakdown), `services/` holds the files that call the backend or provide
-mock data, `hooks/` holds `useIntegration`, and `types/orchestrator.ts` holds the shared
-REST-contract types. Shared component/token primitives live in the sibling `design-system`
-package (`ai/design-system`), not under this app's own `src/`. See
-`ai/README.md` for how the full stack fits together.
+persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
+host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
+ambient TypeScript declarations for every federated import, `services/` holds the files that call
+the backend or provide mock data, `hooks/` holds `useIntegration`, and `types/orchestrator.ts`
+holds the shared REST-contract types. Shared component/token primitives live in the sibling
+`design-system` package (`ai/design-system`); the chat column, the stepper, and every pipeline
+stage panel live in their own `ai/ui-remote-*` packages — none of them under this app's own `src/`.
+See `ai/README.md` for how the full stack fits together.

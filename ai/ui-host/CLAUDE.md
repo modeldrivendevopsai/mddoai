@@ -4,15 +4,14 @@
 
 This is the UI host for MDDOAI, a system that generates CI/CD pipeline configurations from software architecture models. It lives inside the `mddoai` monorepo at `ai/ui-host/`.
 
-All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Eclipse codebase at the repo root. This CLAUDE.md only covers `ui-host/`, see `ai/README.md` for how this service fits into the rest of the stack, and `ai/CLAUDE.md`'s folder-boundaries section for the `ui-` naming convention shared with the `ui-remote-*` packages this host will compose with once they exist.
+All AI-related work lives under `mddoai/ai/`, separate from the existing Java/Eclipse codebase at the repo root. This CLAUDE.md only covers `ui-host/`, see `ai/README.md` for how this service fits into the rest of the stack, and `ai/CLAUDE.md`'s folder-boundaries section for the `ui-` naming convention shared with the `ui-remote-*` packages below.
 
 `ui-host` is a Module Federation host: it owns routing, shell layout, and all real state/backend
-calls; independently-liftable UI sections (a pipeline stage's own panel, the chat column, the
-stepper) are meant to become their own `ui-remote-*` packages, each its own container, consumed
-here via a federated import rather than a source import. That split is a real, ongoing piece of
-work (see the repo's issue tracker for "Update the UI to separate docker containers"), landing one
-piece at a time — check each stage/section's own doc note below for whether it's local to this
-package today or already lifted out.
+calls. Every independently-liftable UI section (each pipeline stage's own panel, the chat column,
+the stepper) is its own `ui-remote-*` package, each its own container, loaded here via a federated
+import at runtime rather than a source import — see Architecture below for exactly how, and
+`ui-host/src/features/integration/stages/registry.ts` plus `vite.config.ts`'s `federation()`
+`remotes` map for the current, exact list of which remote exposes what.
 
 The app is a router-based SPA with a persistent shell, `AppShell` (sidebar + top bar), wrapping two screens:
 
@@ -53,7 +52,9 @@ Naming note, since it's easy to get backwards: this screen and its supporting co
 
 `src/types/orchestrator.ts` mirrors `ai/orchestrator`'s real REST contract, stage list, event shape, and run-history shape, and is the single source of truth for that contract on this side; see `ai/orchestrator/README.md` for the backend's own description of it.
 
-`src/hooks/useIntegration.ts` takes an optional `runId`. With no `runId` it polls the live run's events on an interval and exposes the derived state plus every real mutating action `IntegrationScreen` needs — corrections are folded into retry, there's no separate reject action. With a `runId` for a past (non-current) run, it fetches that run's frozen event log once (no polling) and reports back that the run isn't current, which `IntegrationScreen` uses to switch from the live interactive view to a read-only one. No local/simulated state, every action is a real call.
+`src/hooks/useIntegration.ts` takes an optional `runId`. With no `runId` it polls the live run's events on an interval and exposes the derived state plus every real mutating action `IntegrationScreen` needs — corrections are folded into retry, there's no separate reject action. With a `runId` for a past (non-current) run, it fetches that run's frozen event log once (no polling) and reports back that the run isn't current, which `IntegrationScreen` uses to switch from the live interactive view to a read-only one. No local/simulated state, every action is a real call. It also owns the one real network call any `ui-remote-*` piece used to make on its own (`getProviders()`, for the chat column's model picker) — every federated remote is purely prop-driven, receiving state and callbacks from this hook the same way a locally-imported component would, never fetching its own backend data. That's a deliberate consistency choice, not something Module Federation requires: a `fetch()` call inside a federated remote's own code still resolves relative URLs against `ui-host`'s page origin, not the remote's own (confirmed against MDN's `fetch()` docs — relative URLs resolve against `document.baseURI`), so a remote calling `/orchestrator-api/*` directly would have worked too.
+
+`IntegrationScreen.tsx` loads `ChatColumn`, `Stepper`, `DocsStartForm`, and each stage panel (via `stages/registry.ts`) as `React.lazy()` federated imports, each wrapped in its own `<Suspense>` boundary — see `vite.config.ts`'s `federation()` config for the remotes map (each entry's URL is an env var pointing at a browser-resolvable `localhost:xxxx` address, see Docker below for why) and `src/federated/remotes.d.ts` for the hand-written ambient TypeScript declarations each federated import specifier resolves against (this app's chosen alternative to `@module-federation/vite`'s own automatic `dts` type-generation plugin, which failed in this environment, see that plugin's own disabled-with-comment `dts: false` in every `vite.config.ts` it appears in).
 
 See `ai/CLAUDE.md` for cross-service folder boundaries.
 
@@ -69,7 +70,7 @@ Clicking a row navigates to `/integration?run=<run_id>`, which `IntegrationScree
 
 ## The stage stepper
 
-`Stepper.tsx` (in `src/features/integration/`) renders directly off `ai/orchestrator`'s real `STAGES` list (mirrored in `@/types/orchestrator`), per the real wireframe, no per-stage special-casing for the stepper nodes themselves — see Design System below for how each stage's own output panel is deliberately *not* generic the same way.
+`Stepper.tsx` (its own `ui-remote-stepper` package, loaded here as a federated import) renders directly off `ai/orchestrator`'s real `STAGES` list (its own synced copy of `@/types/orchestrator`'s relevant slice, see that package's own README), per the real wireframe, no per-stage special-casing for the stepper nodes themselves — see Design System below for how each stage's own output panel is deliberately *not* generic the same way.
 
 ---
 
@@ -94,26 +95,20 @@ needed), not a copy, so every future `ui-remote-*` package can depend on the exa
 `ai/design-system/README.md` for why it's a plain dependency and not a Module Federation remote
 despite being shared code, and its own npm-local-path Windows-symlink caveat.
 
-`src/features/` holds everything built on top of those shared tokens, one folder per real concern, neither of which imports from the other — `IntegrationScreen.tsx` itself is the only place that wires them together:
+`src/features/` holds what's still local to this host package — the chat column, the stepper, and every per-stage panel each moved out to their own `ui-remote-*` package (see below), so what's left here is cross-cutting plumbing, not UI:
 
-- `src/features/chat/` — `ChatColumn`, the Orchestrator's own chat log, nudge input, and model picker. This is "the Orchestrator" in the UI: the chat persona/controller, not the whole 7-stage screen.
-- `src/features/integration/` — the stepper and the seven stage panels, all still local to this
-  package today (candidates for their own `ui-remote-*` package, not yet lifted out):
-  - `Stepper.tsx`, `stageEvents.ts`, `integration.css` at the top level. `CodeBlock.tsx` (the
-    panels' shared output-display primitive) now lives in the `design-system` package instead,
-    imported from there alongside every other shared primitive — it moved there not because it's
-    stage-specific, but because multiple otherwise-unrelated consumers need the exact same one,
-    not their own copy, the same reason anything else in that package lives there.
-  - `stages/registry.ts` and `stages/StagePanelProps.ts` — cross-stage plumbing (see below).
-  - `stages/{docs,serialization,pim,psm,atl,acceleo,generation}/` — **one subfolder per real `StageId`**, each holding that stage's own `XStagePanel.tsx`. `docs/` also holds `DocsStartForm.tsx` and `FormField.tsx` (explained below) — real and intentional, not a leftover: `docs` is the one stage with a real, extra input-collection need the other six don't share. Nothing about this structure requires every stage folder to stay the same size; each is free to grow whatever files its own stage's real needs require.
+- `src/features/integration/stageEvents.ts` — `latestCallResult`/`originalDocsInput`, pure functions over the real event log `IntegrationScreen.tsx` itself calls, not tied to any one stage.
+- `src/features/integration/stages/registry.ts` — maps `StageId → ComponentType<StagePanelProps>`, each entry a `React.lazy()` federated import into that stage's own `ui-remote-stage-*` package. The one place that knows all seven stages exist together; a stage panel's own package never imports this or another stage's package.
+- `src/features/integration/stages/StagePanelProps.ts` — the shared, type-only prop contract every stage panel implements (`busy`/`latestResult`/`onApprove`/`onRetry`/`onBack`/`readOnly`). This copy is the source of truth; each `ui-remote-stage-*` package keeps its own synced copy (see any of their READMEs for why: they're compiled independently, so it's a type-only, zero-runtime-cost duplication rather than a shared build-time dependency like `design-system`).
+- `src/federated/remotes.d.ts` — ambient TypeScript declarations for every federated import specifier used above and in `IntegrationScreen.tsx` (`uiRemoteChat/ChatColumn`, `uiRemoteStepper/Stepper`, `uiRemoteStageDocs/DocsStagePanel`, etc.).
 
-Each `XStagePanel.tsx` is deliberately its own component, not one generic component parameterized by `StageId`. It renders both that stage's active state (Approve/Retry, shown when it's the live pending stage) and its read-only viewed state (shown when a past instance of that stage is selected via the Stepper), controlled by which of `onApprove`/`onRetry` vs. `onBack` the caller passes (see `StagePanelProps.ts`, the shared type-only contract every panel implements). Today all seven render near-identically, that's expected, not a mistake: the point is each stage's file can diverge on its own — a different output shape, a different review UI — as MDDOAI's real per-stage backend prompts diverge, without touching the others or reintroducing a shared switch statement. None of the seven panels import each other, `stages/registry.ts` is the only file that knows all seven exist together (it maps `StageId → component`), so grabbing e.g. `PsmStagePanel.tsx` alone and dropping it into a different screen needs no other change. `IntegrationScreen.tsx` looks a stage up via that registry rather than hardcoding an if/switch chain.
+Each stage's own package (`ai/ui-remote-stage-{docs,serialization,pim,psm,atl,acceleo,generation}/`, one per real `StageId`) holds that stage's `XStagePanel.tsx` as its own component, not one generic component parameterized by `StageId`. It renders both that stage's active state (Approve/Retry, shown when it's the live pending stage) and its read-only viewed state (shown when a past instance of that stage is selected via the Stepper), controlled by which of `onApprove`/`onRetry` vs. `onBack` the caller passes. Today all seven render near-identically, that's expected, not a mistake: the point is each stage's file (and now, its own container) can diverge on its own — a different output shape, a different review UI, even its own release cadence — as MDDOAI's real per-stage backend prompts diverge, without touching the others.
 
-`docs/DocsStartForm.tsx` is the one thing shown *before* any run exists (`IntegrationScreen`'s `!started` branch renders it directly, bypassing the registry — there's no "started" state for the registry to look up yet). It isn't a generic "start a run" form: almost every field it collects (documentation URL, hint, exclude URLs, max pages/depth, force refresh, mock) is literally the docs stage's own real input, read straight out of the pipeline's request body on the backend. The one field that isn't docs-specific is the platform name (`platform_description`) — the docs stage itself never reads it, but every later stage falls back to it, so it's collected once here rather than re-asked per stage. It's filed next to `DocsStagePanel.tsx` (its output-review counterpart) rather than merged into one component, since input-collection and output-review are different enough shapes that cramming both into one function would mean that one function doing noticeably more than every other stage's panel.
+`ai/ui-remote-stage-docs/` is the one asymmetric package: it also exposes `DocsStartForm.tsx` (plus its own `FormField.tsx` form-field primitives, internal to that package, not separately exposed), the one thing shown *before* any run exists (`IntegrationScreen`'s `!started` branch loads it directly, bypassing the registry — there's no "started" state for the registry to look up yet). It isn't a generic "start a run" form: almost every field it collects (documentation URL, hint, exclude URLs, max pages/depth, force refresh, mock) is literally the docs stage's own real input, read straight out of the pipeline's request body on the backend. The one field that isn't docs-specific is the platform name (`platform_description`) — the docs stage itself never reads it, but every later stage falls back to it, so it's collected once here rather than re-asked per stage.
 
-- `src/features/integration/stages/docs/FormField.tsx` — `TextField`/`NumberField`/`TextAreaField`, `DocsStartForm.tsx`'s own form field primitives.
+`ai/ui-remote-chat/` holds `ChatColumn` — the Orchestrator's own chat log, nudge input, and model picker, "the Orchestrator" in the UI, not the whole 7-stage screen. `ai/ui-remote-stepper/` holds `Stepper` (see The stage stepper below). `CodeBlock.tsx` (the stage panels' shared output-display primitive) lives in the `design-system` package instead of any one remote, imported from there alongside every other shared primitive — it moved there not because it's stage-specific, but because multiple otherwise-unrelated consumers need the exact same one, not their own copy, the same reason anything else in that package lives there.
 
-Component styling throughout `src/features/` uses inline `style={{ ... }}` referencing `var(--...)` tokens directly, not Tailwind utility classes — see Stack above, this app doesn't use Tailwind for layout.
+Component styling throughout `src/features/` and every `ui-remote-*` package uses inline `style={{ ... }}` referencing `var(--...)` tokens directly, not Tailwind utility classes — see Stack above, this app doesn't use Tailwind for layout.
 
 ---
 
@@ -127,7 +122,17 @@ the Dockerfile copies both packages in, keeping them siblings in the image the s
 on disk (see the Dockerfile's own comment). `docker-compose.yml` bind-mounts `ai/design-system`
 into the running container at the same path the image build baked its `node_modules` symlink to
 point at, so a live edit to that package's source reaches this dev server the same way an edit to
-this package's own source does, no rebuild needed.
+this package's own source does, no rebuild needed. Every `ui-remote-*` service follows the exact
+same Dockerfile/bind-mount shape for the exact same reason.
+
+Loading a `ui-remote-*` piece is not this dev server's own proxy doing the work — the **browser**
+fetches each remote's `remoteEntry.js` directly against that remote's own published port
+(`vite.config.ts`'s `remote()` helper builds each URL from a `VITE_REMOTE_*_URL` env var,
+`docker-compose.yml` sets these to real `localhost:xxxx` addresses, matching each remote's own
+`ports:` entry there), after this page has already loaded. That's a real, different mechanism from
+`VITE_ORCHESTRATOR_PROXY_TARGET` above (a Docker service name only this dev *server* ever resolves,
+never the browser). No `depends_on` between `ui-host` and any `ui-remote-*`: nothing here calls a
+remote at container-start time, only the browser does, later, and can retry independently.
 
 ---
 
