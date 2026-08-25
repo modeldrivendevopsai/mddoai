@@ -101,8 +101,10 @@ stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.m
 for the current set and their ports). Each remote's `remoteEntry.js` is fetched by the **browser**
 directly against that remote's own published port, not proxied by this dev server — see this
 package's own `CLAUDE.md`'s Docker section for the full mechanics. If a remote's container isn't
-running, its piece of the screen shows the `<Suspense>` fallback indefinitely rather than the real
-panel/chat/stepper; `docker compose up --build` from `ai/` starts every remote alongside this host.
+running, its piece of the screen shows a small "couldn't load" fallback instead of the real
+panel/chat/stepper — everything else on the page keeps working, see this package's own `CLAUDE.md`
+for why (`RemoteBoundary`) — rather than the rejected import taking down the whole page;
+`docker compose up --build` from `ai/` starts every remote alongside this host.
 
 **After adding a new npm dependency**, a plain `docker compose up --build` isn't enough: Compose
 reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s

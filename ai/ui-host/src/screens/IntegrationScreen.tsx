@@ -162,16 +162,22 @@ export default function IntegrationScreen() {
   // registry.ts. Kept here, not pushed into a shared component, since it's
   // wiring specific to this screen's own state (viewedStage/currentStage/
   // approve/retry), not a reusable stage-panel concern.
+  // RemoteBoundary wraps only the two branches that actually resolve a
+  // federated React.lazy() import (ViewedPanel/ActivePanel) — CompletePanel
+  // is a plain local component that can never reject one, so it's returned
+  // unwrapped here, the same way NoStagesRanPanel is below.
   function renderStagePane() {
     if (viewedStage && viewedStage !== currentStage) {
       const ViewedPanel = STAGE_PANELS[viewedStage]
       return (
-        <ViewedPanel
-          busy={false}
-          latestResult={latestCallResult(events, viewedStage)}
-          onBack={() => setViewedStage(null)}
-          readOnly
-        />
+        <RemoteBoundary name={`${viewedStage} stage panel`} resetKey={viewedStage}>
+          <ViewedPanel
+            busy={false}
+            latestResult={latestCallResult(events, viewedStage)}
+            onBack={() => setViewedStage(null)}
+            readOnly
+          />
+        </RemoteBoundary>
       )
     }
     if (!currentStage) {
@@ -179,13 +185,15 @@ export default function IntegrationScreen() {
     }
     const ActivePanel = STAGE_PANELS[currentStage]
     return (
-      <ActivePanel
-        busy={busy}
-        latestResult={latestResult}
-        onApprove={() => approve(currentStage)}
-        onRetry={(correction) => retry(currentStage, correction)}
-        readOnly={!isCurrent}
-      />
+      <RemoteBoundary name={`${currentStage} stage panel`} resetKey={currentStage}>
+        <ActivePanel
+          busy={busy}
+          latestResult={latestResult}
+          onApprove={() => approve(currentStage)}
+          onRetry={(correction) => retry(currentStage, correction)}
+          readOnly={!isCurrent}
+        />
+      </RemoteBoundary>
     )
   }
 
@@ -330,9 +338,7 @@ export default function IntegrationScreen() {
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {started ? (
-            <RemoteBoundary name={`${viewedStage ?? currentStage} stage panel`} resetKey={viewedStage ?? currentStage ?? "complete"}>
-              {renderStagePane()}
-            </RemoteBoundary>
+            renderStagePane()
           ) : isCurrent ? (
             <RemoteBoundary name="Docs start form">
               <DocsStartForm
