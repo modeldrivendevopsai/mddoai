@@ -14,15 +14,15 @@ folder-boundaries section for the `ui-` naming convention.
 
 ## Type sharing
 
-This package doesn't share a build-time dependency on `ui-host`'s own TypeScript types (each
-`ui-remote-*` package is compiled independently) — `src/types/orchestrator.ts` and (for stage
-panels) `src/types/StagePanelProps.ts` are synced copies of `ai/ui-host`'s own real source of
-truth, kept in sync by hand. Zero runtime cost (types erase at compile time); this is a deliberate,
-simple choice over `@module-federation/vite`'s own automatic type-generation plugin, which failed
-in this environment (see `vite.config.ts`'s own `dts: false` comment) — revisit that plugin later
-if hand-syncing these ever proves to be a real problem, don't add that infra pre-emptively.
+This package depends on `orchestrator-types` (`ai/orchestrator-types`) via an ordinary local
+`"file:../orchestrator-types"` npm dependency, the same mechanism as the `design-system` dependency
+below, for the type-only REST/event contract every `ui-remote-*` package and `ui-host` need. Zero
+runtime cost (types erase at compile time). This replaced an earlier hand-synced copy of these types
+per package — `@module-federation/vite`'s own automatic type-generation plugin failed in this
+environment (see `vite.config.ts`'s own `dts: false` comment), and hand-syncing had already caused
+real drift, see `ai/orchestrator-types/README.md`.
 
-Contract used here: `StageId`, `STAGES`, `OrchestratorEvent`, `OrchestratorEventType`, plus its own `DocsOptions` (mirrors `ai/ui-host/src/services/orchestrator.service.ts`'s own type, this package doesn't have that services layer available).
+Contract used here: `StageId`, `STAGES`, `OrchestratorEvent`, `OrchestratorEventType`, plus `DocsOptions` (also from `orchestrator-types`, the same type `ai/ui-host/src/services/orchestrator.service.ts` imports, no longer a separate hand-synced copy).
 
 ## Design system
 

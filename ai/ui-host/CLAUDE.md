@@ -50,7 +50,7 @@ Naming note, since it's easy to get backwards: this screen and its supporting co
 - `src/services/sessions.service.ts` — real session history, backed by `ai/orchestrator`'s run-history endpoint (in-memory, for the life of that process; see Session history below).
 - `src/services/platforms.service.ts` — mock data backing `StartScreen`'s supported-platforms table; not yet backed by a real API.
 
-`src/types/orchestrator.ts` mirrors `ai/orchestrator`'s real REST contract, stage list, event shape, and run-history shape, and is the single source of truth for that contract on this side; see `ai/orchestrator/README.md` for the backend's own description of it.
+The `orchestrator-types` package (`ai/orchestrator-types`, a sibling package like `design-system`, see Design System below) mirrors `ai/orchestrator`'s real REST contract, stage list, event shape, and run-history shape, and is the single source of truth for that contract across this host and every `ui-remote-*` package; see `ai/orchestrator/README.md` for the backend's own description of it.
 
 `src/hooks/useIntegration.ts` takes an optional `runId`. With no `runId` it polls the live run's events on an interval and exposes the derived state plus every real mutating action `IntegrationScreen` needs — corrections are folded into retry, there's no separate reject action. With a `runId` for a past (non-current) run, it fetches that run's frozen event log once (no polling) and reports back that the run isn't current, which `IntegrationScreen` uses to switch from the live interactive view to a read-only one. No local/simulated state, every action is a real call. It also owns the one real network call any `ui-remote-*` piece used to make on its own (`getProviders()`, for the chat column's model picker) — every federated remote is purely prop-driven, receiving state and callbacks from this hook the same way a locally-imported component would, never fetching its own backend data. That's a deliberate consistency choice, not something Module Federation requires: a `fetch()` call inside a federated remote's own code still resolves relative URLs against `ui-host`'s page origin, not the remote's own (confirmed against MDN's `fetch()` docs — relative URLs resolve against `document.baseURI`), so a remote calling `/orchestrator-api/*` directly would have worked too.
 
@@ -70,7 +70,7 @@ Clicking a row navigates to `/integration?run=<run_id>`, which `IntegrationScree
 
 ## The stage stepper
 
-`Stepper.tsx` (its own `ui-remote-stepper` package, loaded here as a federated import) renders directly off `ai/orchestrator`'s real `STAGES` list (its own synced copy of `@/types/orchestrator`'s relevant slice, see that package's own README), per the real wireframe, no per-stage special-casing for the stepper nodes themselves — see Design System below for how each stage's own output panel is deliberately *not* generic the same way.
+`Stepper.tsx` (its own `ui-remote-stepper` package, loaded here as a federated import) renders directly off `ai/orchestrator`'s real `STAGES` list (imported from the shared `orchestrator-types` package, see that remote's own README), per the real wireframe, no per-stage special-casing for the stepper nodes themselves — see Design System below for how each stage's own output panel is deliberately *not* generic the same way.
 
 ---
 
@@ -95,12 +95,20 @@ needed), not a copy, so every future `ui-remote-*` package can depend on the exa
 `ai/design-system/README.md` for why it's a plain dependency and not a Module Federation remote
 despite being shared code, and its own npm-local-path Windows-symlink caveat.
 
+`orchestrator-types` (`ai/orchestrator-types`) follows the exact same shape for the REST/event
+contract instead of UI components: `"orchestrator-types": "file:../orchestrator-types"` in every
+consuming `package.json`, bundled in at build time. Almost entirely type-only (erases at compile
+time, zero runtime cost), except `STAGES`/`PIPELINE_EVENT_TYPES`, small real constant arrays a few
+consumers need at runtime too, not just as types. `StageId`, `OrchestratorEvent`, `StagePanelProps`, and the rest of the contract used
+across this host and every `ui-remote-*` package live there now instead of being hand-copied per
+package — see `ai/orchestrator-types/README.md` for why that replaced an earlier hand-synced-copy
+approach (it had already drifted once, see that README).
+
 `src/features/` holds what's still local to this host package — the chat column, the stepper, and every per-stage panel each moved out to their own `ui-remote-*` package (see below), so what's left here is cross-cutting plumbing, not UI:
 
 - `src/features/integration/stageEvents.ts` — `latestCallResult`/`originalDocsInput`, pure functions over the real event log `IntegrationScreen.tsx` itself calls, not tied to any one stage.
-- `src/features/integration/stages/registry.ts` — maps `StageId → ComponentType<StagePanelProps>`, each entry a `React.lazy()` federated import into that stage's own `ui-remote-stage-*` package. The one place that knows all seven stages exist together; a stage panel's own package never imports this or another stage's package.
-- `src/features/integration/stages/StagePanelProps.ts` — the shared, type-only prop contract every stage panel implements (`busy`/`latestResult`/`onApprove`/`onRetry`/`onBack`/`readOnly`). This copy is the source of truth; each `ui-remote-stage-*` package keeps its own synced copy (see any of their READMEs for why: they're compiled independently, so it's a type-only, zero-runtime-cost duplication rather than a shared build-time dependency like `design-system`).
-- `src/federated/remotes.d.ts` — ambient TypeScript declarations for every federated import specifier used above and in `IntegrationScreen.tsx` (`uiRemoteChat/ChatColumn`, `uiRemoteStepper/Stepper`, `uiRemoteStageDocs/DocsStagePanel`, etc.).
+- `src/features/integration/stages/registry.ts` — maps `StageId → ComponentType<StagePanelProps>` (both types from `orchestrator-types`), each entry a `React.lazy()` federated import into that stage's own `ui-remote-stage-*` package. The one place that knows all seven stages exist together; a stage panel's own package never imports this or another stage's package.
+- `src/federated/remotes.d.ts` — ambient TypeScript declarations for every federated import specifier used above and in `IntegrationScreen.tsx` (`uiRemoteChat/ChatColumn`, `uiRemoteStepper/Stepper`, `uiRemoteStageDocs/DocsStagePanel`, etc.), referencing `orchestrator-types` for the prop shapes themselves.
 
 Each stage's own package (`ai/ui-remote-stage-{docs,serialization,pim,psm,atl,acceleo,generation}/`, one per real `StageId`) holds that stage's `XStagePanel.tsx` as its own component, not one generic component parameterized by `StageId`. It renders both that stage's active state (Approve/Retry, shown when it's the live pending stage) and its read-only viewed state (shown when a past instance of that stage is selected via the Stepper), controlled by which of `onApprove`/`onRetry` vs. `onBack` the caller passes. Today all seven render near-identically, that's expected, not a mistake: the point is each stage's file (and now, its own container) can diverge on its own — a different output shape, a different review UI, even its own release cadence — as MDDOAI's real per-stage backend prompts diverge, without touching the others.
 
@@ -116,14 +124,15 @@ Component styling throughout `src/features/` and every `ui-remote-*` package use
 
 `docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies `/orchestrator-api` to `ai/orchestrator` by its Compose service name; `orchestrator` is internal-only. See `ai/README.md` for the full topology.
 
-Build context is `ai/`, not this folder alone — `package.json`'s `design-system` dependency is a
-sibling package (a local `file:` path), and Docker can't `COPY` from outside its build context, so
-the Dockerfile copies both packages in, keeping them siblings in the image the same way they are
-on disk (see the Dockerfile's own comment). `docker-compose.yml` bind-mounts `ai/design-system`
-into the running container at the same path the image build baked its `node_modules` symlink to
-point at, so a live edit to that package's source reaches this dev server the same way an edit to
-this package's own source does, no rebuild needed. Every `ui-remote-*` service follows the exact
-same Dockerfile/bind-mount shape for the exact same reason.
+Build context is `ai/`, not this folder alone — `package.json`'s `design-system` and
+`orchestrator-types` dependencies are both sibling packages (local `file:` paths), and Docker can't
+`COPY` from outside its build context, so the Dockerfile copies all three packages in, keeping them
+siblings in the image the same way they are on disk (see the Dockerfile's own comment).
+`docker-compose.yml` bind-mounts `ai/design-system` and `ai/orchestrator-types` into the running
+container at the same paths the image build baked its `node_modules` symlinks to point at, so a
+live edit to either package's source reaches this dev server the same way an edit to this package's
+own source does, no rebuild needed. Every `ui-remote-*` service follows the exact same
+Dockerfile/bind-mount shape for the exact same reason.
 
 Loading a `ui-remote-*` piece is not this dev server's own proxy doing the work — the **browser**
 fetches each remote's `remoteEntry.js` directly against that remote's own published port
@@ -142,3 +151,4 @@ remote at container-start time, only the browser does, later, and can retry inde
 - Not connected to `ai-layer` or `ai/retrieval` directly from this app; always through `ai/orchestrator`.
 - Not yet decided: real (persistent, cross-restart) session history. Today's session history (see Session history above) is deliberately in-memory-only, scoped to one backend process's lifetime — don't build a database/persistence layer for this ahead of a real decision. `StartScreen`'s supported-platforms table is still mock data (`platforms.service.ts`), unrelated to session history.
 - Not built: "Generate a CI/CD pipeline" (`StartScreen`'s other card, and the sidebar's "New pipeline" action) — both are rendered disabled with a "Coming soon" label rather than silently landing on `IntegrationScreen`, which is a different, real mode. When this is built, it needs its own screen/route and its own backend, not a graft onto `src/features/integration/`.
+- Not deployed to production: this `Dockerfile` (and every `ui-remote-*` package's own) builds real static assets (`npm run build`, `dist/`), but `docker-compose.yml` always overrides `command` to `npm run dev` — there's no static-file-serving stage (nginx, `vite preview`, etc.) and no separate production compose file anywhere in this repo yet. Deliberate MVP scope, not an oversight: local dev works fully via the dev server, and a real production topology (which static-file server, one compose file per environment or a shared one with overrides) is worth deciding for real when there's an actual deployment target, not guessed at ahead of one.

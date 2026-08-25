@@ -5,7 +5,7 @@ import { STAGE_PANELS } from "@/features/integration/stages/registry"
 import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
-import type { StageId } from "@/types/orchestrator"
+import type { StageId } from "orchestrator-types"
 
 // Stepper, ChatColumn, and the docs stage's start form are each their own
 // Module Federation remote too (ui-remote-stepper, ui-remote-chat,

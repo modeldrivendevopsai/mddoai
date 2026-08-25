@@ -17,6 +17,7 @@
     "design-system": "file:../design-system",
     "lucide-react": "^1.20.0",
     "marked": "^18.0.5",
+    "orchestrator-types": "file:../orchestrator-types",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",

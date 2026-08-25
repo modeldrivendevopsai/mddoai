@@ -10,9 +10,9 @@ import {
   setModel as setModelApi,
   startPipeline,
 } from "@/services/orchestrator.service"
-import type { DocsOptions } from "@/services/orchestrator.service"
-import { PIPELINE_EVENT_TYPES } from "@/types/orchestrator"
-import type { OrchestratorEvent, Provider, StageId } from "@/types/orchestrator"
+import type { DocsOptions } from "orchestrator-types"
+import { PIPELINE_EVENT_TYPES } from "orchestrator-types"
+import type { OrchestratorEvent, Provider, StageId } from "orchestrator-types"
 
 // Real backend error messages (see orchestrator.service's errorFor())
 // are actually useful, e.g. "'psm' is not the current pending stage" or a

@@ -3,14 +3,14 @@
 // for where each name comes from and registry.ts / IntegrationScreen.tsx
 // for where these are actually imported). @module-federation/vite has a
 // dts plugin that can generate these automatically from a remote's own
-// source, not used yet — these are hand-written, small, type-only
-// contracts instead (same tradeoff as each remote's own duplicated
-// src/types/orchestrator.ts), revisit the dts plugin if keeping these in
-// sync by hand becomes a real problem.
+// source, not used yet (see any remote's vite.config.ts's own dts: false
+// comment) — these are hand-written instead, referencing the real,
+// shared orchestrator-types package for the prop shapes themselves rather
+// than duplicating them here too.
 
 declare module "uiRemoteChat/ChatColumn" {
   import type { ComponentType } from "react"
-  import type { OrchestratorEvent, Provider } from "@/types/orchestrator"
+  import type { OrchestratorEvent, Provider } from "orchestrator-types"
 
   export interface ChatColumnProps {
     events: OrchestratorEvent[]
@@ -27,7 +27,7 @@ declare module "uiRemoteChat/ChatColumn" {
 
 declare module "uiRemoteStepper/Stepper" {
   import type { ComponentType } from "react"
-  import type { StageId } from "@/types/orchestrator"
+  import type { StageId } from "orchestrator-types"
 
   export interface StepperProps {
     currentStage: StageId | null
@@ -42,12 +42,12 @@ declare module "uiRemoteStepper/Stepper" {
 
 declare module "uiRemoteStageDocs/DocsStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const DocsStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStageDocs/DocsStartForm" {
-  import type { DocsOptions } from "@/services/orchestrator.service"
+  import type { DocsOptions } from "orchestrator-types"
 
   export interface DocsStartFormProps {
     onStart: (platformName: string, documentationUrl: string, docsOptions?: DocsOptions) => void
@@ -58,36 +58,36 @@ declare module "uiRemoteStageDocs/DocsStartForm" {
 
 declare module "uiRemoteStageSerialization/SerializationStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const SerializationStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStagePim/PimStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const PimStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStagePsm/PsmStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const PsmStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStageAtl/AtlStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const AtlStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStageAcceleo/AcceleoStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const AcceleoStagePanel: ComponentType<StagePanelProps>
 }
 
 declare module "uiRemoteStageGeneration/GenerationStagePanel" {
   import type { ComponentType } from "react"
-  import type { StagePanelProps } from "@/features/integration/stages/StagePanelProps"
+  import type { StagePanelProps } from "orchestrator-types"
   export const GenerationStagePanel: ComponentType<StagePanelProps>
 }

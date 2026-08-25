@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { ReactNode } from "react"
 import { Button, CodeBlock } from "design-system"
 import "design-system/integration.css"
-import type { StagePanelProps } from "./types/StagePanelProps"
+import type { StagePanelProps } from "orchestrator-types"
 
 // Generation's own stage panel — approve/retry when Generation is the live pending stage
 // (onApprove/onRetry given), a read-only "back to current" view when it's a

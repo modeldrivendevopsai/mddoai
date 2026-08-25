@@ -1,4 +1,5 @@
 import type {
+  DocsOptions,
   EventsResponse,
   MessageResponse,
   Provider,
@@ -9,7 +10,7 @@ import type {
   RunSummary,
   StageId,
   StartedResponse,
-} from "@/types/orchestrator"
+} from "orchestrator-types"
 
 // Talks to ai/orchestrator (a separate internal-only service, see
 // vite.config.ts's /orchestrator-api proxy) — never ai-layer directly.
@@ -31,12 +32,6 @@ async function errorFor(label: string, res: Response): Promise<Error> {
   }
   return new Error(`${label} request failed: ${res.status}`)
 }
-
-// Same shape as rerunStage's overrides, minus seed_url (that's the required
-// seedUrl param below, not an optional override here) — ai/orchestrator's
-// docs stage takes these real retrieval parameters at start time too, not
-// only on a retry (see main.py's StartRequest).
-export type DocsOptions = Omit<RerunOverrides, "seed_url">
 
 export async function startPipeline(
   platformDescription: string,

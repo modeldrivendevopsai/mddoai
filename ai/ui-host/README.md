@@ -43,21 +43,24 @@ Where things live:
   Federation remote (`ai/ui-remote-chat`, `ai/ui-remote-stepper`, `ai/ui-remote-stage-*`, loaded
   via `src/features/integration/stages/registry.ts` for the stage panels; see `vite.config.ts`'s
   `federation()` config for the current, exact remotes list), not local source under this app's
-  own `src/`. Backed by its own real API client `src/services/orchestrator.service.ts`, polling
-  hook `src/hooks/useIntegration.ts`, and REST-contract types `src/types/orchestrator.ts`.
+  own `src/`. Backed by its own real API client `src/services/orchestrator.service.ts` and polling
+  hook `src/hooks/useIntegration.ts`.
 - **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
   with mock data from `src/services/platforms.service.ts`.
 - **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
   sourced from `src/config/sidebar.config.ts` and `src/services/sessions.service.ts`.
 - **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
   under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
+- **REST-contract types** the sibling `orchestrator-types` package (`ai/orchestrator-types`), the
+  same kind of real local npm dependency as `design-system` — see its own README.
 - **Backend contract** All real network calls go through `src/services/orchestrator.service.ts`,
   which only ever talks to `ai/orchestrator` (never the Java backend, `ai-layer`, or
   `ai/retrieval` directly, `ai/orchestrator` itself is the only thing that talks to those, see
   `ai/README.md`).
 
 The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`) —
-`design-system` isn't under `src/` any more, so it's imported by its bare package name instead.
+`design-system` and `orchestrator-types` aren't under `src/` any more, so they're imported by their
+bare package names instead.
 
 ## Test
 
@@ -92,9 +95,10 @@ npm run preview    # serve the production build locally
 is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full
 compose setup.
 
-Build context is `ai/`, not this folder alone, and the sibling `design-system` package gets its
-own bind mount too — see this package's own `CLAUDE.md`'s Docker section for why (both come from
-`package.json` depending on `design-system` via a local `file:` path).
+Build context is `ai/`, not this folder alone, and the sibling `design-system` and
+`orchestrator-types` packages each get their own bind mount too — see this package's own
+`CLAUDE.md`'s Docker section for why (both come from `package.json` depending on them via a local
+`file:` path).
 
 This is also the Module Federation host: it loads the chat column, the stepper, and each pipeline
 stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.md`'s services list
@@ -132,8 +136,9 @@ Everything lives under `src/`: `screens/` holds the app's two screens, `layout/`
 persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
 host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
 ambient TypeScript declarations for every federated import, `services/` holds the files that call
-the backend or provide mock data, `hooks/` holds `useIntegration`, and `types/orchestrator.ts`
-holds the shared REST-contract types. Shared component/token primitives live in the sibling
-`design-system` package (`ai/design-system`); the chat column, the stepper, and every pipeline
-stage panel live in their own `ai/ui-remote-*` packages — none of them under this app's own `src/`.
+the backend or provide mock data, and `hooks/` holds `useIntegration`. Shared component/token
+primitives live in the sibling `design-system` package (`ai/design-system`); the shared
+REST-contract types live in the sibling `orchestrator-types` package (`ai/orchestrator-types`); the
+chat column, the stepper, and every pipeline stage panel live in their own `ai/ui-remote-*`
+packages — none of them under this app's own `src/`.
 See `ai/README.md` for how the full stack fits together.

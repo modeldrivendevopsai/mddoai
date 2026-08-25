@@ -8,19 +8,24 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   that needs something from another one calls it over real HTTP, never by importing the other
   service's Python internals directly — see [ai/README.md](./README.md)'s services list and
   request-path description for which services exist today and how they actually call each other.
-- `clients/` and `design-system/` are the two folders under `ai/` that aren't themselves deployed
-  services: no port, no Dockerfile, no entry in `docker-compose.yml`. `clients/` is a shared
-  package of thin HTTP wrapper functions (one module per sibling service it can reach), imported
-  directly as a Python package by whichever service needs to make that outbound call — this is
-  how real cross-service communication happens in `ai/`, not a second, competing mechanism
-  alongside it. `design-system/` is the frontend's equivalent: a shared UI-kit package (its own
-  `src/index.ts` barrel export is the current source of truth for exactly what it exports) every
-  frontend package depends on via an ordinary local `"file:../design-system"` npm dependency,
-  bundled into each consumer's own build at build time. It's deliberately *not* a Module
-  Federation remote like the `ui-remote-*` packages below, even though it's shared UI code: a
-  shared UI kit isn't an independently-owned feature (what Module Federation is for), it's a
-  dependency every other frontend piece needs to render at all, so making it a live container
-  would turn a handful of small components into a single point of failure for the whole app.
+- `clients/`, `design-system/`, and `orchestrator-types/` are the three folders under `ai/` that
+  aren't themselves deployed services: no port, no Dockerfile, no entry in `docker-compose.yml`.
+  `clients/` is a shared package of thin HTTP wrapper functions (one module per sibling service it
+  can reach), imported directly as a Python package by whichever service needs to make that
+  outbound call — this is how real cross-service communication happens in `ai/`, not a second,
+  competing mechanism alongside it. `design-system/` is the frontend's equivalent for shared UI: a
+  component/token package (its own `src/index.ts` barrel export is the current source of truth for
+  exactly what it exports). `orchestrator-types/` is the frontend's equivalent for a shared type
+  contract: `ai/orchestrator`'s real REST/event contract (`StageId`, `OrchestratorEvent`, etc.),
+  plus the small `StagePanelProps` UI prop contract, in one place instead of hand-copied per
+  package. Both frontend packages are consumed the same way, via an ordinary local
+  `"file:../design-system"`/`"file:../orchestrator-types"` npm dependency, bundled into each
+  consumer's own build at build time. Both are deliberately *not* Module Federation remotes like
+  the `ui-remote-*` packages below: neither is an independently-owned feature (what Module
+  Federation is for), each is a dependency every other frontend piece needs just to render or
+  compile at all, so making either a live container would turn a handful of small components (or,
+  for `orchestrator-types`, mostly type declarations plus a couple of small constant arrays) into a
+  single point of failure for the whole app.
 - Every deployed frontend package's folder is prefixed `ui-`: `ui-host/` (the host/shell — routing,
   `AppShell`, `useIntegration.ts`'s state hub, and every real backend service call) and
   `ui-remote-*/` (one Module Federation remote per independently-liftable UI section — a pipeline

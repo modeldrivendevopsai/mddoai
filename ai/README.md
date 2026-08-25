@@ -16,9 +16,11 @@ service-specific setup — this file only covers how they fit together.
 - **`pim_agent/`** — FastAPI backend serving a static, hand-curated PIM (Platform-Independent Model) knowledge base. Internal-only (no host port); reached only by `serialization_agent` today. See [pim_agent/README.md](./pim_agent/README.md).
 - **`psm_agent/`** — FastAPI backend that compares serialized platform documentation against a real PSM (Platform-Specific Model) metamodel via an LLM call. Internal-only (no host port); not called by anything live yet, built ahead of that wiring. See [psm_agent/README.md](./psm_agent/README.md).
 
-`clients/` and `design-system/` aren't services either, no port, no Dockerfile, nothing in `docker-compose.yml` — the first is a shared package of HTTP wrapper functions the Python services import directly, the second a shared UI-kit package `ui-host` depends on as an ordinary local npm dependency. See `ai/CLAUDE.md`'s folder-boundaries section for why each is structured that way.
+`clients/`, `design-system/`, and `orchestrator-types/` aren't services either, no port, no Dockerfile, nothing in `docker-compose.yml` — the first is a shared package of HTTP wrapper functions the Python services import directly, the other two are shared frontend packages (`design-system` for UI components/tokens, `orchestrator-types` for the shared REST/event type contract) that `ui-host` and every `ui-remote-*` package depend on as an ordinary local npm dependency. See `ai/CLAUDE.md`'s folder-boundaries section for why each is structured that way.
 
 There's no reverse proxy in front of these right now, each published service talks directly to the one it needs, each published on its own port. A single-origin gateway (static files + API routes reverse-proxied behind one exposed port) is worth adding once there's an actual deployment target, not for local dev, where each service on its own port is normal.
+
+`ui-host`'s and every `ui-remote-*`'s own `Dockerfile` builds real static assets for that later deployment target, but nothing runs them today — `docker-compose.yml` always overrides `command` to the dev server instead. Deliberate MVP scope: deciding a real static-file-serving story (which server, one compose file per environment or a shared one with overrides) is worth doing when there's an actual deployment target, not guessed at ahead of one.
 
 ## Request path
 

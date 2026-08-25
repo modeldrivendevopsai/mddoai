@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import type { OrchestratorEvent, OrchestratorEventType, Provider } from "./types/orchestrator"
+import type { OrchestratorEvent, OrchestratorEventType, Provider } from "orchestrator-types"
 import "./chat.css"
 
 interface ChatColumnProps {

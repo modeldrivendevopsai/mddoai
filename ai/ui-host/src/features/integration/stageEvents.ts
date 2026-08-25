@@ -1,5 +1,4 @@
-import type { OrchestratorEvent, StageId } from "@/types/orchestrator"
-import type { DocsOptions } from "@/services/orchestrator.service"
+import type { DocsOptions, OrchestratorEvent, StageId } from "orchestrator-types"
 
 // The most recent completed/failed result for a given stage — a stage can
 // be retried, so "latest" (not "first") is the one worth showing. Called by

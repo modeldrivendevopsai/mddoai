@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
-import { STAGES } from "./types/orchestrator"
-import type { StageId } from "./types/orchestrator"
+import { STAGES } from "orchestrator-types"
+import type { StageId } from "orchestrator-types"
 
 // Drives entirely off the backend's own real STAGES list, same as
 // types.ts. PIM used to be a fixed, permanently "not yet implemented" node

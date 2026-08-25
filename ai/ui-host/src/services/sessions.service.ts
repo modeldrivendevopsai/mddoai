@@ -4,7 +4,7 @@
  * depend only on getSessions()/closeSession()'s signatures, not on this.
  */
 import { getRuns } from './orchestrator.service';
-import type { RunSummary } from '@/types/orchestrator';
+import type { RunSummary } from 'orchestrator-types';
 
 export type SessionType = 'pipeline' | 'platform';
 export type SessionState = 'selected' | 'normal' | 'attention';

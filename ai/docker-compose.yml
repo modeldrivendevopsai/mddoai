@@ -159,13 +159,12 @@ services:
 
   # Overrides the Dockerfile's static build with Vite's own dev server.
   # Build context is ai/, not ai/ui-host/: package.json depends on
-  # design-system via a local "file:../design-system" path, and Docker can't
-  # COPY from outside its build context (see ui-host/Dockerfile's own
-  # comment). design-system gets its own bind mount below for the same
-  # reason ui-host itself does — so live edits to its source reach the
-  # running dev server without an image rebuild, matching the symlink's
-  # real target path (/design-system, a sibling of /app) that npm ci baked
-  # into the image at build time.
+  # design-system and orchestrator-types via local "file:../..." paths, and
+  # Docker can't COPY from outside its build context (see ui-host/Dockerfile's
+  # own comment). Both get their own bind mount below for the same reason
+  # ui-host itself does — so live edits to their source reach the running dev
+  # server without an image rebuild, matching the symlink's real target path
+  # (a sibling of /app) that npm ci baked into the image at build time.
   ui-host:
     build:
       context: .
@@ -194,6 +193,7 @@ services:
       - ./ui-host:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5173:5173"
     depends_on:
@@ -223,6 +223,7 @@ services:
       - ./ui-remote-chat:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5174:5174"
 
@@ -237,6 +238,7 @@ services:
       - ./ui-remote-stepper:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5175:5175"
 
@@ -251,6 +253,7 @@ services:
       - ./ui-remote-stage-docs:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5176:5176"
 
@@ -265,6 +268,7 @@ services:
       - ./ui-remote-stage-serialization:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5177:5177"
 
@@ -279,6 +283,7 @@ services:
       - ./ui-remote-stage-pim:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5178:5178"
 
@@ -293,6 +298,7 @@ services:
       - ./ui-remote-stage-psm:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5179:5179"
 
@@ -307,6 +313,7 @@ services:
       - ./ui-remote-stage-atl:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5180:5180"
 
@@ -321,6 +328,7 @@ services:
       - ./ui-remote-stage-acceleo:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5181:5181"
 
@@ -335,6 +343,7 @@ services:
       - ./ui-remote-stage-generation:/app
       - /app/node_modules
       - ./design-system:/design-system
+      - ./orchestrator-types:/orchestrator-types
     ports:
       - "5182:5182"
 

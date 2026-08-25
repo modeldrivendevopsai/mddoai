@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Button } from "design-system"
 import { TextField, NumberField, TextAreaField } from "./FormField"
-import type { DocsOptions } from "./types/orchestrator"
+import type { DocsOptions } from "orchestrator-types"
 
 interface DocsStartFormProps {
   onStart: (platformName: string, documentationUrl: string, docsOptions?: DocsOptions) => void

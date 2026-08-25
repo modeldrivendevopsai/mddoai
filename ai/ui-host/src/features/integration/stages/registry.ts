@@ -1,7 +1,6 @@
 import { lazy } from "react"
 import type { ComponentType } from "react"
-import type { StageId } from "@/types/orchestrator"
-import type { StagePanelProps } from "./StagePanelProps"
+import type { StageId, StagePanelProps } from "orchestrator-types"
 
 // The one place that knows all seven stage panels exist together — none of
 // the panels themselves import this or each other, so grabbing e.g.

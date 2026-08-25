@@ -1,6 +1,7 @@
 // Mirrors ai/orchestrator's real REST contract (see ai/orchestrator/main.py
 // and README.md) exactly, this is the single source of truth for that
-// contract on the frontend side.
+// contract on the frontend side — every ui-host and ui-remote-* package
+// depends on this package directly rather than keeping its own copy.
 
 export const STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"] as const
 export type StageId = (typeof STAGES)[number]
@@ -124,3 +125,9 @@ export interface Provider {
   tier: string
   available: boolean
 }
+
+// Same shape as rerunStage's overrides, minus seed_url (that's a required,
+// separate param at start time, not an optional override) — ai/orchestrator's
+// docs stage takes these real retrieval parameters at start time too, not
+// only on a retry (see ai/orchestrator's main.py StartRequest).
+export type DocsOptions = Omit<RerunOverrides, "seed_url">
