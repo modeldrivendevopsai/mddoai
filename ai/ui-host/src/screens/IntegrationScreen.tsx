@@ -1,7 +1,8 @@
-import { Suspense, lazy, useEffect, useState } from "react"
+import { lazy, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useIntegration } from "@/hooks/useIntegration"
 import { STAGE_PANELS } from "@/features/integration/stages/registry"
+import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
 import type { StageId } from "@/types/orchestrator"
@@ -16,13 +17,6 @@ const ChatColumn = lazy(() => import("uiRemoteChat/ChatColumn").then((m) => ({ d
 const DocsStartForm = lazy(() =>
   import("uiRemoteStageDocs/DocsStartForm").then((m) => ({ default: m.DocsStartForm }))
 )
-
-// Shown in place of a federated remote while its own bundle is still
-// loading — a real Suspense fallback, not a skeleton screen, deliberately
-// plain since this only shows on first paint of a not-yet-cached remote.
-function RemoteLoading() {
-  return <div style={{ padding: "var(--space-4)", color: "var(--text-muted)" }}>Loading…</div>
-}
 
 // "Nothing left to review" is a screen-level state (the whole run finished),
 // not any one stage's concern — kept here rather than duplicated across
@@ -238,7 +232,7 @@ export default function IntegrationScreen() {
             Restart
           </Button>
         </div>
-        <Suspense fallback={<RemoteLoading />}>
+        <RemoteBoundary name="Stepper">
           <Stepper
             currentStage={currentStage}
             busy={busy}
@@ -246,7 +240,7 @@ export default function IntegrationScreen() {
             selectedStage={viewedStage}
             onSelectStage={started ? setViewedStage : undefined}
           />
-        </Suspense>
+        </RemoteBoundary>
       </header>
 
       {/* Only a defined runId can ever be non-current (the live run always
@@ -322,7 +316,7 @@ export default function IntegrationScreen() {
         }}
       >
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <Suspense fallback={<RemoteLoading />}>
+          <RemoteBoundary name="Chat">
             <ChatColumn
               events={events}
               busy={busy}
@@ -332,19 +326,21 @@ export default function IntegrationScreen() {
               onModelChange={changeModel}
               readOnly={!isCurrent}
             />
-          </Suspense>
+          </RemoteBoundary>
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {started ? (
-            <Suspense fallback={<RemoteLoading />}>{renderStagePane()}</Suspense>
+            <RemoteBoundary name={`${viewedStage ?? currentStage} stage panel`} resetKey={viewedStage ?? currentStage ?? "complete"}>
+              {renderStagePane()}
+            </RemoteBoundary>
           ) : isCurrent ? (
-            <Suspense fallback={<RemoteLoading />}>
+            <RemoteBoundary name="Docs start form">
               <DocsStartForm
                 onStart={(platformName, documentationUrl, docsOptions) =>
                   start(platformName, documentationUrl, model ?? undefined, docsOptions)
                 }
               />
-            </Suspense>
+            </RemoteBoundary>
           ) : (
             <NoStagesRanPanel />
           )}
