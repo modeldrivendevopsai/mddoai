@@ -1,0 +1,18 @@
+# Applies to any service whose build context is this ai/ folder (needed once
+# a service's package.json depends on a sibling via a "file:../..." local
+# path, since Docker can't COPY from outside its own build context — see
+# ai/ui-host/Dockerfile). Glob-based, not a per-service list, so a new
+# sibling folder never needs an edit here.
+**/node_modules
+**/dist
+**/dist-ssr
+**/coverage
+**/__pycache__
+**/.venv
+.git
+**/.env
+**/.env.*
+**/*.local
+**/.vscode
+**/.idea
+**/.DS_Store
