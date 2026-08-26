@@ -8,6 +8,11 @@ import type { OrchestratorEvent } from "@/types/orchestrator"
 export interface StagePanelProps {
   busy: boolean
   latestResult: OrchestratorEvent | null
+  // This run's full event log. Most panels don't need it (latestResult
+  // already has everything they show) — PsmStagePanel is the one that does,
+  // to list every constraint_added event recorded for "psm" alongside the
+  // prompt viewer (see stageEvents.ts's own per-stage event filtering).
+  events: OrchestratorEvent[]
   // Present only when this stage is the live pending one.
   onApprove?: () => void
   onRetry?: (correction?: string) => void

@@ -38,6 +38,11 @@ class EcoreValidationResult(TypedDict):
     mode: str
     issues: list[Issue]
     duration_ms: int
+    # Where EcoreValidator's codegen path persisted the generated
+    # .genmodel/src-gen/classes-out output, when there's real output worth
+    # keeping (codegen mode, and generation got at least as far as producing
+    # src-gen). None in reflective mode, or when nothing was generated.
+    generated_source_path: str | None
 
 
 class AtlValidationResult(TypedDict):
@@ -92,6 +97,11 @@ def run_ecore_validator(content: str, filename: str, mode: Literal["reflective",
         result, duration_ms = _run_cli(argv)
 
         result["duration_ms"] = duration_ms
+        # generatedOutputPath (EcoreValidatorCli's own camelCase JSON key,
+        # matching Java naming) -> generated_source_path (this boundary's job
+        # is translating the subprocess's raw JSON into this service's own
+        # Python-conventioned response shape).
+        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("ecore validation: mode=%s valid=%s duration_ms=%d", mode, result.get("valid"), duration_ms)
         return result
 

@@ -45,8 +45,8 @@ public final class EcoreValidatorCli {
         String mode = args[0];
         String path = args[1];
         try {
-            ValidationResult result = mode.equals("reflective")
-                    ? EcoreValidator.validateReflectively(path)
+            EcoreCodegenResult result = mode.equals("reflective")
+                    ? EcoreCodegenResult.of(EcoreValidator.validateReflectively(path))
                     : EcoreValidator.validateViaCodegen(path);
             out.println(toJson(mode, result));
             return 0;
@@ -57,7 +57,8 @@ public final class EcoreValidatorCli {
         }
     }
 
-    private static String toJson(String mode, ValidationResult result) {
+    private static String toJson(String mode, EcoreCodegenResult codegenResult) {
+        ValidationResult result = codegenResult.result();
         StringBuilder json = new StringBuilder();
         json.append("{\"valid\":").append(result.valid())
                 .append(",\"mode\":\"").append(escape(mode)).append("\"")
@@ -74,7 +75,11 @@ public final class EcoreValidatorCli {
                     .append(issue.source() == null ? "null" : "\"" + escape(issue.source()) + "\"")
                     .append("}");
         }
-        json.append("]}");
+        json.append("]")
+                .append(",\"generatedOutputPath\":")
+                .append(codegenResult.generatedOutputPath() == null
+                        ? "null" : "\"" + escape(codegenResult.generatedOutputPath()) + "\"")
+                .append("}");
         return json.toString();
     }
 

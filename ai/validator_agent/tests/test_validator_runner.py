@@ -88,6 +88,28 @@ def test_duration_ms_is_injected_into_successful_result():
     assert result["valid"] is True
 
 
+def test_generated_source_path_is_none_when_java_omits_it():
+    # Reflective mode (and any codegen attempt that generated nothing) never
+    # has this key in the Java-side JSON at all.
+    valid_json = json.dumps({"valid": True, "mode": "reflective", "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)):
+        result = run_ecore_validator("<ecore/>", "model.ecore", "reflective")
+
+    assert result["generated_source_path"] is None
+
+
+def test_generated_source_path_is_translated_from_camel_case_java_key():
+    codegen_json = json.dumps({
+        "valid": True, "mode": "codegen", "issues": [],
+        "generatedOutputPath": "/validator-output/ecore-validate-abc123",
+    })
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=codegen_json)):
+        result = run_ecore_validator("<ecore/>", "model.ecore", "codegen")
+
+    assert result["generated_source_path"] == "/validator-output/ecore-validate-abc123"
+    assert "generatedOutputPath" not in result
+
+
 def test_atl_builds_expected_argv_and_invokes_correct_class():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:

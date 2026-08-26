@@ -103,10 +103,18 @@ class IntegrationRun:
         # so a correction recorded via add_constraint() after this call is picked up the
         # next time run_stage()/rerun() runs this same stage.
         enriched_context = {**context, "constraints": self.constraints, "model": self.model}
-        output = agent(enriched_context)
+        raw = agent(enriched_context)
+        # Every stage agent's normal contract is (context: dict) -> str (see
+        # ai/CLAUDE.md's stage-agent recipe). psm is the one narrow, documented
+        # exception: it returns (output, extra) since it has real structured
+        # data (the prompt actually used, validation/gap results) the chat-ui
+        # needs alongside the artifact - a plain string has nowhere to put
+        # that. Backward compatible: every other stage's plain str return is
+        # unaffected, extra is just {} for them.
+        output, extra = raw if isinstance(raw, tuple) else (raw, {})
         self.last_output = output
         self.last_completed_stage = stage
-        return {"stage": stage, "output": output}
+        return {"stage": stage, "output": output, **extra}
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context

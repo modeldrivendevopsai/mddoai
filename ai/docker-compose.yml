@@ -68,12 +68,15 @@ services:
       - AI_LAYER_URL=http://ai-layer:8000
       - RETRIEVAL_URL=http://retrieval:8010
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
+      - PSM_AGENT_URL=http://psm-agent:8040
     depends_on:
       ai-layer:
         condition: service_healthy
       retrieval:
         condition: service_healthy
       serialization-agent:
+        condition: service_healthy
+      psm-agent:
         condition: service_healthy
     expose:
       - "8050"
@@ -88,11 +91,13 @@ services:
     expose:
       - "8030"
 
-  # Own container, same reasoning as pim-agent. Not wired into the live
-  # pipeline's psm stage yet (still a placeholder LLM prompt), kept callable
-  # via POST /compare for future integration. Needs read access to meta_models/ (the real
-  # .ecore PSM metamodels, outside ai/ entirely) — mounted read-only rather
-  # than copied into the image, so a metamodel change doesn't need a rebuild.
+  # Own container: the real psm stage's whole capability, POST /psm (routes
+  # between generating a new metamodel and checking an existing one for
+  # drift, see psm_agent/psm_flow.py). Calls pim-agent for grounding and
+  # validator-agent to check a freshly generated .ecore loads in EMF before
+  # returning it. Needs read access to meta_models/ (the real .ecore PSM
+  # metamodels, outside ai/ entirely) — mounted read-only rather than copied
+  # into the image, so a metamodel change doesn't need a rebuild.
   psm-agent:
     build:
       context: .
@@ -100,10 +105,16 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - META_MODELS_DIR=/meta_models
+      - PIM_AGENT_URL=http://pim-agent:8030
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
     volumes:
       - ../meta_models:/meta_models:ro
     depends_on:
       ai-layer:
+        condition: service_healthy
+      pim-agent:
+        condition: service_healthy
+      validator-agent:
         condition: service_healthy
     expose:
       - "8040"
@@ -203,10 +214,20 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
+      # Writable: EcoreValidator's codegen path persists generated
+      # .genmodel/src-gen/classes-out output here instead of deleting it (see
+      # main/.../ecore/EcoreValidator.java's OUTPUT_ROOT). Separate from the
+      # read-only main-build-output mount above (unrelated build artifacts) -
+      # a distinct volume, not a subpath of it, so a bad write here can never
+      # touch the real build output. No automatic expiry/cleanup of old
+      # validation runs yet - a known, documented limitation, not attempted
+      # here since nobody's asked for a retention policy.
+      - validator-generated-output:/validator-output
     environment:
       - LOG_LEVEL=INFO
       - VALIDATOR_TIMEOUT_SECONDS=60
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
+      - VALIDATOR_OUTPUT_DIR=/validator-output
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
@@ -216,3 +237,4 @@ services:
 volumes:
   main-gradle-cache:
   main-build-output:
+  validator-generated-output:

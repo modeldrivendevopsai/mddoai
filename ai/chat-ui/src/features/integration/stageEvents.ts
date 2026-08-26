@@ -16,6 +16,17 @@ export function latestCallResult(events: OrchestratorEvent[], stage: StageId | n
   return null
 }
 
+// Every correction recorded for a given stage so far, oldest first — the
+// real record behind that stage's constraint-driven retries, not just the
+// one currently sitting in the (uncommitted) correction textarea. Used by
+// PsmStagePanel's Constraints tab to show what's already been applied.
+export function constraintsForStage(events: OrchestratorEvent[], stage: StageId): string[] {
+  return events
+    .filter((e) => e.stage === stage && e.type === "constraint_added")
+    .map((e) => e.data?.constraint)
+    .filter((c): c is string => typeof c === "string")
+}
+
 // The very first docs call_started event's data — the real
 // platform_description/seed_url/docsOptions this run was actually started
 // with. A retry reuses last_context server-side rather than firing a new

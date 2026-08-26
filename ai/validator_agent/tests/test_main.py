@@ -13,8 +13,11 @@ from validator_runner import ValidatorInfraError
 client = TestClient(main.app)
 
 
-def fake_result(valid=True, mode="reflective", issues=None, duration_ms=42):
-    return {"valid": valid, "mode": mode, "issues": issues or [], "duration_ms": duration_ms}
+def fake_result(valid=True, mode="reflective", issues=None, duration_ms=42, generated_source_path=None):
+    return {
+        "valid": valid, "mode": mode, "issues": issues or [], "duration_ms": duration_ms,
+        "generated_source_path": generated_source_path,
+    }
 
 
 def test_health_endpoint():
@@ -45,6 +48,17 @@ def test_validate_ecore_returns_200_with_valid_false_and_issues():
     body = response.json()
     assert body["valid"] is False
     assert body["issues"] == issues
+
+
+def test_validate_ecore_passes_through_generated_source_path():
+    with patch("main.run_ecore_validator",
+               return_value=fake_result(mode="codegen", generated_source_path="/validator-output/abc123")):
+        response = client.post("/validate/ecore", json={
+            "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen",
+        })
+
+    assert response.status_code == 200
+    assert response.json()["generated_source_path"] == "/validator-output/abc123"
 
 
 def test_validate_ecore_returns_500_on_infra_error():

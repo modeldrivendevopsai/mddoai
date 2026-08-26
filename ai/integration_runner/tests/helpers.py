@@ -15,11 +15,15 @@ def ok_response(content):
     return {"content": content, "model": "test-model", "tool_calls": None}
 
 
-def _fast_forward_to_psm(o: "pipeline.IntegrationRun") -> None:
-    """Most stage-mechanics tests are about psm/atl/acceleo/generation
-    behavior, not about the docs stage itself, so skip straight past docs by
-    setting the index directly rather than mocking a real retrieval fetch."""
-    o.current_stage_index = pipeline.STAGES.index("psm")
+def _fast_forward_to_atl(o: "pipeline.IntegrationRun") -> None:
+    """Most stage-mechanics tests just need to be on some placeholder stage
+    past docs, not about the docs stage itself, so skip straight past
+    docs/serialization/pim/psm by setting the index directly rather than
+    mocking a real retrieval fetch. Lands on atl (not psm): psm is a real
+    stage now (see stages/psm/agent.py), calling psm_agent over HTTP instead
+    of ai_layer_client.chat directly, so it can no longer stand in for "some
+    generic placeholder stage" the way it used to."""
+    o.current_stage_index = pipeline.STAGES.index("atl")
 
 
 def _fake_fetch_response(pages=None, confidence=0.8):
