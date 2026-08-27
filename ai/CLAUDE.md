@@ -8,11 +8,33 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   that needs something from another one calls it over real HTTP, never by importing the other
   service's Python internals directly — see [ai/README.md](./README.md)'s services list and
   request-path description for which services exist today and how they actually call each other.
-- `clients/` is the one folder under `ai/` that isn't itself a deployed service: a shared package
-  of thin HTTP wrapper functions (one module per sibling service it can reach), imported directly
-  as a Python package by whichever service needs to make that outbound call. This is how real
-  cross-service communication happens in `ai/`, not a second, competing mechanism alongside it.
-- `chat-ui/` and `ai-layer/` never touch the Java/Eclipse code at the repo root.
+- `clients/`, `design-system/`, and `orchestrator-types/` are the three folders under `ai/` that
+  aren't themselves deployed services: no port, no Dockerfile, no entry in `docker-compose.yml`.
+  `clients/` is a shared package of thin HTTP wrapper functions (one module per sibling service it
+  can reach), imported directly as a Python package by whichever service needs to make that
+  outbound call — this is how real cross-service communication happens in `ai/`, not a second,
+  competing mechanism alongside it. `design-system/` is the frontend's equivalent for shared UI: a
+  component/token package (its own `src/index.ts` barrel export is the current source of truth for
+  exactly what it exports). `orchestrator-types/` is the frontend's equivalent for a shared type
+  contract: `ai/orchestrator`'s real REST/event contract (`StageId`, `OrchestratorEvent`, etc.),
+  plus the small `StagePanelProps` UI prop contract, in one place instead of hand-copied per
+  package. Both frontend packages are consumed the same way, via an ordinary local
+  `"file:../design-system"`/`"file:../orchestrator-types"` npm dependency, bundled into each
+  consumer's own build at build time. Both are deliberately *not* Module Federation remotes like
+  the `ui-remote-*` packages below: neither is an independently-owned feature (what Module
+  Federation is for), each is a dependency every other frontend piece needs just to render or
+  compile at all, so making either a live container would turn a handful of small components (or,
+  for `orchestrator-types`, mostly type declarations plus a couple of small constant arrays) into a
+  single point of failure for the whole app.
+- Every deployed frontend package's folder is prefixed `ui-`: `ui-host/` (the host/shell — routing,
+  `AppShell`, `useIntegration.ts`'s state hub, and every real backend service call) and
+  `ui-remote-*/` (one Module Federation remote per independently-liftable UI section — a pipeline
+  stage panel, the chat column, the stepper — each its own container, each consumed by `ui-host`
+  at runtime via a federated import, never a source import). This mirrors the backend's own
+  principle one level up: a federated module fetch is the frontend's equivalent of "calls it over
+  real HTTP, never imports internals directly."
+- `ui-host/`, every `ui-remote-*/`, `design-system/`, and `ai-layer/` never touch the Java/Eclipse
+  code at the repo root.
 - **Exception, deliberate and narrow**: `validator_agent/` wraps headless model/transformation
   validators (`main/src/main/java/mddoai/validation/`, one subpackage per file type) as HTTP
   routes, since a Python process can't call a JVM library directly. Its Python code lives in
@@ -23,11 +45,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   `mddoai.validation` is owned by the Java/Eclipse work, not by `validator_agent`. Both rules
   (subprocess boundary, ownership split) are stated by naming pattern and path, not by
   enumerating specific classes or file types, so adding a new validator never requires an edit
-  here. This exception does not extend to `chat-ui` or `ai-layer`, and does not license any
-  other future `ai/` service to reach into `main/` without the same explicit justification.
+  here. This exception does not extend to any `ui-*` package, `design-system`, or `ai-layer`,
+  and does not license any other future `ai/` service to reach into `main/` without the same
+  explicit justification.
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
 
-See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`chat-ui/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
+See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 
 ## Adding to `integration_runner`'s pipeline: stages and their tools
 

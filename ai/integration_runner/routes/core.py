@@ -132,9 +132,13 @@ def model_endpoint(request: ModelRequest):
 
 @router.post("/start", status_code=202)
 def start_endpoint(request: StartRequest):
-    # start_pipeline() swaps in a brand-new IntegrationRun, so without this
-    # guard a restart mid-run wouldn't error, it would silently orphan the
-    # old run's background thread instead of rejecting the request.
+    # start_pipeline() may reuse the current run in place (see its own
+    # docstring) instead of always swapping in a brand-new IntegrationRun,
+    # but never while the current run is busy — without this guard, a
+    # start mid-run would either kick off a second stage run against the
+    # same still-executing run (the reuse case) or silently orphan the old
+    # run's background thread (the reset case), instead of rejecting the
+    # request.
     if runs.current().busy:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     docs_options = request.model_dump(

@@ -1,0 +1,49 @@
+{
+  "name": "ui-host",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "design-system": "file:../design-system",
+    "lucide-react": "^1.20.0",
+    "marked": "^18.0.5",
+    "orchestrator-types": "file:../orchestrator-types",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.2",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.2.0",
+    "use-stick-to-bottom": "^1.1.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@module-federation/vite": "^1.20.7",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "jsdom": "^30.0.1",
+    "tslib": "^2.8.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.9"
+  }
+}

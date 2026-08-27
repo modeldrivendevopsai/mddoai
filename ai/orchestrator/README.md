@@ -1,6 +1,6 @@
 # orchestrator
 
-The chat and REST gateway for MDDOAI: the one thing `chat-ui` talks to, and the only place LLM
+The chat and REST gateway for MDDOAI: the one thing `ui-host` talks to, and the only place LLM
 tool-calling and narration live. It has no knowledge of the pipeline's own state machine at
 all — starting a stage, reviewing it, adding a constraint, or adding a page to the docs stage's
 output are all real HTTP calls to [`ai/integration_runner/`](../integration_runner) (see

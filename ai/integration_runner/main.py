@@ -1,6 +1,6 @@
 """integration_runner's REST surface: the pipeline state machine and run
 history exposed over HTTP, reached only by orchestrator (via
-clients/integration_runner_client.py), never by chat-ui directly. This
+clients/integration_runner_client.py), never by ui-host directly. This
 service has no knowledge of chat, narration, or LLM tool-calling.
 
 Just app assembly — every real route lives in routes/ (core.py, the
