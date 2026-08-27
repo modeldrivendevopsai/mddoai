@@ -17,7 +17,7 @@ import pytest
 from clients import retrieval_client
 from integration_runner import pipeline
 from integration_runner.stages.docs import actions
-from helpers import _fake_page_response, _fast_forward_to_psm
+from helpers import _fake_page_response, _fast_forward_to_generation
 
 
 def test_extend_with_page_appends_fetched_content_to_last_output():
@@ -59,7 +59,7 @@ def test_extend_with_page_returns_a_summary_and_records_a_real_event():
 
 def test_extend_with_page_rejects_when_docs_is_not_the_current_stage():
     run = pipeline.IntegrationRun()
-    _fast_forward_to_psm(run)
+    _fast_forward_to_generation(run)
 
     with pytest.raises(ValueError, match="docs"):
         actions.extend_with_page(run, "https://example.com/docs")

@@ -10,11 +10,13 @@ REST calls. `ai/orchestrator/` is the only real caller (via
 over HTTP, never imported as a Python package); it's what turns these raw facts into a chat
 conversation and an LLM tool-calling surface.
 
-Gets its own real capabilities from `ai-layer` (`POST /chat`, for the placeholder stage
-agents' LLM completions), `retrieval` (`POST /fetch`/`POST /fetch/page`, for the docs stage's
-real crawl and the docs stage's extra add-on action), and `serialization_agent` (`POST
-/serialize`, for the serialization stage's concept labeling — its own separate service, not a
-bundled import).
+Gets its own real capabilities from `ai-layer` (`POST /chat`, for the `generation` stage's own
+LLM completion, the one remaining placeholder that still calls an LLM), `retrieval` (`POST
+/fetch`/`POST /fetch/page`, for the docs stage's real crawl and the docs stage's extra add-on
+action), `serialization_agent` (`POST /serialize`, for the serialization stage's concept
+labeling — its own separate service, not a bundled import), and `validator-agent` (`POST
+/validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`psm`, `atl`, and `acceleo`
+stages' own real validation of their currently-mock DSL output).
 
 ## Module layout
 
@@ -58,8 +60,9 @@ routes/docs.py ──imports──> runs.py, stages/docs/
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
-stages/pim/, psm/, atl/, acceleo/, generation/ (agent.py)
-    ──imports──> clients.ai_layer_client, stages/_shared.py
+stages/pim/, psm/, atl/, acceleo/ (agent.py)
+    ──imports──> clients.validator_agent_client, stages/_validation.py
+stages/generation/ (agent.py) ──imports──> clients.ai_layer_client, stages/_shared.py
 stages/docs/ (agent.py, actions.py) ──imports──> clients.retrieval_client
 stages/serialization/ (agent.py) ──imports──> clients.serialization_agent_client
 ```
@@ -98,17 +101,28 @@ stage_agents = {
   real, separate [`ai/serialization_agent`](../serialization_agent) service's `POST /serialize`
   via `clients/serialization_agent_client.py` — a multi-step extraction/labeling pipeline, its own
   container since it makes its own outbound call to `pim_agent`.
-- **`stages/pim/agent.py`**, **`psm/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`**,
-  **`generation/agent.py`** are still placeholders standing in for future real per-stage agents,
-  each a plain LLM prompt call `(context: dict) -> str` via `clients/ai_layer_client.py`, not
-  yet the real MDE toolchain. These placeholder names are deliberately *not* `pim_agent`/
+- **`stages/pim/agent.py`**, **`psm/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`** are
+  still placeholders standing in for future real per-stage agents — not yet the real MDE
+  toolchain — but each returns fixed mock DSL content in its real target format (Ecore for
+  `pim`/`psm`, `.atl` for `atl`, `.mtl` for `acceleo`) and validates it for real against
+  `validator-agent`'s `POST /validate/ecore`/`/validate/atl`/`/validate/acceleo` via
+  `clients/validator_agent_client.py`, persisting the artifact and result to disk either way
+  (`stages/_validation.py`, see [Persisted validation attempts](#persisted-validation-attempts)
+  below). Unconditional, unlike `docs_stage`'s own opt-in mock: there's no real
+  extraction/transformation pipeline to fall back to yet for any of these four, so they always
+  return mock content, no toggle, and ignore their input context (a correction has nothing to
+  act on against fixed content). These placeholder names are deliberately *not* `pim_agent`/
   `psm_agent`: those names belong to the real, separate
   [`ai/pim_agent/`](../pim_agent)/[`ai/psm_agent/`](../psm_agent) services — the only current
   caller of either is `serialization_agent`, for its own concept-labeling, unrelated to the
   `pim`/`psm` stages here.
-- **`stages/_shared.py`** — `constraints_note()`, the one real thing the five placeholders
-  share, at the `stages/` root rather than duplicated per folder. `stages/docs/agent.py` doesn't
-  use it (see its own module docstring for why).
+- **`stages/generation/agent.py`** is the one remaining LLM-prompt placeholder, a plain
+  `(context: dict) -> str` call via `clients/ai_layer_client.py`, not yet a real generation step.
+- **`stages/_validation.py`** — `persist_attempt()`/`raise_if_invalid()`, the real thing
+  `pim`/`psm`/`atl`/`acceleo` share (see [Persisted validation attempts](#persisted-validation-attempts)).
+- **`stages/_shared.py`** — `constraints_note()`, which only `stages/generation/agent.py` still
+  uses, at the `stages/` root rather than duplicated per folder. `stages/docs/agent.py` doesn't
+  use it either (see its own module docstring for why).
 - **`stages/<stage>/__init__.py`** — imports that folder's own `agent.py` (and, for `docs`,
   `actions.py`) submodule so `stages/__init__.py` can reach it by dotted attribute access.
   Imports the MODULE, not a same-named function from within it: a same-named
@@ -124,10 +138,11 @@ placeholders, split into its own file when it went real, then into its own folde
 that one folder's `agent.py`, keep its function name and signature the same, done — nothing
 elsewhere in `integration_runner` needs to change, since `pipeline.py` only ever reads
 `stages.stage_agents[stage]`, never a specific stage's own module. This isn't speculative
-infrastructure: every one of the seven stages is real today (even the five "placeholder" ones
-run for real, they just call an LLM prompt instead of a real MDE toolchain), this is just where
-the code for each one lives, shaped so the next stage that grows its own extra tool (matching
-`docs`'s own `actions.py`) is a new sibling file, not a restructuring.
+infrastructure: every one of the seven stages is real today — `pim`/`psm`/`atl`/`acceleo` run a
+real validator-agent call against their own (still mock) content, `generation` still calls an
+LLM prompt — this is just where the code for each one lives, shaped so the next stage that grows
+its own extra tool (matching `docs`'s own `actions.py`) is a new sibling file, not a
+restructuring.
 
 - **`docs_stage(context)`** — reads `context["seed_url"]`. Calls
   `clients.retrieval_client.fetch_documentation()`, and raises if the crawl found essentially
@@ -144,20 +159,45 @@ the code for each one lives, shaped so the next stage that grows its own extra t
   model, and forwards both to the real `serialization_agent` service's `POST /serialize` via
   `clients/serialization_agent_client.py`. No constraints support today: this stage has no
   correction-taking parameter of its own to fold one into.
-- **`pim_stage(context)`** — prefers `context["serialization_output"]`, falls back to
-  `context["docs_output"]`, then `context["platform_description"]`. Produces a PIM
-  (Platform-Independent Model) description.
-- **`psm_stage(context)`** — prefers `context["pim_output"]`, falls back to
-  `context["docs_output"]`, then `context["platform_description"]`. Produces a PSM
-  (Platform-Specific Model) description.
-- **`atl_stage(context)`** — reads `context["psm_output"]`. Produces a description of the ATL
-  (ATLAS Transformation Language) transformation rules needed to map the platform-independent
-  model to that PSM.
-- **`acceleo_stage(context)`** — reads `context["atl_output"]`. Produces a description of the
-  Acceleo code-generation template needed to turn the transformed model into real pipeline
-  configuration files.
+- **`pim_stage(context)`** / **`psm_stage(context)`** — ignore their input context (fixed mock
+  content has nothing to prefer/fall back between). Each returns its own fixed mock Ecore
+  content (a PIM-level one for `pim`, a per-platform-realization-shaped one for `psm`) after
+  validating it for real via `validator_agent_client.validate_ecore()`.
+- **`atl_stage(context)`** — ignores its input context. Returns fixed mock `.atl` source after
+  validating it for real via `validator_agent_client.validate_atl()`.
+- **`acceleo_stage(context)`** — ignores its input context. Returns fixed mock `.mtl` source
+  after validating it for real via `validator_agent_client.validate_acceleo()`.
 - **`gen_stage(context)`** — reads `context["psm_output"]`, `context["atl_output"]`, and
   `context["acceleo_output"]`. Produces a final, concise summary of the whole pipeline plan.
+
+### Persisted validation attempts
+
+`pim_stage`/`psm_stage`/`atl_stage`/`acceleo_stage` each persist their own artifact and
+validator-agent result to disk before returning or raising — a failed attempt is exactly the
+record this exists to keep, not something to skip on failure. `stages/_validation.py`:
+
+- **`persist_attempt(run_id, stage, filename, content, result)`** — writes
+  `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, `N` computed from
+  what's already on disk (one-indexed, never overwriting a prior attempt), synchronously, before
+  the caller decides pass/fail.
+- **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
+  `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
+  already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never
+  called for an infra failure, which `validator_agent_client` itself already raises before
+  `persist_attempt` runs.
+
+`runs/` sits at this package's own root, sibling to `stages/`, gitignored — in-memory run state's
+on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting
+it externally for durability across a container restart is a real future concern, deliberately
+not solved here.
+
+### Reporting a stage result
+
+No new reporting path for pass/fail: a stage agent that returns normally becomes a
+`call_completed` event; one that raises (`docs_stage`'s own crawl failure, or
+`raise_if_invalid()` above) becomes a `call_failed` event carrying `str(e)` — orchestrator
+already narrates either generically from `GET /events`, with no per-stage special-casing to
+update when a placeholder's own failure mode changes shape.
 
 If a stage was previously rejected with a correction, that correction is appended to the
 agent's input automatically, so a rerun of the stage takes the human's feedback into account.
@@ -281,7 +321,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # AI_LAYER_URL defaults to http://localhost:8000, RETRIEVAL_URL to
 # http://localhost:8010, SERIALIZATION_AGENT_URL to http://localhost:8060,
-# if unset — override only if any of them run somewhere else.
+# VALIDATOR_AGENT_URL to http://localhost:8020, if unset — override only
+# if any of them run somewhere else.
 ```
 
 ## Run
@@ -309,10 +350,15 @@ pytest
 
 `pytest.ini` sets `pythonpath = . .. tests` (the last entry lets test files nested under
 `tests/stages/` still resolve `tests/helpers.py`/`tests/conftest.py`, which pytest's own
-per-file rootless import resolution wouldn't otherwise reach). No real network calls —
-`ai_layer_client.chat` / `retrieval_client.httpx` are mocked. `record_event()` has no reactor
-concept, so exactly one real `chat()` call happens per stage transition (the stage agent's own),
-never one for narration too — narration lives entirely in `orchestrator/chat_log.py`.
+per-file rootless import resolution wouldn't otherwise reach). No real network calls by default —
+`ai_layer_client.chat`, `retrieval_client.httpx`, and `validator_agent_client`'s validate
+functions are mocked (the real-dependency-gated exception,
+`test_mock_validated_stages_real_validator.py`, is listed separately below). `record_event()`
+has no reactor concept, so exactly one real `chat()`/`validate_*()` call happens per stage
+transition (the stage agent's own), never one for narration too — narration lives entirely in
+`orchestrator/chat_log.py`. `conftest.py`'s own autouse fixture redirects `stages/_validation.py`'s
+`RUNS_DIR` to a throwaway `tmp_path` for every test in this whole suite, so nothing here ever
+touches this package's real `runs/` directory.
 
 - **`tests/test_pipeline.py`** — the state machine: `STAGES`, `validate()`, `IntegrationRun`'s
   `run_stage`/`rerun`/`advance_stage`/`add_constraint`/`review`/`record_review`/`record_event`/
@@ -327,8 +373,17 @@ never one for narration too — narration lives entirely in `orchestrator/chat_l
 - **`tests/stages/test_serialization_agent.py`** — the `serialization_stage` wrapper
   (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
-- **`tests/stages/test_placeholder_stages.py`** — the five placeholder agents
-  (`stages/pim/agent.py` through `stages/generation/agent.py`).
+- **`tests/stages/test_placeholder_stages.py`** — the one remaining LLM-prompt placeholder agent,
+  `stages/generation/agent.py`.
+- **`tests/stages/test_mock_validated_stages.py`** — `pim`/`psm`/`atl`/`acceleo`'s own mock
+  content + validation + persistence, `validator_agent_client` mocked.
+- **`tests/stages/test_mock_validated_stages_real_validator.py`** — the real end-to-end
+  exception: no mocking of `validator_agent_client`, a real HTTP call to a real running
+  `validator-agent`. Auto-skips when it isn't reachable (`docker compose up validator-agent`, or
+  directly via `uvicorn` against a built `main/` distribution — see
+  [`ai/validator_agent/README.md`](../validator_agent/README.md)).
+- **`tests/stages/test_validation.py`** — `stages/_validation.py`'s own `persist_attempt()`/
+  `raise_if_invalid()` contract, independent of any one stage.
 - **`tests/stages/test_stages_registry.py`** — `stages/__init__.py`'s own `stage_agents`/
   `STAGE_DESCRIPTIONS` assembly.
 

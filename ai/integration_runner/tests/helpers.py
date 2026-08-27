@@ -15,11 +15,32 @@ def ok_response(content):
     return {"content": content, "model": "test-model", "tool_calls": None}
 
 
-def _fast_forward_to_psm(o: "pipeline.IntegrationRun") -> None:
-    """Most stage-mechanics tests are about psm/atl/acceleo/generation
-    behavior, not about the docs stage itself, so skip straight past docs by
-    setting the index directly rather than mocking a real retrieval fetch."""
-    o.current_stage_index = pipeline.STAGES.index("psm")
+def _fast_forward_to_generation(o: "pipeline.IntegrationRun") -> None:
+    """Most stage-mechanics tests just need to be past docs (skip straight
+    there by setting the index directly rather than mocking a real
+    retrieval fetch), on a stage that still calls ai_layer_client.chat() —
+    generation is the only one left since pim/psm/atl/acceleo switched to
+    fixed mock content + real validator-agent calls (see each of their own
+    agent.py). Named for the stage it lands on, not "generic placeholder",
+    since it's no longer interchangeable with any of the other four."""
+    o.current_stage_index = pipeline.STAGES.index("generation")
+
+
+def _fast_forward_to(o: "pipeline.IntegrationRun", stage: str) -> None:
+    """Like _fast_forward_to_generation, for a test that specifically needs
+    a different stage (e.g. one of the mock-validated ones) rather than
+    "the one remaining LLM stage"."""
+    o.current_stage_index = pipeline.STAGES.index(stage)
+
+
+def _validation_result(valid=True, issues=None, duration_ms=5, mode=None):
+    """A validator-agent-shaped result dict, for tests that mock
+    validator_agent_client.validate_ecore/validate_atl/validate_acceleo
+    directly rather than the real HTTP call underneath them."""
+    result = {"valid": valid, "issues": issues or [], "duration_ms": duration_ms}
+    if mode is not None:
+        result["mode"] = mode
+    return result
 
 
 def _fake_fetch_response(pages=None, confidence=0.8):
