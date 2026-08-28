@@ -177,9 +177,16 @@ validator-agent result to disk before returning or raising — a failed attempt 
 record this exists to keep, not something to skip on failure. `stages/_validation.py`:
 
 - **`persist_attempt(run_id, stage, filename, content, result)`** — writes
-  `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, `N` computed from
-  what's already on disk (one-indexed, never overwriting a prior attempt), synchronously, before
-  the caller decides pass/fail.
+  `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, synchronously,
+  before the caller decides pass/fail, and appends this same attempt to `runs/<run_id>/manifest.json`
+  (below). Never overwrites a prior attempt.
+- **`_next_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
+  create `attempt_1`, `attempt_2`, ... in turn (`Path.mkdir()`'s default `exist_ok=False` already
+  raises `FileExistsError` atomically, backed by the OS's own atomic `mkdir(2)`), not by listing
+  the directory first and trusting that snapshot — this service's real mutating endpoints are
+  sync routes dispatched through FastAPI's own threadpool, so two concurrent callers computing
+  "next" from the same stale listing is a real, reachable race, not just a theoretical one; trying
+  each candidate and catching the collision is what makes this genuinely atomic.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
   already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never
@@ -190,6 +197,29 @@ record this exists to keep, not something to skip on failure. `stages/_validatio
 on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting
 it externally for durability across a container restart is a real future concern, deliberately
 not solved here.
+
+**`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
+attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
+valid, timestamp}` records, one per `persist_attempt()` call, in the order they actually
+happened. `_update_manifest()` writes it, and `_atomic_write_json()` underneath writes it
+safely — a sibling temp file, then `os.replace()`'d into place, so a crash mid-write can never
+leave a corrupted or half-written manifest, only ever the previous complete version or the new
+one. The read-modify-write itself (read the manifest, append, write it back) is serialized by a
+process-wide `threading.Lock`, not just the write — two concurrent attempts finishing at the same
+moment would otherwise both read the same old version and each write back independently, silently
+losing whichever wrote first. A `threading.Lock` is correct and sufficient here specifically
+because this service runs single-process (`integration_runner/Dockerfile`'s own `CMD` has no
+`--workers` flag) — a cross-process file lock would be solving a problem this deployment doesn't
+have.
+
+**Known, deliberately out of scope:** `IntegrationRun.busy` (`pipeline.py`) is a plain unguarded
+`bool`, checked then set across two unsynchronized steps spanning a route handler and
+`run_stage_async()`. Since every real mutating endpoint is a sync route dispatched through
+FastAPI's own threadpool, two near-simultaneous requests to the same endpoint really can both
+pass that check before either sets `busy = True`, starting two stage runs against the same run
+concurrently — a correctness issue broader than file naming (two operations racing against the
+same run, not just a folder collision), and a separate, not-yet-fixed problem from the
+attempt-numbering race above.
 
 ### Reporting a stage result
 
