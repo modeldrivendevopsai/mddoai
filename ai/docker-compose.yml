@@ -375,9 +375,9 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313) and .atl (issue #314). Named validator-agent, not
-  # ecore-validator: #315 (.mtl) is expected to add another sibling
-  # /validate/<type> route to this same service later.
+  # .ecore (issue #313), .atl (issue #314), and .mtl/Acceleo (issue #315).
+  # Named validator-agent, not ecore-validator: a future validator type would
+  # add another sibling /validate/<type> route to this same service.
   validator-agent:
     build:
       context: ./validator_agent
