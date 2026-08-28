@@ -1,0 +1,8 @@
+[comment encoding = UTF-8 /]
+[module invalid('http://www.mddoai.com/mddoai/metamodel/gitlab')]
+
+[template public generateStages(stages : OrderedSet(String))]
+stages:
+[for (stage: String | stages)]
+  - [stage/]
+[/template]

@@ -67,7 +67,7 @@ async def achat(
 
 def list_providers() -> list[dict]:
     """Proxies ai-layer's real GET /providers. The frontend never calls
-    ai-layer directly (see ai/chat-ui/CLAUDE.md), orchestrator is the one
+    ai-layer directly (see ai/ui-host/CLAUDE.md), orchestrator is the one
     place that does, on its behalf, so the model picker can show real,
     current provider/tier options rather than a hardcoded list that could
     drift."""

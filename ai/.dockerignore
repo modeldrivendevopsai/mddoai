@@ -1,22 +1,21 @@
-# Every image in this folder installs its own dependencies fresh inside the
-# container (npm install / pip install -r requirements.txt), so none of these
-# ever need to be sent as build context - doing so only slows down every
-# single build (all `context:` entries in docker-compose.yml point at this
-# whole ai/ folder), it never gets used.
-node_modules
-venv
-.venv
-__pycache__
-*.pyc
-.pytest_cache
-.mypy_cache
-
-# Local/editor/VCS state, never needed inside a container.
+# Applies to any service whose build context is this ai/ folder (needed once
+# a service's package.json depends on a sibling via a "file:../..." local
+# path, since Docker can't COPY from outside its own build context — see
+# ai/ui-host/Dockerfile). Glob-based, not a per-service list, so a new
+# sibling folder never needs an edit here.
+**/node_modules
+**/dist
+**/dist-ssr
+**/coverage
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/venv
+**/.venv
 .git
-.env
-.vscode
-.idea
-
-# Frontend build output - Dockerfiles that need it build it themselves.
-dist
-build
+**/.env
+**/.env.*
+**/*.local
+**/.vscode
+**/.idea
+**/.DS_Store

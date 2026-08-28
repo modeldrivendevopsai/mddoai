@@ -1,8 +1,8 @@
 # validator_agent
 
-Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services (like `orchestrator`) can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313) and `.atl` transformations (issue #314).
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services (like `orchestrator`) can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), and `.mtl` Acceleo templates (issue #315).
 
-Named `validator_agent`, not `ecore_validator`, because sibling issue #315 (`.mtl`) is expected to add another `/validate/<type>` route to this same service later — one Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
+Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
 ## Why a subprocess, not an embedded JVM
 
@@ -10,8 +10,8 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 
 ## How a request flows
 
-1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore` or `/validate/atl`.
-2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>` or `AtlValidatorCli <path>`).
+1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore`, `/validate/atl`, or `/validate/acceleo`.
+2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>`, `AtlValidatorCli <path>`, or `AcceleoValidatorCli <path>`).
 3. The Java side prints one line of JSON to stdout and exits 0, whether the input is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from an input that's simply invalid.
 4. The JSON is parsed, `duration_ms` is added, and returned as the HTTP response.
 
@@ -49,6 +49,18 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 ```
 
 Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. It does **not** catch a reference to a type or attribute that doesn't actually exist in the real `.ecore` metamodel — ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture); that class of error only surfaces when the transformation actually runs against real model instances.
+
+### `POST /validate/acceleo`
+
+```json
+// request
+{"filename": "generate.mtl", "content": "[module generate('http://...')]"}
+
+// response (200)
+{"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512}
+```
+
+Compiles the `.mtl` source with Acceleo's own classic standalone compiler (`AcceleoCompilerHelper`) and reports the real compiler diagnostics, with real source-line locations. The submitted `filename` must end in `.mtl` — the compiler resolves the file to compile by scanning its source folder for that extension, not by parsing whatever single file it's handed, so a request whose `filename` doesn't end in `.mtl` is rejected as invalid up front rather than silently reporting a trivial pass.
 
 ### `GET /health`
 

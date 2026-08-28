@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
+ACCELEO_MAIN_CLASS = "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
 TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
 
 
@@ -46,6 +47,12 @@ class EcoreValidationResult(TypedDict):
 
 
 class AtlValidationResult(TypedDict):
+    valid: bool
+    issues: list[Issue]
+    duration_ms: int
+
+
+class AcceleoValidationResult(TypedDict):
     valid: bool
     issues: list[Issue]
     duration_ms: int
@@ -116,4 +123,17 @@ def run_atl_validator(content: str, filename: str) -> AtlValidationResult:
 
         result["duration_ms"] = duration_ms
         logger.info("atl validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
+        return result
+
+
+def run_acceleo_validator(content: str, filename: str) -> AcceleoValidationResult:
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / (Path(filename).name or "generate.mtl")
+        target.write_text(content, encoding="utf-8")
+
+        argv = ["java", "-cp", f"{LIB_DIR}/*", ACCELEO_MAIN_CLASS, str(target)]
+        result, duration_ms = _run_cli(argv)
+
+        result["duration_ms"] = duration_ms
+        logger.info("acceleo validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result

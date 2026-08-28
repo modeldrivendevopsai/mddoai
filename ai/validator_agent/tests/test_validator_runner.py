@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from validator_runner import ValidatorInfraError, run_atl_validator, run_ecore_validator
+from validator_runner import ValidatorInfraError, run_acceleo_validator, run_atl_validator, run_ecore_validator
 
 
 def fake_completed_process(returncode=0, stdout="", stderr=""):
@@ -151,6 +151,53 @@ def test_atl_duration_ms_is_injected_into_successful_result():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)):
         result = run_atl_validator("module M;", "sample.atl")
+
+    assert "duration_ms" in result
+    assert result["duration_ms"] >= 0
+    assert result["valid"] is True
+
+
+def test_acceleo_builds_expected_argv_and_invokes_correct_class():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+        run_acceleo_validator("[module generate('http://example.com/mm')]", "generate.mtl")
+
+    argv = mock_run.call_args.args[0]
+    assert argv[0] == "java"
+    assert argv[1] == "-cp"
+    assert argv[2].endswith("/*")
+    assert argv[3] == "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
+    # Unlike run_ecore_validator, there's no mode arg — just the file path.
+    assert argv[4].endswith("generate.mtl")
+    assert len(argv) == 5
+
+
+def test_acceleo_writes_content_to_temp_file_and_cleans_up_afterward():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    written_path_holder = {}
+
+    def capture_and_respond(argv, **kwargs):
+        written_path_holder["path"] = Path(argv[4])
+        assert written_path_holder["path"].read_text(encoding="utf-8") == "[module generate('http://x')]"
+        return fake_completed_process(stdout=valid_json)
+
+    with patch("validator_runner.subprocess.run", side_effect=capture_and_respond):
+        run_acceleo_validator("[module generate('http://x')]", "generate.mtl")
+
+    assert not written_path_holder["path"].exists()
+
+
+def test_acceleo_nonzero_exit_becomes_infra_error_with_stderr():
+    with patch("validator_runner.subprocess.run",
+               return_value=fake_completed_process(returncode=1, stderr="boom")):
+        with pytest.raises(ValidatorInfraError, match="boom"):
+            run_acceleo_validator("[module generate('http://x')]", "generate.mtl")
+
+
+def test_acceleo_duration_ms_is_injected_into_successful_result():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)):
+        result = run_acceleo_validator("[module generate('http://x')]", "generate.mtl")
 
     assert "duration_ms" in result
     assert result["duration_ms"] >= 0

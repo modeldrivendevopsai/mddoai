@@ -266,9 +266,10 @@ def test_start_endpoint_omits_model_when_none_chosen():
 
 def test_start_endpoint_returns_409_while_busy():
     """integration_runner's own busy guard, not orchestrator's — start_pipeline()
-    swaps in a brand-new IntegrationRun, so restarting (or double-clicking
-    Start) mid-run must error, not silently orphan the old run's
-    background thread."""
+    may reuse the current run in place or swap in a brand-new one (see its
+    own docstring), but never while it's busy, so restarting (or
+    double-clicking Start) mid-run must error, not silently kick off a
+    second run against a still-executing background thread."""
     start_pipeline()
     ir_runs.current().busy = True
 
