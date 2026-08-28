@@ -66,6 +66,21 @@ def reset_tools_cache():
 
 
 @pytest.fixture(autouse=True)
+def _isolated_validation_runs_dir(tmp_path, monkeypatch):
+    # test_main.py's own real_integration_runner fixture runs
+    # integration_runner.main.app for real, in-process (httpx.ASGITransport,
+    # not mocked) — any test that reaches pim/psm/atl/acceleo for real
+    # (approve()/rerun() against those stages) would otherwise write real
+    # attempt files into integration_runner's own real
+    # ai/integration_runner/runs/ directory. Matches
+    # integration_runner/tests/conftest.py's own identical isolation for its
+    # own suite — this is the same gap, just on orchestrator's side of the
+    # process boundary.
+    from integration_runner.stages import _validation
+    monkeypatch.setattr(_validation, "RUNS_DIR", tmp_path / "runs")
+
+
+@pytest.fixture(autouse=True)
 def fake_stage_metadata():
     """Every test that calls send_message()/react_to_event() needs a real
     stage list/descriptions to build the system prompt and tool schemas

@@ -16,9 +16,10 @@ stages.stage_agents[stage] and stages.STAGE_DESCRIPTIONS, never a specific
 stage's own module, and routes/ only ever imports the one stage folder it
 needs.
 
-_shared.py holds constraints_note(), the one real thing the five
-placeholder agents share (stages/docs/agent.py doesn't use it, see its own
-docstring).
+_shared.py holds constraints_note(), which stages/generation/agent.py still
+uses — the last remaining LLM-prompt placeholder agent; pim/psm/atl/acceleo
+switched to fixed mock content validated for real against validator-agent
+instead (see stages/_validation.py and each of their own agent.py).
 """
 from integration_runner.stages import acceleo, atl, docs, generation, pim, psm, serialization
 
@@ -30,10 +31,10 @@ from integration_runner.stages import acceleo, atl, docs, generation, pim, psm, 
 STAGE_DESCRIPTIONS: dict[str, str] = {
     "docs": "fetches the platform's real documentation (a real call to retrieval).",
     "serialization": "restructures the fetched documentation into a labeled, PIM-concept-tagged markdown artifact.",
-    "pim": "a PIM (Platform-Independent Model) description of the platform.",
-    "psm": "a PSM (Platform-Specific Model) description of the platform.",
-    "atl": "the ATL transformation rules needed to build that PSM.",
-    "acceleo": "the Acceleo code-generation template for that ATL.",
+    "pim": "a PIM (Platform-Independent Model) Ecore description of the platform (mock content, validated for real).",
+    "psm": "a PSM (Platform-Specific Model) Ecore description of the platform (mock content, validated for real).",
+    "atl": "the ATL transformation rules needed to build that PSM (mock content, validated for real).",
+    "acceleo": "the Acceleo code-generation template for that ATL (mock content, validated for real).",
     "generation": "a final summary tying all prior stages together.",
 }
 

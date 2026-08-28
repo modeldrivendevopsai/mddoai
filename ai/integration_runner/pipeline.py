@@ -101,8 +101,11 @@ class IntegrationRun:
         self.last_context = context
         # self.constraints is looked up fresh (not snapshotted at run_stage() call time),
         # so a correction recorded via add_constraint() after this call is picked up the
-        # next time run_stage()/rerun() runs this same stage.
-        enriched_context = {**context, "constraints": self.constraints, "model": self.model}
+        # next time run_stage()/rerun() runs this same stage. run_id is threaded in the
+        # same way, for the pim/psm/atl/acceleo stage agents' own on-disk persistence
+        # (stages/_validation.py) — a real run identity, not something those agents
+        # invent or track themselves.
+        enriched_context = {**context, "constraints": self.constraints, "model": self.model, "run_id": self.run_id}
         output = agent(enriched_context)
         self.last_output = output
         self.last_completed_stage = stage

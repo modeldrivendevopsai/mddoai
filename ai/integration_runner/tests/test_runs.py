@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 from clients import ai_layer_client, retrieval_client
 from integration_runner import pipeline, runs
-from helpers import _fake_fetch_response, _fast_forward_to_psm, ok_response
+from helpers import _fake_fetch_response, _fast_forward_to_generation, ok_response
 
 
 def test_get_run_looks_up_a_known_run_by_id():
@@ -274,12 +274,12 @@ def test_current_returns_the_live_default_run():
     try:
         assert runs.current() is fresh
 
-        _fast_forward_to_psm(runs.current())
-        with patch.object(ai_layer_client, "chat", return_value=ok_response("PSM description")):
+        _fast_forward_to_generation(runs.current())
+        with patch.object(ai_layer_client, "chat", return_value=ok_response("Final summary")):
             runs.current().run_stage({"platform_description": "desc"})
 
         # A mutation through runs.current() is visible on the same real
         # object reset_pipeline()/resume_run() would also act on.
-        assert runs._default.last_output == "PSM description"
+        assert runs._default.last_output == "Final summary"
     finally:
         runs._default = original

@@ -1,7 +1,10 @@
-"""A small helper shared by every placeholder stage's own agent.py (pim,
-psm, atl, acceleo, generation). Not shared with the docs stage: docs_stage
-folds corrections into retrieval's own `hint` parameter instead, a
-different real mechanism (see stages/docs/agent.py's own docstring).
+"""A small helper for a placeholder stage's own agent.py that still calls
+an LLM with a corrections-aware prompt — only stages/generation/agent.py
+today; pim/psm/atl/acceleo return fixed mock content instead now (see each
+of their own agent.py docstrings for why a correction has nothing to act
+on there). Not shared with the docs stage either: docs_stage folds
+corrections into retrieval's own `hint` parameter instead, a different real
+mechanism (see stages/docs/agent.py's own docstring).
 """
 
 
