@@ -2821,18 +2821,18 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="9ras_q-UAdunJCnp_r7u-11" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="520.0000000000003" y="764" as="geometry" />
+          <mxGeometry height="80" width="80" x="520.0000000000003" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-14" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="350.00000000000034" y="764" as="geometry" />
+          <mxGeometry height="80" width="80" x="350.00000000000034" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-19" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="685.0000000000003" y="764" as="geometry" />
+          <mxGeometry height="80" width="80" x="685.0000000000003" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-23" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-11" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-19" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="618.0000000000003" y="854" as="sourcePoint" />
-            <mxPoint x="688.7106781186552" y="804" as="targetPoint" />
+            <mxPoint x="618.0000000000003" y="630" as="sourcePoint" />
+            <mxPoint x="688.7106781186552" y="580" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-106" connectable="0" parent="9ras_q-UAdunJCnp_r7u-23" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms&lt;br&gt;using rules" vertex="1">
@@ -2841,10 +2841,10 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-97" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=middle;" value="&lt;span style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; background-color: rgb(255, 255, 255);&quot;&gt;GitLab&lt;/span&gt;&lt;div style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(251, 251, 251); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;&quot;&gt;&lt;span style=&quot;forced-color-adjust: none; background-color: rgb(255, 255, 255);&quot;&gt;Pipeline Code (&lt;/span&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="105" x="860.61" y="764" as="geometry" />
+          <mxGeometry height="80" width="105" x="860.61" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-100" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=19;" value="S1 - template-based generation with LLM code completion" vertex="1">
-          <mxGeometry height="30" width="600" x="350" y="734" as="geometry" />
+          <mxGeometry height="30" width="600" x="350" y="510" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-101" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-103" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#FF0000;strokeColor=#FF0000;" target="9ras_q-UAdunJCnp_r7u-14" value="">
           <mxGeometry relative="1" as="geometry">
@@ -2862,8 +2862,8 @@
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-107" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-14" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-11" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="650.61" y="976" as="sourcePoint" />
-            <mxPoint x="735.61" y="976" as="targetPoint" />
+            <mxPoint x="650.61" y="752" as="sourcePoint" />
+            <mxPoint x="735.61" y="752" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-108" connectable="0" parent="9ras_q-UAdunJCnp_r7u-107" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms &lt;br&gt;using rules" vertex="1">
@@ -2873,8 +2873,8 @@
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-109" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-19" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startSize=18;strokeColor=#FF0000;" target="9ras_q-UAdunJCnp_r7u-97" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="870.61" y="966" as="sourcePoint" />
-            <mxPoint x="955.61" y="966" as="targetPoint" />
+            <mxPoint x="870.61" y="742" as="sourcePoint" />
+            <mxPoint x="955.61" y="742" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-111" connectable="0" parent="9ras_q-UAdunJCnp_r7u-109" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Prompt LLM&lt;br&gt;for code" vertex="1">
@@ -2903,18 +2903,18 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-125" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="520.0000000000003" y="630" as="geometry" />
+          <mxGeometry height="80" width="80" x="520.0000000000003" y="410" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-126" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="350.00000000000034" y="630" as="geometry" />
+          <mxGeometry height="80" width="80" x="350.00000000000034" y="410" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-127" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
-          <mxGeometry height="80" width="80" x="685.0000000000003" y="630" as="geometry" />
+          <mxGeometry height="80" width="80" x="685.0000000000003" y="410" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-128" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-125" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="9ras_q-UAdunJCnp_r7u-127" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="618.0000000000003" y="720" as="sourcePoint" />
-            <mxPoint x="688.7106781186552" y="670" as="targetPoint" />
+            <mxPoint x="618.0000000000003" y="500" as="sourcePoint" />
+            <mxPoint x="688.7106781186552" y="450" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-129" connectable="0" parent="9ras_q-UAdunJCnp_r7u-128" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms&lt;br&gt;using rules" vertex="1">
@@ -2923,15 +2923,15 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-130" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=middle;" value="&lt;span style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; background-color: rgb(255, 255, 255);&quot;&gt;GitLab&lt;/span&gt;&lt;div style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(251, 251, 251); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;&quot;&gt;&lt;span style=&quot;forced-color-adjust: none; background-color: rgb(255, 255, 255);&quot;&gt;Pipeline Code (&lt;/span&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="105" x="860.6100000000001" y="630" as="geometry" />
+          <mxGeometry height="80" width="105" x="860.6100000000001" y="410" as="geometry" />
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-131" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=19;" value="B2 - template-based generation with LLM code completion" vertex="1">
-          <mxGeometry height="30" width="600" x="350" y="600" as="geometry" />
+        <mxCell id="9ras_q-UAdunJCnp_r7u-131" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=19;" value="B2 - manual model-driven authoring" vertex="1">
+          <mxGeometry height="30" width="600" x="350" y="380" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-132" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-126" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="9ras_q-UAdunJCnp_r7u-125" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="650.61" y="842" as="sourcePoint" />
-            <mxPoint x="735.61" y="842" as="targetPoint" />
+            <mxPoint x="650.61" y="622" as="sourcePoint" />
+            <mxPoint x="735.61" y="622" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-133" connectable="0" parent="9ras_q-UAdunJCnp_r7u-132" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms &lt;br&gt;using rules" vertex="1">
@@ -2941,11 +2941,11 @@
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-134" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-127" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="9ras_q-UAdunJCnp_r7u-130" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="870.6100000000001" y="832" as="sourcePoint" />
-            <mxPoint x="955.6100000000001" y="832" as="targetPoint" />
+            <mxPoint x="870.6100000000001" y="612" as="sourcePoint" />
+            <mxPoint x="955.6100000000001" y="612" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-135" connectable="0" parent="9ras_q-UAdunJCnp_r7u-134" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Prompt LLM&lt;br&gt;for code" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-135" connectable="0" parent="9ras_q-UAdunJCnp_r7u-134" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms&lt;br&gt;using rules" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
@@ -2973,6 +2973,65 @@
         <mxCell id="9ras_q-UAdunJCnp_r7u-140" connectable="0" parent="9ras_q-UAdunJCnp_r7u-139" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Draws" vertex="1">
           <mxGeometry relative="1" x="0.0436" as="geometry">
             <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-141" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-103" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#FF0000;strokeColor=#FF0000;" target="9ras_q-UAdunJCnp_r7u-126" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="590" as="sourcePoint" />
+            <mxPoint x="620" y="778" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-142" connectable="0" parent="9ras_q-UAdunJCnp_r7u-141" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#FF0000;" value="Models" vertex="1">
+          <mxGeometry relative="1" x="0.0436" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-143" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="80" x="520.0000000000003" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-144" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="80" x="350.00000000000034" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-145" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="80" x="685.0000000000003" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-146" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-143" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-145" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="618.0000000000003" y="760" as="sourcePoint" />
+            <mxPoint x="688.7106781186552" y="710" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-147" connectable="0" parent="9ras_q-UAdunJCnp_r7u-146" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms&lt;br&gt;using rules" vertex="1">
+          <mxGeometry relative="1" x="-0.0758" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-148" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=middle;" value="&lt;span style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; background-color: rgb(255, 255, 255);&quot;&gt;GitLab&lt;/span&gt;&lt;div style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(251, 251, 251); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;&quot;&gt;&lt;span style=&quot;forced-color-adjust: none; background-color: rgb(255, 255, 255);&quot;&gt;Pipeline Code (&lt;/span&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="105" x="860.6100000000001" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-149" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=19;" value="S2 - direct LLM pipeline generation" vertex="1">
+          <mxGeometry height="30" width="600" x="350" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-150" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-144" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-143" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="650.61" y="882" as="sourcePoint" />
+            <mxPoint x="735.61" y="882" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-151" connectable="0" parent="9ras_q-UAdunJCnp_r7u-150" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Transforms &lt;br&gt;using rules" vertex="1">
+          <mxGeometry relative="1" x="-0.0758" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-152" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-145" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startSize=18;strokeColor=#FF0000;" target="9ras_q-UAdunJCnp_r7u-148" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="870.6100000000001" y="872" as="sourcePoint" />
+            <mxPoint x="955.6100000000001" y="872" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-153" connectable="0" parent="9ras_q-UAdunJCnp_r7u-152" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Prompt LLM&lt;br&gt;for code" vertex="1">
+          <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
+            <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
         </mxCell>
       </root>
