@@ -2857,7 +2857,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="DevOps engineer" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;fontColor=#FF0000;" value="DevOps engineer" vertex="1">
           <mxGeometry height="60" width="30" x="160" y="568" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-107" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-14" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-11" value="">
