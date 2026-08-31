@@ -2857,7 +2857,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="A build and deploy requirement &lt;br&gt;of some architecture" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Receives a task: build and deploy&amp;nbsp;some software" vertex="1">
           <mxGeometry height="60" width="30" x="160" y="568" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-107" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-14" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-11" value="">
@@ -3090,7 +3090,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-171" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=middle;" value="&lt;span style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; background-color: rgb(255, 255, 255);&quot;&gt;Validate &amp;amp; Execute&lt;/span&gt;" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-171" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=middle;" value="&lt;span style=&quot;forced-color-adjust: none; color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; background-color: rgb(255, 255, 255);&quot;&gt;Validate on the platform&lt;br&gt;(GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
           <mxGeometry height="80" width="105" x="1080" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-172" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-163" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;dashed=1;dashPattern=1 4;" target="9ras_q-UAdunJCnp_r7u-171" value="">
@@ -3099,7 +3099,7 @@
             <mxPoint x="1036" y="940" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-173" connectable="0" parent="9ras_q-UAdunJCnp_r7u-172" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Loop agent" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-173" connectable="0" parent="9ras_q-UAdunJCnp_r7u-172" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Loop agent&lt;br&gt;executes" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
@@ -3110,7 +3110,7 @@
             <mxPoint x="1166" y="930" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-175" connectable="0" parent="9ras_q-UAdunJCnp_r7u-174" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Import" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-175" connectable="0" parent="9ras_q-UAdunJCnp_r7u-174" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Execute" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
@@ -3121,7 +3121,7 @@
             <mxPoint x="1184" y="810" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-177" connectable="0" parent="9ras_q-UAdunJCnp_r7u-176" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Import" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-177" connectable="0" parent="9ras_q-UAdunJCnp_r7u-176" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Execute" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
@@ -3132,7 +3132,7 @@
             <mxPoint x="1244" y="860" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-179" connectable="0" parent="9ras_q-UAdunJCnp_r7u-178" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Import" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-179" connectable="0" parent="9ras_q-UAdunJCnp_r7u-178" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Execute" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
@@ -3143,10 +3143,43 @@
             <mxPoint x="1224" y="840" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-181" connectable="0" parent="9ras_q-UAdunJCnp_r7u-180" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Import" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-181" connectable="0" parent="9ras_q-UAdunJCnp_r7u-180" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#FF0000;" value="Execute" vertex="1">
           <mxGeometry relative="1" x="0.146" y="-2" as="geometry">
             <mxPoint x="-12" y="-2" as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-182" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Business requirement" vertex="1">
+          <mxGeometry height="60" width="120" x="115" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-183" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="510" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-184" parent="1" style="text;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: nowrap; background-color: rgb(236, 236, 236); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;&quot;&gt;DevOps engineer&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="130" x="100" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-187" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="770" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-188" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="770" y="588" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-189" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="780" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-190" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="500" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-191" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="1010" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-192" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="990" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-193" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="990" y="588" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-194" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
+          <mxGeometry height="20" width="10" x="990" y="660" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
