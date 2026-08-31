@@ -2823,7 +2823,7 @@
         <mxCell id="9ras_q-UAdunJCnp_r7u-11" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="520.0000000000003" y="540" as="geometry" />
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-14" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-14" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;model&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="350.00000000000034" y="540" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-19" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
@@ -2857,7 +2857,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Receives a task: build and deploy&amp;nbsp;some software" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-103" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="DevOps engineer" vertex="1">
           <mxGeometry height="60" width="30" x="160" y="568" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-107" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-14" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;dashPattern=1 4;startSize=18;" target="9ras_q-UAdunJCnp_r7u-11" value="">
@@ -2905,7 +2905,7 @@
         <mxCell id="9ras_q-UAdunJCnp_r7u-125" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="520.0000000000003" y="410" as="geometry" />
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-126" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-126" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;model&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="350.00000000000034" y="410" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-127" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
@@ -2986,7 +2986,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-144" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-144" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;diagram&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="350.00000000000034" y="670" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-145" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD diagram (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
@@ -3034,7 +3034,7 @@
         <mxCell id="9ras_q-UAdunJCnp_r7u-158" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PIM&lt;/span&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="520.0000000000003" y="798" as="geometry" />
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-159" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Model&lt;/span&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="9ras_q-UAdunJCnp_r7u-159" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;System Architecture&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;model&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="80" x="350.00000000000034" y="798" as="geometry" />
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-160" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;CI/CD PSM (GitLab, GitHub, Azure DevOps, etc.)&lt;/span&gt;" vertex="1">
@@ -3154,9 +3154,6 @@
         <mxCell id="9ras_q-UAdunJCnp_r7u-183" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
           <mxGeometry height="20" width="10" x="510" y="720" as="geometry" />
         </mxCell>
-        <mxCell id="9ras_q-UAdunJCnp_r7u-184" parent="1" style="text;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: nowrap; background-color: rgb(236, 236, 236); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;&quot;&gt;DevOps engineer&lt;/span&gt;" vertex="1">
-          <mxGeometry height="40" width="130" x="100" y="710" as="geometry" />
-        </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-187" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
           <mxGeometry height="20" width="10" x="770" y="720" as="geometry" />
         </mxCell>
@@ -3180,6 +3177,17 @@
         </mxCell>
         <mxCell id="9ras_q-UAdunJCnp_r7u-194" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#FF0000;" value="" vertex="1">
           <mxGeometry height="20" width="10" x="990" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-195" edge="1" parent="1" source="9ras_q-UAdunJCnp_r7u-182" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#330000;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryPerimeter=0;fontColor=#330000;" target="9ras_q-UAdunJCnp_r7u-103" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="280" y="800" as="sourcePoint" />
+            <mxPoint x="440" y="902" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9ras_q-UAdunJCnp_r7u-196" connectable="0" parent="9ras_q-UAdunJCnp_r7u-195" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=#FF0000;fontColor=#330000;" value="Receives a task: &lt;br&gt;build and deploy some software" vertex="1">
+          <mxGeometry relative="1" x="0.0436" as="geometry">
+            <mxPoint y="-63" as="offset" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
