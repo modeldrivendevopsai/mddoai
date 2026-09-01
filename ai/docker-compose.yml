@@ -69,6 +69,7 @@ services:
       - RETRIEVAL_URL=http://retrieval:8010
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
       - PSM_AGENT_URL=http://psm-agent:8040
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -77,6 +78,8 @@ services:
       serialization-agent:
         condition: service_healthy
       psm-agent:
+        condition: service_healthy
+      validator-agent:
         condition: service_healthy
     expose:
       - "8050"

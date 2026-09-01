@@ -19,7 +19,7 @@ from fastapi import HTTPException
 from clients import retrieval_client
 from integration_runner import pipeline, runs
 from integration_runner.routes.docs import ExtendRequest, extend_endpoint
-from helpers import _fake_page_response, _fast_forward_to_atl
+from helpers import _fake_page_response, _fast_forward_to_generation
 
 
 @pytest.fixture(autouse=True)
@@ -75,7 +75,7 @@ def test_extend_endpoint_clears_busy_even_when_the_fetch_fails():
 
 def test_extend_endpoint_maps_wrong_stage_to_400():
     runs._default = pipeline.IntegrationRun()
-    _fast_forward_to_atl(runs.current())
+    _fast_forward_to_generation(runs.current())
 
     with pytest.raises(HTTPException) as exc_info:
         extend_endpoint(ExtendRequest(url="https://example.com/docs"))

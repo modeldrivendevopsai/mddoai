@@ -24,5 +24,10 @@ ai/retrieval/global.yml
 # third-party doc content fetched during retrieval testing, not ours to redistribute
 ai/retrieval/samples/
 
+# Per-run persisted validator artifacts + results (ai/integration_runner/
+# stages/_validation.py), in-memory run state's on-disk counterpart, gone
+# on restart the same way the in-memory run history already is
+ai/integration_runner/runs/
+
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
