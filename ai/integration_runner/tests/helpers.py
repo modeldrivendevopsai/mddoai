@@ -43,6 +43,23 @@ def _validation_result(valid=True, issues=None, duration_ms=5, mode=None):
     return result
 
 
+def _psm_generation_result(artifact="<ecore:EPackage/>", valid=True):
+    """A psm_agent_client.run_psm()-shaped result for generation mode — psm
+    is the one mock-validated-looking stage whose real boundary isn't
+    validator_agent_client directly (see stages/psm/agent.py's own
+    docstring): it calls psm_agent_client.run_psm() instead, so any test
+    that runs psm_stage() for real must mock THIS, not validate_ecore —
+    mocking validate_ecore alone silently does nothing to intercept it and
+    the call falls through to a real (likely unreachable) network request."""
+    return {
+        "mode": "generation",
+        "artifact": artifact,
+        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "validation": _validation_result(valid=valid),
+        "rounds": 1,
+    }
+
+
 def _fake_fetch_response(pages=None, confidence=0.8):
     """A retrieval-shaped httpx response, for tests that mock
     retrieval_client.httpx directly to let docs_stage's real call through

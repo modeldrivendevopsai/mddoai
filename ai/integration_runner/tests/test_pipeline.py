@@ -57,21 +57,7 @@ from integration_runner import pipeline
 from integration_runner.stages.atl import agent as atl_agent
 from integration_runner.stages.acceleo import agent as acceleo_agent
 from integration_runner.stages.pim import agent as pim_agent
-from helpers import _fast_forward_to, _fast_forward_to_generation, _validation_result, ok_response
-
-
-def _psm_generation_result(artifact="<ecore:EPackage/>", valid=True):
-    """A psm_agent_client.run_psm()-shaped result for generation mode — psm
-    is the one stage whose real boundary isn't validator_agent_client
-    directly (see stages/psm/agent.py's own docstring), so its own tests
-    mock this instead of _validation_result()."""
-    return {
-        "mode": "generation",
-        "artifact": artifact,
-        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
-        "validation": _validation_result(valid=valid),
-        "rounds": 1,
-    }
+from helpers import _fast_forward_to, _fast_forward_to_generation, _psm_generation_result, _validation_result, ok_response
 
 
 def test_stages_order():
