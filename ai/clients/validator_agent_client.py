@@ -21,10 +21,13 @@ VALIDATOR_AGENT_URL = os.environ.get("VALIDATOR_AGENT_URL", "http://localhost:80
 VALIDATE_TIMEOUT = float(os.environ.get("VALIDATE_TIMEOUT", "90.0"))
 
 
-def validate_ecore(content: str, filename: str, mode: str = "reflective") -> dict:
+def validate_ecore(content: str, filename: str = "model.ecore", mode: str = "reflective") -> dict:
     """POSTs to validator-agent's real /validate/ecore, returns its parsed
     JSON response directly: {"valid": bool, "mode": str, "issues":
-    [{"severity", "message", "source"}], "duration_ms": int}."""
+    [{"severity", "message", "source"}], "duration_ms": int,
+    "generated_source_path": str | None}. filename defaults to a generic
+    name for callers (e.g. psm_agent's own generate()) that validate
+    in-memory content with no real source file of its own."""
     response = httpx.post(
         f"{VALIDATOR_AGENT_URL}/validate/ecore",
         json={"filename": filename, "content": content, "mode": mode},

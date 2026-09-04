@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ecore.EcoreCodegenResult;
 import main.java.mddoai.validation.ecore.EcoreValidator;
 import main.java.mddoai.validation.ecore.EcoreValidatorCli;
 
@@ -25,25 +26,41 @@ public class EcoreValidatorCodegenE2ETest {
 
     @Test
     public void validEcoreCompilesClean() {
-        ValidationResult result = EcoreValidator.validateViaCodegen(FIXTURES + "valid.ecore");
+        EcoreCodegenResult codegenResult = EcoreValidator.validateViaCodegen(FIXTURES + "valid.ecore");
+        ValidationResult result = codegenResult.result();
 
         assertTrue(result.valid(), "expected clean compile, got: " + result.issues());
     }
 
     @Test
+    public void validEcoreCodegenOutputIsPersistedNotDeleted() {
+        EcoreCodegenResult codegenResult = EcoreValidator.validateViaCodegen(FIXTURES + "valid.ecore");
+
+        assertTrue(codegenResult.result().valid(), "expected clean compile, got: " + codegenResult.result().issues());
+        String outputPath = codegenResult.generatedOutputPath();
+        assertTrue(outputPath != null && !outputPath.isBlank(), "expected a non-null generated output path");
+        java.io.File outputDir = new java.io.File(outputPath);
+        assertTrue(outputDir.isDirectory(), "expected " + outputPath + " to exist as a real directory after the call returns");
+        assertTrue(new java.io.File(outputDir, "model.genmodel").isFile(), "expected model.genmodel to survive on disk");
+        assertTrue(new java.io.File(outputDir, "src-gen").isDirectory(), "expected src-gen/ to survive on disk");
+    }
+
+    @Test
     public void brokenReflectiveFixtureShortCircuitsBeforeCodegen() {
         ValidationResult reflective = EcoreValidator.validateReflectively(FIXTURES + "broken-dangling-reference.ecore");
-        ValidationResult viaCodegen = EcoreValidator.validateViaCodegen(FIXTURES + "broken-dangling-reference.ecore");
+        EcoreCodegenResult viaCodegen = EcoreValidator.validateViaCodegen(FIXTURES + "broken-dangling-reference.ecore");
 
-        assertFalse(viaCodegen.valid());
+        assertFalse(viaCodegen.result().valid());
         // Fail-fast: validateViaCodegen returns the reflective result verbatim, proving
         // codegen/javac never ran (no codegen-stage issues were appended).
-        assertEquals(reflective.issues(), viaCodegen.issues());
+        assertEquals(reflective.issues(), viaCodegen.result().issues());
+        assertEquals(null, viaCodegen.generatedOutputPath(), "nothing was generated, so no output path");
     }
 
     @Test
     public void uncompilableFixtureSurfacesRealJavacDiagnostic() {
-        ValidationResult result = EcoreValidator.validateViaCodegen(FIXTURES + "broken-uncompilable.ecore");
+        EcoreCodegenResult codegenResult = EcoreValidator.validateViaCodegen(FIXTURES + "broken-uncompilable.ecore");
+        ValidationResult result = codegenResult.result();
 
         assertFalse(result.valid());
         boolean hasRealCompilerError = result.issues().stream()
@@ -53,14 +70,19 @@ public class EcoreValidatorCodegenE2ETest {
                         || i.message().toLowerCase().contains("cannot be resolved"));
         assertTrue(hasRealCompilerError,
                 "expected a real javac compiler error naming the bogus type, got: " + result.issues());
+        // src-gen genuinely exists even though compiling it failed - that's exactly the
+        // output a human debugging the failure needs, so it must still be kept.
+        String outputPath = codegenResult.generatedOutputPath();
+        assertTrue(outputPath != null && !outputPath.isBlank(),
+                "expected generated src-gen to be kept even though compilation failed");
     }
 
     @Test
     public void realShippedGitlabMetamodelCompilesCleanEndToEnd() {
-        ValidationResult result = EcoreValidator.validateViaCodegen(
+        EcoreCodegenResult codegenResult = EcoreValidator.validateViaCodegen(
                 "../meta_models/com.mddoai.metamodel.gitlab/model/gitlabMM.ecore");
 
-        assertTrue(result.valid(), "expected clean compile, got: " + result.issues());
+        assertTrue(codegenResult.result().valid(), "expected clean compile, got: " + codegenResult.result().issues());
     }
 
     // The tests above call EcoreValidator.validateViaCodegen() directly, an in-memory Java

@@ -8,24 +8,34 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   that needs something from another one calls it over real HTTP, never by importing the other
   service's Python internals directly — see [ai/README.md](./README.md)'s services list and
   request-path description for which services exist today and how they actually call each other.
-- `clients/`, `design-system/`, and `orchestrator-types/` are the three folders under `ai/` that
-  aren't themselves deployed services: no port, no Dockerfile, no entry in `docker-compose.yml`.
-  `clients/` is a shared package of thin HTTP wrapper functions (one module per sibling service it
-  can reach), imported directly as a Python package by whichever service needs to make that
-  outbound call — this is how real cross-service communication happens in `ai/`, not a second,
-  competing mechanism alongside it. `design-system/` is the frontend's equivalent for shared UI: a
-  component/token package (its own `src/index.ts` barrel export is the current source of truth for
-  exactly what it exports). `orchestrator-types/` is the frontend's equivalent for a shared type
-  contract: `ai/orchestrator`'s real REST/event contract (`StageId`, `OrchestratorEvent`, etc.),
-  plus the small `StagePanelProps` UI prop contract, in one place instead of hand-copied per
-  package. Both frontend packages are consumed the same way, via an ordinary local
-  `"file:../design-system"`/`"file:../orchestrator-types"` npm dependency, bundled into each
-  consumer's own build at build time. Both are deliberately *not* Module Federation remotes like
-  the `ui-remote-*` packages below: neither is an independently-owned feature (what Module
-  Federation is for), each is a dependency every other frontend piece needs just to render or
-  compile at all, so making either a live container would turn a handful of small components (or,
-  for `orchestrator-types`, mostly type declarations plus a couple of small constant arrays) into a
-  single point of failure for the whole app.
+- `clients/`, `generation_toolkit/`, `design-system/`, and `orchestrator-types/` are the four
+  folders under `ai/` that aren't themselves deployed services: no port, no Dockerfile, no entry in
+  `docker-compose.yml`. `clients/` is a shared package of thin HTTP wrapper functions (one module
+  per sibling service it can reach), imported directly as a Python package by whichever service
+  needs to make that outbound call — this is how real cross-service communication happens in `ai/`,
+  not a second, competing mechanism alongside it. `generation_toolkit/` is a shared, stage-agnostic
+  "build a prompt, call the LLM, validate, retry" toolkit, imported directly as a Python package by
+  whichever service's own stage agent needs that shape (`psm_agent` today). Extracted ahead of a
+  second real consumer on a stated, concrete direction: whichever of `integration_runner`'s
+  remaining placeholder stages (`pim`, `atl`, `acceleo`, `generation`) gets a real implementation
+  next should reuse this rather than rebuilding the same prompt-assembly and regenerate-loop
+  pattern from scratch. A stage with no real validator yet just omits the optional `validate_fn`
+  and gets a plain single-shot call — see `generation_toolkit/generation_agent.py`'s own docstring.
+  `design-system/` is the frontend's equivalent for shared UI: a component/token package (its own
+  `src/index.ts` barrel export is the current source of truth for exactly what it exports).
+  `orchestrator-types/` is the frontend's equivalent for a shared type contract: `ai/orchestrator`'s
+  real REST/event contract (`StageId`, `OrchestratorEvent`, etc.), plus the small `StagePanelProps`
+  UI prop contract, in one place instead of hand-copied per package. Both frontend packages are
+  consumed the same way, via an ordinary local `"file:../design-system"`/`"file:../orchestrator-types"`
+  npm dependency, bundled into each consumer's own build at build time. Both are deliberately *not*
+  Module Federation remotes like the `ui-remote-*` packages below: neither is an independently-owned
+  feature (what Module Federation is for), each is a dependency every other frontend piece needs
+  just to render or compile at all, so making either a live container would turn a handful of small
+  components (or, for `orchestrator-types`, mostly type declarations plus a couple of small constant
+  arrays) into a single point of failure for the whole app. A stage-local helper needed by only one
+  `ui-remote-*` package (not yet a second consumer) stays local to that package instead of being
+  pulled into `orchestrator-types` — that package's own charter is the type contract plus those two
+  constant arrays, not a general utility grab-bag.
 - Every deployed frontend package's folder is prefixed `ui-`: `ui-host/` (the host/shell — routing,
   `AppShell`, `useIntegration.ts`'s state hub, and every real backend service call) and
   `ui-remote-*/` (one Module Federation remote per independently-liftable UI section — a pipeline
@@ -59,6 +69,8 @@ See [ai/README.md](./README.md) for how the services fit together and how to run
 **Replacing a placeholder stage agent with a real implementation:**
 1. Rewrite `stages/<stage>/agent.py`'s real logic, keeping the same function name and `(context: dict) -> str` signature the placeholder had.
 2. Nothing else changes: `stages/__init__.py` already points `stage_agents[stage]` at that function by name, and `pipeline.py` only ever reads `stages.stage_agents[stage]`, never a specific stage's own module.
+
+**When a stage's real output is more than one string:** `pipeline.py`'s `run_stage()` also accepts `(context: dict) -> tuple[str, dict]` — the tuple's second element is merged into the `call_completed` event's own data alongside `output`. This is a narrow, deliberate exception to the plain `-> str` contract above, for a stage whose real capability produces genuinely structured data (e.g. the exact prompt used, or a validation/gap result) that a plain string has nowhere to carry — `stages/psm/agent.py` is the one stage that needs this today. Don't reach for it by default: every other stage stays plain `-> str`, and `run_stage()` treats a non-tuple return exactly as before.
 
 **Adding a new real, chat-callable capability for a stage** (something beyond running/rerunning the stage itself, e.g. an action targeting one specific piece of a stage's existing output):
 1. Write the real implementation in `stages/<stage>/actions.py` (create it if this stage doesn't have one yet) as a function taking the run instance as its first argument and mutating it directly. It must have real effect, actually changing what the run holds, not just log a summary of what happened: any chat-callable action must invoke the same real state-changing path a manual or direct REST caller would use for the same intent, never a weaker echo of it.

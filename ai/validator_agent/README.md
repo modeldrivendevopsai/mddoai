@@ -1,6 +1,6 @@
 # validator_agent
 
-Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), and `.mtl` Acceleo templates (issue #315). The real caller today is `integration_runner`'s own `pim`/`psm` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output — see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts).
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), and `.mtl` Acceleo templates (issue #315). The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output — see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts) — and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
 
 Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
@@ -31,10 +31,12 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 {"filename": "pimMM.ecore", "content": "<?xml ...>", "mode": "reflective"}
 
 // response (200)
-{"valid": false, "mode": "reflective", "issues": [{"severity": "ERROR", "message": "...", "source": "..."}], "duration_ms": 842}
+{"valid": false, "mode": "reflective", "issues": [{"severity": "ERROR", "message": "...", "source": "..."}], "duration_ms": 842, "generated_source_path": null}
 ```
 
 `mode` is `"reflective"` (structural check only — is the metamodel well-formed) or `"codegen"` (also generates real Java from it and compiles that with a real `javac` — the only way to catch problems like an `instanceClassName` pointing at a Java class that doesn't actually exist). `codegen` always runs the reflective check first and returns immediately if that fails, so it never spends time generating code for an already-broken metamodel.
+
+`generated_source_path` is only ever non-null for `codegen` mode, and only once generation got far enough to actually produce `src-gen/` (a genmodel-level failure before that point has nothing worth keeping). It's `main/`'s real `EcoreValidator.OUTPUT_ROOT` path (`VALIDATOR_OUTPUT_DIR` below) where the generated `.genmodel`/`src-gen`/`classes-out` survive on disk — kept even when the generated source fails to actually compile, since that's exactly the output a human debugging the failure needs to see.
 
 ### `POST /validate/atl`
 
@@ -73,6 +75,13 @@ This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-c
 ```
 cp .env.example .env   # optional — every setting has a working default
 ```
+
+`VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator` directly, not by this
+Python service) is where `codegen` mode's generated output is persisted. `ai/docker-compose.yml`
+points it at a dedicated writable volume (`validator-generated-output`, separate from the
+read-only `main-build-output` mount above — unrelated concerns, not a subpath of one another).
+Unset in local/non-Docker dev, it falls back to the JVM's own temp directory, still not deleted —
+no automatic expiry/cleanup of old runs exists yet, a known, documented limitation.
 
 ## Run
 

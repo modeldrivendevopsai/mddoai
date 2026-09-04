@@ -1,16 +1,24 @@
-"""integration_runner/stages/{pim,psm,atl,acceleo}/agent.py unit tests: the
-four stages that switched from LLM prose to fixed mock DSL content, each
+"""integration_runner/stages/{pim,atl,acceleo}/agent.py unit tests: the
+three stages that switched from LLM prose to fixed mock DSL content, each
 validated for real against validator-agent and persisted to disk win or
 lose (see stages/_validation.py). No real validator-agent HTTP calls here —
 validator_agent_client's validate_* functions are mocked at that boundary;
-see test_pim_stage_real_validator.py for the one real end-to-end exception.
-RUNS_DIR is redirected to a throwaway tmp_path for every test in this whole
-suite by conftest.py's own autouse fixture, so persist_attempt() runs for
-real here without touching this repo's actual runs/ directory.
+see test_mock_validated_stages_real_validator.py for the real end-to-end
+exception. RUNS_DIR is redirected to a throwaway tmp_path for every test in
+this whole suite by conftest.py's own autouse fixture, so persist_attempt()
+runs for real here without touching this repo's actual runs/ directory.
 
-Tests verify, for each of the four stages:
+psm is deliberately NOT parametrized here even though it also calls
+persist_attempt(): unlike these three, its real content/validation comes
+from psm_agent_client.run_psm() (a real generation/comparison call), not a
+fixed mock string validated directly against validator_agent_client, and it
+deliberately does NOT raise_if_invalid() on a generation-mode failure (see
+stages/psm/agent.py's own docstring) — its own tests live in
+test_psm_stage.py and test_pipeline.py instead.
+
+Tests verify, for each of the three stages:
   1. It calls the right validator_agent_client function with its own fixed
-     mock content and filename (and, for pim/psm, the ecore "mode").
+     mock content and filename (and, for pim, the ecore "mode").
   2. On a passing result, it returns the mock content and leaves a real
      attempt_1/ on disk (content + result.json).
   3. On a failing result, it raises with the real issue detail AND still
@@ -19,7 +27,7 @@ Tests verify, for each of the four stages:
   4. Two attempts for the same run_id don't collide — attempt_2/ appears
      alongside attempt_1/, neither overwritten.
 Context (platform_description, docs_output, etc.) is deliberately never
-asserted against the sent content here: these four stages ignore their
+asserted against the sent content here: these three stages ignore their
 input, unlike the LLM-placeholder ones (see each agent.py's own docstring
 for why).
 """
@@ -32,13 +40,11 @@ from integration_runner.stages import _validation
 from integration_runner.stages.acceleo import agent as acceleo_agent
 from integration_runner.stages.atl import agent as atl_agent
 from integration_runner.stages.pim import agent as pim_agent
-from integration_runner.stages.psm import agent as psm_agent
 from helpers import _validation_result
 
 # (stage module, stage_fn, stage name, validator_agent_client function name, filename)
 _STAGES = [
     (pim_agent, pim_agent.pim_stage, "pim", "validate_ecore", pim_agent._FILENAME),
-    (psm_agent, psm_agent.psm_stage, "psm", "validate_ecore", psm_agent._FILENAME),
     (atl_agent, atl_agent.atl_stage, "atl", "validate_atl", atl_agent._FILENAME),
     (acceleo_agent, acceleo_agent.acceleo_stage, "acceleo", "validate_acceleo", acceleo_agent._FILENAME),
 ]
@@ -114,11 +120,12 @@ def test_two_attempts_for_the_same_run_do_not_collide(module, stage_fn, stage, c
     assert (stage_dir / "attempt_2" / filename).read_text(encoding="utf-8") == module._MOCK_CONTENT
 
 
-def test_pim_and_psm_both_validate_against_ecore_with_reflective_mode(monkeypatch):
-    # Confirms the actual correction from the earlier scoping pass: pim and
-    # psm are wired to /validate/ecore (structurally identical to atl_stage
-    # calling /validate/atl and acceleo_stage calling /validate/acceleo),
-    # not just "some Ecore-shaped content" by coincidence.
+def test_pim_validates_against_ecore_with_reflective_mode(monkeypatch):
+    # Confirms pim is wired to /validate/ecore specifically (structurally
+    # identical to atl_stage calling /validate/atl and acceleo_stage calling
+    # /validate/acceleo, both already covered by the parametrized tests
+    # above), not just "some Ecore-shaped content" by coincidence, and that
+    # it uses the reflective (not codegen) mode.
     calls = []
     monkeypatch.setattr(
         validator_agent_client, "validate_ecore",
@@ -126,9 +133,7 @@ def test_pim_and_psm_both_validate_against_ecore_with_reflective_mode(monkeypatc
     )
 
     pim_agent.pim_stage({"run_id": "run-1"})
-    psm_agent.psm_stage({"run_id": "run-1"})
 
-    assert len(calls) == 2
-    # mode defaults to "reflective" (validator_agent_client's own default),
-    # neither stage overrides it.
-    assert all(call.get("mode", "reflective") == "reflective" for call in calls)
+    assert len(calls) == 1
+    # mode defaults to "reflective" (validator_agent_client's own default), pim doesn't override it.
+    assert calls[0].get("mode", "reflective") == "reflective"

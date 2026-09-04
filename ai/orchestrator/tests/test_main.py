@@ -56,7 +56,7 @@ from fastapi.testclient import TestClient
 import chat_log
 import integration_runner.main
 import main
-from clients import ai_layer_client, integration_runner_client, retrieval_client, serialization_agent_client, validator_agent_client
+from clients import ai_layer_client, integration_runner_client, psm_agent_client, retrieval_client, serialization_agent_client, validator_agent_client
 from integration_runner import runs as ir_runs
 from integration_runner.pipeline import IntegrationRun
 
@@ -120,6 +120,26 @@ def _fake_validate_response(valid=True, issues=None):
     return resp
 
 
+def _fake_psm_response(artifact="Generic stage output", valid=True):
+    # psm is the one stage that's genuinely real, not mock-validated like
+    # pim/atl/acceleo (see integration_runner/stages/psm/agent.py): it calls
+    # psm_agent_client.run_psm(), a different real boundary than either
+    # ai_layer_client or validator_agent_client — approve() needs this
+    # mocked too, or approving pim (which starts psm's real run) makes a
+    # genuinely unmocked network call to a real psm-agent that may not be
+    # running on the test machine.
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = {
+        "mode": "generation",
+        "artifact": artifact,
+        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "rounds": 1,
+    }
+    return resp
+
+
 def _fake_fetch_response(pages=None, confidence=0.8):
     pages = pages or [{
         "url": "https://example.com/docs", "success": True, "status_code": 200,
@@ -151,14 +171,16 @@ def start_pipeline(platform_description="A GitLab CI platform", seed_url="https:
 
 def approve(stage_id, agent_response_text="Generic stage output"):
     # Whichever stage this approval starts running next might be an
-    # LLM-prompt one (ai_layer_client) or a mock-validated one
-    # (validator_agent_client) — both mocked here since the caller doesn't
-    # know or care which, same reasoning as _fake_httpx_response's own
-    # "Generic stage output" default.
+    # LLM-prompt one (ai_layer_client), a mock-validated one
+    # (validator_agent_client), or psm specifically (psm_agent_client) — all
+    # three mocked here since the caller doesn't know or care which, same
+    # reasoning as _fake_httpx_response's own "Generic stage output" default.
     with patch.object(ai_layer_client, "httpx") as mock_chat_httpx, \
-            patch.object(validator_agent_client, "httpx") as mock_validate_httpx:
+            patch.object(validator_agent_client, "httpx") as mock_validate_httpx, \
+            patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
         mock_chat_httpx.post.return_value = _fake_httpx_response(agent_response_text)
         mock_validate_httpx.post.return_value = _fake_validate_response()
+        mock_psm_httpx.post.return_value = _fake_psm_response(agent_response_text)
         response = client.post(f"/review/{stage_id}", json={"approved": True})
         ir_runs.wait_for_idle()
     return response

@@ -33,6 +33,16 @@ def test_validate_ecore_posts_filename_content_and_mode():
     assert response == result
 
 
+def test_validate_ecore_defaults_filename_for_a_caller_with_no_real_source_file():
+    # psm_agent's own generate() validates in-memory generated content with
+    # no real source file to name - this default is what lets it call
+    # validate_ecore(artifact, mode="reflective") without inventing one.
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_ecore("<ecore/>", mode="reflective")
+
+    assert mock_post.call_args.kwargs["json"]["filename"] == "model.ecore"
+
+
 def test_validate_ecore_forwards_an_explicit_mode():
     with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
         validator_agent_client.validate_ecore("<ecore/>", "sample.ecore", mode="codegen")

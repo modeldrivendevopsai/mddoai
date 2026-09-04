@@ -1,13 +1,19 @@
 """Real end-to-end test: no mocking of validator_agent_client — pim_stage/
-psm_stage/atl_stage/acceleo_stage each make a real HTTP call to a real
-running validator-agent, which in turn shells out to the real Java CLIs
-(see validator_agent/validator_runner.py). Auto-skips when validator-agent
-isn't reachable, so the fast suite (plain `pytest`) always runs standalone
-on any machine, matching test_integration_real_jvm.py's own real-dependency
--gated pattern in validator_agent's own test suite. A local run needs
+atl_stage/acceleo_stage each make a real HTTP call to a real running
+validator-agent, which in turn shells out to the real Java CLIs (see
+validator_agent/validator_runner.py). Auto-skips when validator-agent isn't
+reachable, so the fast suite (plain `pytest`) always runs standalone on any
+machine, matching test_integration_real_jvm.py's own real-dependency-gated
+pattern in validator_agent's own test suite. A local run needs
 validator-agent actually started (`docker compose up validator-agent`, or
 directly via uvicorn against a built main/ distribution — see
 validator_agent/README.md).
+
+psm is deliberately not included here: its own real end-to-end path goes
+through psm_agent_client.run_psm() (a separate real service, generating or
+comparing real content, not a fixed mock string), not a direct
+validator_agent_client call with no other real inputs — see psm_agent's own
+tests/test_generation_real_llm.py for its real end-to-end coverage.
 
 RUNS_DIR is still redirected to a throwaway tmp_path by conftest.py's own
 autouse fixture — only the validator-agent HTTP call is real here, not the
@@ -21,7 +27,7 @@ import pytest
 
 from clients import validator_agent_client
 from integration_runner.stages import _validation
-from integration_runner.stages import acceleo, atl, pim, psm
+from integration_runner.stages import acceleo, atl, pim
 
 
 def _validator_agent_reachable() -> bool:
@@ -40,7 +46,6 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.parametrize("stage_fn,stage,filename", [
     (pim.agent.pim_stage, "pim", pim.agent._FILENAME),
-    (psm.agent.psm_stage, "psm", psm.agent._FILENAME),
     (atl.agent.atl_stage, "atl", atl.agent._FILENAME),
     (acceleo.agent.acceleo_stage, "acceleo", acceleo.agent._FILENAME),
 ])

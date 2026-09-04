@@ -1,12 +1,14 @@
 """integration_runner/stages/generation/agent.py unit tests: the one
 remaining LLM-prompt placeholder stage agent (a stage-specific system
 prompt, stages/_shared.py's constraints_note(), one ai_layer_client.chat()
-call) — pim/psm/atl/acceleo switched to fixed mock content + a real
+call) — pim/atl/acceleo switched to fixed mock content + a real
 validator-agent call instead, see test_mock_validated_stages.py for their
-own tests. The one real agent in this package (stages/docs/agent.py) has
-its own tests too, see test_docs_agent.py. The stage_agents dict assembly
-itself has its own tests, see test_stages_registry.py. No real API calls —
-clients/ai_layer_client.chat is mocked.
+own tests. psm is real too, its own tests are in test_psm_stage.py. The
+real agents in this package (stages/docs/agent.py, stages/psm/agent.py)
+have their own tests too, see test_docs_agent.py/test_psm_stage.py. The
+stage_agents dict assembly itself has its own tests, see
+test_stages_registry.py. No real API calls — clients/ai_layer_client.chat
+is mocked.
 
 Tests verify gen_stage() calls chat() with its own system prompt, forwards
 the caller's chosen model (or None), incorporates constraints, and returns
