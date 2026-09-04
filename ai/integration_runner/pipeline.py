@@ -31,8 +31,8 @@ from integration_runner.event_log import EventLog
 
 # A docs -> serialization -> pim -> psm -> atl -> acceleo -> generation
 # pipeline (see the repo root CLAUDE.md's own description of the real chain:
-# SWArch -> PIM -> PSM -> YAML). docs and serialization are real; the rest
-# are placeholder LLM prompts standing in for future real agents. A human
+# SWArch -> PIM -> PSM -> YAML). docs, serialization, and psm are real; the
+# rest are placeholder LLM prompts standing in for future real agents. A human
 # reviews each stage's output and either approves it (advancing to the next
 # stage) or rejects it with a correction that's recorded as a constraint for
 # the stage's next run.
@@ -129,9 +129,11 @@ class IntegrationRun:
         overrides = overrides or {}
         # "only docs" is true today, not permanently: docs is the only stage
         # wrapping a real API (retrieval's /fetch) with real typed
-        # parameters to override, pim/psm/atl/acceleo/generation are still
-        # placeholder chat() prompts with no structured shape of their own
-        # yet (see stages/). Whoever makes the next stage real needs
+        # parameters to override. pim/atl/acceleo/generation are still
+        # placeholder chat() prompts with no override shape of their own
+        # yet; psm is real but takes no rerun overrides beyond the generic
+        # constraints mechanism either (see stages/). Whoever makes the next
+        # stage real needs
         # to design ITS real override shape from ITS real API, the same way
         # docs's was, then extend this guard, don't just delete it.
         if overrides and self.current_stage != "docs":

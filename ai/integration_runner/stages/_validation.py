@@ -1,11 +1,14 @@
 """Shared helper the pim/psm/atl/acceleo stage agents use to persist their
-(currently mock) DSL output alongside its real validator-agent result, win
-or lose, and to turn a failing result into the same raised-exception
-failure pipeline.py's own _run_stage_worker already knows how to report
-(a call_failed event carrying str(e)) — matching stages/docs/agent.py's own
-raise-on-failure convention, no new reporting path needed. The one other
-thing these four stages share besides _shared.py's constraints_note()
-(which they no longer use, see each stage's own agent.py).
+DSL output (mock for pim/atl/acceleo, real for psm) alongside its
+validation result, win or lose. pim/atl/acceleo also use this module to
+turn a failing result into the same raised-exception failure pipeline.py's
+own _run_stage_worker already knows how to report (a call_failed event
+carrying str(e)) — matching stages/docs/agent.py's own raise-on-failure
+convention, no new reporting path needed. psm deliberately does NOT raise
+on its own generation-mode failure — see stages/psm/agent.py's own
+docstring for why. The one other thing these four stages share besides
+_shared.py's constraints_note() (which they no longer use, see each
+stage's own agent.py).
 
 Known, deliberately out of scope here: IntegrationRun.busy (pipeline.py) is
 a plain unguarded bool, checked then set across two unsynchronized steps

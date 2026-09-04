@@ -1,10 +1,10 @@
 # pim_agent
 
 A static, hand-curated PIM (Platform-Independent Model) knowledge base, exposed over HTTP so
-other `ai/` services can ground their own output against it: `orchestrator`'s
-`serialization_agent` calls this today, labeling extracted documentation fragments against the
-nine real PIM concepts (Pipeline, Job, Agent, Services, Trigger, Matrix, Parameters, Steps,
-Expressions/VariableDeclaration).
+other `ai/` services can ground their own output against it: `serialization_agent` calls this
+today, labeling extracted documentation fragments against the nine real PIM concepts (Pipeline,
+Job, Agent, Services, Trigger, Matrix, Parameters, Steps, Expressions/VariableDeclaration), and
+`psm_agent` calls it too, for concept grounding on its own PSM generation path.
 
 This is **not** a RAG/vector-DB agent. `reference_knowledge.py`'s `ground(query, top_k)` does
 plain keyword-overlap scoring against a fixed list of real facts derived from a reference

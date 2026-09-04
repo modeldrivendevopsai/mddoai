@@ -7,12 +7,14 @@ mocked.
 Generic pipeline-mechanics tests (does run_stage() call the right agent and
 report its output, does review() advance and start the next stage, does a
 correction get threaded in, ...) run against "generation", the one
-remaining LLM-placeholder stage (pim/psm/atl/acceleo now return fixed mock
+remaining LLM-placeholder stage (pim/atl/acceleo now return fixed mock
 content + a real validator-agent call instead, see each of their own
-agent.py) — _fast_forward_to_generation() in helpers.py. Tests that
-specifically need a non-terminal transition (review() advancing to a NEXT
-stage, not completing the run) use psm/atl/acceleo directly, with
-validator_agent_client mocked instead.
+agent.py; psm is real too, a thin proxy to psm_agent — see
+stages/psm/agent.py's own docstring) — _fast_forward_to_generation() in
+helpers.py. Tests that specifically need a non-terminal transition
+(review() advancing to a NEXT stage, not completing the run) use
+pim/atl/acceleo directly, with validator_agent_client mocked, or psm
+directly, with psm_agent_client mocked instead.
 
 record_event() only ever appends a raw fact and returns, it has no
 narration/reactor concept at all (that moved to orchestrator/chat_log.py
