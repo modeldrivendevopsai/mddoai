@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude" pages="2">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="2002" dy="1072" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="858" dy="459" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" value="Base (always visible)" />
@@ -33,25 +33,6 @@
         </mxCell>
         <mxCell id="labelToTest" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" value="Planned" vertex="1">
           <mxGeometry height="22" width="120" x="60" y="1140" as="geometry" />
-        </mxCell>
-        <mxCell id="HCKi1c_Dbqlze6w4hmlM-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="Validate&#xa;validator-agent&#39;s /validate/&lt;type&gt; call (same call every stage below uses)" vertex="1">
-          <mxGeometry height="70" width="270" x="1030" y="660" as="geometry" />
-        </mxCell>
-        <mxCell id="HCKi1c_Dbqlze6w4hmlM-2" edge="1" parent="1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.3;exitY=1;entryX=0.3;entryY=0;" target="HCKi1c_Dbqlze6w4hmlM-1" value="generate">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1111" y="630" as="sourcePoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="HCKi1c_Dbqlze6w4hmlM-3" edge="1" parent="1" source="HCKi1c_Dbqlze6w4hmlM-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.7;exitY=0;entryX=0.7;entryY=1;" value="regenerate">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1219" y="630" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="HCKi1c_Dbqlze6w4hmlM-4" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;strokeColor=#2D7600;fillColor=#60a917;fontSize=11;fontStyle=1;fontColor=#ffffff;align=center;verticalAlign=middle;" value="Run Storage (File System)&#xa;runs/&lt;run_id&gt;/&lt;stage&gt;/attempt_N/&#xa;  artifact + result.json&#xa;runs/&lt;run_id&gt;/manifest.json&#xa;  ordered attempt history" vertex="1">
-          <mxGeometry height="135" width="270" x="1030" y="770" as="geometry" />
-        </mxCell>
-        <mxCell id="HCKi1c_Dbqlze6w4hmlM-5" edge="1" parent="1" source="HCKi1c_Dbqlze6w4hmlM-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="HCKi1c_Dbqlze6w4hmlM-4" value="persist attempt">
-          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="layerPhase0" parent="0" value="MVP (Phase 0)" />
         <mxCell id="e_teal_chat" edge="1" parent="layerPhase0" source="teal" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;rounded=0;exitX=0.983;exitY=0.139;exitDx=0;exitDy=0;exitPerimeter=0;" target="chat">
@@ -162,6 +143,25 @@
             <mxPoint x="1000" y="660" as="sourcePoint" />
             <mxPoint x="1350" y="755" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-1" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="Validate&#xa;validator-agent&#39;s /validate/&lt;type&gt; call (same call every stage below uses)" vertex="1">
+          <mxGeometry height="70" width="270" x="1030" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-2" edge="1" parent="layerPhase0" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.3;exitY=1;entryX=0.3;entryY=0;" target="rsZ4uEINc2u_vfYEfqJd-1" value="generate">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1111" y="630" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-3" edge="1" parent="layerPhase0" source="rsZ4uEINc2u_vfYEfqJd-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.7;exitY=0;entryX=0.7;entryY=1;" value="regenerate">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1219" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-4" parent="layerPhase0" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;strokeColor=#2D7600;fillColor=#60a917;fontSize=11;fontStyle=1;fontColor=#ffffff;align=center;verticalAlign=middle;" value="Run Storage (File System)&#xa;runs/&lt;run_id&gt;/&lt;stage&gt;/attempt_N/&#xa;  artifact + result.json&#xa;runs/&lt;run_id&gt;/manifest.json&#xa;  ordered attempt history" vertex="1">
+          <mxGeometry height="135" width="270" x="1030" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-5" edge="1" parent="layerPhase0" source="rsZ4uEINc2u_vfYEfqJd-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="rsZ4uEINc2u_vfYEfqJd-4" value="persist attempt">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="layerPhase1" parent="0" value="Phase 1" visible="0" />
         <mxCell id="docdb" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;dashed=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Documentation Version DB&#xa;Stores retrieved doc versions &amp; diffs vs PIM" vertex="1">
