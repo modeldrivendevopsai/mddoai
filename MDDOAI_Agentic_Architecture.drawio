@@ -34,6 +34,25 @@
         <mxCell id="labelToTest" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" value="Planned" vertex="1">
           <mxGeometry height="22" width="120" x="60" y="1140" as="geometry" />
         </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="Validate&#xa;validator-agent&#39;s /validate/&lt;type&gt; call (same call every stage below uses)" vertex="1">
+          <mxGeometry height="70" width="270" x="1030" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-2" edge="1" parent="1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.3;exitY=1;entryX=0.3;entryY=0;" target="HCKi1c_Dbqlze6w4hmlM-1" value="generate">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1111" y="630" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-3" edge="1" parent="1" source="HCKi1c_Dbqlze6w4hmlM-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.7;exitY=0;entryX=0.7;entryY=1;" value="regenerate">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1219" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-4" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;strokeColor=#2D7600;fillColor=#60a917;fontSize=11;fontStyle=1;fontColor=#ffffff;align=center;verticalAlign=middle;" value="Run Storage (File System)&#xa;runs/&lt;run_id&gt;/&lt;stage&gt;/attempt_N/&#xa;  artifact + result.json&#xa;runs/&lt;run_id&gt;/manifest.json&#xa;  ordered attempt history" vertex="1">
+          <mxGeometry height="135" width="270" x="1030" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-5" edge="1" parent="1" source="HCKi1c_Dbqlze6w4hmlM-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="HCKi1c_Dbqlze6w4hmlM-4" value="persist attempt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="layerPhase0" parent="0" value="MVP (Phase 0)" />
         <mxCell id="e_teal_chat" edge="1" parent="layerPhase0" source="teal" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;rounded=0;exitX=0.983;exitY=0.139;exitDx=0;exitDy=0;exitPerimeter=0;" target="chat">
           <mxGeometry relative="1" as="geometry" />
@@ -44,7 +63,7 @@
         <mxCell id="chat" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Chat Interface Agent" vertex="1">
           <mxGeometry height="70" width="150" x="150" y="120" as="geometry" />
         </mxCell>
-        <mxCell id="orch" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#006EAF;fillColor=#1ba1e2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=11;fontColor=#ffffff;" value="&lt;b&gt;Orchestrator Agent&lt;/b&gt;&lt;br&gt;&lt;ul style=&quot;margin-left:-20px;&quot;&gt;&lt;li&gt;Sequential plan (no parallel due to ECORE limit)&lt;/li&gt;&lt;li&gt;Oversight &amp;amp; messaging&lt;/li&gt;&lt;li&gt;Controls artifact flow (SWArch -&amp;gt; PIM -&amp;gt; PSM -&amp;gt; Code)&lt;/li&gt;&lt;li&gt;Informs Chat/requests more input&lt;/li&gt;&lt;/ul&gt;" vertex="1">
+        <mxCell id="orch" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=11;fontColor=#ffffff;" value="&lt;b&gt;Orchestrator Agent&lt;/b&gt;&lt;br&gt;&lt;ul style=&quot;margin-left:-20px;&quot;&gt;&lt;li&gt;Sequential plan (no parallel due to ECORE limit)&lt;/li&gt;&lt;li&gt;Oversight &amp;amp; messaging&lt;/li&gt;&lt;li&gt;Controls artifact flow (SWArch -&amp;gt; PIM -&amp;gt; PSM -&amp;gt; Code)&lt;/li&gt;&lt;li&gt;Informs Chat/requests more input&lt;/li&gt;&lt;/ul&gt;" vertex="1">
           <mxGeometry height="100" width="540" x="410" y="80" as="geometry" />
         </mxCell>
         <mxCell id="e_chat_orch" edge="1" parent="layerPhase0" source="chat" style="endArrow=block;startArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" target="orch" value="Task">
@@ -53,10 +72,10 @@
         <mxCell id="row2" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Retrieval and Parser Cluster" vertex="1">
           <mxGeometry height="100" width="880" x="120" y="230" as="geometry" />
         </mxCell>
-        <mxCell id="retr" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#006EAF;fillColor=#1ba1e2;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Retrieval Agent" vertex="1">
+        <mxCell id="retr" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Retrieval Agent" vertex="1">
           <mxGeometry height="50" width="190" x="150" y="270" as="geometry" />
         </mxCell>
-        <mxCell id="docparser" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Documentation Parser Agent" vertex="1">
+        <mxCell id="docparser" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Documentation Parser Agent" vertex="1">
           <mxGeometry height="50" width="240" x="440" y="270" as="geometry" />
         </mxCell>
         <mxCell id="e_retr_doc" edge="1" parent="layerPhase0" source="retr" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;" target="docparser">
@@ -78,23 +97,37 @@
             <mxPoint x="560" y="850" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="expert" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Expert Agents" vertex="1">
+        <mxCell id="expert" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Expert Agents&lt;div&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Sequentially, one at a time&lt;/font&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="400" width="270" x="1030" y="230" as="geometry" />
         </mxCell>
-        <mxCell id="pim" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 PIM Agent" vertex="1">
-          <mxGeometry height="45" width="230" x="1050" y="320" as="geometry" />
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-6" edge="1" parent="layerPhase0" source="pim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="psm">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="psm" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 PSM Agent" vertex="1">
-          <mxGeometry height="45" width="230" x="1050" y="375" as="geometry" />
+        <mxCell id="pim" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 PIM Agent" vertex="1">
+          <mxGeometry height="45" width="230" x="1050" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-7" edge="1" parent="layerPhase0" source="psm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="atl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="psm" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 PSM Agent" vertex="1">
+          <mxGeometry height="45" width="230" x="1050" y="350" as="geometry" />
         </mxCell>
         <mxCell id="cicd" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 CI/CD Pipeline Agent" vertex="1">
-          <mxGeometry height="50" width="230" x="1050" y="430" as="geometry" />
+          <mxGeometry height="50" width="230" x="1050" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-8" edge="1" parent="layerPhase0" source="atl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="acceleo">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="atl" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 ATL Agent" vertex="1">
-          <mxGeometry height="45" width="230" x="1050" y="495" as="geometry" />
+          <mxGeometry height="45" width="230" x="1050" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="HCKi1c_Dbqlze6w4hmlM-9" edge="1" parent="layerPhase0" source="acceleo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="cicd">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1165" y="520" as="sourcePoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="acceleo" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 Acceleo Agent" vertex="1">
-          <mxGeometry height="45" width="230" x="1050" y="550" as="geometry" />
+          <mxGeometry height="45" width="230" x="1050" y="470" as="geometry" />
         </mxCell>
         <mxCell id="e_orch_expert" edge="1" parent="layerPhase0" source="orch" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.2;rounded=1;" target="expert">
           <mxGeometry relative="1" as="geometry" />
