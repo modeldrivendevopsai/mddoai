@@ -1,21 +1,42 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button, CodeBlock, StatusPill, Tabs } from "design-system"
-import type { TabItem } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StatusPill } from "design-system"
+import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
+import { PromoteConstraintsAction } from "./PromoteConstraintsAction"
 import { constraintsForStage } from "./stageEvents"
-
-const PROMPT_TABS: TabItem[] = [
-  { id: "pim_ecore", label: "PIM ecore" },
-  { id: "psm_docs", label: "PSM docs" },
-  { id: "psm_example", label: "PSM example" },
-  { id: "constraints", label: "Constraints" },
-]
 
 interface PsmGap {
   target: string
   description: string
+}
+
+// The manifest for psm's own real, config-driven prompt: the same
+// PromptBuilder component atl/acceleo reuse once each gets a real LLM
+// implementation of its own, just with their own manifest and their own
+// backend prompt module behind it - this file's only real job is this
+// wiring, no prompt-builder logic of its own beyond it.
+const GENERATION_MANIFEST: PromptBuilderManifest = {
+  name: "generation",
+  label: "PSM generation prompt",
+  attachmentTypes: ["text", "file", "context"],
+  contextKeyOptions: [
+    { key: "pim_ecore", label: "PIM artifact" },
+    { key: "psm_docs", label: "Target platform documentation" },
+  ],
+  supportsPresets: true,
+}
+
+const COMPARISON_MANIFEST: PromptBuilderManifest = {
+  name: "comparison",
+  label: "PSM comparison prompt",
+  attachmentTypes: ["text", "context"],
+  contextKeyOptions: [
+    { key: "psm_metamodel", label: "Existing PSM metamodel" },
+    { key: "serialized_docs", label: "Serialized platform documentation" },
+  ],
+  supportsPresets: false,
 }
 
 // PSM's own stage panel — approve/retry when PSM is the live pending stage
@@ -27,14 +48,39 @@ interface PsmGap {
 //
 // Unlike every other stage, psm's real backend (see
 // integration_runner/stages/psm/agent.py) returns structured extras
-// alongside the plain output string: the exact 4-part prompt actually used
-// (PIM ecore / PSM docs / PSM example / Constraints), plus either a
-// validation result (Generation Agent) or gap suggestions (Knowledge Agent).
-// Shown here via the shared Tabs component so a human can see exactly what
-// was fed into generation, not just what came out.
-export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
+// alongside the plain output string: the exact prompt actually used, plus
+// either a validation result (Generation Agent) or gap suggestions
+// (Knowledge Agent). The prompt itself is now shown via the full
+// PromptBuilder (editable, presets, version history) rather than a
+// read-only Tabs viewer, and every real past attempt is browsable via
+// AttemptsBrowser, not just the latest one.
+export function PsmStagePanel({
+  busy,
+  latestResult,
+  events,
+  runId,
+  onApprove,
+  onRetry,
+  onBack,
+  readOnly = false,
+  onLoadPromptConfig,
+  onSavePromptConfig,
+  onListPresets,
+  onPreviewPromptConfig,
+  onListAvailableFiles,
+  onLoadPromptHistory,
+  onDiffPromptVersions,
+  onRestorePromptVersion,
+  onRevertPromptConfig,
+  onPromoteConfigToDefault,
+  onCheckPromptReferences,
+  onAddLearnedConstraints,
+  onRemoveLearnedConstraint,
+  onPromoteConstraints,
+  onLoadManifest,
+  onLoadAttempt,
+}: StagePanelProps) {
   const [correction, setCorrection] = useState("")
-  const [activeTab, setActiveTab] = useState<string>("pim_ecore")
 
   const failed = latestResult?.type === "call_failed"
   const data = latestResult?.data
@@ -53,50 +99,69 @@ export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, 
   // — the request itself didn't fail (failed/call_failed stays false), so
   // this needs its own check, not just folding into `failed` below.
   const emfInvalid = mode === "generation" && validation?.valid === false
+  const canPromote = mode === "generation" && validation?.valid === true && Boolean(onPromoteConstraints)
 
-  const promptViewer = prompt && (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      <Tabs items={PROMPT_TABS} activeId={activeTab} onChange={setActiveTab} />
-      {activeTab === "constraints" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <CodeBlock
-            code={prompt.constraints || "(none — this result didn't need any correction)"}
-            title="constraints actually used in this prompt"
-            lang="text"
-          />
-          {priorConstraints.length > 0 && (
-            <>
-              <p style={labelStyle}>Correction history for this stage</p>
-              <ul style={constraintsListStyle}>
-                {priorConstraints.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </>
-          )}
-          {!onBack && (
-            <div>
-              <p style={labelStyle}>Add a new constraint and retry</p>
-              <textarea
-                className="orch-field"
-                value={correction}
-                onChange={(e) => setCorrection(e.target.value)}
-                placeholder="Describe what should change"
-                rows={2}
-                disabled={readOnly}
-                style={textareaStyle}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <CodeBlock
-          code={prompt[activeTab] ?? ""}
-          title={PROMPT_TABS.find((t) => t.id === activeTab)?.label}
-          lang="text"
-        />
-      )}
-    </div>
+  // Which real config this result actually used - the knowledge branch
+  // never had a platform-description-based preset to resolve, so it's
+  // always "comparison"/"default"; the generation branch's own real preset
+  // comes back on the result itself. Defaults to the generation manifest
+  // before any result exists yet, since editing that prompt ahead of a
+  // brand-new platform's very first attempt is the real point of this
+  // screen - a platform that turns out to already have a metamodel just
+  // silently routes to comparison mode instead once Generate is clicked.
+  const activeManifest = mode === "knowledge" ? COMPARISON_MANIFEST : GENERATION_MANIFEST
+
+  const promptBuilder = onLoadPromptConfig &&
+    onSavePromptConfig &&
+    onPreviewPromptConfig &&
+    onLoadPromptHistory &&
+    onDiffPromptVersions &&
+    onRestorePromptVersion &&
+    onRevertPromptConfig &&
+    onPromoteConfigToDefault &&
+    onCheckPromptReferences &&
+    onAddLearnedConstraints &&
+    onRemoveLearnedConstraint && (
+      <PromptBuilder
+        manifest={activeManifest}
+        readOnly={readOnly}
+        callbacks={{
+          onLoad: (preset) => onLoadPromptConfig(activeManifest.name, preset),
+          onSave: (preset, config) => onSavePromptConfig(activeManifest.name, preset, config as PromptConfig),
+          onListPresets: onListPresets ? () => onListPresets(activeManifest.name) : undefined,
+          onPreview: (preset) => onPreviewPromptConfig(activeManifest.name, preset),
+          onListAvailableFiles,
+          onLoadHistory: (preset) => onLoadPromptHistory(activeManifest.name, preset),
+          onDiffVersions: (preset, a, b) => onDiffPromptVersions(activeManifest.name, preset, a, b),
+          onRestoreVersion: (preset, version) => onRestorePromptVersion(activeManifest.name, preset, version),
+          onRevertToDefault: (preset) => onRevertPromptConfig(activeManifest.name, preset),
+          onPromoteToDefault: (preset) => onPromoteConfigToDefault(activeManifest.name, preset),
+          onCheckReferences: (preset) => onCheckPromptReferences(activeManifest.name, preset),
+          onAddLearnedConstraints: (preset, constraints) => onAddLearnedConstraints(activeManifest.name, preset, constraints),
+          onRemoveLearnedConstraint: (preset, constraint) => onRemoveLearnedConstraint(activeManifest.name, preset, constraint),
+        }}
+      />
+    )
+
+  const attemptsBrowser = runId && onLoadManifest && onLoadAttempt && (
+    <AttemptsBrowser
+      runId={runId}
+      stage="psm"
+      onLoadManifest={onLoadManifest}
+      onLoadAttempt={onLoadAttempt}
+      onRestoreConfigFromAttempt={
+        onRestorePromptVersion
+          ? (version) => onRestorePromptVersion(activeManifest.name, "default", version).then(() => undefined)
+          : undefined
+      }
+    />
+  )
+
+  const promoteConstraints = onPromoteConstraints && (
+    <PromoteConstraintsAction
+      initialConstraintsBlock={prompt?.constraints ?? ""}
+      onPromote={onPromoteConstraints}
+    />
   )
 
   const statusPills = (mode || validation || gaps.length > 0) && (
@@ -130,6 +195,17 @@ export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, 
     </div>
   )
 
+  const priorConstraintsPanel = priorConstraints.length > 0 && (
+    <div>
+      <p style={labelStyle}>Correction history for this stage</p>
+      <ul style={constraintsListStyle}>
+        {priorConstraints.map((c, i) => (
+          <li key={i}>{c}</li>
+        ))}
+      </ul>
+    </div>
+  )
+
   if (onBack) {
     return (
       <Panel>
@@ -142,7 +218,8 @@ export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, 
         {statusPills}
         <CodeBlock code={output} title="psm output (read-only)" lang="psm" />
         {gapsPanel}
-        {promptViewer}
+        {attemptsBrowser}
+        {promptBuilder}
       </Panel>
     )
   }
@@ -181,19 +258,47 @@ export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, 
 
       {gapsPanel}
 
-      {promptViewer ?? (
-        <div>
-          <p style={labelStyle}>Curate the helper prompt for this stage</p>
-          <textarea
-            className="orch-field"
-            value={correction}
-            onChange={(e) => setCorrection(e.target.value)}
-            placeholder="Describe what should change"
-            rows={2}
-            disabled={readOnly}
-            style={textareaStyle}
-          />
-        </div>
+      {!hasResult ? (
+        // The real "initial screen" before generation ever starts: arriving
+        // at psm advances the pipeline but deliberately does not auto-run
+        // it (see pipeline.py's own _REQUIRES_MANUAL_START) - a human
+        // reviews or edits the prompt here first, then Generate below fires
+        // the real first attempt.
+        promptBuilder ?? (
+          <div>
+            <p style={labelStyle}>Curate the helper prompt for this stage</p>
+            <textarea
+              className="orch-field"
+              value={correction}
+              onChange={(e) => setCorrection(e.target.value)}
+              placeholder="Describe what should change"
+              rows={2}
+              disabled={readOnly}
+              style={textareaStyle}
+            />
+          </div>
+        )
+      ) : (
+        <>
+          {canPromote && promoteConstraints}
+          {attemptsBrowser}
+          {promptBuilder}
+          {priorConstraintsPanel}
+          {!onBack && (
+            <div>
+              <p style={labelStyle}>Add a one-off correction and retry</p>
+              <textarea
+                className="orch-field"
+                value={correction}
+                onChange={(e) => setCorrection(e.target.value)}
+                placeholder="Describe what should change"
+                rows={2}
+                disabled={readOnly}
+                style={textareaStyle}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
@@ -214,7 +319,7 @@ export function PsmStagePanel({ busy, latestResult, events, onApprove, onRetry, 
             setCorrection("")
           }}
         >
-          Retry this stage
+          {hasResult ? "Retry this stage" : "Generate"}
         </Button>
       </div>
     </Panel>

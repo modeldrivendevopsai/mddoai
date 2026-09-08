@@ -5,7 +5,35 @@ import { STAGE_PANELS } from "@/features/integration/stages/registry"
 import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
+import * as orchestratorService from "@/services/orchestrator.service"
 import type { StageId } from "orchestrator-types"
+import type { StagePanelProps } from "orchestrator-types"
+
+// The modular prompt builder's own callback props (see StagePanelProps'
+// own comment on why these live on the shared contract): every one is a
+// direct, un-adapted pass-through to orchestrator.service.ts, the same
+// pattern onApprove/onRetry already use. Built once here, spread into
+// whichever stage panel actually renders (only psm calls any of these
+// today, every other stage panel simply never does) rather than repeated
+// per branch below.
+const promptBuilderProps: Omit<StagePanelProps, "busy" | "latestResult" | "events" | "runId" | "onApprove" | "onRetry" | "onBack" | "readOnly"> = {
+  onLoadPromptConfig: orchestratorService.getPromptConfig,
+  onSavePromptConfig: orchestratorService.savePromptConfig,
+  onListPresets: orchestratorService.listPromptPresets,
+  onPreviewPromptConfig: orchestratorService.previewPromptConfig,
+  onListAvailableFiles: orchestratorService.listAvailableFiles,
+  onLoadPromptHistory: orchestratorService.getPromptConfigHistory,
+  onDiffPromptVersions: orchestratorService.diffPromptConfigVersions,
+  onRestorePromptVersion: orchestratorService.restorePromptConfigVersion,
+  onRevertPromptConfig: orchestratorService.revertPromptConfig,
+  onPromoteConfigToDefault: orchestratorService.promoteConfigToDefault,
+  onCheckPromptReferences: orchestratorService.checkPromptReferences,
+  onAddLearnedConstraints: orchestratorService.addLearnedConstraints,
+  onRemoveLearnedConstraint: orchestratorService.removeLearnedConstraint,
+  onPromoteConstraints: orchestratorService.promoteConstraints,
+  onLoadManifest: orchestratorService.getRunManifest,
+  onLoadAttempt: orchestratorService.getAttempt,
+}
 
 // Stepper, ChatColumn, and the docs stage's start form are each their own
 // Module Federation remote too (ui-remote-stepper, ui-remote-chat,
@@ -88,6 +116,7 @@ export default function IntegrationScreen() {
     providers,
     error,
     isCurrent,
+    viewedRunId,
     start,
     approve,
     retry,
@@ -175,8 +204,10 @@ export default function IntegrationScreen() {
             busy={false}
             latestResult={latestCallResult(events, viewedStage)}
             events={events}
+            runId={viewedRunId}
             onBack={() => setViewedStage(null)}
             readOnly
+            {...promptBuilderProps}
           />
         </RemoteBoundary>
       )
@@ -191,9 +222,11 @@ export default function IntegrationScreen() {
           busy={busy}
           latestResult={latestResult}
           events={events}
+          runId={viewedRunId}
           onApprove={() => approve(currentStage)}
           onRetry={(correction) => retry(currentStage, correction)}
           readOnly={!isCurrent}
+          {...promptBuilderProps}
         />
       </RemoteBoundary>
     )

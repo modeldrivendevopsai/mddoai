@@ -256,11 +256,15 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   call_failed: { bg: "var(--danger-100)", fg: "var(--danger-500)", dot: "var(--danger-500)", label: "Failed" },
   review_approved: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Approved" },
   review_rejected: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Rejected" },
-  // The two below are real, recorded backend facts, not just prose — same
-  // "info" treatment, distinct from the
+  // The three below are real, recorded backend facts, not just prose —
+  // same "info" treatment, distinct from the
   // stage-lifecycle colors above.
   constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Constraint added" },
   documentation_extended: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Page added to docs" },
+  // A human-confirmed, real, permanent promotion (see
+  // stages/psm/actions.py's own promote_constraints) — distinct from
+  // constraint_added's own per-run, ephemeral correction.
+  constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Prompt corrections saved" },
   // A dispatched tool call's own real arguments/result (see assistant.py's
   // send_message()) — distinct from the "message" turn right after it,
   // which is just the AI's own prose summary of what it just did.
@@ -276,6 +280,7 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
   if (event.type === "review_rejected") return typeof data.correction === "string" ? data.correction : undefined
   if (event.type === "constraint_added") return typeof data.constraint === "string" ? data.constraint : undefined
   if (event.type === "documentation_extended") return typeof data.url === "string" ? data.url : undefined
+  if (event.type === "constraints_promoted") return Array.isArray(data.constraints) ? data.constraints.join("; ") : undefined
   if (event.type === "tool_called") return typeof data.tool === "string" ? data.tool : undefined
   return undefined
 }

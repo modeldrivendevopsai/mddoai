@@ -45,6 +45,12 @@ export function useIntegration(runId?: string) {
   const [providers, setProviders] = useState<Provider[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isCurrent, setIsCurrent] = useState(true)
+  // The real run this hook is currently showing, whether live or a past
+  // one being viewed read-only — distinct from this hook's own `runId`
+  // parameter above (only ever set when viewing a specific past run from
+  // the URL; undefined for the live run). AttemptsBrowser needs this real
+  // id regardless of which case it is.
+  const [viewedRunId, setViewedRunId] = useState<string | null>(null)
   const pollingRef = useRef(false)
   // Mirrors isCurrent for the interval poll below, which can't depend on the
   // state value directly without re-subscribing the effect every tick.
@@ -81,6 +87,7 @@ export function useIntegration(runId?: string) {
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
+    setViewedRunId(body.run_id)
     // current_stage defaults to "docs" (index 0) even on a completely fresh,
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
@@ -294,6 +301,7 @@ export function useIntegration(runId?: string) {
     providers,
     error,
     isCurrent,
+    viewedRunId,
     start,
     approve,
     retry,

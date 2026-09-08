@@ -1,8 +1,15 @@
 import type {
+  AttemptDetail,
+  BrokenReference,
   DocsOptions,
   EventsResponse,
+  ManifestEntry,
   MessageResponse,
+  PresetMetadata,
   Provider,
+  PromptConfig,
+  PromptDiff,
+  PromptPreview,
   RerunOverrides,
   ResetResponse,
   ResumeResponse,
@@ -189,5 +196,135 @@ export async function setModel(model?: string): Promise<{ model: string | null }
     throw await errorFor("Model", res)
   }
 
+  return res.json()
+}
+
+// --- Modular prompt builder + attempts browser (see ai/orchestrator's own
+// routes/prompt_config.py, routes/attempts.py, both thin proxies down to
+// integration_runner then psm_agent, the service that actually owns this
+// data) -----------------------------------------------------------------
+
+export async function getPromptConfig(name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}`)
+  if (!res.ok) throw await errorFor("Prompt config", res)
+  return res.json()
+}
+
+export async function savePromptConfig(name: string, preset: string, config: PromptConfig): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
+  if (!res.ok) throw await errorFor("Save prompt config", res)
+  return res.json()
+}
+
+export async function listPromptPresets(name: string): Promise<PresetMetadata[]> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/presets`)
+  if (!res.ok) throw await errorFor("Prompt presets", res)
+  return (await res.json()).presets
+}
+
+export async function previewPromptConfig(name: string, preset: string): Promise<PromptPreview> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/preview`, { method: "POST" })
+  if (!res.ok) throw await errorFor("Prompt preview", res)
+  return res.json()
+}
+
+export async function listAvailableFiles(): Promise<string[]> {
+  const res = await fetch("/orchestrator-api/psm/available-files")
+  if (!res.ok) throw await errorFor("Available files", res)
+  return (await res.json()).files
+}
+
+export async function getPromptConfigHistory(name: string, preset: string): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/history`)
+  if (!res.ok) throw await errorFor("Prompt history", res)
+  return (await res.json()).versions
+}
+
+export async function diffPromptConfigVersions(
+  name: string,
+  preset: string,
+  versionA: string,
+  versionB: string
+): Promise<PromptDiff> {
+  const params = new URLSearchParams({ a: versionA, b: versionB })
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/diff?${params}`)
+  if (!res.ok) throw await errorFor("Prompt diff", res)
+  return res.json()
+}
+
+export async function restorePromptConfigVersion(name: string, preset: string, version: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/restore/${version}`, {
+    method: "POST",
+  })
+  if (!res.ok) throw await errorFor("Restore prompt version", res)
+  return res.json()
+}
+
+export async function revertPromptConfig(name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/revert`, { method: "POST" })
+  if (!res.ok) throw await errorFor("Revert prompt config", res)
+  return res.json()
+}
+
+export async function promoteConfigToDefault(name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/promote-to-default`, {
+    method: "POST",
+  })
+  if (!res.ok) throw await errorFor("Promote config to default", res)
+  return res.json()
+}
+
+export async function checkPromptReferences(name: string, preset: string): Promise<BrokenReference[]> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/check-references`)
+  if (!res.ok) throw await errorFor("Check prompt references", res)
+  return (await res.json()).broken
+}
+
+export async function addLearnedConstraints(name: string, preset: string, constraints: string[]): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/learned-constraints`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Add learned constraints", res)
+  return res.json()
+}
+
+export async function removeLearnedConstraint(name: string, preset: string, constraint: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/psm/prompt-config/${name}/${preset}/learned-constraints`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraint }),
+  })
+  if (!res.ok) throw await errorFor("Remove learned constraint", res)
+  return res.json()
+}
+
+// Run-aware (see stages/psm/actions.py's own promote_constraints): no
+// name/preset here, the backend infers both from the current run's own
+// latest, real, successfully-validated result.
+export async function promoteConstraints(constraints: string[]): Promise<PromptConfig> {
+  const res = await fetch("/orchestrator-api/psm/promote-constraints", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Promote constraints", res)
+  return res.json()
+}
+
+export async function getRunManifest(runId: string): Promise<ManifestEntry[]> {
+  const res = await fetch(`/orchestrator-api/runs/${runId}/manifest`)
+  if (!res.ok) throw await errorFor("Run manifest", res)
+  return (await res.json()).attempts
+}
+
+export async function getAttempt(runId: string, stage: string, attempt: string): Promise<AttemptDetail> {
+  const res = await fetch(`/orchestrator-api/runs/${runId}/${stage}/${attempt}`)
+  if (!res.ok) throw await errorFor("Attempt", res)
   return res.json()
 }
