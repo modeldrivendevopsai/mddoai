@@ -61,7 +61,9 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
 - **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one Docker
   volume (`pipeline-runs` in `ai/docker-compose.yml`) for real, on-disk pipeline artifacts. This
-  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, see
+  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, and,
+  for a stage with a real, UI-editable prompt config, a third file, `prompt.json`, recording the
+  exact prompt and config version that produced this attempt — see
   `integration_runner/stages/_validation.py`) and every real compiled artifact `validator_agent`'s
   own deep checks produce (`EcoreValidator`'s codegen classes, `AtlValidator`'s `.asm`,
   `AcceleoValidator`'s `.emtl`, none of which validator_agent itself ever deletes anymore). These
@@ -111,6 +113,8 @@ See [ai/README.md](./README.md) for how the services fit together and how to run
 2. Nothing else changes: `stages/__init__.py` already points `stage_agents[stage]` at that function by name, and `pipeline.py` only ever reads `stages.stage_agents[stage]`, never a specific stage's own module.
 
 **When a stage's real output is more than one string:** `pipeline.py`'s `run_stage()` also accepts `(context: dict) -> tuple[str, dict]` — the tuple's second element is merged into the `call_completed` event's own data alongside `output`. This is a narrow, deliberate exception to the plain `-> str` contract above, for a stage whose real capability produces genuinely structured data (e.g. the exact prompt used, or a validation/gap result) that a plain string has nowhere to carry — `stages/psm/agent.py` is the one stage that needs this today. Don't reach for it by default: every other stage stays plain `-> str`, and `run_stage()` treats a non-tuple return exactly as before.
+
+**When a stage gets a real, UI-editable prompt config** (via `generation_toolkit.prompt_config`, see `ai/generation_toolkit/README.md` for the mechanism and `ai/psm_agent/README.md` for a real, worked example): add the stage to `pipeline.py`'s `_REQUIRES_MANUAL_START` so a human gets to review, and possibly edit, the config before that stage's very first real attempt fires, rather than only after a first result. If that stage's own agent needs a real rerun override (`mock`, to skip a slow/billed real call for fast local iteration, or a genuinely new one), add its recognized keys to `pipeline.py`'s `_STAGE_OVERRIDE_KEYS` — a key valid for one stage but sent to a different one is rejected, not silently ignored, so every stage's own real override shape needs its own entry.
 
 **Adding a new real, chat-callable capability for a stage** (something beyond running/rerunning the stage itself, e.g. an action targeting one specific piece of a stage's existing output):
 1. Write the real implementation in `stages/<stage>/actions.py` (create it if this stage doesn't have one yet) as a function taking the run instance as its first argument and mutating it directly. It must have real effect, actually changing what the run holds, not just log a summary of what happened: any chat-callable action must invoke the same real state-changing path a manual or direct REST caller would use for the same intent, never a weaker echo of it.

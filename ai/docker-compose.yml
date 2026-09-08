@@ -139,6 +139,16 @@ services:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
     volumes:
       - ../meta_models:/meta_models:ro
+      # Real, editable, UI-built prompt configs (generation_toolkit.prompt_config)
+      # - the real generation/comparison JSON files this service's own
+      # prompt_paths.PROMPT_CONFIG_DIR resolves to (relative to this
+      # Dockerfile's own final WORKDIR, /app/psm_agent, not /app). Read-write
+      # and scoped to just this directory, not the whole psm_agent/ source
+      # tree: a Save through the running dev container needs to land on the
+      # host's real git checkout (these files are committed, not gitignored)
+      # the same way ui-host/ui-remote-* already bind-mount their own
+      # live-editable source, applied here to backend config instead.
+      - ./psm_agent/prompts:/app/psm_agent/prompts
     depends_on:
       ai-layer:
         condition: service_healthy
