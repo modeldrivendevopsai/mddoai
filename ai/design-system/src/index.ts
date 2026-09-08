@@ -18,3 +18,23 @@ export type { StatusPillVariant } from './components/StatusPill';
 export { Panel } from './components/Panel';
 export type { PanelTone } from './components/Panel';
 export { CodeBlock } from './CodeBlock';
+export { PromptBuilder } from './components/PromptBuilder';
+export type {
+  Attachment,
+  AttachmentType,
+  BrokenReference,
+  PresetInfo,
+  PromptBuilderCallbacks,
+  PromptBuilderManifest,
+  PromptBuilderProps,
+  PromptConfig,
+  PromptDiff,
+  PromptPreview,
+} from './components/PromptBuilder';
+export { AttemptsBrowser } from './components/AttemptsBrowser';
+export type {
+  AttemptArtifact,
+  AttemptDetailData,
+  AttemptsBrowserProps,
+  ManifestEntry,
+} from './components/AttemptsBrowser';
