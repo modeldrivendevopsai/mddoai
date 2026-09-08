@@ -127,3 +127,83 @@ def add_page_to_docs(url: str, force_refresh: bool = False) -> dict:
 
 def set_model(model: str | None) -> dict:
     return _request("POST", "/model", json={"model": model}).json()
+
+
+# --- Generic run/attempt introspection (routes/attempts.py) ---------------
+
+
+def get_run_manifest(run_id: str) -> list[dict]:
+    return _request("GET", f"/runs/{run_id}/manifest").json()["attempts"]
+
+
+def get_attempt(run_id: str, stage: str, attempt: str) -> dict:
+    return _request("GET", f"/runs/{run_id}/{stage}/{attempt}").json()
+
+
+# --- psm's own prompt-config pass-throughs (routes/psm.py) ----------------
+# Every one of these is itself a thin pass-through on integration_runner's
+# own side too (see routes/psm.py), all the way down to psm_agent, which is
+# the service that actually owns this data - integration_runner and this
+# client both just relay it.
+
+
+def list_psm_presets(name: str) -> list[dict]:
+    return _request("GET", f"/psm/prompt-config/{name}/presets").json()["presets"]
+
+
+def get_psm_prompt_config(name: str, preset: str) -> dict:
+    return _request("GET", f"/psm/prompt-config/{name}/{preset}").json()
+
+
+def save_psm_prompt_config(name: str, preset: str, config: dict) -> dict:
+    return _request("PUT", f"/psm/prompt-config/{name}/{preset}", json=config).json()
+
+
+def get_psm_prompt_config_history(name: str, preset: str) -> list[str]:
+    return _request("GET", f"/psm/prompt-config/{name}/{preset}/history").json()["versions"]
+
+
+def diff_psm_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
+    return _request(
+        "GET", f"/psm/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
+    ).json()
+
+
+def restore_psm_prompt_config_version(name: str, preset: str, version: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/{preset}/restore/{version}").json()
+
+
+def revert_psm_prompt_config(name: str, preset: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/{preset}/revert").json()
+
+
+def promote_psm_prompt_config_to_default(name: str, preset: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/{preset}/promote-to-default").json()
+
+
+def check_psm_prompt_config_references(name: str, preset: str) -> list[dict]:
+    return _request("GET", f"/psm/prompt-config/{name}/{preset}/check-references").json()["broken"]
+
+
+def preview_psm_prompt_config(name: str, preset: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/{preset}/preview").json()
+
+
+def add_psm_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
+    return _request(
+        "POST", f"/psm/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
+    ).json()
+
+
+def remove_psm_learned_constraint(name: str, preset: str, constraint: str) -> dict:
+    return _request(
+        "DELETE", f"/psm/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
+    ).json()
+
+
+def list_psm_available_files() -> list[str]:
+    return _request("GET", "/psm/available-files").json()["files"]
+
+
+def promote_psm_constraints(constraints: list[str]) -> dict:
+    return _request("POST", "/psm/promote-constraints", json={"constraints": constraints}).json()
