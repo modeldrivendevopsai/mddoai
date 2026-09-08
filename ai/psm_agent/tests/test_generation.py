@@ -76,8 +76,26 @@ def test_validation_result_is_the_real_validator_agent_response():
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
         result = generate("<pim/>", "docs", run_id="run-123")
 
-    mock_validate.assert_called_once_with("<ecore:EPackage/>", mode="codegen", run_id="run-123")
+    mock_validate.assert_called_once_with(
+        "<ecore:EPackage/>", mode="codegen", run_id="run-123", stage=None, attempt=None
+    )
     assert result["validation"] == valid_result()
+
+
+def test_forwards_stage_and_attempt_for_compiled_output_nesting():
+    # Every regeneration round shares the same stage/attempt: they all
+    # belong to one attempt of the psm stage, each round just gets its own
+    # uniquely-named subfolder underneath it (see generation.py's own
+    # _validate() docstring).
+    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
+         patch.object(pim_agent_client, "ground", return_value=[]), \
+         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+         patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
+        generate("<pim/>", "docs", run_id="run-123", stage="psm", attempt="attempt_1")
+
+    mock_validate.assert_called_once_with(
+        "<ecore:EPackage/>", mode="codegen", run_id="run-123", stage="psm", attempt="attempt_1"
+    )
 
 
 def test_regenerates_once_on_a_real_validation_failure_then_succeeds():

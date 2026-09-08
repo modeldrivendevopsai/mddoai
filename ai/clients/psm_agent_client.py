@@ -19,10 +19,18 @@ def run_psm(
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
 ) -> dict:
     """POST psm_agent's real /psm: returns either a generation-mode result
     ({"mode": "generation", "artifact", "prompt", "validation", "rounds"}) or
-    a knowledge-mode result ({"mode": "knowledge", "artifact", "gaps", "prompt"})."""
+    a knowledge-mode result ({"mode": "knowledge", "artifact", "gaps", "prompt"}).
+    stage/attempt name the calling stage ("psm") and its own reserved attempt
+    directory - forwarded all the way through to generation.py's own real
+    validator-agent call, so a generation-mode call's real compiled Ecore
+    classes nest inside that same attempt directory instead of landing as an
+    unlinked sibling of it (see stages/psm/agent.py's own reserve_attempt_dir()
+    call, the same pattern stages/atl/agent.py and stages/acceleo/agent.py use)."""
     response = httpx.post(
         f"{PSM_AGENT_URL}/psm",
         json={
@@ -32,6 +40,8 @@ def run_psm(
             "constraints": constraints,
             "model": model,
             "run_id": run_id,
+            "stage": stage,
+            "attempt": attempt,
         },
         timeout=PSM_TIMEOUT,
     )

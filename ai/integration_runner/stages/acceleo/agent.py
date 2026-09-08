@@ -7,7 +7,12 @@ reason stages/pim/agent.py's mock is: no real Acceleo generation to fall
 back to yet.
 """
 from clients import validator_agent_client
-from integration_runner.stages._validation import persist_attempt, raise_if_invalid, reserve_attempt_dir
+from integration_runner.stages._validation import (
+    attempt_scope_kwargs,
+    persist_attempt,
+    raise_if_invalid,
+    reserve_attempt_dir,
+)
 
 _MODULE_NAME = "mockAcceleo"
 # Acceleo requires a module's file to be literally named after its own
@@ -51,9 +56,7 @@ def acceleo_stage(context: dict) -> str:
     run_id = context.get("run_id")
     attempt_dir = reserve_attempt_dir(run_id, "acceleo") if run_id else None
     result = validator_agent_client.validate_acceleo(
-        _MOCK_CONTENT, _FILENAME, run_id=run_id,
-        stage="acceleo" if attempt_dir else None,
-        attempt=attempt_dir.name if attempt_dir else None,
+        _MOCK_CONTENT, _FILENAME, run_id=run_id, **attempt_scope_kwargs("acceleo", attempt_dir),
     )
     persist_attempt(run_id or "unknown", "acceleo", _FILENAME, _MOCK_CONTENT, result, attempt_dir=attempt_dir)
     raise_if_invalid("acceleo", result)

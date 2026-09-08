@@ -9,13 +9,19 @@ real PSM metamodel checked into `meta_models/`.
   the master example metamodel + docs + PIM artifact into a prompt and runs it through the shared
   `generation_toolkit` package's `run_with_retry()` (a stage-agnostic "build a prompt, call the LLM,
   validate, retry" toolkit, not specific to PSM — see `generation_toolkit/README.md`), asking
-  `ai-layer` to generate a new `.ecore` and checking it
-  against `validator_agent`'s real `/validate/ecore` (reflective mode) as the toolkit's `validate_fn`.
-  On failure, the validator's first issue becomes one new constraint and the prompt is rebuilt for
-  another round — bounded, so a platform whose docs genuinely can't produce a loadable `.ecore` fails
-  closed instead of looping forever. Grounding (pulling relevant PIM-concept context into the prompt)
-  reuses `pim_agent`'s existing `ground()`/`concepts()` — there is no separate RAG agent yet (a
-  documented Phase 1 plan, not built here).
+  `ai-layer` to generate a new `.ecore` and checking it against `validator_agent`'s real
+  `/validate/ecore` in **codegen** mode, not just reflective, so a genuinely new metamodel's own
+  generated Java classes get checked too, as the toolkit's `validate_fn`. On failure, the
+  validator's first issue becomes one new constraint and the prompt is rebuilt for another round,
+  bounded, so a platform whose docs genuinely can't produce a loadable `.ecore` fails closed
+  instead of looping forever. Grounding (pulling relevant PIM-concept context into the prompt)
+  reuses `pim_agent`'s existing `ground()`/`concepts()`, there is no separate RAG agent yet (a
+  documented Phase 1 plan, not built here). Every round's own real compiled Ecore classes are
+  kept, not deleted after the check (see [validator_agent's own
+  README](../validator_agent/README.md#setup)). This stage forwards `stage`/`attempt` (see
+  `POST /psm` below) so all of them nest inside the one attempt directory
+  `integration_runner`'s own `psm_stage` reserved for this call, instead of scattering as
+  orphaned siblings under the run root.
 - **An existing metamodel (known platform)** → the **Knowledge Agent** (`comparison.py`'s
   `compare()`, unchanged): a real LLM comparison of the docs against the existing `.ecore` to
   find drift (missing/outdated concepts). Informational only — a gap is surfaced alongside the
@@ -51,7 +57,10 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   "pim_artifact": "A pipeline consists of jobs organized into stages...",
   "platform_docs": "# TeamCity CI/CD Configuration\n...",
   "constraints": [],
-  "model": null
+  "model": null,
+  "run_id": "run-123",
+  "stage": "psm",
+  "attempt": "attempt_1"
 }
 
 // response (200, generation mode - no existing metamodel for this platform)
@@ -64,7 +73,10 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
     "psm_example": "<?xml version=\"1.0\"?>... (githubMM.ecore's real content)",
     "constraints": "- Fix: dangling reference to RetryPolicy"
   },
-  "validation": {"valid": true, "mode": "reflective", "issues": [], "duration_ms": 120, "generated_source_path": null},
+  "validation": {
+    "valid": true, "mode": "codegen", "issues": [], "duration_ms": 120,
+    "generated_source_path": "/runs/run-123/psm/attempt_1/ecore-validate-abc123"
+  },
   "rounds": 2
 }
 
@@ -84,7 +96,13 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
 }
 ```
 
-`constraints`/`model` are optional. `400` if a resolved metamodel path doesn't exist on disk.
+`constraints`/`model` are optional. `run_id`/`stage`/`attempt` are optional too, and only ever
+matter on the generation path (the knowledge/comparison path never calls a validator at all, so
+there's nothing to scope): they're plain passthrough fields, forwarded unchanged into
+`generation.py`'s own `validator_agent_client.validate_ecore()` call, where the real path-safety
+validation happens (see [validator_agent's own README](../validator_agent/README.md#setup)) -
+this service never touches the filesystem with them directly. `400` if a resolved metamodel path
+doesn't exist on disk.
 
 ### `POST /compare`
 

@@ -12,6 +12,13 @@ Tests verify:
      already-tested precedence (see this repo's own CLAUDE.md: replacing a
      placeholder keeps its established behavior, doesn't quietly regress it).
   3. constraints and model are forwarded from context.
+  4. Given a run_id, psm_stage reserves its own attempt directory first and
+     forwards its own stage name plus that attempt's name to run_psm(), the
+     same pattern atl_stage/acceleo_stage use, so psm_agent's own real
+     compiled Ecore classes (produced deep inside its generation.py, once
+     per regeneration round) nest inside that attempt directory instead of
+     landing as an unlinked sibling of it - see stages/_validation.py's own
+     reserve_attempt_dir() and ai/CLAUDE.md's "Second exception" section.
 """
 from unittest.mock import patch
 
@@ -83,3 +90,37 @@ def test_forwards_platform_description_constraints_and_model():
     assert args[0] == "TeamCity"
     assert kwargs["constraints"] == ["Fix: bad thing"]
     assert kwargs["model"] == "gemini-flash"
+
+
+def test_forwards_no_stage_or_attempt_without_a_run_id():
+    # No run_id means no run tree to reserve an attempt under - matching
+    # pim_stage/atl_stage/acceleo_stage's own behavior in the same case.
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim"})
+
+    assert mock_run.call_args.kwargs.get("stage") is None
+    assert mock_run.call_args.kwargs.get("attempt") is None
+
+
+def test_reserves_and_forwards_its_own_stage_and_attempt_name(tmp_path):
+    # tmp_path here is the same instance conftest.py's own autouse
+    # _isolated_validation_runs_dir fixture already redirected RUNS_DIR to
+    # (fixtures requested by both the test and another fixture in the same
+    # test share one instance) - no need to re-patch it here too.
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
+
+    assert mock_run.call_args.kwargs.get("stage") == "psm"
+    assert mock_run.call_args.kwargs.get("attempt") == "attempt_1"
+    # The reservation really happened on disk, not just a string the mock
+    # received - the same real attempt_dir persist_attempt() then reuses.
+    assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
+
+
+def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})  # attempt_1
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})  # attempt_2
+
+    assert mock_run.call_args_list[0].kwargs.get("attempt") == "attempt_1"
+    assert mock_run.call_args_list[1].kwargs.get("attempt") == "attempt_2"

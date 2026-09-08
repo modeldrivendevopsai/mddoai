@@ -6,7 +6,12 @@ output eventually will. Unconditional for the same reason
 stages/pim/agent.py's mock is: no real ATL generation to fall back to yet.
 """
 from clients import validator_agent_client
-from integration_runner.stages._validation import persist_attempt, raise_if_invalid, reserve_attempt_dir
+from integration_runner.stages._validation import (
+    attempt_scope_kwargs,
+    persist_attempt,
+    raise_if_invalid,
+    reserve_attempt_dir,
+)
 
 _FILENAME = "atl_mock.atl"
 # Same rule shape as validator_agent/tests/fixtures/valid.atl (already
@@ -43,9 +48,7 @@ def atl_stage(context: dict) -> str:
     run_id = context.get("run_id")
     attempt_dir = reserve_attempt_dir(run_id, "atl") if run_id else None
     result = validator_agent_client.validate_atl(
-        _MOCK_CONTENT, _FILENAME, run_id=run_id,
-        stage="atl" if attempt_dir else None,
-        attempt=attempt_dir.name if attempt_dir else None,
+        _MOCK_CONTENT, _FILENAME, run_id=run_id, **attempt_scope_kwargs("atl", attempt_dir),
     )
     persist_attempt(run_id or "unknown", "atl", _FILENAME, _MOCK_CONTENT, result, attempt_dir=attempt_dir)
     raise_if_invalid("atl", result)

@@ -88,9 +88,11 @@ mounts, at `/app/integration_runner/runs` there and at `/runs` here: one shared 
 different mount paths, each matching what that service's own code actually reads. See
 `ai/docker-compose.yml`'s own comments on both mounts before changing either. A request may
 include a validated `run_id`, in which case the compiled output is scoped under a subfolder
-named for it; the `atl`/`acceleo` requests may also include `stage` and `attempt` (the calling
-stage's own name and its already-reserved `attempt_N` directory name, see
-[integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
+named for it; every codegen-producing request (`/validate/atl`, `/validate/acceleo`, and
+`/validate/ecore` in `codegen` mode) may also include `stage` and `attempt` (the calling stage's
+own name and its already-reserved `attempt_N` directory name, forwarded on `psm_agent`'s own
+behalf for its `/validate/ecore` calls, since it has no attempt-numbering concept of its own -
+see [integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
 in which case the output nests two levels deeper still, landing *inside* that specific attempt's
 own directory (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`) rather than merely
 somewhere else under the same `run_id`. The real path is still returned as `generated_source_path`

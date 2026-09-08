@@ -71,8 +71,15 @@ def _render_user_content(prompt: dict) -> str:
     return content
 
 
-def _validate(artifact: str, run_id: str | None = None) -> dict:
-    return validator_agent_client.validate_ecore(artifact, mode="codegen", run_id=run_id)
+def _validate(artifact: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None) -> dict:
+    # Every regeneration round calls this once (run_with_retry's own
+    # validate_fn) - stage/attempt stay the same across all of them, so
+    # every round's own real compiled Ecore classes nest inside the one
+    # attempt directory the calling stage reserved, each in its own
+    # uniquely-named subfolder (see validator_agent's own OUTPUT_ROOT/UUID
+    # comment for why that per-call uniqueness still matters even when the
+    # attempt directory itself is already unique).
+    return validator_agent_client.validate_ecore(artifact, mode="codegen", run_id=run_id, stage=stage, attempt=attempt)
 
 
 def generate(
@@ -82,6 +89,8 @@ def generate(
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict, "rounds": int}."""
     example_path = psm_example_path or DEFAULT_PSM_MASTER_EXAMPLE_PATH
@@ -100,7 +109,7 @@ def generate(
         _SYSTEM_PROMPT,
         parts,
         constraints=constraints,
-        validate_fn=lambda artifact: _validate(artifact, run_id),
+        validate_fn=lambda artifact: _validate(artifact, run_id, stage, attempt),
         render_user_content=_render_user_content,
         model=model,
     )

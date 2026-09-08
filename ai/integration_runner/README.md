@@ -187,7 +187,12 @@ restructuring.
   for what that actually does. Returns `(artifact, extra)`, where `extra` carries the routing
   mode and, on the generation path, the real validation/round-count data — see
   [ai/CLAUDE.md](../CLAUDE.md)'s note on `run_stage()`'s tuple return for why this stage alone
-  needs it.
+  needs it. Reserves its own attempt directory first, the same as `atl_stage`/`acceleo_stage`
+  below, and forwards its own stage name and that attempt's name to `run_psm()` too: on the
+  generation path, `psm_agent`'s own real generate-validate-retry loop carries those two values
+  through unchanged into its own validator-agent call, once per regeneration round, so every
+  round's real compiled Ecore classes nest inside that one attempt directory instead of landing
+  as orphaned siblings under the run root.
 - **`atl_stage(context)`** — ignores its input context. Returns fixed mock `.atl` source after
   validating it for real via `validator_agent_client.validate_atl()`, forwarding `run_id` so the
   real compiled `.asm` bytecode that call produces lands scoped under this run (see
@@ -221,11 +226,13 @@ against an existing `.ecore`). `stages/_validation.py`:
   sync routes dispatched through FastAPI's own threadpool, so two concurrent callers computing
   "next" from the same stale listing is a real, reachable race, not just a theoretical one; trying
   each candidate and catching the collision is what makes this genuinely atomic. Public (not
-  `persist_attempt`'s own private helper) so `atl_stage`/`acceleo_stage` can call it *before*
-  calling out to `validator_agent_client`: that call is what triggers `AtlValidator`'s/
-  `AcceleoValidator`'s own real compiled `.asm`/`.emtl` write, and that write needs the real
-  stage name and attempt number to nest inside, not land beside it as an unrelated sibling
-  (or, missing the stage segment, collide with another stage's own same-numbered attempt). See
+  `persist_attempt`'s own private helper) so `atl_stage`/`acceleo_stage`/`psm_stage` can call it
+  *before* calling out to `validator_agent_client` (`psm_stage` via `psm_agent_client.run_psm()`
+  instead, since `psm_agent`'s own generation code is what actually calls validator-agent): that
+  call is what triggers `AtlValidator`'s/`AcceleoValidator`'s/`EcoreValidator`'s own real compiled
+  output write, and that write needs the real stage name and attempt number to nest inside, not
+  land beside it as an unrelated sibling (or, missing the stage segment, collide with another
+  stage's own same-numbered attempt). See
   [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
@@ -457,9 +464,12 @@ touches this package's real `runs/` directory.
 - **`tests/stages/test_psm_stage.py`** — the real `psm_stage` agent (`stages/psm/agent.py`) as a
   thin proxy: `psm_agent_client.run_psm()` mocked, asserting the `(artifact, extra)` tuple shape,
   the input-context precedence (`pim_output` over `docs_output` over `platform_description`,
-  preserving the placeholder agent's own already-tested precedence), and that constraints/model
-  are forwarded. `test_manifest.py` (below) covers its `persist_attempt()` call instead. The real
-  generation/comparison logic itself has its own tests in `ai/psm_agent/tests/`.
+  preserving the placeholder agent's own already-tested precedence), that constraints/model are
+  forwarded, and that it reserves its own attempt directory and forwards its own stage name plus
+  that attempt's name the same way `atl_stage`/`acceleo_stage` do (a real directory created on
+  disk, not just a mocked call, and the second reserved attempt name on a retry). `test_manifest.py`
+  (below) covers its `persist_attempt()` call instead. The real generation/comparison logic itself
+  has its own tests in `ai/psm_agent/tests/`.
 - **`tests/stages/test_validation.py`** — `stages/_validation.py`'s own `persist_attempt()`/
   `raise_if_invalid()` contract, independent of any one stage.
 - **`tests/stages/test_manifest.py`** — `runs/<run_id>/manifest.json`'s own contract: every

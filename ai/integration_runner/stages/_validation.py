@@ -55,11 +55,13 @@ def reserve_attempt_dir(run_id: str, stage: str) -> Path:
     catching the collision is what makes this actually atomic, no pre-scan
     needed.
 
-    Public so a stage agent that calls out to validator-agent (atl, acceleo)
-    can reserve its attempt directory before that call, and pass its name
-    down as the validator's own attempt scope. See persist_attempt()'s own
+    Public so a stage agent that calls out to a real validator (atl, acceleo
+    directly; psm indirectly, via psm_agent's own generation code) can
+    reserve its attempt directory before that call, and pass its name down
+    as the validator's own attempt scope. See persist_attempt()'s own
     attempt_dir parameter for how the same reserved Path is then reused
-    instead of reserved twice."""
+    instead of reserved twice, and attempt_scope_kwargs() below for the
+    stage/attempt kwargs every one of those callers forwards from it."""
     stage_dir = RUNS_DIR / run_id / stage
     stage_dir.mkdir(parents=True, exist_ok=True)
     n = 1
@@ -70,6 +72,19 @@ def reserve_attempt_dir(run_id: str, stage: str) -> Path:
             return attempt_dir
         except FileExistsError:
             n += 1
+
+
+def attempt_scope_kwargs(stage: str, attempt_dir: Path | None) -> dict[str, str | None]:
+    """The stage/attempt kwargs a caller forwards into its own real
+    validator call, from an already-reserved (or absent) attempt directory
+    - shared by atl_stage/acceleo_stage/psm_stage so each doesn't repeat its
+    own "stage if attempt_dir else None" / "attempt_dir.name if attempt_dir
+    else None" pair. {"stage": None, "attempt": None} when there's no
+    attempt_dir at all (no run_id to have reserved one under)."""
+    return {
+        "stage": stage if attempt_dir else None,
+        "attempt": attempt_dir.name if attempt_dir else None,
+    }
 
 
 # Kept as an alias, not a second implementation: test_validation_concurrency.py

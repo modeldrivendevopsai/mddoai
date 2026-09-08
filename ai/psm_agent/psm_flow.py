@@ -28,6 +28,8 @@ def run(
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
 ) -> dict:
     """Returns either:
       {"mode": "generation", "artifact": str, "prompt": dict, "validation": dict, "rounds": int}
@@ -36,10 +38,17 @@ def run(
     `artifact` is always what belongs in the pipeline's psm_output - the newly
     generated .ecore, or (knowledge mode) the existing .ecore's own content,
     unchanged, since no automatic edit happens on a gap finding.
+
+    stage/attempt only ever matter on the generation branch: compare() below
+    never calls a validator at all (a real drift/gap-check has nothing to
+    validate against), so knowledge mode has no real compiled output to scope.
     """
     existing_metamodel_path = resolve_platform_metamodel(platform_description)
     if existing_metamodel_path is None:
-        result = generate(pim_artifact, platform_docs, constraints=constraints, model=model, run_id=run_id)
+        result = generate(
+            pim_artifact, platform_docs, constraints=constraints, model=model,
+            run_id=run_id, stage=stage, attempt=attempt,
+        )
         return {"mode": "generation", **result}
 
     existing_artifact = Path(existing_metamodel_path).read_text()

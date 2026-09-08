@@ -69,17 +69,26 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   concrete, stated direction is assembling them into a real conversion pipeline once the full
   integration chain is done, not just keeping them around for a human to inspect a failed check,
   so they land in one shared `runs/<run_id>/` tree instead of two disconnected per-service
-  locations. For `atl`/`acceleo`, that shared tree is a real nested layout, not just a shared
-  top-level directory: each stage reserves its own `attempt_N/` directory before it ever calls
-  validator-agent (`stages/_validation.py`'s own `reserve_attempt_dir()`), then forwards its own
-  stage name and that attempt's name as the request's `stage` and `attempt` fields alongside
-  `run_id`, and validator-agent joins all three onto its own output root
-  (`validator_runner.py`'s own `_scoped_output_env()`) before ever invoking the Java CLI.
-  `AtlValidator`'s `.asm` and `AcceleoValidator`'s `.emtl` land inside that same `attempt_N/`
-  directory (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`), not merely as a sibling
-  of it under the same `run_id`, and not missing the `stage` segment either (which would risk two
-  stages' own same-numbered attempts colliding). `pim` only ever validates reflectively today,
-  which produces nothing worth scoping, so it never sends `run_id`, `stage`, or `attempt` at all.
+  locations. For `atl`/`acceleo`/`psm`, that shared tree is a real nested layout, not just a shared
+  top-level directory: each stage reserves its own `attempt_N/` directory before it (or, for `psm`,
+  before `psm_agent`'s own generation code, called on its behalf) ever calls validator-agent
+  (`stages/_validation.py`'s own `reserve_attempt_dir()`), then forwards its own stage name and
+  that attempt's name as the request's `stage` and `attempt` fields alongside `run_id`, and
+  validator-agent joins all three onto its own output root (`validator_runner.py`'s own
+  `_scoped_output_env()`) before ever invoking the Java CLI. `AtlValidator`'s `.asm`,
+  `AcceleoValidator`'s `.emtl`, and `EcoreValidator`'s codegen classes (on `psm`'s own real
+  generation path) land inside that same `attempt_N/` directory
+  (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`), not merely as a sibling of it under
+  the same `run_id`, and not missing the `stage` segment either (which would risk two stages' own
+  same-numbered attempts colliding). `psm` is the one case where the calling service and the
+  service that reserves the attempt directory are different processes: `integration_runner`'s own
+  `stages/psm/agent.py` reserves the attempt directory and forwards `stage`/`attempt` over HTTP to
+  `psm_agent`, which has no attempt-numbering concept of its own and just carries those two values
+  through its own real generate-validate-retry loop (`psm_agent/generation.py`) unchanged, once per
+  round, so every regeneration round's own real compiled Ecore classes land inside that same one
+  attempt directory, each in its own uniquely-named subfolder, rather than scattered as orphaned
+  siblings under the run root. `pim` only ever validates reflectively today, which produces nothing
+  worth scoping, so it never sends `run_id`, `stage`, or `attempt` at all.
   This is the one place in `ai/` where two independently deployed services share a filesystem
   rather than only talking over HTTP: `integration_runner` writes its own side of that tree
   directly, `validator_agent` returns its side's real path as `generated_source_path` for the

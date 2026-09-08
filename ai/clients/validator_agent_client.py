@@ -35,13 +35,13 @@ def validate_ecore(
     "generated_source_path": str | None}. filename defaults to a generic
     name for callers (e.g. psm_agent's own generate()) that validate
     in-memory content with no real source file of its own. stage and
-    attempt name the calling stage (e.g. "atl") and its own reserved attempt
+    attempt name the calling stage (e.g. "psm") and its own reserved attempt
     directory (e.g. "attempt_2"), joined in that order onto run_id, so a
     codegen-mode call's real compiled output nests inside that exact
-    attempt directory rather than only scoped by run_id. Accepted here for
-    parity with validate_atl/validate_acceleo even though pim_stage, the
-    only caller of this function today, doesn't pass either: pim_stage
-    always validates reflectively, which produces nothing worth scoping."""
+    attempt directory rather than only scoped by run_id. Only ever matters
+    for a real codegen-mode call: a reflective-only caller never passes
+    either, since reflective mode produces nothing worth scoping in the
+    first place."""
     payload = {"filename": filename, "content": content, "mode": mode}
     if run_id is not None:
         payload["run_id"] = run_id

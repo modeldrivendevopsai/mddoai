@@ -23,6 +23,20 @@ def test_routes_to_generation_for_unknown_platform():
     assert result["artifact"] == "<new-ecore/>"
 
 
+def test_forwards_stage_and_attempt_to_generate_on_the_generation_path():
+    # Only the generation path ever validates (compare() never calls a
+    # validator at all, see test_routes_to_knowledge_agent_for_known_platform
+    # below), so stage/attempt only need to reach generate() here.
+    with patch("psm_flow.resolve_platform_metamodel", return_value=None), \
+         patch("psm_flow.generate", return_value={
+             "artifact": "<new-ecore/>", "prompt": {}, "validation": {"valid": True}, "rounds": 1,
+         }) as mock_generate:
+        psm_flow.run("TeamCity", "<pim/>", "docs", run_id="run-123", stage="psm", attempt="attempt_1")
+
+    assert mock_generate.call_args.kwargs.get("stage") == "psm"
+    assert mock_generate.call_args.kwargs.get("attempt") == "attempt_1"
+
+
 def test_routes_to_knowledge_agent_for_known_platform(tmp_path):
     existing = tmp_path / "gitlabMM.ecore"
     existing.write_text("<real-existing-ecore/>")

@@ -81,18 +81,21 @@ services:
       # validator-agent's own compiled output (Ecore's codegen classes, ATL's
       # .asm, Acceleo's .emtl - all real, reusable pipeline artifacts per
       # this project's stated direction, not just validation debris) lands
-      # too. For atl/acceleo, that compiled output nests one level inside the
-      # exact attempt directory persist_attempt() writes its own artifact and
-      # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
-      # <uuid>/), because those two stages reserve their own attempt
-      # directory before calling validator-agent and forward both their own
-      # stage name and that attempt's name as the new stage/attempt fields
-      # (see stages/atl/agent.py, stages/acceleo/agent.py, and
-      # validator_runner.py's own _scoped_output_env()); pim only ever
-      # validates reflectively today, so it never scopes by run_id, stage,
-      # or attempt at all. Get this path wrong and the two services silently
-      # write to different, unrelated directories - verify it against
-      # RUNS_DIR itself before changing either side.
+      # too. For atl/acceleo/psm, that compiled output nests one level inside
+      # the exact attempt directory persist_attempt() writes its own artifact
+      # and result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
+      # <uuid>/), because those stages reserve their own attempt directory
+      # before validator-agent ever gets called and forward both their own
+      # stage name and that attempt's name as the stage/attempt fields (see
+      # stages/atl/agent.py, stages/acceleo/agent.py, stages/psm/agent.py,
+      # and validator_runner.py's own _scoped_output_env()) - for psm
+      # specifically, integration_runner reserves the attempt directory and
+      # forwards those two fields over HTTP to psm_agent, which just carries
+      # them through its own real generate-validate-retry loop unchanged;
+      # pim only ever validates reflectively today, so it never scopes by
+      # run_id, stage, or attempt at all. Get this path wrong and the two
+      # services silently write to different, unrelated directories -
+      # verify it against RUNS_DIR itself before changing either side.
       - pipeline-runs:/app/integration_runner/runs
     depends_on:
       ai-layer:
@@ -422,8 +425,10 @@ services:
       # subfolder when the caller has one, and two levels deeper still under
       # the caller's own stage/attempt subfolders when it has reserved one
       # (validator_runner.py's own _scoped_output_env(), given run_id, stage,
-      # and attempt together by atl_stage/acceleo_stage - see
-      # stages/_validation.py's own reserve_attempt_dir()). That nests the
+      # and attempt together by atl_stage/acceleo_stage's own direct calls
+      # here, or by psm_agent's own generation code, using the same two
+      # values stages/psm/agent.py reserved and forwarded to it over HTTP -
+      # see stages/_validation.py's own reserve_attempt_dir()). That nests the
       # compiled artifact inside the exact attempt_N/ directory
       # integration_runner's own persist_attempt() writes its artifact and
       # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
