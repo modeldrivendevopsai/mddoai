@@ -63,6 +63,21 @@ def test_scoped_output_env_joins_run_id_stage_and_attempt_when_all_given():
     assert Path(env["VALIDATOR_OUTPUT_DIR"]).as_posix() == "/validator-output/run-123/atl/attempt_2"
 
 
+def test_run_cli_wraps_a_generic_oserror_as_infra_error():
+    # Not FileNotFoundError (java missing) or TimeoutExpired (already
+    # covered elsewhere) - a plain OSError, matching what a real
+    # "Argument list too long" (E2BIG) failure raises when the OS's own
+    # execve() argv+envp size limit is exceeded, confirmed directly against
+    # a real Linux container. main.py's own _ID_MAX_LENGTH cap on
+    # run_id/stage/attempt is the primary defense; this is the
+    # defense-in-depth half, so anything else that ever grows the real
+    # environment past that limit still fails clean instead of as an
+    # unhandled 500.
+    with patch("validator_runner.subprocess.run", side_effect=OSError("Argument list too long")):
+        with pytest.raises(ValidatorInfraError, match="Argument list too long"):
+            run_ecore_validator("<ecore/>", "model.ecore", "reflective")
+
+
 def test_builds_expected_argv_and_invokes_correct_class():
     valid_json = json.dumps({"valid": True, "mode": "reflective", "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:

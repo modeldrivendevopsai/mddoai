@@ -84,6 +84,17 @@ def _run_cli(argv: list[str], env: dict[str, str] | None = None) -> tuple[dict, 
         raise ValidatorInfraError(f"java executable not found: {e}") from e
     except subprocess.TimeoutExpired as e:
         raise ValidatorInfraError(f"validator subprocess timed out after {TIMEOUT_SECONDS}s") from e
+    except OSError as e:
+        # Defense in depth alongside main.py's own _ID_MAX_LENGTH cap on
+        # run_id/stage/attempt: the OS's own execve() argv+envp size limit
+        # (confirmed directly, in a real Linux container matching this
+        # project's own Docker deployment: a large enough combined env
+        # value raises exactly this, "Argument list too long") isn't
+        # something either Python or Pydantic enforces on their own, so if
+        # anything else ever pushes the real environment over that limit,
+        # this still fails as a clean infra error instead of an unhandled
+        # 500 with no useful detail.
+        raise ValidatorInfraError(f"failed to start validator subprocess: {e}") from e
     duration_ms = int((time.monotonic() - start) * 1000)
 
     if proc.returncode != 0:

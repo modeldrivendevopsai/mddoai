@@ -114,6 +114,18 @@ def test_validate_ecore_rejects_dot_run_id():
     assert response.status_code == 422
 
 
+def test_validate_ecore_rejects_all_dots_run_id():
+    # Not a real traversal segment on any OS (only "." and ".." are
+    # special), but confirmed that native Windows silently strips trailing
+    # dots from a path component, which would otherwise let "..." quietly
+    # collapse this scoping mechanism on a local-dev-without-Docker run.
+    response = client.post("/validate/ecore", json={
+        "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen", "run_id": "...",
+    })
+
+    assert response.status_code == 422
+
+
 def test_validate_ecore_rejects_dot_dot_newline_run_id():
     # Python's own re.match would let "..\n" satisfy a $-anchored pattern
     # (its $ matches immediately before a single trailing "\n" even without
@@ -137,6 +149,38 @@ def test_validate_ecore_forwards_stage_and_attempt():
         })
 
     mock_run.assert_called_once_with("<ecore/>", "model.ecore", "codegen", "run-123", "pim", "attempt_2")
+
+
+def test_validate_ecore_rejects_oversized_run_id():
+    # Confirmed directly, in a real Linux container matching this project's
+    # own Docker deployment, that an unbounded run_id/stage/attempt joined
+    # into a subprocess's env can raise an uncaught OS-level "Argument list
+    # too long" - main._ID_MAX_LENGTH exists specifically to make this a
+    # clean, reachable 422 instead, well before that OS limit is ever in reach.
+    response = client.post("/validate/ecore", json={
+        "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen",
+        "run_id": "a" * (main._ID_MAX_LENGTH + 1),
+    })
+
+    assert response.status_code == 422
+
+
+def test_validate_ecore_rejects_oversized_stage():
+    response = client.post("/validate/ecore", json={
+        "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen",
+        "run_id": "run-123", "stage": "a" * (main._ID_MAX_LENGTH + 1),
+    })
+
+    assert response.status_code == 422
+
+
+def test_validate_ecore_rejects_oversized_attempt():
+    response = client.post("/validate/ecore", json={
+        "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen",
+        "run_id": "run-123", "attempt": "a" * (main._ID_MAX_LENGTH + 1),
+    })
+
+    assert response.status_code == 422
 
 
 def test_validate_ecore_rejects_dot_dot_stage():
