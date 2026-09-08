@@ -117,6 +117,23 @@ def test_reserves_and_forwards_its_own_stage_and_attempt_name(tmp_path):
     assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
 
 
+def test_forwards_mock_override_from_context():
+    # The same per-run "Mock" override docs_stage's own context["mock"]
+    # already reads (RerunOverrides.mock/StartRequest.mock) - defaults to
+    # False when absent, same as every other real run.
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "mock": True})
+
+    assert mock_run.call_args.kwargs.get("mock") is True
+
+
+def test_defaults_mock_to_false_when_absent():
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim"})
+
+    assert mock_run.call_args.kwargs.get("mock") is False
+
+
 def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
     with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
         psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})  # attempt_1

@@ -43,6 +43,14 @@ class ReviewRequest(BaseModel):
 
 
 class RerunOverrides(BaseModel):
+    """One shared shape for every stage's rerun overrides, even though most
+    fields are docs-specific (retrieval's real /fetch parameters) - see
+    pipeline.py's own _STAGE_OVERRIDE_KEYS for exactly which stage
+    recognizes which field; an override this model allows but the current
+    stage doesn't recognize still raises there. `mock` is the one field two
+    stages share: docs skips the real crawl, psm skips the real LLM call -
+    each stage's own agent reads it from context, this model just carries it."""
+
     seed_url: str | None = None
     hint: str | None = None
     exclude_urls: list[str] | None = None

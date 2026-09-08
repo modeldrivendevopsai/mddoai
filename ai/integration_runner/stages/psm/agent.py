@@ -2,10 +2,14 @@
 /psm capability (routes between generating a new metamodel and checking an
 existing one for drift - see psm_agent/psm_flow.py's own docstring), matching
 every other real stage agent's shape (compare stages/serialization/agent.py).
-The one real, non-mock stage agent besides docs/serialization/pim - unlike
-pim/atl/acceleo (still fixed mock content + a single real validator-agent
-call, see stages/_validation.py), psm's own real validation already happens
-inside psm_agent's own retry loop (generation_toolkit's run_with_retry).
+Unlike pim/atl/acceleo (always fixed mock content + a single real
+validator-agent call, see stages/_validation.py), psm's own real generation
+path validates inside psm_agent's own retry loop (generation_toolkit's
+run_with_retry); its own opt-in mock (context["mock"], the same per-run
+override docs_stage reads) skips only that retry loop's real LLM call, still
+resolving the real prompt config and running the real validator-agent call
+against a fixed valid artifact - see psm_agent/generation.py's generate()
+docstring for exactly what mock does and doesn't skip.
 
 Returns (output, extra) instead of the plain str every other stage agent
 returns - see pipeline.py's run_stage() for the backward-compatible handling
@@ -54,6 +58,11 @@ def psm_stage(context: dict) -> tuple[str, dict]:
         constraints=constraints,
         model=context.get("model"),
         run_id=run_id,
+        # The same per-run "Mock" override docs_stage's own context["mock"]
+        # already reads (see RerunOverrides.mock/StartRequest.mock) - only
+        # meaningful on psm_agent's generation branch, see generate()'s own
+        # docstring for exactly what it skips.
+        mock=bool(context.get("mock")),
         **attempt_scope_kwargs("psm", attempt_dir),
     )
     artifact = result["artifact"]
@@ -69,12 +78,27 @@ def psm_stage(context: dict) -> tuple[str, dict]:
         # detail (which round, what the validator actually said) a bare
         # raised failure would throw away - chat-ui's own failure view
         # already surfaces exactly that from a normal, non-raised return.
-        persist_attempt(run_id or "unknown", "psm", _FILENAME, artifact, result["validation"], attempt_dir=attempt_dir)
+        persist_attempt(
+            run_id or "unknown",
+            "psm",
+            _FILENAME,
+            artifact,
+            result["validation"],
+            attempt_dir=attempt_dir,
+            prompt=result.get("prompt"),
+            prompt_version=result.get("prompt_version"),
+        )
     else:
         # Knowledge mode: the existing metamodel is returned unchanged and
         # gaps are informational only - there's no real pass/fail to raise
         # on, but the attempt still gets the same on-disk record.
         persist_attempt(
-            run_id or "unknown", "psm", _FILENAME, artifact, {"valid": True, "issues": []}, attempt_dir=attempt_dir
+            run_id or "unknown",
+            "psm",
+            _FILENAME,
+            artifact,
+            {"valid": True, "issues": []},
+            attempt_dir=attempt_dir,
+            prompt=result.get("prompt"),
         )
     return artifact, {k: v for k, v in result.items() if k != "artifact"}

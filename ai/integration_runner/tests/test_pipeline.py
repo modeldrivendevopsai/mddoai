@@ -152,11 +152,26 @@ def test_rerun_replays_the_last_context_and_picks_up_new_constraints():
     assert "Mention the rollback step explicitly" in sent_content
 
 
-def test_rerun_rejects_overrides_on_a_non_docs_stage():
+def test_rerun_rejects_overrides_on_a_stage_with_no_recognized_overrides():
     o = pipeline.IntegrationRun()
     _fast_forward_to_generation(o)
-    with pytest.raises(ValueError, match="only 'docs' does"):
+    with pytest.raises(ValueError, match="only docs and psm do"):
         o.rerun({"hint": "not applicable here"})
+
+
+def test_rerun_rejects_a_key_the_current_stage_doesnt_recognize():
+    # psm recognizes "mock" but not a different stage's own shape - an
+    # override key valid elsewhere is rejected here too, not silently
+    # dropped or silently accepted.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+    o.review("pim", approved=True)
+
+    with pytest.raises(ValueError, match=r"doesn't recognize override\(s\) \['hint'\], it only accepts \['mock'\]"):
+        o.rerun({"hint": "not applicable to psm"})
 
 
 def test_advance_stage_moves_through_stages_and_returns_none_at_end():
@@ -220,6 +235,71 @@ def test_review_approved_starts_next_stage_and_threads_its_output_forward():
     # The real point of this test: atl's approved output threaded into
     # acceleo's own context under the right key.
     assert o.last_context["atl_output"] == atl_agent._MOCK_CONTENT
+
+
+def test_review_approved_into_psm_does_not_auto_run_it():
+    # psm is in _REQUIRES_MANUAL_START (it has a real, editable prompt
+    # config): arriving there advances the pipeline but does not fire
+    # psm_agent_client.run_psm() - a human gets to review/edit the prompt
+    # first, the real point of this test.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm") as mock_run_psm:
+        result = o.review("pim", approved=True)
+
+    assert result == {"status": "advanced_pending", "stage": "psm"}
+    assert o.current_stage == "psm"
+    assert mock_run_psm.call_count == 0
+    assert o._last_thread is None
+    assert o.busy is False
+    # The next stage's real, already-computed context is stored, not
+    # thrown away - a later rerun()/Retry click needs this to actually run
+    # psm for the first time with the right input.
+    assert o.last_context["pim_output"] == "PIM: jobs/stages/triggers"
+
+
+def test_a_pending_manual_start_stage_can_be_started_via_rerun():
+    # The existing rerun() mechanism ("run the current stage using
+    # last_context plus overrides") is deliberately reused as the real
+    # "Generate" trigger for a pending manual-start stage - no new backend
+    # action needed, the panel's existing Retry/Generate button already
+    # wires to this.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()) as mock_run_psm:
+        o.review("pim", approved=True)
+        o.rerun()
+        o._last_thread.join(timeout=5)
+
+    assert mock_run_psm.call_count == 1
+    assert o.current_stage == "psm"
+
+
+def test_pending_manual_start_stage_accepts_a_mock_override_on_rerun():
+    # psm is the second stage in _STAGE_OVERRIDE_KEYS (after docs) -
+    # a rerun override reaches psm_agent_client.run_psm's own mock kwarg via
+    # stages/psm/agent.py's context.get("mock"), the real "test the prompt
+    # builder without a real, slow, billed LLM call" path.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()) as mock_run_psm:
+        o.review("pim", approved=True)
+        o.rerun({"mock": True})
+        o._last_thread.join(timeout=5)
+
+    assert mock_run_psm.call_args.kwargs.get("mock") is True
 
 
 def test_review_approved_accumulates_outputs_through_generation():
