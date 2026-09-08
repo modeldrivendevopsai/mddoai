@@ -59,6 +59,37 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   and does not license any other future `ai/` service to reach into `main/` without the same
   explicit justification.
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
+- **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one Docker
+  volume (`pipeline-runs` in `ai/docker-compose.yml`) for real, on-disk pipeline artifacts. This
+  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, see
+  `integration_runner/stages/_validation.py`) and every real compiled artifact `validator_agent`'s
+  own deep checks produce (`EcoreValidator`'s codegen classes, `AtlValidator`'s `.asm`,
+  `AcceleoValidator`'s `.emtl`, none of which validator_agent itself ever deletes anymore). These
+  are meant to be genuinely reusable pipeline artifacts, not disposable debugging output. The
+  concrete, stated direction is assembling them into a real conversion pipeline once the full
+  integration chain is done, not just keeping them around for a human to inspect a failed check,
+  so they land in one shared `runs/<run_id>/` tree instead of two disconnected per-service
+  locations. For `atl`/`acceleo`, that shared tree is a real nested layout, not just a shared
+  top-level directory: each stage reserves its own `attempt_N/` directory before it ever calls
+  validator-agent (`stages/_validation.py`'s own `reserve_attempt_dir()`), then forwards its own
+  stage name and that attempt's name as the request's `stage` and `attempt` fields alongside
+  `run_id`, and validator-agent joins all three onto its own output root
+  (`validator_runner.py`'s own `_scoped_output_env()`) before ever invoking the Java CLI.
+  `AtlValidator`'s `.asm` and `AcceleoValidator`'s `.emtl` land inside that same `attempt_N/`
+  directory (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`), not merely as a sibling
+  of it under the same `run_id`, and not missing the `stage` segment either (which would risk two
+  stages' own same-numbered attempts colliding). `pim` only ever validates reflectively today,
+  which produces nothing worth scoping, so it never sends `run_id`, `stage`, or `attempt` at all.
+  This is the one place in `ai/` where two independently deployed services share a filesystem
+  rather than only talking over HTTP: `integration_runner` writes its own side of that tree
+  directly, `validator_agent` returns its side's real path as `generated_source_path` for the
+  calling stage's own `persist_attempt()` to record, so the two sides of the same run still get
+  reconciled through a real API response, not a hidden read of the other service's own files.
+  Whoever changes either container's mount path must re-derive it from that service's own code
+  (`integration_runner`'s `RUNS_DIR`, `validator_agent`'s `VALIDATOR_OUTPUT_DIR` usage), not just
+  copy the other container's mount string, since the two Dockerfiles have different `WORKDIR`s, so
+  the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
+  comments in `ai/docker-compose.yml`).
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

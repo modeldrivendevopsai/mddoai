@@ -1,12 +1,16 @@
 package test.java.integration.java.mddoai.validation.atl;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
 
 import org.junit.jupiter.api.Test;
 
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.atl.AtlCompileResult;
 import main.java.mddoai.validation.atl.AtlValidator;
 
 /**
@@ -20,30 +24,56 @@ public class AtlValidatorTest {
 
     @Test
     public void realShippedSwarch2PimAtlCompilesClean() {
-        ValidationResult result = AtlValidator.validate(
+        AtlCompileResult compileResult = AtlValidator.validate(
                 "./src/main/resources/transformations/swarch2pim/swarch2pim.atl");
+        ValidationResult result = compileResult.result();
 
         assertTrue(result.valid(), "expected clean compile, got: " + result.issues());
     }
 
     @Test
     public void realShippedPim2GitlabModelAtlCompilesClean() {
-        ValidationResult result = AtlValidator.validate(
+        AtlCompileResult compileResult = AtlValidator.validate(
                 "./src/main/resources/transformations/pim2psm/pim2gitlabmodel.atl");
+        ValidationResult result = compileResult.result();
 
         assertTrue(result.valid(), "expected clean compile, got: " + result.issues());
     }
 
     @Test
+    public void realCleanCompileKeepsTheRealAsmOutputOnDisk() {
+        // The whole point of keeping compiled output: it must actually be a
+        // real, readable file on disk, not just a non-null path string.
+        AtlCompileResult compileResult = AtlValidator.validate(
+                "./src/main/resources/transformations/swarch2pim/swarch2pim.atl");
+
+        assertTrue(compileResult.result().valid());
+        String path = compileResult.generatedOutputPath();
+        assertTrue(path != null && new File(path).isFile(),
+                "expected a real .asm file on disk, got: " + path);
+        assertTrue(path.endsWith(".asm"), "expected a .asm file, got: " + path);
+    }
+
+    @Test
     public void emptyFileIsReportedAsError() {
-        ValidationResult result = AtlValidator.validate(FIXTURES + "empty.atl");
+        AtlCompileResult compileResult = AtlValidator.validate(FIXTURES + "empty.atl");
+        ValidationResult result = compileResult.result();
 
         assertFalse(result.valid());
     }
 
     @Test
+    public void nonexistentFileHasNoGeneratedOutput() {
+        AtlCompileResult compileResult = AtlValidator.validate(FIXTURES + "nonexistent.atl");
+
+        assertFalse(compileResult.result().valid());
+        assertNull(compileResult.generatedOutputPath());
+    }
+
+    @Test
     public void brokenSyntaxAtlSurfacesRealParserError() {
-        ValidationResult result = AtlValidator.validate(FIXTURES + "broken-atl-syntax.atl");
+        AtlCompileResult compileResult = AtlValidator.validate(FIXTURES + "broken-atl-syntax.atl");
+        ValidationResult result = compileResult.result();
 
         assertFalse(result.valid());
         assertTrue(result.issues().stream().anyMatch(i -> i.severity() == ValidationIssue.Severity.ERROR),
@@ -58,7 +88,8 @@ public class AtlValidatorTest {
         // valid-looking but not valid ATL grammar. Distinct from an unmatched-paren
         // style error — proves the parser rejects reserved-word misuse specifically,
         // not just gross structural breakage.
-        ValidationResult result = AtlValidator.validate(FIXTURES + "broken-atl-reserved-word.atl");
+        AtlCompileResult compileResult = AtlValidator.validate(FIXTURES + "broken-atl-reserved-word.atl");
+        ValidationResult result = compileResult.result();
 
         assertFalse(result.valid());
         assertTrue(result.issues().stream()

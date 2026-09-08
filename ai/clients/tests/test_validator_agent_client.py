@@ -57,6 +57,24 @@ def test_validate_ecore_forwards_run_id_for_codegen_output_placement():
     assert mock_post.call_args.kwargs["json"]["run_id"] == "run-123"
 
 
+def test_validate_ecore_forwards_stage_and_attempt_for_codegen_output_placement():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_ecore(
+            "<ecore/>", mode="codegen", run_id="run-123", stage="pim", attempt="attempt_2",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["stage"] == "pim"
+    assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_2"
+
+
+def test_validate_ecore_omits_stage_and_attempt_when_not_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_ecore("<ecore/>", mode="codegen", run_id="run-123")
+
+    assert "stage" not in mock_post.call_args.kwargs["json"]
+    assert "attempt" not in mock_post.call_args.kwargs["json"]
+
+
 def test_validate_atl_posts_filename_and_content_with_no_mode_field():
     result = _fake_result()
     with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:
@@ -70,6 +88,16 @@ def test_validate_atl_posts_filename_and_content_with_no_mode_field():
     assert response == result
 
 
+def test_validate_atl_forwards_stage_and_attempt_for_compiled_output_placement():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_atl(
+            "module M; ...", "sample.atl", run_id="run-123", stage="atl", attempt="attempt_2",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["stage"] == "atl"
+    assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_2"
+
+
 def test_validate_acceleo_posts_filename_and_content():
     result = _fake_result()
     with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:
@@ -81,6 +109,16 @@ def test_validate_acceleo_posts_filename_and_content():
         timeout=validator_agent_client.VALIDATE_TIMEOUT,
     )
     assert response == result
+
+
+def test_validate_acceleo_forwards_stage_and_attempt_for_compiled_output_placement():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_acceleo(
+            "[module m('x')]", "sample.mtl", run_id="run-123", stage="acceleo", attempt="attempt_2",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["stage"] == "acceleo"
+    assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_2"
 
 
 def test_validate_ecore_returns_a_failing_result_as_plain_data_not_an_error():

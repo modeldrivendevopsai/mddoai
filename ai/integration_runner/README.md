@@ -189,9 +189,12 @@ restructuring.
   [ai/CLAUDE.md](../CLAUDE.md)'s note on `run_stage()`'s tuple return for why this stage alone
   needs it.
 - **`atl_stage(context)`** — ignores its input context. Returns fixed mock `.atl` source after
-  validating it for real via `validator_agent_client.validate_atl()`.
+  validating it for real via `validator_agent_client.validate_atl()`, forwarding `run_id` so the
+  real compiled `.asm` bytecode that call produces lands scoped under this run (see
+  [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `pipeline-runs` volume).
 - **`acceleo_stage(context)`** — ignores its input context. Returns fixed mock `.mtl` source
-  after validating it for real via `validator_agent_client.validate_acceleo()`.
+  after validating it for real via `validator_agent_client.validate_acceleo()`, forwarding
+  `run_id` the same way `atl_stage` does, for the real compiled `.emtl` module that call produces.
 - **`gen_stage(context)`** — reads `context["psm_output"]`, `context["atl_output"]`, and
   `context["acceleo_output"]`. Produces a final, concise summary of the whole pipeline plan.
 
@@ -205,17 +208,25 @@ from `psm_agent`'s own response (real `validator-agent` output on the generation
 trivial always-valid record on the knowledge/comparison path, since there's nothing to validate
 against an existing `.ecore`). `stages/_validation.py`:
 
-- **`persist_attempt(run_id, stage, filename, content, result)`** — writes
+- **`persist_attempt(run_id, stage, filename, content, result, attempt_dir=None)`** — writes
   `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, synchronously,
   before the caller decides pass/fail, and appends this same attempt to `runs/<run_id>/manifest.json`
-  (below). Never overwrites a prior attempt.
-- **`_next_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
+  (below). Never overwrites a prior attempt. `attempt_dir` lets a caller that already reserved its
+  own attempt directory (see `reserve_attempt_dir` below) hand it in directly instead of a second
+  one being reserved; omitted, it reserves its own exactly as it always has.
+- **`reserve_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
   create `attempt_1`, `attempt_2`, ... in turn (`Path.mkdir()`'s default `exist_ok=False` already
   raises `FileExistsError` atomically, backed by the OS's own atomic `mkdir(2)`), not by listing
   the directory first and trusting that snapshot — this service's real mutating endpoints are
   sync routes dispatched through FastAPI's own threadpool, so two concurrent callers computing
   "next" from the same stale listing is a real, reachable race, not just a theoretical one; trying
-  each candidate and catching the collision is what makes this genuinely atomic.
+  each candidate and catching the collision is what makes this genuinely atomic. Public (not
+  `persist_attempt`'s own private helper) so `atl_stage`/`acceleo_stage` can call it *before*
+  calling out to `validator_agent_client`: that call is what triggers `AtlValidator`'s/
+  `AcceleoValidator`'s own real compiled `.asm`/`.emtl` write, and that write needs the real
+  stage name and attempt number to nest inside, not land beside it as an unrelated sibling
+  (or, missing the stage segment, collide with another stage's own same-numbered attempt). See
+  [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
   already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never

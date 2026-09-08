@@ -50,12 +50,20 @@ class AtlValidationResult(TypedDict):
     valid: bool
     issues: list[Issue]
     duration_ms: int
+    # Where AtlValidator persisted the compiled .asm bytecode, when compiling
+    # actually produced one - see EcoreValidationResult's own
+    # generated_source_path for why this is kept (this repo's stated
+    # direction is real reuse, not just debugging), not just for Ecore.
+    generated_source_path: str | None
 
 
 class AcceleoValidationResult(TypedDict):
     valid: bool
     issues: list[Issue]
     duration_ms: int
+    # Where AcceleoValidator persisted the compiled .emtl module, when
+    # compiling actually produced one - see AtlValidationResult's own field.
+    generated_source_path: str | None
 
 
 class ValidatorInfraError(Exception):
@@ -92,7 +100,48 @@ def _run_cli(argv: list[str], env: dict[str, str] | None = None) -> tuple[dict, 
     return result, duration_ms
 
 
-def run_ecore_validator(content: str, filename: str, mode: Literal["reflective", "codegen"], run_id: str | None = None) -> EcoreValidationResult:
+def _scoped_output_env(
+    run_id: str | None, stage: str | None = None, attempt: str | None = None
+) -> dict[str, str] | None:
+    """Overrides VALIDATOR_OUTPUT_DIR to a per-run_id/per-stage/per-attempt
+    subfolder, for a call that's about to persist a real compiled artifact
+    there (Ecore's codegen mode, ATL, Acceleo - see each *ValidatorCli's own
+    OUTPUT_ROOT), so concurrent runs' compiled output never collides, and so
+    it lands nested inside the exact same attempt directory
+    integration_runner's own persist_attempt() writes to
+    (runs/<run_id>/<stage>/attempt_N/) instead of beside it or, worse,
+    beside a same-numbered attempt from a different stage of the same run.
+    Segments are joined in order, run_id then stage then attempt, skipping
+    any that are None - <base>/<run_id> when only run_id is given (unchanged
+    from before stage/attempt existed - every caller that doesn't pass them
+    keeps working exactly as it did). None (subprocess inherits this
+    process's own environment as-is) when there's no run_id to scope by at
+    all - the caller still gets real output, just landing directly in the
+    configured base directory, unscoped. run_id, stage, and attempt are each
+    already validated (character class plus the dot-segment check, see
+    main.py's own _RUN_ID_PATTERN/_reject_dot_segments) before this function
+    ever runs, so joining them onto the base path here is safe without a
+    second check."""
+    if run_id is None:
+        return None
+    env = os.environ.copy()
+    output_dir = Path(env.get("VALIDATOR_OUTPUT_DIR", tempfile.gettempdir())) / run_id
+    if stage is not None:
+        output_dir /= stage
+    if attempt is not None:
+        output_dir /= attempt
+    env["VALIDATOR_OUTPUT_DIR"] = str(output_dir)
+    return env
+
+
+def run_ecore_validator(
+    content: str,
+    filename: str,
+    mode: Literal["reflective", "codegen"],
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+) -> EcoreValidationResult:
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "model.ecore")
         target.write_text(content, encoding="utf-8")
@@ -101,10 +150,7 @@ def run_ecore_validator(content: str, filename: str, mode: Literal["reflective",
         # at JVM startup — not a shell glob. Safe to pass as one argv element with
         # no shell=True.
         argv = ["java", "-cp", f"{LIB_DIR}/*", ECORE_MAIN_CLASS, mode, str(target)]
-        env = None
-        if mode == "codegen" and run_id is not None:
-            env = os.environ.copy()
-            env["VALIDATOR_OUTPUT_DIR"] = str(Path(env.get("VALIDATOR_OUTPUT_DIR", tempfile.gettempdir())) / run_id)
+        env = _scoped_output_env(run_id, stage, attempt) if mode == "codegen" else None
         result, duration_ms = _run_cli(argv, env=env)
 
         result["duration_ms"] = duration_ms
@@ -117,27 +163,33 @@ def run_ecore_validator(content: str, filename: str, mode: Literal["reflective",
         return result
 
 
-def run_atl_validator(content: str, filename: str) -> AtlValidationResult:
+def run_atl_validator(
+    content: str, filename: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None
+) -> AtlValidationResult:
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "transformation.atl")
         target.write_text(content, encoding="utf-8")
 
         argv = ["java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, str(target)]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
 
         result["duration_ms"] = duration_ms
+        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("atl validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result
 
 
-def run_acceleo_validator(content: str, filename: str) -> AcceleoValidationResult:
+def run_acceleo_validator(
+    content: str, filename: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None
+) -> AcceleoValidationResult:
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "generate.mtl")
         target.write_text(content, encoding="utf-8")
 
         argv = ["java", "-cp", f"{LIB_DIR}/*", ACCELEO_MAIN_CLASS, str(target)]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
 
         result["duration_ms"] = duration_ms
+        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("acceleo validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result

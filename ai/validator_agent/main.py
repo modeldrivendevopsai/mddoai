@@ -2,7 +2,7 @@ import logging
 import os
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from validator_runner import (
     AcceleoValidationResult,
@@ -24,22 +24,89 @@ app = FastAPI(title="MDDOAI Validator Agent")
 
 MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
 
+# Every request model below that takes a run_id (it scopes where a real
+# compiled artifact lands - EcoreValidator's codegen output, AtlValidator's
+# .asm, AcceleoValidator's .emtl, all persisted under a shared, writable area
+# per ai/CLAUDE.md's folder-boundaries section) shares this same pattern and
+# validator, not three independent copies that could quietly drift out of
+# sync on a security-relevant check. stage and attempt (below) reuse the
+# exact same pattern and validator for the same reason: both are joined onto
+# the same output path, right under run_id (see validator_runner.py's own
+# _scoped_output_env()), so each needs the exact same path-traversal defense.
+# Pydantic v2 enforces `pattern=` via pydantic_core's own Rust regex engine,
+# not Python's re module - confirmed directly that this engine's $ requires
+# true end-of-string (rejects "..\n"/"abc\n"), unlike Python's re.match,
+# where $ also matches immediately before a single trailing "\n" even
+# without re.MULTILINE. A \A/\z-anchored variant is Python-only syntax
+# pydantic_core's engine doesn't accept at all (confirmed: it raises a
+# regex parse error at import time), so this plain ^...$ form is both
+# correct and the only one this engine supports.
+_RUN_ID_PATTERN = r"^[A-Za-z0-9._-]+$"
+
+
+def _reject_dot_segments(value: str | None) -> str | None:
+    """The character-class pattern alone still lets "." or ".." through
+    (both are made only of allowed characters), and either would resolve to
+    the parent directory once joined onto a base output path - see
+    validator_runner.py's own _scoped_output_env(). No character-class regex
+    can distinguish "a run_id that happens to be only dots" from "the
+    literal path-traversal segment" without this same explicit check. Also
+    guards stage and attempt, each joined onto that same path in turn."""
+    if value in (".", ".."):
+        raise ValueError('value must not be "." or ".."')
+    return value
+
 
 class EcoreValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .ecore XML content.")
     mode: str = Field(default="reflective", pattern="^(reflective|codegen)$")
-    run_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9._-]+$")
+    run_id: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    # Names the calling stage (e.g. "atl"), joined onto run_id before
+    # attempt below, matching integration_runner's own real
+    # runs/<run_id>/<stage>/attempt_N/ layout exactly (see
+    # _validation.py's reserve_attempt_dir()) - not used by pim_stage today
+    # (see clients/validator_agent_client.py's own validate_ecore
+    # docstring), accepted here for parity with AtlValidateRequest/
+    # AcceleoValidateRequest below.
+    stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    # Names the calling stage's own reserved attempt directory (e.g.
+    # "attempt_2"), joined after stage above, so a codegen-mode call's real
+    # compiled output nests inside that specific attempt rather than only
+    # scoped by run_id.
+    attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+
+    _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_attempt = field_validator("attempt")(classmethod(lambda cls, v: _reject_dot_segments(v)))
 
 
 class AtlValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .atl source content.")
+    run_id: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    # See EcoreValidateRequest's own stage/attempt fields for what these
+    # scope and why.
+    stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+
+    _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_attempt = field_validator("attempt")(classmethod(lambda cls, v: _reject_dot_segments(v)))
 
 
 class AcceleoValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .mtl source content.")
+    run_id: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    # See EcoreValidateRequest's own stage/attempt fields for what these
+    # scope and why.
+    stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+    attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN)
+
+    _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
+    _validate_attempt = field_validator("attempt")(classmethod(lambda cls, v: _reject_dot_segments(v)))
 
 
 @app.get("/health")
@@ -55,10 +122,8 @@ def validate_ecore_endpoint(request: EcoreValidateRequest) -> EcoreValidationRes
 
     logger.info("POST /validate/ecore filename=%s mode=%s bytes=%d", request.filename, request.mode, content_bytes)
     try:
-        result = (
-            run_ecore_validator(request.content, request.filename, request.mode, request.run_id)
-            if request.run_id is not None
-            else run_ecore_validator(request.content, request.filename, request.mode)
+        result = run_ecore_validator(
+            request.content, request.filename, request.mode, request.run_id, request.stage, request.attempt
         )
     except ValidatorInfraError as e:
         logger.error("POST /validate/ecore infra failure: %s", e)
@@ -76,7 +141,7 @@ def validate_atl_endpoint(request: AtlValidateRequest) -> AtlValidationResult:
 
     logger.info("POST /validate/atl filename=%s bytes=%d", request.filename, content_bytes)
     try:
-        result = run_atl_validator(request.content, request.filename)
+        result = run_atl_validator(request.content, request.filename, request.run_id, request.stage, request.attempt)
     except ValidatorInfraError as e:
         logger.error("POST /validate/atl infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -93,7 +158,9 @@ def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidat
 
     logger.info("POST /validate/acceleo filename=%s bytes=%d", request.filename, content_bytes)
     try:
-        result = run_acceleo_validator(request.content, request.filename)
+        result = run_acceleo_validator(
+            request.content, request.filename, request.run_id, request.stage, request.attempt
+        )
     except ValidatorInfraError as e:
         logger.error("POST /validate/acceleo infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

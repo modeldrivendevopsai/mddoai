@@ -61,6 +61,40 @@ def test_second_attempt_for_same_run_and_stage_does_not_overwrite_the_first():
     assert (second / "psm_mock.ecore").read_text(encoding="utf-8") == "second content"
 
 
+def test_persist_attempt_reuses_a_pre_reserved_attempt_dir_instead_of_reserving_a_new_one():
+    # atl_stage/acceleo_stage's own real shape: reserve_attempt_dir() runs
+    # first (its result is what they forward to validator_agent_client as
+    # the compiled output's own attempt scope), then that same Path is
+    # handed to persist_attempt() so it doesn't reserve a second one.
+    reserved = _validation.reserve_attempt_dir("run-1", "atl")
+
+    returned = _validation.persist_attempt(
+        "run-1", "atl", "atl_mock.atl", "module M;", _ok_result(), attempt_dir=reserved
+    )
+
+    assert returned == reserved
+    assert returned.name == "attempt_1"
+    # No second attempt_2/ was created alongside it.
+    assert not (returned.parent / "attempt_2").exists()
+    assert (returned / "atl_mock.atl").read_text(encoding="utf-8") == "module M;"
+
+
+def test_persist_attempt_without_attempt_dir_still_reserves_its_own_exactly_as_before():
+    # Backward compatibility: every existing caller (pim_stage, psm_stage)
+    # never passes attempt_dir, and must keep reserving its own attempt
+    # directory exactly as it always did.
+    attempt_dir = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "content", _ok_result())
+
+    assert attempt_dir == _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
+
+
+def test_reserve_attempt_dir_is_the_real_next_attempt_dir_implementation():
+    # _next_attempt_dir is kept only as an alias for existing callers (see
+    # test_validation_concurrency.py) - both names must resolve to the
+    # exact same function object, not two copies of the same logic.
+    assert _validation._next_attempt_dir is _validation.reserve_attempt_dir
+
+
 def test_attempts_are_scoped_per_run_and_per_stage():
     # Different run_id -> its own attempt_1, doesn't collide with run-1's.
     a = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "content", _ok_result())

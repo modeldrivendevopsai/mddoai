@@ -66,6 +66,76 @@ def test_stage_calls_the_right_validator_with_its_own_mock_content(module, stage
     assert args[1] == filename
 
 
+# atl/acceleo forward run_id (validator-agent scopes their real compiled
+# .asm/.emtl output under it) - pim doesn't, deliberately: it only ever
+# calls validate_ecore in its default "reflective" mode, which never
+# produces anything worth scoping by run_id, so it's excluded from the
+# parametrize set below rather than asserted against an empty kwarg.
+@pytest.mark.parametrize("module,stage_fn,client_fn_name", [
+    (atl_agent, atl_agent.atl_stage, "validate_atl"),
+    (acceleo_agent, acceleo_agent.acceleo_stage, "validate_acceleo"),
+])
+def test_stage_forwards_run_id_for_compiled_output_scoping(module, stage_fn, client_fn_name, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        validator_agent_client, client_fn_name,
+        lambda *args, **kwargs: (calls.append((args, kwargs)), _validation_result())[1],
+    )
+
+    stage_fn({"run_id": "run-1"})
+
+    assert calls[0][1].get("run_id") == "run-1"
+
+
+# Same two stages: each reserves its own attempt directory before calling
+# out to validator-agent, then forwards both its own stage name AND that
+# reserved attempt's own name - not just run_id - so the real compiled
+# .asm/.emtl output nests inside the exact same runs/<run_id>/<stage>/
+# attempt_N/ directory persist_attempt() writes its own artifact and
+# result.json into, rather than landing as a sibling of it (missing the
+# stage segment, attempt.name alone is only "attempt_N") or, worse, colliding
+# with the other stage's own same-numbered attempt under the same run_id.
+@pytest.mark.parametrize("module,stage_fn,stage,client_fn_name", [
+    (atl_agent, atl_agent.atl_stage, "atl", "validate_atl"),
+    (acceleo_agent, acceleo_agent.acceleo_stage, "acceleo", "validate_acceleo"),
+])
+def test_stage_forwards_its_own_name_and_reserved_attempt_name_for_compiled_output_nesting(
+    module, stage_fn, stage, client_fn_name, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        validator_agent_client, client_fn_name,
+        lambda *args, **kwargs: (calls.append((args, kwargs)), _validation_result())[1],
+    )
+
+    stage_fn({"run_id": "run-1"})
+
+    assert calls[0][1].get("stage") == stage
+    assert calls[0][1].get("attempt") == "attempt_1"
+
+
+@pytest.mark.parametrize("module,stage_fn,stage,client_fn_name,filename", [
+    (atl_agent, atl_agent.atl_stage, "atl", "validate_atl", atl_agent._FILENAME),
+    (acceleo_agent, acceleo_agent.acceleo_stage, "acceleo", "validate_acceleo", acceleo_agent._FILENAME),
+])
+def test_stage_forwards_the_second_reserved_attempt_name_on_retry(
+    module, stage_fn, stage, client_fn_name, filename, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        validator_agent_client, client_fn_name,
+        lambda *args, **kwargs: (calls.append((args, kwargs)), _validation_result())[1],
+    )
+
+    stage_fn({"run_id": "run-1"})  # attempt_1
+    stage_fn({"run_id": "run-1"})  # attempt_2
+
+    assert calls[0][1].get("stage") == stage
+    assert calls[0][1].get("attempt") == "attempt_1"
+    assert calls[1][1].get("stage") == stage
+    assert calls[1][1].get("attempt") == "attempt_2"
+
+
 @pytest.mark.parametrize("module,stage_fn,stage,client_fn_name,filename", _STAGES)
 def test_stage_returns_its_mock_content_on_a_passing_result(module, stage_fn, stage, client_fn_name, filename, monkeypatch):
     monkeypatch.setattr(validator_agent_client, client_fn_name, lambda *a, **k: _validation_result(valid=True))

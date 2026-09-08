@@ -40,7 +40,7 @@ RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 _manifest_lock = threading.Lock()
 
 
-def _next_attempt_dir(run_id: str, stage: str) -> Path:
+def reserve_attempt_dir(run_id: str, stage: str) -> Path:
     """The Nth attempt for this run+stage, one-indexed — found by atomically
     trying to create attempt_1, attempt_2, ... in turn, not by listing the
     directory first and trusting that snapshot. Path.mkdir()'s default
@@ -53,7 +53,13 @@ def _next_attempt_dir(run_id: str, stage: str) -> Path:
     see this module's own docstring) where two concurrent callers could
     compute the same number and collide. Trying each candidate in turn and
     catching the collision is what makes this actually atomic, no pre-scan
-    needed."""
+    needed.
+
+    Public so a stage agent that calls out to validator-agent (atl, acceleo)
+    can reserve its attempt directory before that call, and pass its name
+    down as the validator's own attempt scope. See persist_attempt()'s own
+    attempt_dir parameter for how the same reserved Path is then reused
+    instead of reserved twice."""
     stage_dir = RUNS_DIR / run_id / stage
     stage_dir.mkdir(parents=True, exist_ok=True)
     n = 1
@@ -64,6 +70,13 @@ def _next_attempt_dir(run_id: str, stage: str) -> Path:
             return attempt_dir
         except FileExistsError:
             n += 1
+
+
+# Kept as an alias, not a second implementation: test_validation_concurrency.py
+# and this module's own history both refer to the reservation step by this
+# name. reserve_attempt_dir is the real, public entry point new callers
+# (atl_stage, acceleo_stage) use directly.
+_next_attempt_dir = reserve_attempt_dir
 
 
 def _atomic_write_json(path: Path, data) -> None:
@@ -97,7 +110,7 @@ def _update_manifest(run_id: str, stage: str, attempt_n: int, valid: bool) -> No
     manifest, on top of what the lock already prevents between live
     writers."""
     manifest_path = RUNS_DIR / run_id / "manifest.json"
-    # persist_attempt()'s own call to _next_attempt_dir() already creates
+    # persist_attempt()'s own reserve_attempt_dir() call already creates
     # this directory before _update_manifest() ever runs, but this
     # shouldn't be a function that only works if called in the right order
     # after something else — exist_ok=True makes the normal case a no-op.
@@ -118,16 +131,30 @@ def _update_manifest(run_id: str, stage: str, attempt_n: int, valid: bool) -> No
         _atomic_write_json(manifest_path, manifest)
 
 
-def persist_attempt(run_id: str, stage: str, filename: str, content: str, result: dict) -> Path:
+def persist_attempt(
+    run_id: str, stage: str, filename: str, content: str, result: dict, attempt_dir: Path | None = None
+) -> Path:
     """Writes this attempt's real artifact and validator-agent result to
     disk, synchronously, before the caller decides pass/fail — a failed
     attempt is exactly the record this exists to keep, so both files land
     on disk even when raise_if_invalid() (below) is about to raise. Never
-    overwrites a prior attempt (see _next_attempt_dir()). Also updates
+    overwrites a prior attempt (see reserve_attempt_dir()). Also updates
     runs/<run_id>/manifest.json with this same attempt, every time — not
     something a caller does separately (see _update_manifest()). Returns
-    the attempt directory, for a caller that wants to log/report its path."""
-    attempt_dir = _next_attempt_dir(run_id, stage)
+    the attempt directory, for a caller that wants to log/report its path.
+
+    attempt_dir lets a caller that already reserved its own attempt
+    directory (atl_stage, acceleo_stage, see each agent.py's own body) hand
+    it in here instead of a second one being reserved: those two stages
+    call validator_agent_client before this function ever runs, and the
+    validator's own real compiled output (AtlValidator's .asm and
+    AcceleoValidator's .emtl) needs the real attempt number to scope itself
+    under, which only exists once reserve_attempt_dir() has actually run.
+    When omitted (the default), this reserves its own attempt directory
+    exactly as it always has, and every existing caller that doesn't pass
+    this keeps working unchanged."""
+    if attempt_dir is None:
+        attempt_dir = reserve_attempt_dir(run_id, stage)
     (attempt_dir / filename).write_text(content, encoding="utf-8")
     (attempt_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     attempt_n = int(attempt_dir.name.removeprefix("attempt_"))

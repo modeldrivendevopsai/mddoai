@@ -11,7 +11,6 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,36 +23,59 @@ import java.util.List;
  */
 public final class AtlValidator {
 
+    // Where the compiled .asm is persisted after a run actually produces one,
+    // instead of being wiped before any caller can see it — the real,
+    // runnable transformation bytecode, not just a validation side effect
+    // (this repo's own stated direction is to eventually assemble a real
+    // conversion pipeline from these compiled artifacts, alongside Ecore's
+    // own compiled model classes and Acceleo's compiled .emtl templates, not
+    // just use them for debugging one failed check). Same env var
+    // EcoreValidator's own codegen path reads (see its OUTPUT_ROOT) — one
+    // shared, writable area every validator that produces a real compiled
+    // artifact writes into, scoped per run_id by the Python caller
+    // (validator_runner.py) before this process even starts; this class
+    // never needs to know about run_id itself.
+    private static final String OUTPUT_ROOT =
+            System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
+
     private AtlValidator() {
     }
 
-    public static ValidationResult validate(String atlFilePath) {
+    public static AtlCompileResult validate(String atlFilePath) {
         requireNonBlank(atlFilePath);
 
         File file = new File(atlFilePath);
         if (!file.exists()) {
-            return ValidationResult.of(List.of(new ValidationIssue(
-                    ValidationIssue.Severity.ERROR, "File does not exist: " + atlFilePath, atlFilePath)));
+            return AtlCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
+                    ValidationIssue.Severity.ERROR, "File does not exist: " + atlFilePath, atlFilePath))));
         }
 
         AtlStandaloneCompiler compiler = AtlCompiler.getCompiler(AtlCompiler.DEFAULT_COMPILER_NAME);
 
-        File workDir = null;
+        File workDir = new File(OUTPUT_ROOT, "atl-validate-" + java.util.UUID.randomUUID());
         try {
-            workDir = Files.createTempDirectory("atl-validate").toFile();
+            if (!workDir.mkdirs()) {
+                throw new java.io.IOException("Could not create validator output directory: " + workDir);
+            }
             File target = new File(workDir, baseName(file) + ".asm");
 
             try (Reader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
                 CompileTimeError[] errors = compiler.compile(reader, target.getAbsolutePath());
-                return ValidationResult.of(toIssues(errors, atlFilePath));
+                ValidationResult result = ValidationResult.of(toIssues(errors, atlFilePath));
+                // Keep only what's actually real: compile() can report errors
+                // without ever writing target (a broken-enough source produces
+                // no .asm at all) - checking the file itself, not the error
+                // count, is what tells the two cases apart.
+                boolean keepOutput = target.exists();
+                if (!keepOutput) {
+                    deleteRecursively(workDir);
+                }
+                return new AtlCompileResult(result, keepOutput ? target.getAbsolutePath() : null);
             }
         } catch (Exception e) {
-            return ValidationResult.of(List.of(new ValidationIssue(
-                    ValidationIssue.Severity.ERROR, "Failed to compile .atl file: " + e, atlFilePath)));
-        } finally {
-            if (workDir != null) {
-                deleteRecursively(workDir);
-            }
+            deleteRecursively(workDir);
+            return AtlCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
+                    ValidationIssue.Severity.ERROR, "Failed to compile .atl file: " + e, atlFilePath))));
         }
     }
 

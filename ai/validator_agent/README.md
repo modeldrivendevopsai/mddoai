@@ -45,10 +45,12 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 {"filename": "swarch2pim.atl", "content": "module ...;"}
 
 // response (200)
-{"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310}
+{"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310, "generated_source_path": null}
 ```
 
 Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. It does **not** catch a reference to a type or attribute that doesn't actually exist in the real `.ecore` metamodel — ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture); that class of error only surfaces when the transformation actually runs against real model instances.
+
+Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, nesting the compiled output two levels deeper still, see [Setup](#setup) below.
 
 ### `POST /validate/acceleo`
 
@@ -57,10 +59,12 @@ Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getC
 {"filename": "generate.mtl", "content": "[module generate('http://...')]"}
 
 // response (200)
-{"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512}
+{"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512, "generated_source_path": null}
 ```
 
 Compiles the `.mtl` source with Acceleo's own classic standalone compiler (`AcceleoCompilerHelper`) and reports the real compiler diagnostics, with real source-line locations. The submitted `filename` must end in `.mtl` — the compiler resolves the file to compile by scanning its source folder for that extension, not by parsing whatever single file it's handed, so a request whose `filename` doesn't end in `.mtl` is rejected as invalid up front rather than silently reporting a trivial pass.
+
+Same real-compiled-output behavior as `/validate/atl`: `generated_source_path` reports where the compiled `.emtl` module actually landed, and the same optional `run_id`/`stage`/`attempt` fields scope it.
 
 ### `GET /health`
 
@@ -76,12 +80,25 @@ This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-c
 cp .env.example .env   # optional — every setting has a working default
 ```
 
-`VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator` directly, not by this
-Python service) is the base directory for `codegen` mode's generated output. A codegen request
-may include a validated `run_id`; the service then passes a run-specific output directory to
-Java, so generated `.genmodel`/`src-gen`/`classes-out` files live below the integration
-runner's `runs/<run_id>/` tree. In Docker, both services mount the same `pipeline-runs` volume.
-Requests without a run ID retain the configured base directory behavior.
+`VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator`/`AtlValidator`/
+`AcceleoValidator` directly, not by this Python service) is the base directory every real
+compiled artifact these three validators produce gets persisted under, instead of being deleted
+after the check. In Docker this is the same `pipeline-runs` volume `integration_runner` itself
+mounts, at `/app/integration_runner/runs` there and at `/runs` here: one shared volume, two
+different mount paths, each matching what that service's own code actually reads. See
+`ai/docker-compose.yml`'s own comments on both mounts before changing either. A request may
+include a validated `run_id`, in which case the compiled output is scoped under a subfolder
+named for it; the `atl`/`acceleo` requests may also include `stage` and `attempt` (the calling
+stage's own name and its already-reserved `attempt_N` directory name, see
+[integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
+in which case the output nests two levels deeper still, landing *inside* that specific attempt's
+own directory (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`) rather than merely
+somewhere else under the same `run_id`. The real path is still returned as `generated_source_path`
+in the response either way, and `persist_attempt()` records it in the calling stage's own
+`result.json`. This is deliberate: these are real, reusable pipeline artifacts (the compiled
+model classes, ATL bytecode, and Acceleo module a real generate-and-validate cycle produces), not
+disposable debugging output, so they belong nested inside the one place a run's other real
+artifacts already live, not off in a validator-only corner.
 
 ## Run
 

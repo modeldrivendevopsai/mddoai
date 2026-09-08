@@ -71,7 +71,29 @@ services:
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
     volumes:
-      - pipeline-runs:/app/runs
+      # Mounted at the exact path integration_runner/stages/_validation.py's
+      # own RUNS_DIR resolves to inside this container (this Dockerfile's own
+      # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
+      # relative to that, not to the repo-relative path it looks like in the
+      # Python source). Shared with validator-agent's own mount of the same
+      # volume below: this is where every stage's persist_attempt() writes
+      # (the real artifact + result.json + manifest.json), and where
+      # validator-agent's own compiled output (Ecore's codegen classes, ATL's
+      # .asm, Acceleo's .emtl - all real, reusable pipeline artifacts per
+      # this project's stated direction, not just validation debris) lands
+      # too. For atl/acceleo, that compiled output nests one level inside the
+      # exact attempt directory persist_attempt() writes its own artifact and
+      # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
+      # <uuid>/), because those two stages reserve their own attempt
+      # directory before calling validator-agent and forward both their own
+      # stage name and that attempt's name as the new stage/attempt fields
+      # (see stages/atl/agent.py, stages/acceleo/agent.py, and
+      # validator_runner.py's own _scoped_output_env()); pim only ever
+      # validates reflectively today, so it never scopes by run_id, stage,
+      # or attempt at all. Get this path wrong and the two services silently
+      # write to different, unrelated directories - verify it against
+      # RUNS_DIR itself before changing either side.
+      - pipeline-runs:/app/integration_runner/runs
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -391,14 +413,26 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # Writable: EcoreValidator's codegen path persists generated
-      # .genmodel/src-gen/classes-out output here instead of deleting it (see
-      # main/.../ecore/EcoreValidator.java's OUTPUT_ROOT). Separate from the
-      # read-only main-build-output mount above (unrelated build artifacts) -
-      # a distinct volume, not a subpath of it, so a bad write here can never
-      # touch the real build output. No automatic expiry/cleanup of old
-      # validation runs yet - a known, documented limitation, not attempted
-      # here since nobody's asked for a retention policy.
+      # Writable, shared with integration-runner's own runs/ mount above (the
+      # same named volume, mounted at each service's own real path - see that
+      # mount's own comment for why the paths differ but the storage doesn't).
+      # EcoreValidator's codegen path, AtlValidator, and AcceleoValidator all
+      # persist their real compiled output here instead of deleting it (see
+      # each one's own OUTPUT_ROOT constant), scoped under a per-run_id
+      # subfolder when the caller has one, and two levels deeper still under
+      # the caller's own stage/attempt subfolders when it has reserved one
+      # (validator_runner.py's own _scoped_output_env(), given run_id, stage,
+      # and attempt together by atl_stage/acceleo_stage - see
+      # stages/_validation.py's own reserve_attempt_dir()). That nests the
+      # compiled artifact inside the exact attempt_N/ directory
+      # integration_runner's own persist_attempt() writes its artifact and
+      # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
+      # <uuid>/), not beside it. Separate from the read-only main-build-output mount above
+      # (unrelated build artifacts) - a distinct volume, not a subpath of it,
+      # so a bad write here can never touch the real build output. No
+      # automatic expiry/cleanup of old validation runs yet - a known,
+      # documented limitation, not attempted here since nobody's asked for a
+      # retention policy.
       - pipeline-runs:/runs
     environment:
       - LOG_LEVEL=INFO
