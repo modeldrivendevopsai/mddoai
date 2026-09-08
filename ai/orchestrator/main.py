@@ -6,6 +6,7 @@ import assistant
 import chat_log
 from clients import ai_layer_client, integration_runner_client
 from clients.integration_runner_client import IntegrationRunnerError
+from routes import attempts, prompt_config
 
 # Every new raw pipeline event chat_log notices gets narrated via the
 # wired-in reactor (see chat_log.set_reactor()'s own docstring for why this
@@ -14,6 +15,8 @@ from clients.integration_runner_client import IntegrationRunnerError
 chat_log.set_reactor(assistant.react_to_event)
 
 app = FastAPI(title="MDDOAI Orchestrator")
+app.include_router(attempts.router)
+app.include_router(prompt_config.router)
 
 
 @app.exception_handler(IntegrationRunnerError)

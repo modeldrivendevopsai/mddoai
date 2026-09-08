@@ -188,13 +188,16 @@ def approve(stage_id, agent_response_text="Generic stage output"):
 
 def _advance_to_psm():
     """Starts the pipeline (lands on docs) and approves docs then
-    serialization then pim, landing on psm. Every endpoint test that isn't
-    specifically about the docs/serialization/pim stages builds on this
-    instead of hand-rolling the docs fetch and the serialization/pim
-    approvals. No output parameter (unlike a plain approve() call): psm's
-    own real output is fixed mock content now, not something a caller gets
-    to choose (see integration_runner/stages/psm/agent.py) — same is true
-    of pim, whose approval is what actually starts psm's real run below.
+    serialization then pim, landing on psm, then explicitly starts psm's
+    own real run — unlike every earlier stage, arriving at psm does NOT
+    auto-run it (see pipeline.py's own _REQUIRES_MANUAL_START: psm has a
+    real, editable prompt config, so a human/caller gets a real pause to
+    review or edit it before its first real attempt, the approval into psm
+    only advances the pipeline and returns "advanced_pending"). Every
+    endpoint test that isn't specifically about the docs/serialization/pim
+    stages, or about that pause itself, builds on this instead of
+    hand-rolling the docs fetch, the serialization/pim approvals, and psm's
+    own manual start.
 
     Approving docs starts serialization's real run, which calls
     serialization_agent_client.serialize() (a separate service) — needs its
@@ -204,7 +207,12 @@ def _advance_to_psm():
     with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
         approve("docs")
     approve("serialization")
-    return approve("pim")
+    approve("pim")
+    with patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
+        mock_psm_httpx.post.return_value = _fake_psm_response("psm output")
+        response = client.post("/rerun/psm")
+        ir_runs.wait_for_idle()
+    return response
 
 
 # --- POST /start ----------------------------------------------------------------
@@ -546,6 +554,25 @@ def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     assert ir_runs.current().last_completed_stage == "serialization"
 
 
+def test_review_endpoint_approving_into_psm_does_not_auto_run_it():
+    # psm has a real, editable prompt config (see pipeline.py's own
+    # _REQUIRES_MANUAL_START) - approving pim advances the pipeline onto
+    # psm but does not fire its real call, unlike every stage before it.
+    start_pipeline()
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
+        approve("docs")
+    approve("serialization")
+
+    with patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
+        response = client.post("/review/pim", json={"approved": True})
+        ir_runs.wait_for_idle()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "advanced_pending", "stage": "psm"}
+    assert ir_runs.current().current_stage == "psm"
+    assert mock_psm_httpx.post.call_count == 0
+
+
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():
     _advance_to_psm()
     approve("psm", "ATL rules")
@@ -643,14 +670,17 @@ def test_rerun_endpoint_accepts_overrides_for_docs_stage():
     assert fetch_calls[0].kwargs["json"]["url"] == "https://example.com/correct-docs"
 
 
-def test_rerun_endpoint_rejects_overrides_for_non_docs_stage():
+def test_rerun_endpoint_rejects_a_docs_only_override_key_for_psm():
+    # psm recognizes its own real override ("mock"), but not a different
+    # stage's shape - an override key valid elsewhere still gets rejected
+    # here, not silently ignored.
     _advance_to_psm()
 
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/rerun/psm", json={"overrides": {"hint": "doesn't apply to psm"}})
 
     assert response.status_code == 400
-    assert "docs" in response.json()["detail"]
+    assert "hint" in response.json()["detail"]
     mock_httpx.post.assert_not_called()
 
 
