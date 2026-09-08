@@ -7,7 +7,12 @@ interface PromoteConstraintsActionProps {
   // constraints as a "- one\n- two" bullet block) - prefilled into the
   // editable draft below, never sent as-is.
   initialConstraintsBlock: string
-  onPromote: (constraints: string[]) => Promise<void>
+  // Promise<unknown>, not Promise<void>: the real onPromoteConstraints prop
+  // resolves to the updated PromptConfig (see orchestrator-types), which
+  // this component never needs to look at - it just awaits completion -
+  // but a caller's own resolved value type must still be assignable here,
+  // and Promise<X> is never assignable to Promise<void> for a concrete X.
+  onPromote: (constraints: string[]) => Promise<unknown>
 }
 
 const labelStyle = {
