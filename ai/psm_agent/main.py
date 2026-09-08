@@ -6,13 +6,28 @@ when a platform already has a real metamodel, it's not superseded by /psm.
 """
 from dataclasses import asdict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+from generation_toolkit.attachments.files import PathSegmentError
 
 from comparison import compare
 from psm_flow import run as run_psm_flow
+from routes import files, prompt_config
 
 app = FastAPI(title="MDDOAI PSM Agent")
+app.include_router(prompt_config.router)
+app.include_router(files.router)
+
+
+@app.exception_handler(PathSegmentError)
+def _path_segment_error_handler(request: Request, exc: PathSegmentError) -> JSONResponse:
+    # A real, user-suppliable name/preset/version route parameter failed
+    # generation_toolkit.prompt_config's own path-safety validation - a
+    # real 400 (bad request), not an unhandled 500, registered once here
+    # rather than a try/except repeated in every prompt_config.py handler.
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 class CompareRequest(BaseModel):
@@ -38,6 +53,12 @@ class PsmRequest(BaseModel):
     # plain-passthrough treatment above).
     stage: str | None = None
     attempt: str | None = None
+    # The per-run "Mock" override (same opt-in as docs_stage's own
+    # context["mock"]) - skips the real, slow, billed LLM call on the
+    # generation branch only, in favor of a fixed already-valid artifact,
+    # while still resolving the real prompt config and running the real
+    # validator-agent call. See generation.py's generate() docstring.
+    mock: bool = False
 
 
 @app.get("/health")
@@ -66,6 +87,7 @@ def psm_endpoint(request: PsmRequest):
             run_id=request.run_id,
             stage=request.stage,
             attempt=request.attempt,
+            mock=request.mock,
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=f"PSM metamodel not found: {e}")

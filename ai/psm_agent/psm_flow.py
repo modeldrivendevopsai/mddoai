@@ -15,9 +15,10 @@ comparison.py.
 from dataclasses import asdict
 from pathlib import Path
 
-from generation_toolkit.prompt_builder import build_prompt
+from generation_toolkit.prompt_config import resolution as prompt_resolution
 
-from comparison import compare, resolve_platform_metamodel
+import prompt_paths
+from comparison import COMPARISON_CONFIG_NAME, META_MODELS_DIR, compare, resolve_platform_metamodel
 from generation import generate
 
 
@@ -30,6 +31,7 @@ def run(
     run_id: str | None = None,
     stage: str | None = None,
     attempt: str | None = None,
+    mock: bool = False,
 ) -> dict:
     """Returns either:
       {"mode": "generation", "artifact": str, "prompt": dict, "validation": dict, "rounds": int}
@@ -42,20 +44,26 @@ def run(
     stage/attempt only ever matter on the generation branch: compare() below
     never calls a validator at all (a real drift/gap-check has nothing to
     validate against), so knowledge mode has no real compiled output to scope.
+
+    mock only meaningfully applies on the generation branch too (see
+    generate()'s own docstring) - knowledge mode's compare() is a separate,
+    already-existing capability this module's own routing keeps fully
+    automatic with no mock/manual override, so mock is silently unused
+    there, the same way constraints already is above.
     """
     existing_metamodel_path = resolve_platform_metamodel(platform_description)
     if existing_metamodel_path is None:
         result = generate(
-            pim_artifact, platform_docs, constraints=constraints, model=model,
-            run_id=run_id, stage=stage, attempt=attempt,
+            platform_description, pim_artifact, platform_docs, constraints=constraints, model=model,
+            run_id=run_id, stage=stage, attempt=attempt, mock=mock,
         )
         return {"mode": "generation", **result}
 
     existing_artifact = Path(existing_metamodel_path).read_text()
     suggestions = compare(platform_docs, existing_metamodel_path, model=model)
     gaps = [asdict(s) for s in suggestions]
-    prompt = build_prompt(
-        {"pim_ecore": pim_artifact, "psm_docs": platform_docs, "psm_example": existing_artifact},
-        constraints=constraints,
+    context_values = {"psm_metamodel": existing_artifact, "serialized_docs": platform_docs}
+    prompt = prompt_resolution.render_prompt(
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, META_MODELS_DIR
     )
     return {"mode": "knowledge", "artifact": existing_artifact, "gaps": gaps, "prompt": prompt}

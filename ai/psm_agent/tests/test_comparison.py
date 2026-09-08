@@ -30,6 +30,7 @@ runs; the real docker-compose entry sets it to the container's mount point).
 """
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 from clients import ai_layer_client
@@ -137,7 +138,11 @@ def test_compare_defaults_to_gitlab_metamodel_path():
         compare("docs")
 
     user_content = mock_chat.call_args.args[0][1]["content"]
-    assert DEFAULT_PSM_METAMODEL_PATH in user_content
+    # The real path string is no longer embedded in the LLM-facing text
+    # (an implementation detail the model doesn't need, see
+    # generation_toolkit.prompt_config.rendering) - what matters is that
+    # the real gitlabMM.ecore file's own content made it in.
+    assert Path(DEFAULT_PSM_METAMODEL_PATH).read_text() in user_content
 
 
 def test_compare_uses_supplied_metamodel_path():
@@ -153,8 +158,8 @@ def test_compare_uses_supplied_metamodel_path():
         compare("docs", psm_metamodel_path=github_path)
 
     user_content = mock_chat.call_args.args[0][1]["content"]
-    assert github_path in user_content
-    assert DEFAULT_PSM_METAMODEL_PATH not in user_content
+    assert Path(github_path).read_text() in user_content
+    assert Path(DEFAULT_PSM_METAMODEL_PATH).read_text() not in user_content
 
 
 def test_compare_preserves_none_source_excerpt():
