@@ -29,6 +29,7 @@ class EcoreValidateRequest(BaseModel):
     filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
     content: str = Field(..., min_length=1, description="Raw .ecore XML content.")
     mode: str = Field(default="reflective", pattern="^(reflective|codegen)$")
+    run_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9._-]+$")
 
 
 class AtlValidateRequest(BaseModel):
@@ -54,7 +55,11 @@ def validate_ecore_endpoint(request: EcoreValidateRequest) -> EcoreValidationRes
 
     logger.info("POST /validate/ecore filename=%s mode=%s bytes=%d", request.filename, request.mode, content_bytes)
     try:
-        result = run_ecore_validator(request.content, request.filename, request.mode)
+        result = (
+            run_ecore_validator(request.content, request.filename, request.mode, request.run_id)
+            if request.run_id is not None
+            else run_ecore_validator(request.content, request.filename, request.mode)
+        )
     except ValidatorInfraError as e:
         logger.error("POST /validate/ecore infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

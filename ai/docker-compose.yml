@@ -70,6 +70,8 @@ services:
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+    volumes:
+      - pipeline-runs:/app/runs
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -397,12 +399,12 @@ services:
       # touch the real build output. No automatic expiry/cleanup of old
       # validation runs yet - a known, documented limitation, not attempted
       # here since nobody's asked for a retention policy.
-      - validator-generated-output:/validator-output
+      - pipeline-runs:/runs
     environment:
       - LOG_LEVEL=INFO
       - VALIDATOR_TIMEOUT_SECONDS=60
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
-      - VALIDATOR_OUTPUT_DIR=/validator-output
+      - VALIDATOR_OUTPUT_DIR=/runs
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
@@ -412,4 +414,4 @@ services:
 volumes:
   main-gradle-cache:
   main-build-output:
-  validator-generated-output:
+  pipeline-runs:

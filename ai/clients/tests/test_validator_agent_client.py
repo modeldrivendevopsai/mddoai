@@ -50,6 +50,13 @@ def test_validate_ecore_forwards_an_explicit_mode():
     assert mock_post.call_args.kwargs["json"]["mode"] == "codegen"
 
 
+def test_validate_ecore_forwards_run_id_for_codegen_output_placement():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_ecore("<ecore/>", mode="codegen", run_id="run-123")
+
+    assert mock_post.call_args.kwargs["json"]["run_id"] == "run-123"
+
+
 def test_validate_atl_posts_filename_and_content_with_no_mode_field():
     result = _fake_result()
     with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:

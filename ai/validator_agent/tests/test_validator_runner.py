@@ -110,6 +110,16 @@ def test_generated_source_path_is_translated_from_camel_case_java_key():
     assert "generatedOutputPath" not in result
 
 
+def test_codegen_scopes_java_output_directory_to_run_id():
+    codegen_json = json.dumps({"valid": True, "mode": "codegen", "issues": []})
+    with patch.dict("validator_runner.os.environ", {"VALIDATOR_OUTPUT_DIR": "/validator-output"}), \
+         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=codegen_json)) as mock_run:
+        run_ecore_validator("<ecore/>", "model.ecore", "codegen", "run-123")
+
+    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
+    assert output_dir.as_posix() == "/validator-output/run-123"
+
+
 def test_atl_builds_expected_argv_and_invokes_correct_class():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:

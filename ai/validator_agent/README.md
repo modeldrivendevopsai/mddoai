@@ -77,11 +77,11 @@ cp .env.example .env   # optional — every setting has a working default
 ```
 
 `VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator` directly, not by this
-Python service) is where `codegen` mode's generated output is persisted. `ai/docker-compose.yml`
-points it at a dedicated writable volume (`validator-generated-output`, separate from the
-read-only `main-build-output` mount above — unrelated concerns, not a subpath of one another).
-Unset in local/non-Docker dev, it falls back to the JVM's own temp directory, still not deleted —
-no automatic expiry/cleanup of old runs exists yet, a known, documented limitation.
+Python service) is the base directory for `codegen` mode's generated output. A codegen request
+may include a validated `run_id`; the service then passes a run-specific output directory to
+Java, so generated `.genmodel`/`src-gen`/`classes-out` files live below the integration
+runner's `runs/<run_id>/` tree. In Docker, both services mount the same `pipeline-runs` volume.
+Requests without a run ID retain the configured base directory behavior.
 
 ## Run
 

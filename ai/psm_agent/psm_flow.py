@@ -27,6 +27,7 @@ def run(
     platform_docs: str,
     constraints: list[str] | None = None,
     model: str | None = None,
+    run_id: str | None = None,
 ) -> dict:
     """Returns either:
       {"mode": "generation", "artifact": str, "prompt": dict, "validation": dict, "rounds": int}
@@ -38,7 +39,7 @@ def run(
     """
     existing_metamodel_path = resolve_platform_metamodel(platform_description)
     if existing_metamodel_path is None:
-        result = generate(pim_artifact, platform_docs, constraints=constraints, model=model)
+        result = generate(pim_artifact, platform_docs, constraints=constraints, model=model, run_id=run_id)
         return {"mode": "generation", **result}
 
     existing_artifact = Path(existing_metamodel_path).read_text()

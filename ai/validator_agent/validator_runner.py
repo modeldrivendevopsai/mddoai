@@ -63,7 +63,7 @@ class ValidatorInfraError(Exception):
     from the validator successfully reporting an invalid model."""
 
 
-def _run_cli(argv: list[str]) -> tuple[dict, int]:
+def _run_cli(argv: list[str], env: dict[str, str] | None = None) -> tuple[dict, int]:
     """Shared subprocess boundary for both *ValidatorCli classes: run, time it,
     and turn every non-"the model is invalid" failure mode into ValidatorInfraError.
     Returns the parsed JSON plus the measured duration; callers own their own
@@ -71,7 +71,7 @@ def _run_cli(argv: list[str]) -> tuple[dict, int]:
     """
     start = time.monotonic()
     try:
-        proc = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT_SECONDS, env=env)
     except FileNotFoundError as e:
         raise ValidatorInfraError(f"java executable not found: {e}") from e
     except subprocess.TimeoutExpired as e:
@@ -92,7 +92,7 @@ def _run_cli(argv: list[str]) -> tuple[dict, int]:
     return result, duration_ms
 
 
-def run_ecore_validator(content: str, filename: str, mode: Literal["reflective", "codegen"]) -> EcoreValidationResult:
+def run_ecore_validator(content: str, filename: str, mode: Literal["reflective", "codegen"], run_id: str | None = None) -> EcoreValidationResult:
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "model.ecore")
         target.write_text(content, encoding="utf-8")
@@ -101,7 +101,11 @@ def run_ecore_validator(content: str, filename: str, mode: Literal["reflective",
         # at JVM startup — not a shell glob. Safe to pass as one argv element with
         # no shell=True.
         argv = ["java", "-cp", f"{LIB_DIR}/*", ECORE_MAIN_CLASS, mode, str(target)]
-        result, duration_ms = _run_cli(argv)
+        env = None
+        if mode == "codegen" and run_id is not None:
+            env = os.environ.copy()
+            env["VALIDATOR_OUTPUT_DIR"] = str(Path(env.get("VALIDATOR_OUTPUT_DIR", tempfile.gettempdir())) / run_id)
+        result, duration_ms = _run_cli(argv, env=env)
 
         result["duration_ms"] = duration_ms
         # generatedOutputPath (EcoreValidatorCli's own camelCase JSON key,

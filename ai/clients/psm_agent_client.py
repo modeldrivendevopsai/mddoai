@@ -18,6 +18,7 @@ def run_psm(
     platform_docs: str,
     constraints: list[str] | None = None,
     model: str | None = None,
+    run_id: str | None = None,
 ) -> dict:
     """POST psm_agent's real /psm: returns either a generation-mode result
     ({"mode": "generation", "artifact", "prompt", "validation", "rounds"}) or
@@ -30,6 +31,7 @@ def run_psm(
             "platform_docs": platform_docs,
             "constraints": constraints,
             "model": model,
+            "run_id": run_id,
         },
         timeout=PSM_TIMEOUT,
     )

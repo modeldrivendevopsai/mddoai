@@ -27,6 +27,7 @@ class PsmRequest(BaseModel):
     platform_docs: str
     constraints: list[str] | None = None
     model: str | None = None
+    run_id: str | None = None
 
 
 @app.get("/health")
@@ -52,6 +53,7 @@ def psm_endpoint(request: PsmRequest):
             request.platform_docs,
             constraints=request.constraints,
             model=request.model,
+            run_id=request.run_id,
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=f"PSM metamodel not found: {e}")

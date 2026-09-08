@@ -74,9 +74,9 @@ def test_validation_result_is_the_real_validator_agent_response():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
-        result = generate("<pim/>", "docs")
+        result = generate("<pim/>", "docs", run_id="run-123")
 
-    mock_validate.assert_called_once_with("<ecore:EPackage/>", mode="reflective")
+    mock_validate.assert_called_once_with("<ecore:EPackage/>", mode="codegen", run_id="run-123")
     assert result["validation"] == valid_result()
 
 

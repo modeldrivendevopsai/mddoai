@@ -71,8 +71,8 @@ def _render_user_content(prompt: dict) -> str:
     return content
 
 
-def _validate(artifact: str) -> dict:
-    return validator_agent_client.validate_ecore(artifact, mode="reflective")
+def _validate(artifact: str, run_id: str | None = None) -> dict:
+    return validator_agent_client.validate_ecore(artifact, mode="codegen", run_id=run_id)
 
 
 def generate(
@@ -81,6 +81,7 @@ def generate(
     psm_example_path: str | None = None,
     constraints: list[str] | None = None,
     model: str | None = None,
+    run_id: str | None = None,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict, "rounds": int}."""
     example_path = psm_example_path or DEFAULT_PSM_MASTER_EXAMPLE_PATH
@@ -99,7 +100,7 @@ def generate(
         _SYSTEM_PROMPT,
         parts,
         constraints=constraints,
-        validate_fn=_validate,
+        validate_fn=lambda artifact: _validate(artifact, run_id),
         render_user_content=_render_user_content,
         model=model,
     )

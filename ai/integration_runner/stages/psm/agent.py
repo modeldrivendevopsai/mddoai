@@ -39,7 +39,12 @@ def psm_stage(context: dict) -> tuple[str, dict]:
     docs = context.get("docs_output") or platform_description
     constraints = context.get("constraints", {}).get("psm", [])
     result = psm_agent_client.run_psm(
-        platform_description, pim_artifact, docs, constraints=constraints, model=context.get("model")
+        platform_description,
+        pim_artifact,
+        docs,
+        constraints=constraints,
+        model=context.get("model"),
+        run_id=context.get("run_id"),
     )
     artifact = result["artifact"]
     run_id = context.get("run_id", "unknown")
