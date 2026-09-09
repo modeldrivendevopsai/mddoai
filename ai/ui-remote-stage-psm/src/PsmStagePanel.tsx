@@ -1,11 +1,11 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StatusPill } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 import { PromoteConstraintsAction } from "./PromoteConstraintsAction"
-import { constraintsForStage } from "./stageEvents"
+import { constraintsForStage, platformDescriptionFromEvents } from "./stageEvents"
 
 interface PsmGap {
   target: string
@@ -63,11 +63,14 @@ export function PsmStagePanel({
   onRetry,
   onBack,
   readOnly = false,
+  stageDetail = null,
   onLoadPromptConfig,
   onSavePromptConfig,
   onListPresets,
   onPreviewPromptConfig,
   onListAvailableFiles,
+  onUploadAttachmentFile,
+  onResolvePsmMode,
   onLoadPromptHistory,
   onDiffPromptVersions,
   onRestorePromptVersion,
@@ -81,6 +84,27 @@ export function PsmStagePanel({
   onLoadAttempt,
 }: StagePanelProps) {
   const [correction, setCorrection] = useState("")
+  // Which real mode (generation vs. knowledge) THIS platform will actually
+  // route to, resolved ahead of time (psm_flow.run()'s own real decision,
+  // exposed read-only - see resolvePsmMode's own docstring) rather than
+  // guessed - shown only before a real result exists; once one does, the
+  // real result's own mode already renders via statusPills below, more
+  // authoritative than a prediction.
+  const [resolvedMode, setResolvedMode] = useState<{ mode: string; metamodel_path: string | null } | null>(null)
+  const platformDescription = platformDescriptionFromEvents(events)
+
+  useEffect(() => {
+    if (!onResolvePsmMode || !platformDescription) return
+    let cancelled = false
+    onResolvePsmMode(platformDescription)
+      .then((result) => {
+        if (!cancelled) setResolvedMode(result)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [onResolvePsmMode, platformDescription])
 
   const failed = latestResult?.type === "call_failed"
   const data = latestResult?.data
@@ -131,6 +155,7 @@ export function PsmStagePanel({
           onListPresets: onListPresets ? () => onListPresets(activeManifest.name) : undefined,
           onPreview: (preset) => onPreviewPromptConfig(activeManifest.name, preset),
           onListAvailableFiles,
+          onUploadFile: onUploadAttachmentFile,
           onLoadHistory: (preset) => onLoadPromptHistory(activeManifest.name, preset),
           onDiffVersions: (preset, a, b) => onDiffPromptVersions(activeManifest.name, preset, a, b),
           onRestoreVersion: (preset, version) => onRestorePromptVersion(activeManifest.name, preset, version),
@@ -179,6 +204,20 @@ export function PsmStagePanel({
     </div>
   )
 
+  // Real, resolved-ahead-of-time indicator of which mode Generate will
+  // actually take, shown only before a real result exists (once one does,
+  // statusPills above already shows the real, authoritative mode instead).
+  const modeChip = latestResult === null && resolvedMode && (
+    <StatusPill
+      variant={resolvedMode.mode === "knowledge" ? "warning" : "success"}
+      title={resolvedMode.metamodel_path ?? undefined}
+    >
+      {resolvedMode.mode === "knowledge"
+        ? `Existing platform — ${resolvedMode.metamodel_path?.split("/").pop() ?? "real metamodel found"}`
+        : "New platform — will generate a metamodel"}
+    </StatusPill>
+  )
+
   const gapsPanel = gaps.length > 0 && (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       {gaps.map((gap, i) => (
@@ -215,6 +254,7 @@ export function PsmStagePanel({
             ← Back to current
           </Button>
         </div>
+        <StageInfoNote detail={stageDetail} />
         {statusPills}
         <CodeBlock code={output} title="psm output (read-only)" lang="psm" />
         {gapsPanel}
@@ -229,6 +269,7 @@ export function PsmStagePanel({
   return (
     <Panel>
       <h2 style={headingStyle}>PSM stage output</h2>
+      <StageInfoNote detail={stageDetail} />
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),
@@ -253,8 +294,9 @@ export function PsmStagePanel({
       )}
 
       {statusPills}
+      {modeChip && <div style={{ display: "flex" }}>{modeChip}</div>}
 
-      <CodeBlock code={busy ? "Generating…" : hasResult ? output : "No output yet."} title="psm output" lang="psm" />
+      {(hasResult || busy) && <CodeBlock code={busy ? "Generating…" : output} title="psm output" lang="psm" />}
 
       {gapsPanel}
 
@@ -263,21 +305,24 @@ export function PsmStagePanel({
         // at psm advances the pipeline but deliberately does not auto-run
         // it (see pipeline.py's own _REQUIRES_MANUAL_START) - a human
         // reviews or edits the prompt here first, then Generate below fires
-        // the real first attempt.
-        promptBuilder ?? (
-          <div>
-            <p style={labelStyle}>Curate the helper prompt for this stage</p>
-            <textarea
-              className="orch-field"
-              value={correction}
-              onChange={(e) => setCorrection(e.target.value)}
-              placeholder="Describe what should change"
-              rows={2}
-              disabled={readOnly}
-              style={textareaStyle}
-            />
-          </div>
-        )
+        // the real first attempt. No empty "psm output" box above either -
+        // there's nothing to show yet, and it only added scroll length.
+        <>
+          {promptBuilder ?? (
+            <div>
+              <p style={labelStyle}>Curate the helper prompt for this stage</p>
+              <textarea
+                className="orch-field"
+                value={correction}
+                onChange={(e) => setCorrection(e.target.value)}
+                placeholder="Describe what should change"
+                rows={2}
+                disabled={readOnly}
+                style={textareaStyle}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <>
           {canPromote && promoteConstraints}
