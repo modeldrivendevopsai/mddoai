@@ -13,12 +13,20 @@ comparison.py actually supply for a real call.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import history, learned_constraints, presets, references, rendering, resolution, storage
 
 from comparison import META_MODELS_DIR
 import prompt_paths
 
 router = APIRouter(prefix="/prompt-config")
+
+# Every "file" attachment resolves against both real roots: the read-only,
+# pre-existing repo metamodels, and a human's own uploaded files (see
+# routes/uploads.py) - generation_toolkit.attachments.files.resolve_file_attachment's
+# own multi-root support tries each in order, so a config can reference
+# either kind of real file interchangeably.
+_FILES_ROOT = [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 
 # The real context keys generate()/compare() themselves supply for a real
 # call (see generation.py's own `context_values` inside generate(),
@@ -36,7 +44,11 @@ _SAMPLE_CONTEXT_VALUES: dict[str, dict[str, str]] = {
 
 
 class PromptConfigBody(BaseModel):
-    system_prompt: str
+    # No system_prompt field: a config's own first "text" attachment IS
+    # the system message (see generation_toolkit.prompt_config.resolution's
+    # own resolve_for_call), built and edited the same way as every other
+    # attachment, not a separate required field a human can't remove or
+    # reorder.
     attachments: list[dict]
     learned_constraints: list[str] = []
     label: str | None = None
@@ -77,7 +89,7 @@ def save_config_endpoint(name: str, preset: str, body: PromptConfigBody):
     context_values = _sample_context(name)
     try:
         return storage.save_config(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.model_dump(), context_values, META_MODELS_DIR
+            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.model_dump(), context_values, _FILES_ROOT
         )
     except storage.PromptConfigValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -102,7 +114,7 @@ def diff_endpoint(name: str, preset: str, a: str, b: str):
 def restore_endpoint(name: str, preset: str, version: str):
     context_values = _sample_context(name)
     try:
-        return history.restore_version(prompt_paths.PROMPT_CONFIG_DIR, name, preset, version, context_values, META_MODELS_DIR)
+        return history.restore_version(prompt_paths.PROMPT_CONFIG_DIR, name, preset, version, context_values, _FILES_ROOT)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -111,7 +123,7 @@ def restore_endpoint(name: str, preset: str, version: str):
 def revert_endpoint(name: str, preset: str):
     context_values = _sample_context(name)
     try:
-        return history.revert_to_default(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, META_MODELS_DIR)
+        return history.revert_to_default(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -129,7 +141,7 @@ def promote_to_default_endpoint(name: str, preset: str):
 def check_references_endpoint(name: str, preset: str):
     context_values = _sample_context(name)
     try:
-        broken = references.check_references(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, META_MODELS_DIR)
+        broken = references.check_references(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     return {"broken": broken}
@@ -140,7 +152,7 @@ def add_learned_constraints_endpoint(name: str, preset: str, body: LearnedConstr
     context_values = _sample_context(name)
     try:
         return learned_constraints.add_learned_constraints(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraints, context_values, META_MODELS_DIR
+            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraints, context_values, _FILES_ROOT
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -151,7 +163,7 @@ def remove_learned_constraint_endpoint(name: str, preset: str, body: RemoveLearn
     context_values = _sample_context(name)
     try:
         return learned_constraints.remove_learned_constraint(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraint, context_values, META_MODELS_DIR
+            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraint, context_values, _FILES_ROOT
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -161,17 +173,26 @@ def remove_learned_constraint_endpoint(name: str, preset: str, body: RemoveLearn
 def preview_endpoint(name: str, preset: str):
     """The exact text a real call for this config would send the LLM,
     without spending a real call: generation_toolkit's own
-    resolution.render_prompt already resolves attachments and folds in
-    learned_constraints identically for any (name, preset), so this
-    endpoint needs no per-mode branching of its own."""
+    resolution.resolve_for_call already resolves attachments, derives the
+    real system message from the config's own first "text" attachment, and
+    folds in learned_constraints identically for any (name, preset), so
+    this endpoint needs no per-mode branching of its own. `attachments`
+    carries each body attachment's own real resolved content, keyed by its
+    id (the same id resolve_attachments() already uses) - resolution
+    already reads a "file"/"context" attachment's real content to build
+    user_content below, this just also hands that same already-resolved
+    text back per-attachment, so a UI can show what a file/context chip
+    actually contains without a second endpoint or its own path/key
+    validation."""
     context_values = _sample_context(name)
     try:
-        config = storage.load_config(prompt_paths.PROMPT_CONFIG_DIR, name, preset)
-        prompt = resolution.render_prompt(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, META_MODELS_DIR)
+        config, parts = resolution.resolve_for_call(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
+    prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     return {
         "system_prompt": config["system_prompt"],
         "user_content": rendering.render_user_content(config, prompt),
+        "attachments": parts,
     }

@@ -12,13 +12,14 @@ from pydantic import BaseModel
 
 from generation_toolkit.attachments.files import PathSegmentError
 
-from comparison import compare
+from comparison import compare, resolve_platform_metamodel
 from psm_flow import run as run_psm_flow
-from routes import files, prompt_config
+from routes import files, prompt_config, uploads
 
 app = FastAPI(title="MDDOAI PSM Agent")
 app.include_router(prompt_config.router)
 app.include_router(files.router)
+app.include_router(uploads.router)
 
 
 @app.exception_handler(PathSegmentError)
@@ -73,6 +74,21 @@ def compare_endpoint(request: CompareRequest):
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=f"PSM metamodel not found: {e}")
     return {"suggestions": [asdict(s) for s in suggestions]}
+
+
+@app.get("/resolve-mode")
+def resolve_mode_endpoint(platform_description: str):
+    """Which real mode a POST /psm call for this platform_description would
+    take, without spending any real work (no LLM call, no grounding, no
+    validation) - psm_flow.run()'s own real routing decision
+    (resolve_platform_metamodel), exposed read-only so a human reviewing the
+    generation prompt before a first attempt can see up front whether this
+    platform is actually new, or already has a real metamodel and will
+    route to a drift-check instead."""
+    metamodel_path = resolve_platform_metamodel(platform_description)
+    if metamodel_path is None:
+        return {"mode": "generation", "metamodel_path": None}
+    return {"mode": "knowledge", "metamodel_path": metamodel_path}
 
 
 @app.post("/psm")

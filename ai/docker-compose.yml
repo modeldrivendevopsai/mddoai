@@ -149,6 +149,13 @@ services:
       # the same way ui-host/ui-remote-* already bind-mount their own
       # live-editable source, applied here to backend config instead.
       - ./psm_agent/prompts:/app/psm_agent/prompts
+      # Real human-uploaded "file" attachments (routes/uploads.py) - a
+      # separate, writable directory from both the read-only meta_models
+      # mount above and the git-committed prompts/ one: an upload is
+      # per-deployment content a human added, not a real pre-existing repo
+      # file and not curated starting prompt material (see the root
+      # .gitignore's own matching entry for this same directory).
+      - ./psm_agent/attachments:/app/psm_agent/attachments
     depends_on:
       ai-layer:
         condition: service_healthy

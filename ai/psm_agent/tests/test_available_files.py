@@ -29,3 +29,14 @@ def test_sorted_for_a_deterministic_listing():
 def test_returns_empty_list_when_meta_models_dir_does_not_exist(tmp_path):
     with patch.object(available_files, "META_MODELS_DIR", str(tmp_path / "does-not-exist")):
         assert available_files.list_available_files() == []
+
+
+def test_includes_real_uploaded_files(tmp_path, isolated_attachment_uploads_dir):
+    (isolated_attachment_uploads_dir / "abc123-model.ecore").write_text("<ecore/>", encoding="utf-8")
+    with patch.object(available_files, "META_MODELS_DIR", str(tmp_path / "does-not-exist")):
+        assert available_files.list_available_files() == ["abc123-model.ecore"]
+
+
+def test_returns_empty_list_when_neither_root_exists(tmp_path, isolated_attachment_uploads_dir):
+    with patch.object(available_files, "META_MODELS_DIR", str(tmp_path / "no-metamodels")):
+        assert available_files.list_available_files() == []

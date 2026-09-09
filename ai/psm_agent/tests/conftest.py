@@ -26,3 +26,13 @@ def isolated_prompt_config_dir(tmp_path, monkeypatch):
     own separate copy at import time, silently unaffected by this."""
     monkeypatch.setattr(prompt_paths, "PROMPT_CONFIG_DIR", tmp_path)
     return tmp_path
+
+
+@pytest.fixture
+def isolated_attachment_uploads_dir(tmp_path, monkeypatch):
+    """Same reasoning as isolated_prompt_config_dir above, for real file
+    uploads (routes/uploads.py, available_files.py) instead of prompt
+    configs - redirects to a fresh tmp_path so a test can freely upload
+    without touching the real ai/psm_agent/attachments/ directory."""
+    monkeypatch.setattr(prompt_paths, "ATTACHMENT_UPLOADS_DIR", tmp_path)
+    return tmp_path

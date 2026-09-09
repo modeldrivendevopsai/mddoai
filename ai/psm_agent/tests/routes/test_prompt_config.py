@@ -4,6 +4,12 @@ integration_runner/tests/routes/test_docs.py already uses. Every test
 requests the isolated_prompt_config_dir fixture (see conftest.py) so
 nothing here ever touches the real, git-committed ai/psm_agent/prompts/
 directory.
+
+There's no separate "system_prompt" field on a config (see
+generation_toolkit.prompt_config.resolution's own resolve_for_call): a
+config's own first "text" attachment IS the system message. `_system_prompt`
+below builds that one attachment, so every test here reads the same way a
+real config author's own first block would.
 """
 import json
 
@@ -30,11 +36,16 @@ from routes.prompt_config import (
     save_config_endpoint,
 )
 
-_MINIMAL_BODY = PromptConfigBody(system_prompt="x", attachments=[])
+
+def _system_prompt(content: str) -> dict:
+    return {"id": "system", "name": "System prompt", "type": "text", "content": content}
 
 
-def _seed_default(isolated_prompt_config_dir, name="generation", **overrides):
-    config = {"system_prompt": "sys", "attachments": [], **overrides}
+_MINIMAL_BODY = PromptConfigBody(attachments=[])
+
+
+def _seed_default(isolated_prompt_config_dir, name="generation", system_prompt="sys", attachments=None):
+    config = {"attachments": [_system_prompt(system_prompt), *(attachments or [])]}
     directory = isolated_prompt_config_dir / name
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "default.default.json").write_text(json.dumps(config), encoding="utf-8")
@@ -46,7 +57,7 @@ def test_get_config_returns_the_shipped_default(isolated_prompt_config_dir):
 
     result = get_config_endpoint("generation", "default")
 
-    assert result["system_prompt"] == "hello"
+    assert result["attachments"][0]["content"] == "hello"
 
 
 def test_get_config_404s_for_an_unknown_name(isolated_prompt_config_dir):
@@ -75,7 +86,7 @@ def test_save_config_persists_and_returns_a_stamped_version(isolated_prompt_conf
 def test_save_config_rejects_a_broken_attachment_with_400(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir)
     broken = PromptConfigBody(
-        system_prompt="x", attachments=[{"id": "a", "name": "A", "type": "file", "path": "missing.ecore"}]
+        attachments=[_system_prompt("x"), {"id": "a", "name": "A", "type": "file", "path": "missing.ecore"}]
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -108,7 +119,9 @@ def test_diff_reports_no_changes_between_a_version_and_itself(isolated_prompt_co
 
     result = diff_endpoint("generation", "default", saved["_version"], saved["_version"])
 
-    assert result["system_prompt_changed"] is False
+    assert result["attachments_changed"] == []
+    assert result["attachments_added"] == []
+    assert result["attachments_removed"] == []
 
 
 def test_diff_404s_for_a_version_that_does_not_exist(isolated_prompt_config_dir):
@@ -122,27 +135,27 @@ def test_diff_404s_for_a_version_that_does_not_exist(isolated_prompt_config_dir)
 
 def test_restore_brings_back_an_old_version_as_a_new_one(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir)
-    v1 = save_config_endpoint("generation", "default", PromptConfigBody(system_prompt="v1", attachments=[]))
-    save_config_endpoint("generation", "default", PromptConfigBody(system_prompt="v2", attachments=[]))
+    v1 = save_config_endpoint("generation", "default", PromptConfigBody(attachments=[_system_prompt("v1")]))
+    save_config_endpoint("generation", "default", PromptConfigBody(attachments=[_system_prompt("v2")]))
 
     restored = restore_endpoint("generation", "default", v1["_version"])
 
-    assert restored["system_prompt"] == "v1"
+    assert restored["attachments"][0]["content"] == "v1"
     assert restored["_version"] != v1["_version"]
 
 
 def test_revert_restores_the_shipped_default(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir, system_prompt="shipped")
-    save_config_endpoint("generation", "default", PromptConfigBody(system_prompt="edited", attachments=[]))
+    save_config_endpoint("generation", "default", PromptConfigBody(attachments=[_system_prompt("edited")]))
 
     reverted = revert_endpoint("generation", "default")
 
-    assert reverted["system_prompt"] == "shipped"
+    assert reverted["attachments"][0]["content"] == "shipped"
 
 
 def test_promote_to_default_updates_the_shipped_file(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir, system_prompt="old default")
-    save_config_endpoint("generation", "default", PromptConfigBody(system_prompt="new and improved", attachments=[]))
+    save_config_endpoint("generation", "default", PromptConfigBody(attachments=[_system_prompt("new and improved")]))
 
     promote_to_default_endpoint("generation", "default")
 
@@ -183,6 +196,9 @@ def test_preview_generation_mode_returns_real_rendered_text(isolated_prompt_conf
 
     assert result["system_prompt"] == "the real system prompt"
     assert "PIM artifact:" in result["user_content"]
+    # Real per-attachment resolved content, not just the merged text - a UI
+    # preview needs to show one attachment's own real content in isolation.
+    assert result["attachments"] == {"pim_ecore": ""}
 
 
 def test_preview_comparison_mode_returns_real_rendered_text(isolated_prompt_config_dir):
