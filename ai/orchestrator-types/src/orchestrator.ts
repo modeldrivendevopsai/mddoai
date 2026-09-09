@@ -6,6 +6,26 @@
 export const STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"] as const
 export type StageId = (typeof STAGES)[number]
 
+// Mirrors the backend's own real per-stage metadata shape, fetched once
+// from GET /stages (see StageMetadataResponse below), so a panel can
+// explain its own stage honestly instead of a hand-written description
+// hardcoded per panel.
+export interface StageDetail {
+  description: string
+  input: string
+  output: string
+  // False for a stage that still ignores its real input and always
+  // returns the same fixed placeholder content, see the stage's own
+  // `output` text for exactly what's still missing.
+  real: boolean
+}
+
+export interface StageMetadataResponse {
+  stages: StageId[]
+  descriptions: Record<StageId, string>
+  details: Record<StageId, StageDetail>
+}
+
 export type OrchestratorEventType =
   | "call_started"
   | "call_completed"
@@ -173,7 +193,10 @@ export interface PromptAttachment {
 }
 
 export interface PromptConfig {
-  system_prompt: string
+  // No system_prompt field: a config's own first "text" attachment IS the
+  // system message (see generation_toolkit.prompt_config.resolution's own
+  // resolve_for_call) - built and reordered the same way as every other
+  // attachment, not a separate field.
   attachments: PromptAttachment[]
   // Present once a config has been saved through the real API at least
   // once (see storage.save_config) - a freshly shipped, never-edited
@@ -191,7 +214,9 @@ export interface PresetMetadata {
 }
 
 export interface PromptDiff {
-  system_prompt_changed: boolean
+  // No system_prompt_changed flag: a change to the system-message-role
+  // attachment already shows up as its own id in attachments_changed,
+  // the same as any other edited attachment.
   attachments_added: string[]
   attachments_removed: string[]
   attachments_changed: string[]
@@ -200,6 +225,11 @@ export interface PromptDiff {
 export interface PromptPreview {
   system_prompt: string
   user_content: string
+  // Each body attachment's own real resolved content, keyed by its id -
+  // the same content already folded into user_content above, exposed
+  // per-attachment too so a UI can preview one file/context block in
+  // isolation instead of only the fully assembled prompt.
+  attachments: Record<string, string>
 }
 
 export interface BrokenReference {

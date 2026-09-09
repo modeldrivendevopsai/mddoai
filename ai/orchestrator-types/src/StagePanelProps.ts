@@ -7,6 +7,7 @@ import type {
   PromptConfig,
   PromptDiff,
   PromptPreview,
+  StageDetail,
 } from "./orchestrator"
 
 // Shared prop contract every per-stage panel (PsmStagePanel, AtlStagePanel,
@@ -32,6 +33,10 @@ export interface StagePanelProps {
   // Present only when viewing this stage historically (past, non-current).
   onBack?: () => void
   readOnly?: boolean
+  // This stage's real, plain-language shape (input/output/real), sourced
+  // from the backend's own real stage metadata (see GET /stages) rather
+  // than hardcoded per panel. Null while stage metadata hasn't loaded yet.
+  stageDetail?: StageDetail | null
 
   // --- Modular prompt builder (design-system's PromptBuilder/
   // AttemptsBrowser) — all optional, matching onBack?'s own precedent: a
@@ -45,6 +50,14 @@ export interface StagePanelProps {
   onListPresets?: (name: string) => Promise<PresetMetadata[]>
   onPreviewPromptConfig?: (name: string, preset: string) => Promise<PromptPreview>
   onListAvailableFiles?: () => Promise<string[]>
+  // Real backend upload (routes/uploads.py) - a dropped OS file is saved
+  // for real and becomes a real "file" attachment referencing it, not a
+  // client-side-only text copy.
+  onUploadAttachmentFile?: (file: File) => Promise<string>
+  // psm_flow.run()'s own real routing decision (generation vs. knowledge
+  // mode) for a given platform description, exposed read-only so a panel
+  // can show which one a real run would actually take before it happens.
+  onResolvePsmMode?: (platformDescription: string) => Promise<{ mode: string; metamodel_path: string | null }>
   onLoadPromptHistory?: (name: string, preset: string) => Promise<string[]>
   onDiffPromptVersions?: (name: string, preset: string, versionA: string, versionB: string) => Promise<PromptDiff>
   onRestorePromptVersion?: (name: string, preset: string, version: string) => Promise<PromptConfig>
