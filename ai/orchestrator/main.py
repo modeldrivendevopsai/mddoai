@@ -128,6 +128,17 @@ def providers_endpoint():
     return ai_layer_client.list_providers()
 
 
+@app.get("/stages")
+def stages_endpoint():
+    """Static pipeline metadata (stage list, LLM-narration descriptions,
+    and the fuller per-stage input/output/real detail) - a thin proxy to
+    integration_runner's own real GET /stages, the same shape
+    tools.stage_metadata() already fetches for the system prompt, exposed
+    here too so the UI can explain a stage to a human, not just narrate it
+    to an LLM."""
+    return integration_runner_client.get_stage_metadata()
+
+
 @app.post("/review/{stage_id}")
 def review_endpoint(stage_id: str, request: ReviewRequest):
     result = integration_runner_client.review(stage_id, request.approved, request.correction)

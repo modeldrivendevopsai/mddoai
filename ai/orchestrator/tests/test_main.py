@@ -133,7 +133,7 @@ def _fake_psm_response(artifact="Generic stage output", valid=True):
     resp.json.return_value = {
         "mode": "generation",
         "artifact": artifact,
-        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
         "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "generated_source_path": None},
         "rounds": 1,
     }
@@ -416,6 +416,24 @@ def test_providers_endpoint_proxies_ai_layer():
     mock_httpx.get.assert_called_once_with(f"{ai_layer_client.AI_LAYER_URL}/providers", timeout=10.0)
     assert response.status_code == 200
     assert response.json() == payload
+
+
+# --- GET /stages ---------------------------------------------------------------------
+
+
+def test_stages_endpoint_proxies_stage_metadata_unchanged():
+    # stage_metadata() itself is faked process-wide by conftest.py's own
+    # autouse fake_stage_metadata fixture (every other test in this file
+    # that triggers chat/tool-schema building already relies on that same
+    # fake, not a live integration_runner) - this is a proxy unit test:
+    # does GET /stages forward whatever get_stage_metadata() returns,
+    # unchanged, "details" field included. integration_runner's own
+    # STAGE_DETAILS content is verified for real in its own test suite
+    # (integration_runner/tests/stages/test_stages_registry.py).
+    response = client.get("/stages")
+
+    assert response.status_code == 200
+    assert response.json() == integration_runner_client.get_stage_metadata()
 
 
 # --- POST /model -------------------------------------------------------------------
