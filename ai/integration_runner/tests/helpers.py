@@ -54,7 +54,7 @@ def _psm_generation_result(artifact="<ecore:EPackage/>", valid=True):
     return {
         "mode": "generation",
         "artifact": artifact,
-        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
         "validation": _validation_result(valid=valid),
         "rounds": 1,
     }

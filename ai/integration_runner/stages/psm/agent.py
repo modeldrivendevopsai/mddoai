@@ -35,12 +35,19 @@ def psm_stage(context: dict) -> tuple[str, dict]:
     # no fallback for it (unlike docs below): there's no reasonable stand-in
     # PIM artifact for a caller that skips straight to psm, so a direct/test
     # call without one deliberately gets an empty pim_artifact, not a silently
-    # wrong substitute. docs_output/platform_description ARE real fallbacks,
-    # for a caller (or a unit test) that invokes psm_stage directly without a
-    # pim stage having run.
+    # wrong substitute.
+    #
+    # docs prefers serialization_output (the serialization stage's own
+    # labeled, PIM-concept-tagged restructuring of the raw crawl - see
+    # stages/serialization/agent.py's own docstring: producing that
+    # structured artifact "for the pim stage (and any future stage) to
+    # build on" is its entire purpose), falling back to docs_output (the
+    # raw crawl) and then platform_description, for a caller (or a unit
+    # test) that invokes psm_stage directly without a serialization stage
+    # having run first.
     platform_description = context.get("platform_description", "")
     pim_artifact = context.get("pim_output", "")
-    docs = context.get("docs_output") or platform_description
+    docs = context.get("serialization_output") or context.get("docs_output") or platform_description
     constraints = context.get("constraints", {}).get("psm", [])
     # Reserved before run_psm() runs, not after, same reason atl_stage/
     # acceleo_stage do this: run_psm()'s own generation-mode path (inside
