@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react"
 import { Button } from "../Button"
-import { AttachmentList } from "./AttachmentList"
 import { JsonView } from "./JsonView"
-import { LearnedConstraintsList } from "./LearnedConstraintsList"
 import { PresetPicker } from "./PresetPicker"
 import { PreviewPane } from "./PreviewPane"
-import { SystemPromptEditor } from "./SystemPromptEditor"
+import { PromptDocument } from "./PromptDocument"
 import { VersionHistory } from "./VersionHistory"
 import type { BrokenReference, PromptBuilderProps, PromptConfig } from "./types"
 
@@ -36,10 +34,17 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Cached from the last onPreview() call (see loadAttachmentPreview
+  // below), keyed by attachment id - reused across every chip's own
+  // "Show real content" click within one preset, rather than re-resolving
+  // the whole config on every single click. Cleared when the preset
+  // changes (the effect below), same as every other preset-scoped state.
+  const [previewAttachments, setPreviewAttachments] = useState<Record<string, string> | null>(null)
 
   useEffect(() => {
     let cancelled = false
     setLoadError(null)
+    setPreviewAttachments(null)
     callbacks
       .onLoad(preset)
       .then((loaded) => {
@@ -84,6 +89,13 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
       const saved = await callbacks.onSave(preset, config)
       setConfig(saved)
       setBroken(await callbacks.onCheckReferences(preset))
+      // A save is the only thing that can change what a real call would
+      // resolve (an in-memory, unsaved edit never does, see
+      // loadAttachmentPreview's own comment) - without this, a chip
+      // previewed once before a save would keep showing its pre-save
+      // content forever, since the cache below is otherwise only cleared
+      // on a preset switch.
+      setPreviewAttachments(null)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed.")
     } finally {
@@ -96,8 +108,30 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
     await callbacks.onPromoteToDefault(preset)
   }
 
-  const addConstraint = async (constraint: string) => setConfig(await callbacks.onAddLearnedConstraints(preset, [constraint]))
-  const removeConstraint = async (constraint: string) => setConfig(await callbacks.onRemoveLearnedConstraint(preset, constraint))
+  // Only merges learned_constraints (+ the new _version that save stamped)
+  // back into local state, never the whole response - the backend's own
+  // add/remove both reload the config fresh from disk first (see
+  // generation_toolkit.prompt_config.learned_constraints), so a naive
+  // setConfig(response) here would silently discard any unsaved edit to
+  // system_prompt or attachments the human made in this same sitting,
+  // before ever clicking Save.
+  const mergeLearnedConstraints = (updated: PromptConfig) =>
+    setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints, _version: updated._version })
+  const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints(preset, [constraint]))
+  const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(preset, constraint))
+
+  // Backed by the same preview endpoint PreviewPane already calls - the
+  // first chip expanded in a sitting fetches every attachment's real
+  // content in one call, every later chip in this same preset just reads
+  // the cache. May go stale for one save cycle (the same real limitation
+  // PreviewPane's own "Preview exact prompt text" button already has) -
+  // acceptable since this is a preview, not the source of truth being saved.
+  const loadAttachmentPreview = async (id: string): Promise<string | undefined> => {
+    if (previewAttachments) return previewAttachments[id]
+    const preview = await callbacks.onPreview(preset)
+    setPreviewAttachments(preview.attachments)
+    return preview.attachments[id]
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
@@ -117,27 +151,20 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
         <PresetPicker activePreset={preset} onListPresets={callbacks.onListPresets} onChange={setPreset} />
       )}
 
-      <SystemPromptEditor
-        value={config.system_prompt}
-        readOnly={readOnly}
-        onChange={(value) => setConfig({ ...config, system_prompt: value })}
-      />
-
-      <AttachmentList
+      <PromptDocument
         attachments={config.attachments}
         attachmentTypes={manifest.attachmentTypes}
         contextKeyOptions={manifest.contextKeyOptions}
         availableFiles={availableFiles}
         broken={broken}
         readOnly={readOnly}
-        onChange={(attachments) => setConfig({ ...config, attachments })}
-      />
-
-      <LearnedConstraintsList
-        constraints={config.learned_constraints ?? []}
-        readOnly={readOnly}
-        onAdd={addConstraint}
-        onRemove={removeConstraint}
+        onUploadFile={callbacks.onUploadFile}
+        onPreviewAttachment={loadAttachmentPreview}
+        onAttachmentsChange={(attachments) => setConfig({ ...config, attachments })}
+        learnedConstraints={config.learned_constraints ?? []}
+        onAddConstraint={addConstraint}
+        onRemoveConstraint={removeConstraint}
+        onReorderConstraints={(learned_constraints) => setConfig({ ...config, learned_constraints })}
       />
 
       <PreviewPane onPreview={() => callbacks.onPreview(preset)} />

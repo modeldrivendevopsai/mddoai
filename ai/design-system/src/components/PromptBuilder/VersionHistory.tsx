@@ -118,13 +118,13 @@ export function VersionHistory({ onLoadHistory, onDiffVersions, onRestoreVersion
 
           {diff && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-              <StatusPill variant={diff.system_prompt_changed ? "warning" : "info"}>
-                {diff.system_prompt_changed ? "System prompt changed" : "System prompt unchanged"}
-              </StatusPill>
+              {/* No separate "system prompt changed" pill: the system-message-role
+                  attachment is just attachments[0], its own id already shows up
+                  in attachments_changed like any other edited block. */}
               {diff.attachments_added.length > 0 && <StatusPill variant="success">+{diff.attachments_added.length} added</StatusPill>}
               {diff.attachments_removed.length > 0 && <StatusPill variant="danger">-{diff.attachments_removed.length} removed</StatusPill>}
               {diff.attachments_changed.length > 0 && <StatusPill variant="warning">{diff.attachments_changed.length} changed</StatusPill>}
-              {diff.attachments_added.length === 0 && diff.attachments_removed.length === 0 && diff.attachments_changed.length === 0 && !diff.system_prompt_changed && (
+              {diff.attachments_added.length === 0 && diff.attachments_removed.length === 0 && diff.attachments_changed.length === 0 && (
                 <StatusPill variant="info">Identical</StatusPill>
               )}
             </div>
