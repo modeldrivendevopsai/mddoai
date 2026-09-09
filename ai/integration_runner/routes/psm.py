@@ -11,7 +11,7 @@ core.py nor big enough yet to split further.
    real HTTP target for turning a verified run's own live corrections into
    psm_agent's permanent config.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from clients import psm_agent_client
@@ -25,7 +25,9 @@ _BUSY_DETAIL = "A stage is still running, try again shortly."
 
 
 class SaveConfigRequest(BaseModel):
-    system_prompt: str
+    # No system_prompt field: a config's own first "text" attachment IS
+    # the system message (see psm_agent's own PromptConfigBody, the real
+    # schema this pass-through mirrors).
     attachments: list[dict]
     learned_constraints: list[str] = []
     label: str | None = None
@@ -107,6 +109,17 @@ def remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLe
 @router.get("/available-files")
 def available_files_endpoint():
     return {"files": psm_agent_client.list_available_files()}
+
+
+@router.get("/resolve-mode")
+def resolve_mode_endpoint(platform_description: str):
+    return psm_agent_client.resolve_psm_mode(platform_description)
+
+
+@router.post("/attachment-uploads")
+async def upload_attachment_endpoint(file: UploadFile):
+    content = await file.read()
+    return {"path": psm_agent_client.upload_attachment_file(file.filename or "upload", content)}
 
 
 @router.post("/promote-constraints")
