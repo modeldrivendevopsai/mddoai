@@ -120,8 +120,15 @@ def status_endpoint():
 def stages_endpoint():
     """Static pipeline metadata: orchestrator fetches this once and caches
     it, rather than duplicating STAGES/STAGE_DESCRIPTIONS as a second,
-    hardcoded copy that could drift from this, the real source."""
-    return {"stages": pipeline.STAGES, "descriptions": stages.STAGE_DESCRIPTIONS}
+    hardcoded copy that could drift from this, the real source. `details`
+    carries the fuller per-stage shape (input/output/real) from
+    stages.STAGE_DETAILS, for a UI to explain a stage to a human rather
+    than just narrate it to an LLM."""
+    return {
+        "stages": pipeline.STAGES,
+        "descriptions": stages.STAGE_DESCRIPTIONS,
+        "details": {stage: vars(info) for stage, info in stages.STAGE_DETAILS.items()},
+    }
 
 
 @router.get("/runs")

@@ -9,7 +9,7 @@ docs/actions.py is the one that exists today). Adding or replacing a
 stage's agent means writing agent.py in its own folder (matching
 stages/docs/agent.py's own history — it replaced a placeholder the same
 way stages/pim/agent.py etc. will, each on its own schedule) and adding one
-line to each dict below. A stage growing its own extra chat tool later
+entry to each mapping below. A stage growing its own extra chat tool later
 means adding actions.py as a new sibling file in that same folder, nothing
 elsewhere in integration_runner changes: pipeline.py only ever reads
 stages.stage_agents[stage] and stages.STAGE_DESCRIPTIONS, never a specific
@@ -25,22 +25,90 @@ psm_agent service, which generates a real metamodel for a new platform or
 compares docs against an existing one for drift (see stages/psm/agent.py's
 own docstring).
 """
+from dataclasses import dataclass
+
 from integration_runner.stages import acceleo, atl, docs, generation, pim, psm, serialization
 
-# One line per stage. Exposed over HTTP via this service's own GET /stages
+
+@dataclass(frozen=True)
+class StageInfo:
+    """One stage's real, plain-language shape: what it reads, what it
+    produces, and whether that output is genuinely derived from its input
+    today or is still fixed placeholder content regardless of what it's
+    given. This is metadata, not behavior. A stage's own agent.py is still
+    the only place its real logic lives, this dict just describes it
+    honestly for anything that needs to explain a stage to a human or an
+    LLM, so that explanation comes from one real place instead of being
+    hand-written again per consumer (a UI panel, a system prompt) and
+    drifting from what the code actually does."""
+
+    description: str
+    input: str
+    output: str
+    # True once this stage's output is genuinely derived from the real
+    # input it's given. False for a stage that still ignores its input and
+    # always returns the same fixed content, see each entry's own
+    # description for exactly what "real" still means for that stage
+    # (e.g. generation makes a real call over real prior-stage output, but
+    # with a placeholder prompt and no real CI/CD config yet).
+    real: bool
+
+
+# One entry per stage. Exposed over HTTP via this service's own GET /stages
 # (routes/core.py) for orchestrator to build its narration/tool-routing
-# system prompt from, so that prompt never needs a manual edit when a stage
-# is added, only this dict does, alongside pipeline.STAGES and stage_agents
-# below.
-STAGE_DESCRIPTIONS: dict[str, str] = {
-    "docs": "fetches the platform's real documentation (a real call to retrieval).",
-    "serialization": "restructures the fetched documentation into a labeled, PIM-concept-tagged markdown artifact.",
-    "pim": "a PIM (Platform-Independent Model) Ecore description of the platform (mock content, validated for real).",
-    "psm": "a PSM (Platform-Specific Model) Ecore metamodel for the platform — generates a new one, or checks an existing one for drift, depending on the platform.",
-    "atl": "the ATL transformation rules needed to build that PSM (mock content, validated for real).",
-    "acceleo": "the Acceleo code-generation template for that ATL (mock content, validated for real).",
-    "generation": "a final summary tying all prior stages together.",
+# system prompt from, and for the UI to explain each stage to a human,
+# so neither needs a manual edit when a stage's real shape changes, only
+# this dict does, alongside pipeline.STAGES and stage_agents below.
+STAGE_DETAILS: dict[str, StageInfo] = {
+    "docs": StageInfo(
+        description="fetches the platform's real documentation (a real call to retrieval).",
+        input="a seed URL for the platform's own documentation",
+        output="the crawled documentation, as raw markdown",
+        real=True,
+    ),
+    "serialization": StageInfo(
+        description="restructures the fetched documentation into a labeled, PIM-concept-tagged markdown artifact.",
+        input="the docs stage's raw documentation markdown",
+        output="the same documentation, restructured into sections labeled against MDDOAI's real PIM concepts, plus an Unrecognized section for anything that didn't match one",
+        real=True,
+    ),
+    "pim": StageInfo(
+        description="a PIM (Platform-Independent Model) Ecore description of the platform (mock content, validated for real).",
+        input="ignored today, no real PIM extraction exists yet to read the serialization stage's output",
+        output="a fixed placeholder PIM Ecore metamodel, not derived from any real input",
+        real=False,
+    ),
+    "psm": StageInfo(
+        description="a PSM (Platform-Specific Model) Ecore metamodel for the platform — generates a new one, or checks an existing one for drift, depending on the platform.",
+        input="the serialization stage's labeled documentation",
+        output="a new PSM Ecore metamodel for a platform with none yet, or a drift report against an existing one",
+        real=True,
+    ),
+    "atl": StageInfo(
+        description="the ATL transformation rules needed to build that PSM (mock content, validated for real).",
+        input="ignored today, no real ATL generation exists yet to read the psm stage's output",
+        output="a fixed placeholder set of ATL transformation rules, not derived from any real input",
+        real=False,
+    ),
+    "acceleo": StageInfo(
+        description="the Acceleo code-generation template for that ATL (mock content, validated for real).",
+        input="ignored today, no real Acceleo generation exists yet to read the atl stage's output",
+        output="a fixed placeholder Acceleo code-generation template, not derived from any real input",
+        real=False,
+    ),
+    "generation": StageInfo(
+        description="a final summary tying all prior stages together.",
+        input="the psm, atl, and acceleo stages' own output - psm's is real, atl/acceleo's are still each stage's own fixed placeholder content",
+        output="a text summary of the full generation plan - a real call, genuinely shaped by whatever input it's given, though the summary prompt itself is still a fixed placeholder and no real CI/CD config is produced yet",
+        real=True,
+    ),
 }
+
+# Derived from STAGE_DETAILS, not hand-duplicated: every existing consumer
+# (orchestrator's own system prompt, tests) only ever needs the plain
+# narration string, so this stays the same plain dict[str, str] shape it
+# always was.
+STAGE_DESCRIPTIONS: dict[str, str] = {stage: info.description for stage, info in STAGE_DETAILS.items()}
 
 stage_agents = {
     "docs": docs.agent.docs_stage,
