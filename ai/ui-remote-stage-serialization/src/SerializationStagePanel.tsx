@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button, CodeBlock } from "design-system"
+import { Button, CodeBlock, StageInfoNote } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 
@@ -15,7 +15,15 @@ import type { StagePanelProps } from "orchestrator-types"
 // CodeBlock, same as every other stage — none of the other five panels
 // parse markdown either, introducing that just here would break the "all
 // panels render near-identically" consistency ui-host/CLAUDE.md calls out.
-export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
+export function SerializationStagePanel({
+  busy,
+  latestResult,
+  onApprove,
+  onRetry,
+  onBack,
+  readOnly = false,
+  stageDetail = null,
+}: StagePanelProps) {
   const [correction, setCorrection] = useState("")
   const failed = latestResult?.type === "call_failed"
   const output = failed
@@ -31,6 +39,7 @@ export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry
             ← Back to current
           </Button>
         </div>
+        <StageInfoNote detail={stageDetail} />
         <CodeBlock code={output} title="serialization output (read-only)" lang="markdown" />
       </Panel>
     )
@@ -41,6 +50,7 @@ export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry
   return (
     <Panel>
       <h2 style={headingStyle}>Serialization stage output</h2>
+      <StageInfoNote detail={stageDetail} />
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),
