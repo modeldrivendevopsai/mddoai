@@ -32,7 +32,7 @@ def test_get_prompt_config_endpoint_proxies_the_real_client():
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
-    body = {"system_prompt": "x", "attachments": [], "learned_constraints": [], "label": None, "platform_hints": []}
+    body = {"attachments": [], "learned_constraints": [], "label": None, "platform_hints": []}
     with patch.object(integration_runner_client, "save_psm_prompt_config", return_value={**body, "_version": "v1"}) as mock_save:
         response = client.put("/psm/prompt-config/generation/default", json=body)
 
@@ -123,3 +123,19 @@ def test_promote_constraints_endpoint_forwards_the_real_body():
 
     mock_promote.assert_called_once_with(["x"])
     assert response.json() == {"learned_constraints": ["x"]}
+
+
+def test_resolve_mode_endpoint_proxies_the_real_client():
+    with patch.object(integration_runner_client, "resolve_psm_mode", return_value={"mode": "knowledge", "metamodel_path": "gitlabMM.ecore"}) as mock_resolve:
+        response = client.get("/psm/resolve-mode", params={"platform_description": "GitLab CI"})
+
+    mock_resolve.assert_called_once_with("GitLab CI")
+    assert response.json() == {"mode": "knowledge", "metamodel_path": "gitlabMM.ecore"}
+
+
+def test_upload_attachment_endpoint_forwards_a_real_multipart_upload():
+    with patch.object(integration_runner_client, "upload_psm_attachment_file", return_value="abc123-model.ecore") as mock_upload:
+        response = client.post("/psm/attachment-uploads", files={"file": ("model.ecore", b"<ecore/>", "application/xml")})
+
+    mock_upload.assert_called_once_with("model.ecore", b"<ecore/>")
+    assert response.json() == {"path": "abc123-model.ecore"}

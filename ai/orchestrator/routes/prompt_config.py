@@ -5,7 +5,7 @@ this service, this service talks only to integration_runner, never
 directly to psm_agent. integration_runner's own IntegrationRunnerError is
 handled once, globally, by main.py's own exception handler.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
 
 from clients import integration_runner_client
@@ -14,7 +14,9 @@ router = APIRouter(prefix="/psm")
 
 
 class SaveConfigRequest(BaseModel):
-    system_prompt: str
+    # No system_prompt field: a config's own first "text" attachment IS
+    # the system message (see psm_agent's own PromptConfigBody, the real
+    # schema this pass-through mirrors).
     attachments: list[dict]
     learned_constraints: list[str] = []
     label: str | None = None
@@ -96,6 +98,17 @@ def remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLe
 @router.get("/available-files")
 def available_files_endpoint():
     return {"files": integration_runner_client.list_psm_available_files()}
+
+
+@router.get("/resolve-mode")
+def resolve_mode_endpoint(platform_description: str):
+    return integration_runner_client.resolve_psm_mode(platform_description)
+
+
+@router.post("/attachment-uploads")
+async def upload_attachment_endpoint(file: UploadFile):
+    content = await file.read()
+    return {"path": integration_runner_client.upload_psm_attachment_file(file.filename or "upload", content)}
 
 
 @router.post("/promote-constraints")
