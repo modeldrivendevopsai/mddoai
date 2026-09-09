@@ -16,6 +16,7 @@ import type {
   ReviewResponse,
   RunSummary,
   StageId,
+  StageMetadataResponse,
   StartedResponse,
 } from "orchestrator-types"
 
@@ -100,6 +101,19 @@ export async function getProviders(): Promise<Provider[]> {
 
   if (!res.ok) {
     throw await errorFor("Providers", res)
+  }
+
+  return res.json()
+}
+
+// Static pipeline metadata (stage list, plus each stage's real
+// input/output/real shape) - safe to fetch once per mount and never
+// re-poll, same reasoning as getProviders() above.
+export async function getStageMetadata(): Promise<StageMetadataResponse> {
+  const res = await fetch("/orchestrator-api/stages")
+
+  if (!res.ok) {
+    throw await errorFor("Stages", res)
   }
 
   return res.json()
@@ -314,6 +328,27 @@ export async function promoteConstraints(constraints: string[]): Promise<PromptC
     body: JSON.stringify({ constraints }),
   })
   if (!res.ok) throw await errorFor("Promote constraints", res)
+  return res.json()
+}
+
+// Real file upload (routes/uploads.py, three real hops down) - FormData,
+// not JSON: the browser sets the real multipart Content-Type + boundary
+// itself, setting one manually here would omit the boundary and break it.
+export async function uploadAttachmentFile(file: File): Promise<string> {
+  const body = new FormData()
+  body.append("file", file)
+  const res = await fetch("/orchestrator-api/psm/attachment-uploads", { method: "POST", body })
+  if (!res.ok) throw await errorFor("Upload attachment file", res)
+  return (await res.json()).path
+}
+
+// psm_flow.run()'s own real routing decision (generation vs. knowledge
+// mode), exposed read-only - see psm_agent/main.py's own resolve-mode
+// endpoint docstring for exactly what this does and doesn't spend.
+export async function resolvePsmMode(platformDescription: string): Promise<{ mode: string; metamodel_path: string | null }> {
+  const params = new URLSearchParams({ platform_description: platformDescription })
+  const res = await fetch(`/orchestrator-api/psm/resolve-mode?${params}`)
+  if (!res.ok) throw await errorFor("Resolve psm mode", res)
   return res.json()
 }
 

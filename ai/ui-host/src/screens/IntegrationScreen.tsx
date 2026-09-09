@@ -22,6 +22,8 @@ const promptBuilderProps: Omit<StagePanelProps, "busy" | "latestResult" | "event
   onListPresets: orchestratorService.listPromptPresets,
   onPreviewPromptConfig: orchestratorService.previewPromptConfig,
   onListAvailableFiles: orchestratorService.listAvailableFiles,
+  onUploadAttachmentFile: orchestratorService.uploadAttachmentFile,
+  onResolvePsmMode: orchestratorService.resolvePsmMode,
   onLoadPromptHistory: orchestratorService.getPromptConfigHistory,
   onDiffPromptVersions: orchestratorService.diffPromptConfigVersions,
   onRestorePromptVersion: orchestratorService.restorePromptConfigVersion,
@@ -114,6 +116,7 @@ export default function IntegrationScreen() {
     started,
     model,
     providers,
+    stageDetails,
     error,
     isCurrent,
     viewedRunId,
@@ -207,6 +210,7 @@ export default function IntegrationScreen() {
             runId={viewedRunId}
             onBack={() => setViewedStage(null)}
             readOnly
+            stageDetail={stageDetails?.[viewedStage] ?? null}
             {...promptBuilderProps}
           />
         </RemoteBoundary>
@@ -220,6 +224,7 @@ export default function IntegrationScreen() {
       <RemoteBoundary name={`${currentStage} stage panel`} resetKey={currentStage}>
         <ActivePanel
           busy={busy}
+          stageDetail={stageDetails?.[currentStage] ?? null}
           latestResult={latestResult}
           events={events}
           runId={viewedRunId}
