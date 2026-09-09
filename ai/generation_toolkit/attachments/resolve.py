@@ -29,7 +29,7 @@ class UnknownContextKeyError(ValueError):
 def resolve_attachments(
     attachments: list[dict],
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict[str, str]:
     """Returns an ordered parts dict, one entry per attachment, in the
     attachment list's own order, the same order a UI's card list and a

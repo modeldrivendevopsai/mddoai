@@ -3,9 +3,13 @@ the calling service supplies (its own directory, its own Docker bind
 mount decision), so this module owns no service-specific path of its
 own, the same functions, a different directory, per caller.
 
-A config is a plain dict: {"system_prompt": str, "attachments": [...],
-"_version": str}. "_version" is stamped by save_config, never set by a
-caller directly.
+A config is a plain dict: {"attachments": [...], "_version": str}.
+"_version" is stamped by save_config, never set by a caller directly.
+There is no separate stored "system_prompt" field - a config's own first
+"text" attachment IS the system message, resolved that way by
+resolution.py's own resolve_for_call, not a special field this module
+knows about; this module persists "attachments" like any other key,
+with no opinion on what any one entry in it means to a caller.
 """
 import json
 import secrets
@@ -57,7 +61,7 @@ def save_config(
     preset: str,
     config: dict,
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict:
     """Validates config by actually resolving it, the same resolution a
     real generation call would do, stamps a new version, writes it as the

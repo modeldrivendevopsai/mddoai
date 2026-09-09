@@ -17,7 +17,7 @@ def check_references(
     name: str,
     preset: str,
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> list[dict]:
     """Returns one entry per broken attachment: {"id": str, "error": str}.
     An empty list means every attachment in the currently loaded config

@@ -85,8 +85,11 @@ Module-qualified access: `from generation_toolkit.prompt_config import storage, 
 references, rendering, resolution, learned_constraints`.
 
 A config on disk (`config_dir/{name}/{preset}.json`, e.g. `generation/default.json`) has this
-shape: `{"system_prompt": str, "attachments": [...], "learned_constraints": [str, ...], "label":
-str | None, "platform_hints": [str, ...], "_version": str}`.
+shape: `{"attachments": [...], "learned_constraints": [str, ...], "label": str | None,
+"platform_hints": [str, ...], "_version": str}`. There is no separate stored `system_prompt`
+field: the config's own first `"text"` attachment IS the system message, derived at resolve time
+(see `resolution.py` below), not persisted as its own field. A human builds and reorders it the
+same way as any other attachment.
 
 - **`storage.py`** — `load_config(config_dir, name, preset="default") -> dict`: reads the live
   config, falling back to `{preset}.default.json`, then `default.default.json` if neither the live
@@ -102,7 +105,8 @@ str | None, "platform_hints": [str, ...], "_version": str}`.
   platform description against each preset's own `platform_hints` metadata (never its storage id,
   so a preset's identity stays platform-agnostic), falling back to `"default"`.
 - **`history.py`** — `list_history`, `diff_versions` (a real structural diff: per attachment,
-  added/removed/changed, plus a changed flag on `system_prompt`), `restore_version` (copies a
+  added/removed/changed; a change to the system-message-role attachment already shows up as its
+  own id in `attachments_changed`, no separate flag needed), `restore_version` (copies a
   snapshot back over the live file via `save_config` again — a restore is just another save, never
   destructive), `revert_to_default` (same, against the shipped default). `promote_live_to_default`
   copies the current live config over the shipped `{preset}.default.json` — a deliberate, explicit

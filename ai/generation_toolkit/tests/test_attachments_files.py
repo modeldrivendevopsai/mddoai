@@ -58,6 +58,37 @@ def test_rejects_a_directory_instead_of_a_file(tmp_path):
         resolve_file_attachment("adir", tmp_path)
 
 
+def test_files_root_accepts_a_list_and_tries_each_in_order(tmp_path):
+    first_root = tmp_path / "first"
+    second_root = tmp_path / "second"
+    first_root.mkdir()
+    second_root.mkdir()
+    (second_root / "uploaded.ecore").write_text("<ecore/>", encoding="utf-8")
+
+    assert resolve_file_attachment("uploaded.ecore", [first_root, second_root]) == "<ecore/>"
+
+
+def test_files_root_list_rejects_when_no_root_has_the_file(tmp_path):
+    first_root = tmp_path / "first"
+    second_root = tmp_path / "second"
+    first_root.mkdir()
+    second_root.mkdir()
+
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("missing.ecore", [first_root, second_root])
+
+
+def test_files_root_list_still_rejects_traversal_out_of_every_root(tmp_path):
+    first_root = tmp_path / "first"
+    second_root = tmp_path / "second"
+    first_root.mkdir()
+    second_root.mkdir()
+    (tmp_path / "secret.txt").write_text("nope", encoding="utf-8")
+
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("../secret.txt", [first_root, second_root])
+
+
 def test_validate_path_segment_accepts_a_real_run_id():
     assert validate_path_segment("run-123.abc_DEF") == "run-123.abc_DEF"
 

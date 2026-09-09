@@ -38,7 +38,7 @@ def add_learned_constraints(
     preset: str,
     constraints: list[str],
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict:
     """Appends `constraints` to this preset's own saved
     "learned_constraints" list, deduplicated (a constraint promoted twice
@@ -61,7 +61,7 @@ def remove_learned_constraint(
     preset: str,
     constraint: str,
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict:
     """The reverse of add_learned_constraints: a promoted constraint that
     turns out to be wrong, or no longer relevant, is removed the same

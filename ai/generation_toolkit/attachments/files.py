@@ -43,10 +43,18 @@ def validate_path_segment(segment: str) -> str:
     return segment
 
 
-def resolve_file_attachment(path: str, files_root: str | Path) -> str:
+def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path]) -> str:
     """Reads and returns the real content of `path`, resolved against
     `files_root`. Refuses anything that doesn't stay under that root, even
     after resolving symlinks and any ".."-style segment.
+
+    `files_root` accepts a list of roots, tried in order, for a caller that
+    resolves "file" attachments against more than one real directory (e.g.
+    psm_agent's own read-only META_MODELS_DIR plus a separate, writable
+    uploads directory - two directories with two different real reasons to
+    stay distinct, see generation_toolkit/README.md's own attachments
+    section) - a single caller-supplied root is still just as valid, kept
+    as the common case every existing caller already uses.
 
     The leading-slash check exists even though Path's own `/` operator
     already makes an absolute right-hand side discard `files_root`
@@ -64,10 +72,12 @@ def resolve_file_attachment(path: str, files_root: str | Path) -> str:
     if any(set(segment) == {"."} for segment in path.split("/")):
         raise AttachmentFileError(f"attachment path {path!r} contains a bare-dot path segment")
 
-    root = Path(files_root).resolve()
-    resolved = (root / path).resolve()
-    if not resolved.is_relative_to(root):
-        raise AttachmentFileError(f"attachment path {path!r} resolves outside the allowed root {root}")
-    if not resolved.is_file():
-        raise AttachmentFileError(f"attachment path {path!r} does not exist")
-    return resolved.read_text(encoding="utf-8")
+    roots = files_root if isinstance(files_root, list) else [files_root]
+    for candidate_root in roots:
+        root = Path(candidate_root).resolve()
+        resolved = (root / path).resolve()
+        if not resolved.is_relative_to(root):
+            continue
+        if resolved.is_file():
+            return resolved.read_text(encoding="utf-8")
+    raise AttachmentFileError(f"attachment path {path!r} does not exist under any allowed root")

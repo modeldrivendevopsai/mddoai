@@ -31,10 +31,13 @@ def _load_version(config_dir: str | Path, name: str, preset: str, version: str) 
 
 def diff_versions(config_dir: str | Path, name: str, preset: str, version_a: str, version_b: str) -> dict:
     """A real structural diff between two saved versions: per attachment,
-    added / removed / changed, plus a changed flag on system_prompt,
-    comparing the two JSON documents field by field, not a raw text diff,
-    so a reordered-but-unchanged attachment list doesn't read as
-    "everything changed"."""
+    added / removed / changed, comparing the two JSON documents field by
+    field, not a raw text diff, so a reordered-but-unchanged attachment
+    list doesn't read as "everything changed". No separate system-prompt
+    flag: the system message is a config's own first "text" attachment
+    (see resolution.py), so a change to it already shows up as that
+    attachment's own id in attachments_changed, the same as any other
+    edited attachment - it needs no special case here."""
     a = _load_version(config_dir, name, preset, version_a)
     b = _load_version(config_dir, name, preset, version_b)
 
@@ -42,7 +45,6 @@ def diff_versions(config_dir: str | Path, name: str, preset: str, version_a: str
     attachments_b = {att["id"]: att for att in b.get("attachments", [])}
 
     return {
-        "system_prompt_changed": a.get("system_prompt") != b.get("system_prompt"),
         "attachments_added": [aid for aid in attachments_b if aid not in attachments_a],
         "attachments_removed": [aid for aid in attachments_a if aid not in attachments_b],
         "attachments_changed": [
@@ -57,7 +59,7 @@ def restore_version(
     preset: str,
     version: str,
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict:
     """Copies a saved version back over the live file, itself going
     through storage.save_config again, so restoring creates its own new
@@ -71,7 +73,7 @@ def revert_to_default(
     name: str,
     preset: str,
     context_values: dict[str, str],
-    files_root: str | Path,
+    files_root: str | Path | list[str | Path],
 ) -> dict:
     """Copies this preset's own shipped default (or the generic default,
     if this preset has none of its own) over the live file, same way as

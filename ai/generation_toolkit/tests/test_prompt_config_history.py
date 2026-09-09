@@ -34,15 +34,22 @@ def test_list_history_only_returns_this_presets_own_versions(tmp_path):
 
 
 def test_diff_versions_detects_a_changed_system_prompt(tmp_path):
+    # _BASE's own first attachment ("a") is the config's system-prompt role
+    # (see resolution.py) - a change to it needs no special case, it's
+    # just that attachment's own id showing up in attachments_changed like
+    # any other edited attachment.
     v1 = save_config(tmp_path, "generation", "default", _BASE, {}, tmp_path)
-    v2 = save_config(tmp_path, "generation", "default", {**_BASE, "system_prompt": "v2"}, {}, tmp_path)
+    changed_system_prompt = {
+        **_BASE,
+        "attachments": [{**_BASE["attachments"][0], "content": "two"}, *_BASE["attachments"][1:]],
+    }
+    v2 = save_config(tmp_path, "generation", "default", changed_system_prompt, {}, tmp_path)
 
     diff = diff_versions(tmp_path, "generation", "default", v1["_version"], v2["_version"])
 
-    assert diff["system_prompt_changed"] is True
+    assert diff["attachments_changed"] == ["a"]
     assert diff["attachments_added"] == []
     assert diff["attachments_removed"] == []
-    assert diff["attachments_changed"] == []
 
 
 def test_diff_versions_detects_an_added_attachment(tmp_path):
@@ -53,7 +60,6 @@ def test_diff_versions_detects_an_added_attachment(tmp_path):
     diff = diff_versions(tmp_path, "generation", "default", v1["_version"], v2["_version"])
 
     assert diff["attachments_added"] == ["b"]
-    assert diff["system_prompt_changed"] is False
 
 
 def test_diff_versions_detects_a_changed_attachment_content(tmp_path):
