@@ -69,7 +69,6 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   "mode": "generation",
   "artifact": "<?xml version=\"1.0\"?><ecore:EPackage ...>",
   "prompt": {
-    "pim_ecore": "A pipeline consists of jobs organized into stages...",
     "psm_docs": "# TeamCity CI/CD Configuration\n...",
     "psm_example": "<?xml version=\"1.0\"?>... (githubMM.ecore's real content)",
     "constraints": "- Fix: dangling reference to RetryPolicy"
@@ -95,7 +94,7 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
       "source_excerpt": "Jobs can be configured to retry up to 2 times on failure."
     }
   ],
-  "prompt": {"pim_ecore": "...", "psm_docs": "...", "psm_example": "...", "constraints": ""}
+  "prompt": {"psm_metamodel": "...", "serialized_docs": "...", "constraints": ""}
 }
 ```
 

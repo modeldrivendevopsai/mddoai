@@ -1,7 +1,7 @@
 """PSM Generation Agent: onboards a NEW platform with no existing PSM
-metamodel yet. Given the real per-run PIM artifact and target platform docs,
-generates a new .ecore, refined against real validator-agent feedback rather
-than accepted on the first attempt.
+metamodel yet. Given the target platform's own docs, generates a new
+.ecore, refined against real validator-agent feedback rather than accepted
+on the first attempt.
 
 Matches the paper's (Karlovs-Karlovskis) validated "Step 1 (Metamodel)"
 approach: master-example metamodel + target docs -> LLM generates a new
@@ -9,6 +9,14 @@ approach: master-example metamodel + target docs -> LLM generates a new
 refined one constraint per round on failure. Grounding (the AC's "calls ...
 for grounding before generating") uses pim_agent's existing ground()
 mechanism - no separate RAG agent exists yet (Phase 1, not this pass).
+
+`pim_artifact` is taken as a parameter and still feeds each grounding
+query below (_grounding_context), but is deliberately NOT included as
+prompt content: MDDOAI's own pim stage is still a placeholder that ignores
+its real input entirely and always returns the same fixed content, so its
+output carries no real signal yet, and the paper's own validated prompts
+never attached a PIM artifact either. Re-add it as a real prompt attachment
+(see ai/psm_agent/prompts/) once a real PIM stage exists, not before.
 
 The actual generate-validate-retry loop is generation_toolkit's own
 run_with_retry() (shared, stage-agnostic) - this module's job is PSM-specific:
@@ -42,9 +50,9 @@ import prompt_paths
 _GROUNDING_TOP_K = 1
 
 # mock=True's fixed stand-in output: the same minimal, already-proven-valid
-# shape integration_runner/stages/pim/agent.py's own _MOCK_CONTENT uses
-# (matching validator_agent/tests/fixtures/valid.ecore, which that service's
-# own real test suite already asserts passes reflective validation), so a
+# shape the pim stage's own placeholder mock content uses (matching
+# validator_agent/tests/fixtures/valid.ecore, which that service's own
+# real test suite already asserts passes reflective validation), so a
 # mocked round-trip still exercises the real validator-agent call and the
 # real attempt-persistence path, just never the real (slow, billed) LLM call.
 # Named distinctly so it's never mistaken for a real generated metamodel.
