@@ -183,3 +183,26 @@ def test_list_available_files():
         timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
     )
     assert result == ["a.ecore"]
+
+
+def test_resolve_psm_mode_sends_platform_description_as_a_query_param():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"mode": "generation", "metamodel_path": None})) as mock_request:
+        result = psm_agent_client.resolve_psm_mode("A brand new platform")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{psm_agent_client.PSM_AGENT_URL}/resolve-mode",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, params={"platform_description": "A brand new platform"},
+    )
+    assert result == {"mode": "generation", "metamodel_path": None}
+
+
+def test_upload_attachment_file_posts_the_real_multipart_body():
+    with patch("psm_agent_client.httpx.post", return_value=_fake_httpx_response_raw({"path": "abc123-model.ecore"})) as mock_post:
+        result = psm_agent_client.upload_attachment_file("model.ecore", b"<ecore/>")
+
+    mock_post.assert_called_once_with(
+        f"{psm_agent_client.PSM_AGENT_URL}/attachment-uploads",
+        files={"file": ("model.ecore", b"<ecore/>")},
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result == "abc123-model.ecore"

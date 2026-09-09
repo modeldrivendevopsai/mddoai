@@ -167,3 +167,25 @@ def test_promote_psm_constraints_posts_the_real_body():
         timeout=10.0, json={"constraints": ["x"]},
     )
     assert result == {"learned_constraints": ["x"]}
+
+
+def test_resolve_psm_mode_sends_platform_description_as_a_query_param():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"mode": "generation", "metamodel_path": None})) as mock_request:
+        result = integration_runner_client.resolve_psm_mode("A brand new platform")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/resolve-mode",
+        timeout=10.0, params={"platform_description": "A brand new platform"},
+    )
+    assert result == {"mode": "generation", "metamodel_path": None}
+
+
+def test_upload_psm_attachment_file_posts_the_real_multipart_body():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"path": "abc123-model.ecore"})) as mock_request:
+        result = integration_runner_client.upload_psm_attachment_file("model.ecore", b"<ecore/>")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/attachment-uploads",
+        timeout=10.0, files={"file": ("model.ecore", b"<ecore/>")},
+    )
+    assert result == "abc123-model.ecore"

@@ -124,3 +124,21 @@ def remove_learned_constraint(name: str, preset: str, constraint: str) -> dict:
 
 def list_available_files() -> list[str]:
     return _config_request("GET", "/available-files")["files"]
+
+
+def resolve_psm_mode(platform_description: str) -> dict:
+    """GETs psm_agent's own real /resolve-mode: which real mode (generation
+    or knowledge) a POST /psm call for this platform_description would take,
+    without spending any real work - see main.py's own docstring."""
+    return _config_request("GET", "/resolve-mode", params={"platform_description": platform_description})
+
+
+def upload_attachment_file(filename: str, content: bytes) -> str:
+    """POSTs a real multipart file upload to psm_agent's own real
+    /attachment-uploads (see routes/uploads.py) - returns the real, safe
+    stored path to use as a new "file" attachment's own `path`."""
+    response = httpx.post(
+        f"{PSM_AGENT_URL}/attachment-uploads", files={"file": (filename, content)}, timeout=PSM_CONFIG_TIMEOUT
+    )
+    response.raise_for_status()
+    return response.json()["path"]

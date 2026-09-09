@@ -207,3 +207,17 @@ def list_psm_available_files() -> list[str]:
 
 def promote_psm_constraints(constraints: list[str]) -> dict:
     return _request("POST", "/psm/promote-constraints", json={"constraints": constraints}).json()
+
+
+def resolve_psm_mode(platform_description: str) -> dict:
+    return _request("GET", "/psm/resolve-mode", params={"platform_description": platform_description}).json()
+
+
+def upload_psm_attachment_file(filename: str, content: bytes) -> str:
+    """POSTs a real multipart file upload to integration_runner's own real
+    /psm/attachment-uploads (a thin proxy over psm_agent's own real upload
+    endpoint) - returns the real, safe stored path to use as a new "file"
+    attachment's own `path`."""
+    return _request(
+        "POST", "/psm/attachment-uploads", files={"file": (filename, content)}
+    ).json()["path"]
