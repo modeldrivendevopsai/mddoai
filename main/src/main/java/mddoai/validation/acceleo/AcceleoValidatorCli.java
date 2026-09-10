@@ -38,13 +38,22 @@ public final class AcceleoValidatorCli {
     // (test.java.unit.java.mddoai...) don't share a package with
     // main.java.mddoai..., so package-private would be untestable.
     public static int run(String[] args, PrintStream out, PrintStream err) {
-        if (args.length != 1) {
-            err.println("usage: AcceleoValidatorCli <path-to-mtl-file>");
+        if (args.length != 1 && args.length != 2) {
+            err.println("usage: AcceleoValidatorCli <path-to-mtl-file> [path-to-target-ecore-file]");
             return 2;
         }
         String path = args[0];
+        // The optional second arg: the target platform's own real PSM
+        // metamodel, dynamically registered before compiling (see
+        // AcceleoValidator.validate(String, String)'s own comment) - needed
+        // for any platform without a genmodel/compiled Java package of its
+        // own baked into this build (i.e. every platform except the ones
+        // EMFUtils.init() hardcodes).
+        String targetEcorePath = args.length == 2 ? args[1] : null;
         try {
-            AcceleoCompileResult result = AcceleoValidator.validate(path);
+            AcceleoCompileResult result = targetEcorePath == null
+                    ? AcceleoValidator.validate(path)
+                    : AcceleoValidator.validate(path, targetEcorePath);
             out.println(toJson(result));
             return 0;
         } catch (Exception e) {

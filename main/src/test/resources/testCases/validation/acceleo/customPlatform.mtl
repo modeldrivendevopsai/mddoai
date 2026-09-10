@@ -1,0 +1,9 @@
+[comment encoding = UTF-8 /]
+[module customPlatform('http://www.mddoai.com/mddoai/metamodel/test-only/customplatform')]
+
+[template public generateElement(aWidget : Widget)]
+[comment @main/]
+[file ('widget.txt', false, 'UTF-8')]
+[aWidget.name/]
+[/file]
+[/template]

@@ -44,10 +44,16 @@ public final class EcoreValidator {
         ResourceSet resourceSet = new ResourceSetImpl();
         resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap()
                 .put("ecore", new EcoreResourceFactoryImpl());
+        // This method parses whatever .ecore content a real caller submits
+        // to /validate/ecore - not necessarily trusted - so it needs the
+        // same hardening main.java.mddoai.utils.EMFUtils.loadEPackage()
+        // applies against XXE and EMF's own separate SSRF-capable
+        // cross-document proxy resolution (see that method's own comment).
+        main.java.mddoai.utils.EMFUtils.hardenAgainstUntrustedContent(resourceSet);
 
         Resource resource = resourceSet.createResource(URI.createFileURI(file.getAbsolutePath()));
         try {
-            resource.load(null);
+            resource.load(main.java.mddoai.utils.EMFUtils.hardenedEcoreLoadOptions());
         } catch (Exception e) {
             issues.add(new ValidationIssue(ValidationIssue.Severity.ERROR,
                     "Failed to parse .ecore file: " + e.getMessage(), ecoreFilePath));
@@ -139,22 +145,11 @@ public final class EcoreValidator {
         return new EcoreCodegenResult(result, outputPath);
     }
 
+    // Delegates to EMFUtils.loadEPackage() - the same "dynamic EMF" load
+    // AcceleoValidator now uses too, to register a freshly-generated
+    // platform's own metamodel ahead of compiling a template against it.
     private static EPackage loadSinglePackage(String ecoreFilePath) {
-        ResourceSet resourceSet = new ResourceSetImpl();
-        resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap()
-                .put("ecore", new EcoreResourceFactoryImpl());
-        Resource resource = resourceSet.createResource(URI.createFileURI(new File(ecoreFilePath).getAbsolutePath()));
-        try {
-            resource.load(null);
-        } catch (Exception e) {
-            return null;
-        }
-        if (resource.getContents().isEmpty() || !(resource.getContents().get(0) instanceof EPackage)) {
-            return null;
-        }
-        EPackage ePackage = (EPackage) resource.getContents().get(0);
-        EcoreUtil.resolveAll(ePackage);
-        return ePackage;
+        return main.java.mddoai.utils.EMFUtils.loadEPackage(ecoreFilePath);
     }
 
     private static void findDanglingReferences(EObject root, String sourceFile, List<ValidationIssue> issues) {

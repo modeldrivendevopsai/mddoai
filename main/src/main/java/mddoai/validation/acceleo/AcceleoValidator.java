@@ -4,6 +4,7 @@ import main.java.mddoai.utils.EMFUtils;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
 import org.eclipse.acceleo.parser.compiler.AcceleoCompilerHelper;
+import org.eclipse.emf.ecore.EPackage;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -70,6 +71,30 @@ public final class AcceleoValidator {
         }
 
         return compileInIsolatedWorkDir(file, mtlFilePath);
+    }
+
+    // Additive overload: on top of everything validate(String) already does
+    // (including EMFUtils.init()'s own fixed PIM/SWArch/GitLab registration,
+    // still needed by the mock-mode path below, which always targets the
+    // registered GitLab metamodel regardless of which real platform is
+    // under test - see acceleo_agent/generation.py's own _MOCK_ARTIFACT),
+    // also dynamically registers the given platform's own real target
+    // metamodel first, so a freshly-generated platform with no genmodel or
+    // compiled Java package of its own can still be resolved. See
+    // EMFUtils.loadEPackage()'s own comment for why this needs no code
+    // generation or compile step at all. A null/blank targetEcoreFilePath
+    // behaves exactly like validate(String) alone.
+    public static AcceleoCompileResult validate(String mtlFilePath, String targetEcoreFilePath) {
+        if (targetEcoreFilePath != null && !targetEcoreFilePath.isBlank()) {
+            EPackage ePackage = EMFUtils.loadEPackage(targetEcoreFilePath);
+            if (ePackage == null) {
+                return AcceleoCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
+                        ValidationIssue.Severity.ERROR,
+                        "Could not load target metamodel: " + targetEcoreFilePath, targetEcoreFilePath))));
+            }
+            EPackage.Registry.INSTANCE.put(ePackage.getNsURI(), ePackage);
+        }
+        return validate(mtlFilePath);
     }
 
     // AcceleoCompilerHelper compiles a whole source folder, not a single file
