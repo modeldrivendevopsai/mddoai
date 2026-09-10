@@ -1,7 +1,7 @@
-"""routes/attempts.py unit tests: each endpoint is a one-line proxy to
-clients/integration_runner_client.py, mocked directly at that boundary
-(this behavior has no dependency on any real pipeline/run state, unlike
-test_main.py's own real cross-service tests) - a real 404 from
+"""main.py's own run/attempt introspection endpoints: each is a one-line
+proxy to clients/integration_runner_client.py, mocked directly at that
+boundary (this behavior has no dependency on any real pipeline/run state,
+unlike test_main.py's own real cross-service tests) - a real 404 from
 integration_runner surfaces via the shared IntegrationRunnerError handler
 already covered by test_main.py's own error-mapping tests, not re-tested
 here.

@@ -25,20 +25,20 @@ the Orchestrator to eventually drive the pipeline autonomously.
 
 ## Module layout
 
-- **`main.py`** — the pipeline-lifecycle FastAPI routes (see [API
-  endpoints](#api-endpoints-mainpy) below) plus `app.include_router(...)` wiring for `routes/`.
-  Every endpoint is a thin forwarding call to `clients/integration_runner_client.py` or
+- **`main.py`** — every real FastAPI route this service exposes (see [API
+  endpoints](#api-endpoints-mainpy) below), one flat file, not split into a `routes/` package the
+  way `integration_runner` is: that split is `integration_runner`'s own real, established
+  convention (a genuinely large, many-stage surface), not one this service has adopted. Every
+  endpoint is a thin forwarding call to `clients/integration_runner_client.py` or
   `clients/ai_layer_client.py`, plus one registered exception handler
   (`IntegrationRunnerError`) that reconstructs `integration_runner`'s own real status code and
   message — there's no validation logic duplicated here, `integration_runner` is the one place
   that enforces busy guards and stage staleness checks, since a check made in this process
-  before a mutating call to a different one would be a real race, not just a relocation.
-- **`routes/`** — this service's own equivalent of `integration_runner/routes/`, split out once a
-  second real group of endpoints existed that isn't "generic pipeline lifecycle": `prompt_config.py`
-  and `attempts.py`, each endpoint a one-line proxy into the matching new function on
-  `clients/integration_runner_client.py`, same shape as `main.py`'s own `/review/{stage_id}`
-  handler. See [`ai/integration_runner`](../integration_runner)'s own README for what each proxied
-  endpoint actually does.
+  before a mutating call to a different one would be a real race, not just a relocation. The
+  prompt-config endpoints under `/psm/...`, `/atl/...`, and `/acceleo/...`, and the run/attempt
+  ones under `/runs/...`, live here too, each just a one-line proxy into the matching function on
+  `clients/integration_runner_client.py` — see [`ai/integration_runner`](../integration_runner)'s
+  own README for what each proxied endpoint actually does.
 - **`assistant.py`** — the one reply mechanism: `react_to_event()` (narration) and
   `send_message()` (a human's free-form message, the tools-enabled path through the same
   function).
@@ -66,8 +66,7 @@ the Orchestrator to eventually drive the pipeline autonomously.
   `tools/pipeline_control.py`) already live inside this same service.
 
 ```
-main.py ──imports──> assistant.py, chat_log.py, routes/, clients.ai_layer_client, clients.integration_runner_client
-routes/prompt_config.py, routes/attempts.py ──imports──> clients.integration_runner_client
+main.py ──imports──> assistant.py, chat_log.py, clients.ai_layer_client, clients.integration_runner_client
 assistant.py ──imports──> chat_log.py, event_summarization.py, system_prompt.py, tools, tool_calling.py, clients.ai_layer_client, clients.integration_runner_client
 chat_log.py ──imports──> event_summarization.py, clients.integration_runner_client
 event_summarization.py                                    (imports none of the above)
@@ -310,15 +309,16 @@ options.
 
 Changes the model for the rest of the run, not just what `/start` chose.
 
-## `routes/prompt_config.py` and `routes/attempts.py`
+## Prompt-config and attempt-introspection endpoints
 
-Every endpoint under `/psm/prompt-config/...`, `/psm/available-files`, `/psm/promote-constraints`,
-`/runs/{run_id}/manifest`, and `/runs/{run_id}/{stage}/{attempt}` is a one-line proxy into the
-matching `clients/integration_runner_client.py` function, same shape as `/review/{stage_id}`
-above — no logic of its own beyond the HTTP call, and no per-endpoint documentation duplicated
-here. See [`ai/integration_runner`](../integration_runner)'s own README for the full endpoint
-list and what each one actually does; the path and request/response shape are identical here,
-this service just sits in front of it.
+Every endpoint under `/psm/prompt-config/...`, `/atl/prompt-config/...`,
+`/acceleo/prompt-config/...` (each service's `available-files`/`promote-constraints`/
+`attachment-uploads` too), `/runs/{run_id}/manifest`, and `/runs/{run_id}/{stage}/{attempt}` is a
+one-line proxy into the matching `clients/integration_runner_client.py` function, same shape as
+`/review/{stage_id}` above — no logic of its own beyond the HTTP call, and no per-endpoint
+documentation duplicated here. See [`ai/integration_runner`](../integration_runner)'s own README
+for the full endpoint list and what each one actually does; the path and request/response shape
+are identical here, this service just sits in front of it.
 
 ## Setup
 

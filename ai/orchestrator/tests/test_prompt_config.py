@@ -1,4 +1,4 @@
-"""routes/prompt_config.py unit tests: every endpoint is a one-line proxy
+"""main.py's own psm prompt-config endpoints: every one is a one-line proxy
 to clients/integration_runner_client.py's own psm prompt-config wrappers,
 mocked directly at that boundary - this behavior has no dependency on any
 real pipeline/run state, unlike test_main.py's own real cross-service
