@@ -87,7 +87,12 @@ def validate_atl(
 
 
 def validate_acceleo(
-    content: str, filename: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None
+    content: str,
+    filename: str,
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+    metamodel_ecore: str | None = None,
 ) -> dict:
     """POSTs to validator-agent's real /validate/acceleo, returns its
     parsed JSON response directly: {"valid": bool, "issues": [...],
@@ -96,7 +101,12 @@ def validate_acceleo(
     stage and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
     output nests inside the exact attempt directory rather than only scoped
-    by run_id."""
+    by run_id. metamodel_ecore, when given, is the target platform's own
+    real PSM .ecore content, dynamically registered by the real Java
+    validator before compiling — needed for any platform besides the ones
+    main/'s own EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab),
+    since without it "the metamodel couldn't be resolved" regardless of
+    how correct the .mtl content actually is."""
     payload = {"filename": filename, "content": content}
     if run_id is not None:
         payload["run_id"] = run_id
@@ -104,6 +114,8 @@ def validate_acceleo(
         payload["stage"] = stage
     if attempt is not None:
         payload["attempt"] = attempt
+    if metamodel_ecore is not None:
+        payload["metamodel_ecore"] = metamodel_ecore
     response = httpx.post(
         f"{VALIDATOR_AGENT_URL}/validate/acceleo",
         json=payload,
