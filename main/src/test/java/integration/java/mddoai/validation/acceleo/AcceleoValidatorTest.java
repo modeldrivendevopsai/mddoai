@@ -56,6 +56,38 @@ public class AcceleoValidatorTest {
         assertNull(compileResult.generatedOutputPath());
     }
 
+    // Real bug this once was: a platform with no genmodel/compiled Java
+    // package of its own (every platform except the ones EMFUtils.init()
+    // hardcodes) always failed with "the metamodel couldn't be resolved",
+    // regardless of how correct the .mtl itself was - confirmed via a real
+    // end-to-end run generating a genuinely new platform's own metamodel
+    // and Acceleo template. customPlatform.ecore/.mtl are a small,
+    // purpose-built fixture (not one of the hardcoded PIM/SWArch/GitLab
+    // metamodels), proving the fix is real dynamic registration, not an
+    // accidental match against an already-registered nsURI.
+    @Test
+    public void unregisteredPlatformMetamodelResolvesWhenGivenTheTargetEcore() {
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(
+                FIXTURES + "customPlatform.mtl", FIXTURES + "customPlatform.ecore");
+        ValidationResult result = compileResult.result();
+
+        assertTrue(result.valid(), "expected clean compile once the target metamodel is registered, got: " + result.issues());
+    }
+
+    @Test
+    public void unregisteredPlatformMetamodelFailsToResolveWithoutTheTargetEcore() {
+        // Same real .mtl, no ecore given - the single-arg overload's own
+        // existing behavior, confirming the two-arg overload's own success
+        // above is really the dynamic registration doing the work, not
+        // something else about this fixture.
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(FIXTURES + "customPlatform.mtl");
+        ValidationResult result = compileResult.result();
+
+        assertFalse(result.valid());
+        assertTrue(result.issues().stream().anyMatch(i -> i.message().toLowerCase().contains("resolved")),
+                "expected an unresolved-metamodel error, got: " + result.issues());
+    }
+
     @Test
     public void unclosedForBlockSurfacesRealCompilerError() {
         // Distinct failure class from ATL's fixtures: an Acceleo template block
