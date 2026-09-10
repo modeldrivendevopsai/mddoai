@@ -15,12 +15,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   needs to make that outbound call — this is how real cross-service communication happens in `ai/`,
   not a second, competing mechanism alongside it. `generation_toolkit/` is a shared, stage-agnostic
   "build a prompt, call the LLM, validate, retry" toolkit, imported directly as a Python package by
-  whichever service's own stage agent needs that shape (`psm_agent` today). Extracted ahead of a
-  second real consumer on a stated, concrete direction: whichever of `integration_runner`'s
-  remaining placeholder stages (`pim`, `atl`, `acceleo`, `generation`) gets a real implementation
-  next should reuse this rather than rebuilding the same prompt-assembly and regenerate-loop
-  pattern from scratch. A stage with no real validator yet just omits the optional `validate_fn`
-  and gets a plain single-shot call — see `generation_toolkit/generation_agent.py`'s own docstring.
+  every service with a real, config-driven generation step (`psm_agent`, `atl_agent`, and
+  `acceleo_agent` today). Whichever of `integration_runner`'s remaining placeholder stages (`pim`,
+  `generation`) gets a real implementation next should reuse this too, rather than rebuilding the
+  same prompt-assembly and regenerate-loop pattern from scratch. A stage with no real validator yet
+  just omits the optional `validate_fn` and gets a plain single-shot call — see
+  `generation_toolkit/generation_agent.py`'s own docstring.
   `design-system/` is the frontend's equivalent for shared UI: a component/token package (its own
   `src/index.ts` barrel export is the current source of truth for exactly what it exports).
   `orchestrator-types/` is the frontend's equivalent for a shared type contract: `ai/orchestrator`'s
@@ -32,9 +32,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   feature (what Module Federation is for), each is a dependency every other frontend piece needs
   just to render or compile at all, so making either a live container would turn a handful of small
   components (or, for `orchestrator-types`, mostly type declarations plus a couple of small constant
-  arrays) into a single point of failure for the whole app. A stage-local helper needed by only one
-  `ui-remote-*` package (not yet a second consumer) stays local to that package instead of being
-  pulled into `orchestrator-types` — that package's own charter is the type contract plus those two
+  arrays) into a single point of failure for the whole app. A stage-local helper stays local to its
+  own `ui-remote-*` package even once a near-identical copy exists in another one (e.g. each stage
+  panel's own small `stageEvents.ts`): these are independent Module Federation remotes that only
+  ever consume each other through a federated import at runtime, never a source import at build
+  time, so sharing this kind of helper would mean pulling it into `orchestrator-types` instead,
+  whose own charter is the type contract plus those two
   constant arrays, not a general utility grab-bag.
 - Every deployed frontend package's folder is prefixed `ui-`: `ui-host/` (the host/shell — routing,
   `AppShell`, `useIntegration.ts`'s state hub, and every real backend service call) and
@@ -101,6 +104,19 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   copy the other container's mount string, since the two Dockerfiles have different `WORKDIR`s, so
   the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
   comments in `ai/docker-compose.yml`).
+- **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
+  pre-existing MDE-engine data (a metamodel, a master-example transformation or code-generation
+  template) it doesn't own gets a read-only Docker bind mount of that specific data, not a copy
+  into its own image, so a metamodel or reference-example change doesn't need a service rebuild.
+  `psm_agent` mounts the whole `meta_models/` tree this way (`META_MODELS_DIR`). `atl_agent` and
+  `acceleo_agent` each mount a single real file instead of a whole directory, narrower still: one
+  real, working reference transformation/template this project already has, attached as their
+  default prompt's syntax example (`REFERENCE_EXAMPLE_PATH` in each service's own
+  `prompt_paths.py`; see `ai/docker-compose.yml` for the real mounts). This is a read of real MDE
+  *data*, never Java/Eclipse *code* — that boundary is the second exception above, `validator_agent`'s
+  own, and stays separate from this one. This exception does not extend to any `ui-*` package,
+  `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
+  `main/`, `meta_models/`, or `code_generation/` without the same explicit justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

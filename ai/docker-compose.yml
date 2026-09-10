@@ -68,6 +68,8 @@ services:
       - AI_LAYER_URL=http://ai-layer:8000
       - RETRIEVAL_URL=http://retrieval:8010
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
+      - ATL_AGENT_URL=http://atl-agent:8070
+      - ACCELEO_AGENT_URL=http://acceleo-agent:8080
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
     volumes:
@@ -105,6 +107,10 @@ services:
       serialization-agent:
         condition: service_healthy
       psm-agent:
+        condition: service_healthy
+      atl-agent:
+        condition: service_healthy
+      acceleo-agent:
         condition: service_healthy
       validator-agent:
         condition: service_healthy
@@ -165,6 +171,69 @@ services:
         condition: service_healthy
     expose:
       - "8040"
+
+  # Own container, same reasoning as psm-agent: the real atl stage's whole
+  # capability, POST /generate (generate a new PIM->target-platform ATL
+  # transformation, validate it against validator-agent, retry on failure -
+  # see atl_agent/generation.py). No pim-agent dependency: unlike psm, atl
+  # generation needs no concept-grounding call, just the pim/psm ecores
+  # already in the pipeline context. Needs read access to the one real
+  # master-example ATL file this stage's default prompt attaches (see
+  # atl_agent/prompt_paths.py's own REFERENCE_EXAMPLE_PATH comment and
+  # ai/CLAUDE.md's folder-boundaries section) - mounted read-only as a
+  # single file, narrower than psm-agent's own whole-directory
+  # meta_models/ mount, since this is the one real file this service ever
+  # needs, not a browsable tree.
+  atl-agent:
+    build:
+      context: .
+      dockerfile: atl_agent/Dockerfile
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - ATL_AGENT_REFERENCE_EXAMPLE_PATH=/reference/pim2gitlabmodel.atl
+    volumes:
+      - ../main/src/main/resources/transformations/pim2psm/pim2gitlabmodel.atl:/reference/pim2gitlabmodel.atl:ro
+      # Same reasoning as psm-agent's own prompts/ and attachments/ mounts:
+      # git-committed prompt config read-write so a Save through the running
+      # dev container lands on the host's real git checkout, uploads kept in
+      # their own separate writable directory.
+      - ./atl_agent/prompts:/app/atl_agent/prompts
+      - ./atl_agent/attachments:/app/atl_agent/attachments
+    depends_on:
+      ai-layer:
+        condition: service_healthy
+      validator-agent:
+        condition: service_healthy
+    expose:
+      - "8070"
+
+  # Own container, same reasoning as atl-agent: the real acceleo stage's
+  # whole capability, POST /generate (generate a new Acceleo code-generation
+  # template from the target platform's own PSM metamodel and its labeled
+  # documentation, validate against validator-agent, retry on failure - see
+  # acceleo_agent/generation.py). No PIM input at all, no pim-agent
+  # dependency. Same single-file read-only mount reasoning as atl-agent,
+  # for the real master-example Acceleo template instead of an ATL file.
+  acceleo-agent:
+    build:
+      context: .
+      dockerfile: acceleo_agent/Dockerfile
+    environment:
+      - AI_LAYER_URL=http://ai-layer:8000
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - ACCELEO_AGENT_REFERENCE_EXAMPLE_PATH=/reference/generate.mtl
+    volumes:
+      - ../code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/com/mddoai/codegeneration/gitlab/acceleo/main/generate.mtl:/reference/generate.mtl:ro
+      - ./acceleo_agent/prompts:/app/acceleo_agent/prompts
+      - ./acceleo_agent/attachments:/app/acceleo_agent/attachments
+    depends_on:
+      ai-layer:
+        condition: service_healthy
+      validator-agent:
+        condition: service_healthy
+    expose:
+      - "8080"
 
   # Own container, same reasoning as pim-agent/psm-agent: a real pipeline
   # capability (the docs stage's raw output -> a PIM-concept-labeled

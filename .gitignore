@@ -45,5 +45,16 @@ ai/psm_agent/prompts/*/history/
 ai/psm_agent/prompts/*/*.json
 !ai/psm_agent/prompts/*/*.default.json
 
+# Same reasoning as ai/psm_agent's own entries above, applied to the atl and
+# acceleo stages' own real, UI-editable prompt config and file uploads.
+ai/atl_agent/attachments/
+ai/atl_agent/prompts/*/history/
+ai/atl_agent/prompts/*/*.json
+!ai/atl_agent/prompts/*/*.default.json
+ai/acceleo_agent/attachments/
+ai/acceleo_agent/prompts/*/history/
+ai/acceleo_agent/prompts/*/*.json
+!ai/acceleo_agent/prompts/*/*.default.json
+
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
