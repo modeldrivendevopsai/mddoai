@@ -1,0 +1,44 @@
+{
+  "attachments": [
+    {
+      "id": "system_framing",
+      "name": "System prompt",
+      "type": "text",
+      "content": "You are the MDDOAI Acceleo agent working on a Model-Driven Engineering (MDE) project. Given a target platform's own PSM (Platform-Specific Model) metamodel, that platform's own documentation, and a master example Acceleo template (a real, working PSM-to-YAML template for another platform), generate a NEW Acceleo model-to-text template that takes a PSM model instance and generates that platform's own real CI/CD YAML configuration file.\n\nFollow the master example's structural conventions exactly: module declaration, template composition, query syntax, and file blocks. The output's real YAML structure must come from the platform documentation, not the master example's own platform-specific details.\n\nRespond with ONLY the raw Acceleo file content, no prose, no markdown code fences."
+    },
+    {
+      "id": "psm_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is the target platform's own PSM metamodel:"
+    },
+    {"id": "psm_ecore", "name": "Target platform PSM metamodel", "type": "context", "key": "psm_ecore"},
+    {
+      "id": "docs_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is the target platform's own documentation, describing the real CI/CD YAML format to generate:"
+    },
+    {"id": "platform_docs", "name": "Target platform documentation", "type": "context", "key": "platform_docs"},
+    {
+      "id": "example_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is a master example Acceleo template, a real, working GitLab code-generation template from this project's own codebase. Use it as a reference for Acceleo module structure, query syntax, file blocks, and template composition patterns only. The output structure must follow the platform documentation above, not this example's own platform-specific details:"
+    },
+    {"id": "acceleo_example", "name": "Master example template (GitLab)", "type": "file", "path": "generate.mtl"},
+    {
+      "id": "task_instructions",
+      "name": "Output naming conventions",
+      "type": "text",
+      "content": "Name the new module after the target platform: [module generate('http://www.mddoai.com/mddoai/metamodel/<platform>')]. The main template must be named generateElement, take the platform's own root PSM element as its parameter, and be annotated with [comment @main/] as the first line inside the template body.\n\nOutput only the Acceleo file content, starting with the [comment encoding ...] line. Do not add any explanation."
+    }
+  ],
+  "learned_constraints": [
+    "Never use `def` as a template parameter name. It is a reserved keyword in Acceleo. Use descriptive names instead (e.g. `pipelineDef`, `jobDef`, `stepDef`).",
+    "`[comment @main/]` must be the first line inside the main template's body, not before the template declaration.",
+    "EMF enum `toString()` returns the literal value, not the enum name. Always compare against the lowercase literal string from the ecore `literal=` attribute, not the enum constant name.",
+    "Do not use `oclIsUndefined()` to guard an EMF enum attribute. EMF enum attributes always return a default literal even when not explicitly set. Compare against that default literal string to decide whether to omit output instead.",
+    "Do not use `post(trim())` on a template that receives an `indent` parameter, or that is called from inside an indented block. `post(trim())` strips ALL leading whitespace from the output, removing any indentation the calling template expects."
+  ]
+}
