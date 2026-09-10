@@ -189,3 +189,97 @@ def test_upload_psm_attachment_file_posts_the_real_multipart_body():
         timeout=10.0, files={"file": ("model.ecore", b"<ecore/>")},
     )
     assert result == "abc123-model.ecore"
+
+
+# --- atl/acceleo prompt-config pass-throughs - same shape as psm's own -----
+# above, each hitting its own /atl or /acceleo prefix instead.
+
+
+def test_list_atl_presets_hits_the_real_endpoint():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"presets": [{"id": "default"}]})) as mock_request:
+        result = integration_runner_client.list_atl_presets("generation")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/prompt-config/generation/presets",
+        timeout=10.0,
+    )
+    assert result == [{"id": "default"}]
+
+
+def test_get_atl_prompt_config_hits_the_real_endpoint():
+    config = {"attachments": []}
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
+        result = integration_runner_client.get_atl_prompt_config("generation", "default")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/prompt-config/generation/default",
+        timeout=10.0,
+    )
+    assert result == config
+
+
+def test_upload_atl_attachment_file_posts_the_real_multipart_body():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"path": "abc123-model.atl"})) as mock_request:
+        result = integration_runner_client.upload_atl_attachment_file("model.atl", b"module m;")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/attachment-uploads",
+        timeout=10.0, files={"file": ("model.atl", b"module m;")},
+    )
+    assert result == "abc123-model.atl"
+
+
+def test_promote_atl_constraints_hits_the_real_endpoint():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": ["x"]})) as mock_request:
+        result = integration_runner_client.promote_atl_constraints(["x"])
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/promote-constraints",
+        timeout=10.0, json={"constraints": ["x"]},
+    )
+    assert result == {"learned_constraints": ["x"]}
+
+
+def test_list_acceleo_presets_hits_the_real_endpoint():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"presets": [{"id": "default"}]})) as mock_request:
+        result = integration_runner_client.list_acceleo_presets("generation")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/prompt-config/generation/presets",
+        timeout=10.0,
+    )
+    assert result == [{"id": "default"}]
+
+
+def test_get_acceleo_prompt_config_hits_the_real_endpoint():
+    config = {"attachments": []}
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
+        result = integration_runner_client.get_acceleo_prompt_config("generation", "default")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/prompt-config/generation/default",
+        timeout=10.0,
+    )
+    assert result == config
+
+
+def test_upload_acceleo_attachment_file_posts_the_real_multipart_body():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"path": "abc123-model.mtl"})) as mock_request:
+        result = integration_runner_client.upload_acceleo_attachment_file("model.mtl", b"[module m('x')]")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/attachment-uploads",
+        timeout=10.0, files={"file": ("model.mtl", b"[module m('x')]")},
+    )
+    assert result == "abc123-model.mtl"
+
+
+def test_promote_acceleo_constraints_hits_the_real_endpoint():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": ["x"]})) as mock_request:
+        result = integration_runner_client.promote_acceleo_constraints(["x"])
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/promote-constraints",
+        timeout=10.0, json={"constraints": ["x"]},
+    )
+    assert result == {"learned_constraints": ["x"]}
