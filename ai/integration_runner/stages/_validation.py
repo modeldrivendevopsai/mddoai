@@ -180,10 +180,9 @@ def persist_attempt(
     attempt_dir/prompt.json - the exact resolved parts (and the saved
     prompt-config version that produced them) this attempt's own real LLM
     call actually used, mirroring the real ai-research branch's own round
-    layout (prompt.md alongside output.ecore/notes.md). Only psm_stage
-    passes these today (psm_agent's generate()/compare() are the only real
-    callers with a config-driven prompt to record); atl/acceleo have no
-    real prompt yet, so they're unaffected by this optional pair."""
+    layout (prompt.md alongside output.ecore/notes.md). Every stage with a
+    real, config-driven prompt (psm, atl, acceleo) passes these; pim omits
+    them, since it has no real prompt yet."""
     if attempt_dir is None:
         attempt_dir = reserve_attempt_dir(run_id, stage)
     (attempt_dir / filename).write_text(content, encoding="utf-8")

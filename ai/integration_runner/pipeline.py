@@ -42,24 +42,26 @@ STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 # a human should get to review, and possibly edit, before that stage's real
 # first attempt ever fires - see review()'s own docstring for why arriving
 # at one of these does not auto-run it. Named and commented, not derived
-# automatically, since only psm has a real prompt today; extend this one
-# entry at a time as atl/acceleo/generation each get a real implementation
-# of their own, don't build a generic "does this stage have a prompt"
-# detection mechanism ahead of a second real case.
-_REQUIRES_MANUAL_START = {"psm"}
+# automatically; extend this one entry at a time as generation gets a real
+# implementation of its own too, don't build a generic "does this stage
+# have a prompt" detection mechanism ahead of a real case needing it.
+_REQUIRES_MANUAL_START = {"psm", "atl", "acceleo"}
 
 # Which real rerun override keys each stage's own agent actually reads from
 # context - see rerun()'s own comment for why this stays a named,
 # manually-extended mapping rather than generic pass-through validation (an
 # override key valid for one stage but meaningless to another should still
 # be rejected, not silently ignored). docs: wraps retrieval's real /fetch
-# parameters. psm: mock only (stages/psm/agent.py's own context.get("mock"),
-# psm_agent's generate() docstring), skipping the real, slow, billed LLM
-# call for fast local iteration on a prompt config, while still running the
-# real validator-agent call. A stage absent from this mapping accepts none.
+# parameters. psm/atl/acceleo: mock only (each stage's own agent.py reads
+# context.get("mock"), see each real service's own generate() docstring),
+# skipping the real, slow, billed LLM call for fast local iteration on a
+# prompt config, while still running the real validator-agent call. A stage
+# absent from this mapping accepts none.
 _STAGE_OVERRIDE_KEYS: dict[str, set[str]] = {
     "docs": {"seed_url", "hint", "exclude_urls", "max_pages", "max_depth", "force_refresh", "mock"},
     "psm": {"mock"},
+    "atl": {"mock"},
+    "acceleo": {"mock"},
 }
 
 

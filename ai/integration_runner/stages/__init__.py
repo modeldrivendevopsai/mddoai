@@ -17,13 +17,13 @@ stage's own module, and routes/ only ever imports the one stage folder it
 needs.
 
 _shared.py holds constraints_note(), which stages/generation/agent.py still
-uses — the last remaining LLM-prompt placeholder agent; pim/atl/acceleo
-switched to fixed mock content validated for real against validator-agent
-instead (see stages/_validation.py and each of their own agent.py). psm is
-the one real stage among these four: a thin proxy to the real, separate
-psm_agent service, which generates a real metamodel for a new platform or
-compares docs against an existing one for drift (see stages/psm/agent.py's
-own docstring).
+uses — the last remaining LLM-prompt placeholder agent; pim switched to
+fixed mock content validated for real against validator-agent instead (see
+stages/_validation.py and its own agent.py), still a placeholder since no
+real PIM extraction pipeline exists yet. psm, atl, and acceleo are each a
+thin proxy to their own real, separate service (psm_agent, atl_agent,
+acceleo_agent), generating real output refined against real
+validator-agent feedback (see each of their own agent.py's own docstring).
 """
 from dataclasses import dataclass
 
@@ -85,21 +85,21 @@ STAGE_DETAILS: dict[str, StageInfo] = {
         real=True,
     ),
     "atl": StageInfo(
-        description="the ATL transformation rules needed to build that PSM (mock content, validated for real).",
-        input="ignored today, no real ATL generation exists yet to read the psm stage's output",
-        output="a fixed placeholder set of ATL transformation rules, not derived from any real input",
-        real=False,
+        description="the ATL transformation rules needed to build that PSM, generated fresh from this run's own real PIM and PSM artifacts.",
+        input="the pim stage's own PIM artifact and the psm stage's own target platform PSM metamodel",
+        output="a new ATL model-to-model transformation from PIM to the target platform's PSM, refined against real validator-agent feedback",
+        real=True,
     ),
     "acceleo": StageInfo(
-        description="the Acceleo code-generation template for that ATL (mock content, validated for real).",
-        input="ignored today, no real Acceleo generation exists yet to read the atl stage's output",
-        output="a fixed placeholder Acceleo code-generation template, not derived from any real input",
-        real=False,
+        description="the Acceleo code-generation template for that PSM, generated fresh from this run's own real PSM artifact and documentation.",
+        input="the psm stage's own target platform PSM metamodel and the serialization stage's labeled documentation",
+        output="a new Acceleo template that generates the target platform's own real CI/CD YAML from a PSM model instance, refined against real validator-agent feedback",
+        real=True,
     ),
     "generation": StageInfo(
         description="a final summary tying all prior stages together.",
-        input="the psm, atl, and acceleo stages' own output - psm's is real, atl/acceleo's are still each stage's own fixed placeholder content",
-        output="a text summary of the full generation plan - a real call, genuinely shaped by whatever input it's given, though the summary prompt itself is still a fixed placeholder and no real CI/CD config is produced yet",
+        input="the psm, atl, and acceleo stages' own real output",
+        output="a text summary of the full generation plan - a real call over real prior-stage output, though the summary prompt itself is still a fixed placeholder and no real CI/CD config is produced yet",
         real=True,
     ),
 }

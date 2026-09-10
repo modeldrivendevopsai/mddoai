@@ -46,12 +46,13 @@ def test_stage_descriptions_is_derived_from_stage_details():
 
 
 def test_stage_details_marks_stages_with_no_real_implementation_yet():
-    # pim/atl/acceleo still ignore their real input and always return the
-    # same fixed placeholder content (see each of their own agent.py) -
-    # this is the one flag a UI reads to show that honestly.
+    # pim still ignores its real input and always returns the same fixed
+    # placeholder content (see its own agent.py) - this is the one flag a
+    # UI reads to show that honestly. docs/serialization/psm/atl/acceleo
+    # are each real.
     assert stages.STAGE_DETAILS["pim"].real is False
-    assert stages.STAGE_DETAILS["atl"].real is False
-    assert stages.STAGE_DETAILS["acceleo"].real is False
     assert stages.STAGE_DETAILS["docs"].real is True
     assert stages.STAGE_DETAILS["serialization"].real is True
     assert stages.STAGE_DETAILS["psm"].real is True
+    assert stages.STAGE_DETAILS["atl"].real is True
+    assert stages.STAGE_DETAILS["acceleo"].real is True
