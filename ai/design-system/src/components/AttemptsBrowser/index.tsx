@@ -33,6 +33,17 @@ export function AttemptsBrowser({ runId, stage, onLoadManifest, onLoadAttempt, o
   }, [runId, stage])
 
   const select = async (attemptN: number) => {
+    // Clicking the already-open attempt again closes it, the same
+    // click-to-expand/click-to-collapse gesture every other expandable
+    // piece of this document uses - a real attempt's own detail is real
+    // content taking up space, not something a human is stuck viewing
+    // once opened.
+    if (selectedAttemptN === attemptN) {
+      setSelectedAttemptN(null)
+      setDetail(null)
+      setError(null)
+      return
+    }
     setSelectedAttemptN(attemptN)
     setDetail(null)
     setError(null)

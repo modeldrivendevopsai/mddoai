@@ -374,6 +374,7 @@ function AttachmentPreview({
   onPreviewAttachment: (id: string) => Promise<string | undefined>
 }) {
   const [content, setContent] = useState<string | null>(null)
+  const [visible, setVisible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -381,27 +382,36 @@ function AttachmentPreview({
     setLoading(true)
     setError(null)
     onPreviewAttachment(attachmentId)
-      .then((result) => setContent(result ?? "(nothing resolved for this attachment)"))
+      .then((result) => {
+        setContent(result ?? "(nothing resolved for this attachment)")
+        setVisible(true)
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Preview failed."))
       .finally(() => setLoading(false))
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      {/* Stays visible even once content is loaded, not replaced by the
-          CodeBlock below - the parent's own cache (see index.tsx's
-          loadAttachmentPreview) only clears after a real save, so this is
-          the one way a human can force a fresh look mid-session, e.g.
-          right after saving a config edit. */}
-      <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
-        {loading ? "Loading…" : content !== null ? "Refresh real content" : "Show real content"}
-      </Button>
+      <div style={{ display: "flex", gap: "var(--space-2)" }}>
+        {/* Re-fetches every click, not just the first - the parent's own
+            cache (see index.tsx's loadAttachmentPreview) only clears after
+            a real save, so this is the one way to force a fresh look
+            mid-session, e.g. right after saving a config edit. */}
+        <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
+          {loading ? "Loading…" : visible ? "Refresh real content" : "Show real content"}
+        </Button>
+        {visible && (
+          <Button variant="ghost" size="sm" onClick={() => setVisible(false)}>
+            Hide
+          </Button>
+        )}
+      </div>
       {error && (
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--danger-500)", margin: 0 }}>
           {error}
         </p>
       )}
-      {content !== null && <CodeBlock code={content} title="real resolved content" lang="text" />}
+      {visible && content !== null && <CodeBlock code={content} title="real resolved content" lang="text" />}
     </div>
   )
 }
