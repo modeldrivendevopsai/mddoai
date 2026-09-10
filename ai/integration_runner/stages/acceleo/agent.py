@@ -18,7 +18,7 @@ and still fails - see stages/atl/agent.py's own docstring for why (the
 same reasoning applies here unchanged).
 """
 from clients import acceleo_agent_client
-from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserve_attempt_dir
+from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
 
 _FILENAME = "generate.mtl"
 
@@ -38,30 +38,31 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
     # triggers acceleo_agent's own real validator-agent call, once per
     # retry round, and each one's real compiled .emtl module needs the
     # real attempt path to nest inside, not land as an unlinked sibling of
-    # it.
+    # it. reserved_attempt() undoes the reservation if run_acceleo() raises
+    # before persist_attempt() records anything.
     run_id = context.get("run_id")
-    attempt_dir = reserve_attempt_dir(run_id, "acceleo") if run_id else None
-    result = acceleo_agent_client.run_acceleo(
-        psm_artifact,
-        docs,
-        platform_description,
-        constraints=constraints,
-        model=context.get("model"),
-        run_id=run_id,
-        # The same per-run "Mock" override docs_stage's own context["mock"]
-        # already reads (see RerunOverrides.mock/StartRequest.mock).
-        mock=bool(context.get("mock")),
-        **attempt_scope_kwargs("acceleo", attempt_dir),
-    )
-    artifact = result["artifact"]
-    persist_attempt(
-        run_id or "unknown",
-        "acceleo",
-        _FILENAME,
-        artifact,
-        result["validation"],
-        attempt_dir=attempt_dir,
-        prompt=result.get("prompt"),
-        prompt_version=result.get("prompt_version"),
-    )
+    with reserved_attempt(run_id, "acceleo") as attempt_dir:
+        result = acceleo_agent_client.run_acceleo(
+            psm_artifact,
+            docs,
+            platform_description,
+            constraints=constraints,
+            model=context.get("model"),
+            run_id=run_id,
+            # The same per-run "Mock" override docs_stage's own context["mock"]
+            # already reads (see RerunOverrides.mock/StartRequest.mock).
+            mock=bool(context.get("mock")),
+            **attempt_scope_kwargs("acceleo", attempt_dir),
+        )
+        artifact = result["artifact"]
+        persist_attempt(
+            run_id or "unknown",
+            "acceleo",
+            _FILENAME,
+            artifact,
+            result["validation"],
+            attempt_dir=attempt_dir,
+            prompt=result.get("prompt"),
+            prompt_version=result.get("prompt_version"),
+        )
     return artifact, {k: v for k, v in result.items() if k != "artifact"}

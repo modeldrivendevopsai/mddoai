@@ -22,6 +22,8 @@ Tests verify:
 """
 from unittest.mock import patch
 
+import pytest
+
 from clients import psm_agent_client
 from integration_runner.stages.psm.agent import psm_stage
 
@@ -153,3 +155,37 @@ def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
 
     assert mock_run.call_args_list[0].kwargs.get("attempt") == "attempt_1"
     assert mock_run.call_args_list[1].kwargs.get("attempt") == "attempt_2"
+
+
+def test_a_raising_run_psm_leaves_no_orphan_attempt_dir(tmp_path):
+    # run_psm() runs an LLM call plus up to three validator round-trips
+    # before it can fail, so a transient failure in that window is a real
+    # case. It must not strand the reserved attempt_1/ or push the next
+    # attempt to attempt_2.
+    with patch.object(psm_agent_client, "run_psm", side_effect=RuntimeError("ai-layer 500")):
+        with pytest.raises(RuntimeError, match="ai-layer 500"):
+            psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
+
+    assert not (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").exists()
+    assert not (tmp_path / "runs" / "run-1" / "manifest.json").exists()
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()):
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
+    assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
+
+
+def test_a_raising_run_psm_discards_a_dir_a_validator_round_already_wrote_into(tmp_path):
+    # psm's codegen validation nests compiled Ecore output under the attempt
+    # dir once per round, before any result is persisted. If a later round
+    # then raises, that leftover must not keep the unrecorded attempt: the
+    # cleanup keys on result.json, not "directory is non-empty".
+    attempt_dir = tmp_path / "runs" / "run-1" / "psm" / "attempt_1"
+
+    def leave_compiled_output_then_fail(*a, **k):
+        (attempt_dir / "ecore-validate-abc" / "src-gen").mkdir(parents=True)
+        raise RuntimeError("round 2 generation failed")
+
+    with patch.object(psm_agent_client, "run_psm", side_effect=leave_compiled_output_then_fail):
+        with pytest.raises(RuntimeError, match="round 2 generation failed"):
+            psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
+
+    assert not attempt_dir.exists()

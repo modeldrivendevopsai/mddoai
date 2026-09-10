@@ -20,6 +20,8 @@ Tests verify:
 """
 from unittest.mock import patch
 
+import pytest
+
 from clients import ai_layer_client, retrieval_client
 from integration_runner import pipeline, runs
 from helpers import _fake_fetch_response, _fast_forward_to_generation, ok_response
@@ -256,6 +258,23 @@ def test_start_pipeline_resets_when_current_run_already_has_events():
 
         assert runs._default.run_id != old_run_id
         assert old_run_id in runs._runs  # kept as history, same as any other reset_pipeline() call
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_start_pipeline_refuses_a_busy_run_instead_of_resetting_it():
+    # The idle gap between stages: a stage claimed busy after the route
+    # handler's own pre-flight check but before start_pipeline() runs. It
+    # must not reset a run out from under its own in-flight thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.start_pipeline("TeamCity", "https://example.com/docs")
     finally:
         runs._default = original
         runs._runs.clear()

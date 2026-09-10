@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from integration_runner import pipeline, runs, stages
+from integration_runner.pipeline import BusyError
 
 router = APIRouter()
 
@@ -159,7 +160,10 @@ def start_endpoint(request: StartRequest):
     docs_options = request.model_dump(
         include={"hint", "exclude_urls", "max_pages", "max_depth", "force_refresh", "mock"}, exclude_none=True
     )
-    return runs.start_pipeline(request.platform_description, request.seed_url, request.model, docs_options)
+    try:
+        return runs.start_pipeline(request.platform_description, request.seed_url, request.model, docs_options)
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
 
 
 @router.post("/reset")
@@ -195,6 +199,8 @@ def review_endpoint(stage_id: str, request: ReviewRequest):
         result = runs.current().review(stage_id, request.approved, request.correction)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     if result["status"] == "started":
         return JSONResponse(status_code=202, content=result)
     return result
@@ -215,6 +221,8 @@ def rerun_endpoint(stage_id: str, request: RerunRequest | None = None):
         return run.rerun(overrides)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
 
 
 @router.post("/constraint/{stage}")
@@ -235,4 +243,7 @@ def stage_run_endpoint(request: StageRunRequest):
     as it always has been."""
     if runs.current().busy:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    return runs.current().start_stage_run(request.context)
+    try:
+        return runs.current().start_stage_run(request.context)
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)

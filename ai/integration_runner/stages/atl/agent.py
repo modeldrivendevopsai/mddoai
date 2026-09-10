@@ -25,7 +25,7 @@ said) a bare raised failure would throw away, matching psm's own real
 generation-mode choice.
 """
 from clients import atl_agent_client
-from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserve_attempt_dir
+from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
 
 _FILENAME = "atl.atl"
 
@@ -43,30 +43,32 @@ def atl_stage(context: dict) -> tuple[str, dict]:
     # Reserved before run_atl() runs, not after: run_atl() is what triggers
     # atl_agent's own real validator-agent call, once per retry round, and
     # each one's real compiled .asm bytecode needs the real attempt path
-    # to nest inside, not land as an unlinked sibling of it.
+    # to nest inside, not land as an unlinked sibling of it. reserved_attempt()
+    # undoes the reservation if run_atl() raises before persist_attempt()
+    # records anything.
     run_id = context.get("run_id")
-    attempt_dir = reserve_attempt_dir(run_id, "atl") if run_id else None
-    result = atl_agent_client.run_atl(
-        pim_artifact,
-        psm_artifact,
-        platform_description,
-        constraints=constraints,
-        model=context.get("model"),
-        run_id=run_id,
-        # The same per-run "Mock" override docs_stage's own context["mock"]
-        # already reads (see RerunOverrides.mock/StartRequest.mock).
-        mock=bool(context.get("mock")),
-        **attempt_scope_kwargs("atl", attempt_dir),
-    )
-    artifact = result["artifact"]
-    persist_attempt(
-        run_id or "unknown",
-        "atl",
-        _FILENAME,
-        artifact,
-        result["validation"],
-        attempt_dir=attempt_dir,
-        prompt=result.get("prompt"),
-        prompt_version=result.get("prompt_version"),
-    )
+    with reserved_attempt(run_id, "atl") as attempt_dir:
+        result = atl_agent_client.run_atl(
+            pim_artifact,
+            psm_artifact,
+            platform_description,
+            constraints=constraints,
+            model=context.get("model"),
+            run_id=run_id,
+            # The same per-run "Mock" override docs_stage's own context["mock"]
+            # already reads (see RerunOverrides.mock/StartRequest.mock).
+            mock=bool(context.get("mock")),
+            **attempt_scope_kwargs("atl", attempt_dir),
+        )
+        artifact = result["artifact"]
+        persist_attempt(
+            run_id or "unknown",
+            "atl",
+            _FILENAME,
+            artifact,
+            result["validation"],
+            attempt_dir=attempt_dir,
+            prompt=result.get("prompt"),
+            prompt_version=result.get("prompt_version"),
+        )
     return artifact, {k: v for k, v in result.items() if k != "artifact"}

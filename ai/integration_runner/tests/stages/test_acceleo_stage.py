@@ -22,6 +22,8 @@ Tests verify:
 import json
 from unittest.mock import patch
 
+import pytest
+
 from clients import acceleo_agent_client
 from integration_runner.stages.acceleo.agent import acceleo_stage
 
@@ -149,3 +151,19 @@ def test_persists_the_real_prompt_and_version_from_the_response(tmp_path):
     prompt_record = json.loads((attempt_dir / "prompt.json").read_text(encoding="utf-8"))
     assert prompt_record["prompt"] == response["prompt"]
     assert prompt_record["prompt_version"] == "20260101T000000.000000Z-abcdef"
+
+
+def test_a_raising_run_acceleo_leaves_no_orphan_attempt_dir(tmp_path):
+    # A transient acceleo_agent failure between reserving the attempt
+    # directory and persisting a result must not strand an empty attempt_1/
+    # or push the next real attempt to attempt_2.
+    with patch.object(acceleo_agent_client, "run_acceleo", side_effect=RuntimeError("acceleo_agent unreachable")):
+        with pytest.raises(RuntimeError, match="acceleo_agent unreachable"):
+            acceleo_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+
+    stage_dir = tmp_path / "runs" / "run-1" / "acceleo"
+    assert not (stage_dir / "attempt_1").exists()
+    assert not (tmp_path / "runs" / "run-1" / "manifest.json").exists()
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=_generation_response()):
+        acceleo_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+    assert (stage_dir / "attempt_1").is_dir()

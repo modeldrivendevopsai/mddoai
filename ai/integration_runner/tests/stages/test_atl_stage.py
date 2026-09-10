@@ -19,6 +19,8 @@ Tests verify:
 """
 from unittest.mock import patch
 
+import pytest
+
 from clients import atl_agent_client
 from integration_runner.stages.atl.agent import atl_stage
 
@@ -131,3 +133,20 @@ def test_persists_the_real_prompt_and_version_from_the_response(tmp_path):
     prompt_record = json.loads((attempt_dir / "prompt.json").read_text(encoding="utf-8"))
     assert prompt_record["prompt"] == response["prompt"]
     assert prompt_record["prompt_version"] == "20260101T000000.000000Z-abcdef"
+
+
+def test_a_raising_run_atl_leaves_no_orphan_attempt_dir(tmp_path):
+    # A transient atl_agent failure (its validator round-trip times out, a
+    # network blip) between reserving the attempt directory and persisting a
+    # result must not strand an empty attempt_1/ or push the next real
+    # attempt to attempt_2.
+    with patch.object(atl_agent_client, "run_atl", side_effect=RuntimeError("atl_agent unreachable")):
+        with pytest.raises(RuntimeError, match="atl_agent unreachable"):
+            atl_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+
+    stage_dir = tmp_path / "runs" / "run-1" / "atl"
+    assert not (stage_dir / "attempt_1").exists()
+    assert not (tmp_path / "runs" / "run-1" / "manifest.json").exists()
+    with patch.object(atl_agent_client, "run_atl", return_value=_generation_response()):
+        atl_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+    assert (stage_dir / "attempt_1").is_dir()

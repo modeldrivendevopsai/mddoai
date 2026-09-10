@@ -343,6 +343,35 @@ def test_review_approved_accumulates_outputs_through_generation():
     assert acceleo_result["artifact"] in user_content
 
 
+def test_review_on_a_busy_run_refuses_without_advancing_or_recording():
+    # review() claims busy before record_review() touches anything, so a
+    # racing stage start can't leave the pipeline advanced-but-not-running.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    o.last_completed_stage = "generation"  # a real run_stage() would have set this
+    o.claim_busy()  # stands in for a stage run already in flight
+
+    try:
+        with pytest.raises(pipeline.BusyError):
+            o.review("generation", approved=True)
+    finally:
+        o.release_busy()
+
+    assert o.current_stage == "generation"  # not advanced
+    assert not any(e["type"] == "review_approved" for e in o.events)  # not recorded
+
+
+def test_review_rejected_releases_the_busy_claim():
+    # A rejection claims busy (to keep the whole record-and-maybe-start
+    # atomic) but starts no stage, so it must hand the claim back.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+
+    o.review("generation", approved=False, correction="needs retries")
+
+    assert o.busy is False
+
+
 def test_review_approved_on_last_stage_returns_complete():
     o = pipeline.IntegrationRun()
     o.current_stage_index = len(pipeline.STAGES) - 1
@@ -517,6 +546,80 @@ def test_run_stage_async_sets_busy_synchronously_before_the_thread_finishes():
         o._last_thread.join(timeout=5)
 
     assert o.busy is False
+
+
+def test_run_stage_async_refuses_a_second_start_while_one_is_in_flight():
+    # The route handlers' own pre-flight `if run.busy` check has a window
+    # before busy is actually set; run_stage_async()'s claim closes it, so a
+    # second start against the same run raises BusyError instead of spawning
+    # a second thread that would race the first on last_output/last_context/
+    # current_stage_index and interleave the event log.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    release = threading.Event()
+
+    def _blocking_chat(messages, model=None, tools=None, tool_choice=None):
+        release.wait(timeout=5)
+        return ok_response("Final summary")
+
+    with patch.object(ai_layer_client, "chat", side_effect=_blocking_chat):
+        o.run_stage_async({"platform_description": "A GitLab CI platform"})
+        with pytest.raises(pipeline.BusyError):
+            o.run_stage_async({"platform_description": "A GitLab CI platform"})
+        release.set()
+        o._last_thread.join(timeout=5)
+
+    # Only the first thread ever ran: exactly one call_started.
+    assert [e["type"] for e in o.events].count("call_started") == 1
+    assert o.busy is False
+    # And once idle, a start is accepted again.
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("Second summary")):
+        o.run_stage_async({"platform_description": "A GitLab CI platform"})
+        o._last_thread.join(timeout=5)
+    assert [e["type"] for e in o.events].count("call_started") == 2
+
+
+def test_run_stage_async_claim_is_atomic_under_real_concurrent_contention():
+    # Many threads racing the claim at once: exactly one wins, every other
+    # gets BusyError, never two threads spawned. Repeated with a fresh
+    # Barrier each round so the release is as close to simultaneous as the
+    # OS scheduler allows (a single lucky run proves nothing about a race).
+    thread_count = 12
+    for _ in range(25):
+        o = pipeline.IntegrationRun()
+        _fast_forward_to_generation(o)
+        barrier = threading.Barrier(thread_count)
+        outcomes: list[str] = []
+        outcomes_lock = threading.Lock()
+        release = threading.Event()
+
+        def _blocking_chat(messages, model=None, tools=None, tool_choice=None):
+            release.wait(timeout=5)
+            return ok_response("done")
+
+        def _claim():
+            barrier.wait(timeout=5)
+            try:
+                o.run_stage_async({"platform_description": "A GitLab CI platform"})
+                with outcomes_lock:
+                    outcomes.append("won")
+            except pipeline.BusyError:
+                with outcomes_lock:
+                    outcomes.append("refused")
+
+        with patch.object(ai_layer_client, "chat", side_effect=_blocking_chat):
+            threads = [threading.Thread(target=_claim) for _ in range(thread_count)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=5)
+            release.set()
+            if o._last_thread is not None:
+                o._last_thread.join(timeout=5)
+
+        assert outcomes.count("won") == 1, outcomes
+        assert outcomes.count("refused") == thread_count - 1, outcomes
+        assert [e["type"] for e in o.events].count("call_started") == 1
 
 
 def test_run_stage_async_records_call_completed_on_success():
