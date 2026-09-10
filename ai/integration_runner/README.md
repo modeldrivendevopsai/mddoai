@@ -234,11 +234,20 @@ against an existing `.ecore`). `stages/_validation.py`:
   land beside it as an unrelated sibling (or, missing the stage segment, collide with another
   stage's own same-numbered attempt). See
   [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
+- **`reserved_attempt(run_id, stage)`** — a context manager wrapping `reserve_attempt_dir()` for
+  exactly the pattern above: reserve the directory, then make a fallible downstream call, then
+  `persist_attempt()`. If that call raises before `persist_attempt()` recorded the attempt (a
+  `validator-agent` timeout or restart, a network blip), the reserved directory is removed again,
+  so the failure does not strand an unlisted `attempt_N/` on disk or push the next real attempt
+  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty",
+  because `psm`'s codegen validation nests its own compiled output under the directory once per
+  retry round before any result is persisted. A recorded attempt is kept, so a normal validation
+  failure still keeps its full record. Yields `None` when there is no `run_id`.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
   already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never
   called for an infra failure, which `validator_agent_client` itself already raises before
-  `persist_attempt` runs.
+  `persist_attempt` runs (handled by `reserved_attempt` above).
 
 `runs/` sits at this package's own root, sibling to `stages/`, gitignored — in-memory run state's
 on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting

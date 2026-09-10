@@ -190,6 +190,32 @@ def test_two_attempts_for_the_same_run_do_not_collide(module, stage_fn, stage, c
     assert (stage_dir / "attempt_2" / filename).read_text(encoding="utf-8") == module._MOCK_CONTENT
 
 
+@pytest.mark.parametrize("module,stage_fn,stage,client_fn_name", [
+    (atl_agent, atl_agent.atl_stage, "atl", "validate_atl"),
+    (acceleo_agent, acceleo_agent.acceleo_stage, "acceleo", "validate_acceleo"),
+])
+def test_a_raising_validator_call_leaves_no_orphan_attempt_dir(module, stage_fn, stage, client_fn_name, monkeypatch):
+    # A transient validator-agent failure (timeout, restart, network blip)
+    # between reserving the attempt directory and persisting a result must
+    # not strand an empty attempt_1/ with no manifest row, nor push the
+    # next real attempt to attempt_2.
+    def boom(*a, **k):
+        raise RuntimeError("validator-agent unreachable")
+
+    monkeypatch.setattr(validator_agent_client, client_fn_name, boom)
+
+    with pytest.raises(RuntimeError, match="validator-agent unreachable"):
+        stage_fn({"run_id": "run-1"})
+
+    stage_dir = _validation.RUNS_DIR / "run-1" / stage
+    assert not (stage_dir / "attempt_1").exists()
+    assert not (_validation.RUNS_DIR / "run-1" / "manifest.json").exists()
+    # The next successful run still gets attempt_1.
+    monkeypatch.setattr(validator_agent_client, client_fn_name, lambda *a, **k: _validation_result(valid=True))
+    stage_fn({"run_id": "run-1"})
+    assert (stage_dir / "attempt_1").exists()
+
+
 def test_pim_validates_against_ecore_with_reflective_mode(monkeypatch):
     # Confirms pim is wired to /validate/ecore specifically (structurally
     # identical to atl_stage calling /validate/atl and acceleo_stage calling

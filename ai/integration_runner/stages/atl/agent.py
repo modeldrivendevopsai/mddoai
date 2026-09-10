@@ -10,7 +10,7 @@ from integration_runner.stages._validation import (
     attempt_scope_kwargs,
     persist_attempt,
     raise_if_invalid,
-    reserve_attempt_dir,
+    reserved_attempt,
 )
 
 _FILENAME = "atl_mock.atl"
@@ -44,12 +44,13 @@ def atl_stage(context: dict) -> str:
     # stage's own same-numbered attempt under the same run_id. Without a
     # run_id there is no run tree to reserve an attempt under, so
     # persist_attempt() below still reserves its own in that case, exactly
-    # as it always has.
+    # as it always has. reserved_attempt() undoes the reservation if
+    # validate_atl() raises before persist_attempt() writes anything.
     run_id = context.get("run_id")
-    attempt_dir = reserve_attempt_dir(run_id, "atl") if run_id else None
-    result = validator_agent_client.validate_atl(
-        _MOCK_CONTENT, _FILENAME, run_id=run_id, **attempt_scope_kwargs("atl", attempt_dir),
-    )
-    persist_attempt(run_id or "unknown", "atl", _FILENAME, _MOCK_CONTENT, result, attempt_dir=attempt_dir)
-    raise_if_invalid("atl", result)
+    with reserved_attempt(run_id, "atl") as attempt_dir:
+        result = validator_agent_client.validate_atl(
+            _MOCK_CONTENT, _FILENAME, run_id=run_id, **attempt_scope_kwargs("atl", attempt_dir),
+        )
+        persist_attempt(run_id or "unknown", "atl", _FILENAME, _MOCK_CONTENT, result, attempt_dir=attempt_dir)
+        raise_if_invalid("atl", result)
     return _MOCK_CONTENT

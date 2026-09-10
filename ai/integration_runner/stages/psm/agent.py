@@ -21,7 +21,7 @@ deliberately NOT called here on a generation-mode failure, unlike those
 three stages' unconditional use of it.
 """
 from clients import psm_agent_client
-from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserve_attempt_dir
+from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
 
 _FILENAME = "psm.ecore"
 
@@ -45,36 +45,42 @@ def psm_stage(context: dict) -> tuple[str, dict]:
     # attempt path to nest inside, not land as an unlinked sibling of it.
     # Knowledge mode never validates at all (compare() has nothing to check
     # against), so stage/attempt are harmless there too, just unused.
+    # reserved_attempt() undoes the reservation if run_psm() raises before
+    # persist_attempt() writes anything - run_psm() can run a while (an LLM
+    # call plus up to three validator round-trips), so a transient failure
+    # in that window is a real case, not an exotic one.
     run_id = context.get("run_id")
-    attempt_dir = reserve_attempt_dir(run_id, "psm") if run_id else None
-    result = psm_agent_client.run_psm(
-        platform_description,
-        pim_artifact,
-        docs,
-        constraints=constraints,
-        model=context.get("model"),
-        run_id=run_id,
-        **attempt_scope_kwargs("psm", attempt_dir),
-    )
-    artifact = result["artifact"]
-    if result["mode"] == "generation":
-        # Real per-round validation already happened inside generate()'s own
-        # retry loop (psm_agent/generation.py) - this just also gives the
-        # final round's real artifact + validation result the same on-disk
-        # attempt record pim/atl/acceleo's own single-shot validator call
-        # gets. Deliberately NOT raise_if_invalid() here, even when every
-        # retry round is exhausted and validation still fails: unlike those
-        # three stages' one-shot mock call, generate() already retried up to
-        # 3 times, and a human reviewing a still-failed result needs the real
-        # detail (which round, what the validator actually said) a bare
-        # raised failure would throw away - chat-ui's own failure view
-        # already surfaces exactly that from a normal, non-raised return.
-        persist_attempt(run_id or "unknown", "psm", _FILENAME, artifact, result["validation"], attempt_dir=attempt_dir)
-    else:
-        # Knowledge mode: the existing metamodel is returned unchanged and
-        # gaps are informational only - there's no real pass/fail to raise
-        # on, but the attempt still gets the same on-disk record.
-        persist_attempt(
-            run_id or "unknown", "psm", _FILENAME, artifact, {"valid": True, "issues": []}, attempt_dir=attempt_dir
+    with reserved_attempt(run_id, "psm") as attempt_dir:
+        result = psm_agent_client.run_psm(
+            platform_description,
+            pim_artifact,
+            docs,
+            constraints=constraints,
+            model=context.get("model"),
+            run_id=run_id,
+            **attempt_scope_kwargs("psm", attempt_dir),
         )
+        artifact = result["artifact"]
+        if result["mode"] == "generation":
+            # Real per-round validation already happened inside generate()'s own
+            # retry loop (psm_agent/generation.py) - this just also gives the
+            # final round's real artifact + validation result the same on-disk
+            # attempt record pim/atl/acceleo's own single-shot validator call
+            # gets. Deliberately NOT raise_if_invalid() here, even when every
+            # retry round is exhausted and validation still fails: unlike those
+            # three stages' one-shot mock call, generate() already retried up to
+            # 3 times, and a human reviewing a still-failed result needs the real
+            # detail (which round, what the validator actually said) a bare
+            # raised failure would throw away - chat-ui's own failure view
+            # already surfaces exactly that from a normal, non-raised return.
+            persist_attempt(
+                run_id or "unknown", "psm", _FILENAME, artifact, result["validation"], attempt_dir=attempt_dir
+            )
+        else:
+            # Knowledge mode: the existing metamodel is returned unchanged and
+            # gaps are informational only - there's no real pass/fail to raise
+            # on, but the attempt still gets the same on-disk record.
+            persist_attempt(
+                run_id or "unknown", "psm", _FILENAME, artifact, {"valid": True, "issues": []}, attempt_dir=attempt_dir
+            )
     return artifact, {k: v for k, v in result.items() if k != "artifact"}

@@ -23,7 +23,9 @@ fix, not a side effect of closing the attempt-numbering race below.
 """
 import json
 import os
+import shutil
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -92,6 +94,31 @@ def attempt_scope_kwargs(stage: str, attempt_dir: Path | None) -> dict[str, str 
 # name. reserve_attempt_dir is the real, public entry point new callers
 # (atl_stage, acceleo_stage) use directly.
 _next_attempt_dir = reserve_attempt_dir
+
+
+@contextmanager
+def reserved_attempt(run_id: str | None, stage: str):
+    """Reserve this stage's attempt directory up front, for a stage that has
+    to hand its attempt number to a fallible downstream call (a real
+    validator, or psm_agent) before it has a result to persist. If that call
+    raises before persist_attempt() recorded this attempt, the whole
+    reserved directory is removed again, so a transient failure
+    (validator-agent timeout or restart, a network blip) does not leave an
+    unlisted directory on disk or silently skip an attempt number on the
+    next retry. "Recorded" means result.json exists: persist_attempt() always
+    writes it, and it is the last of the two attempt files it writes, so its
+    absence means nothing real was persisted here even if a half-finished
+    validator round already nested its own compiled output under this
+    directory (psm's codegen validation does exactly that, once per retry
+    round). Yields None (nothing reserved, nothing to undo) when there is no
+    run_id."""
+    attempt_dir = reserve_attempt_dir(run_id, stage) if run_id else None
+    try:
+        yield attempt_dir
+    except BaseException:
+        if attempt_dir is not None and attempt_dir.is_dir() and not (attempt_dir / "result.json").exists():
+            shutil.rmtree(attempt_dir, ignore_errors=True)
+        raise
 
 
 def _atomic_write_json(path: Path, data) -> None:
@@ -171,7 +198,11 @@ def persist_attempt(
     if attempt_dir is None:
         attempt_dir = reserve_attempt_dir(run_id, stage)
     (attempt_dir / filename).write_text(content, encoding="utf-8")
-    (attempt_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    # result.json last, and written atomically (same os.replace() the
+    # manifest already uses): its presence is what reserved_attempt() reads
+    # to tell a real, recorded attempt from a directory a failed call
+    # stranded, so it must never appear half-written or before the artifact.
+    _atomic_write_json(attempt_dir / "result.json", result)
     attempt_n = int(attempt_dir.name.removeprefix("attempt_"))
     _update_manifest(run_id, stage, attempt_n, result["valid"])
     return attempt_dir
