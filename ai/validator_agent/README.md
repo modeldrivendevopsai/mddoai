@@ -56,13 +56,17 @@ Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* th
 
 ```json
 // request
-{"filename": "generate.mtl", "content": "[module generate('http://...')]"}
+{"filename": "generate.mtl", "content": "[module generate('http://...')]", "metamodel_ecore": "<ecore:EPackage .../>"}
 
 // response (200)
 {"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512, "generated_source_path": null}
 ```
 
 Compiles the `.mtl` source with Acceleo's own classic standalone compiler (`AcceleoCompilerHelper`) and reports the real compiler diagnostics, with real source-line locations. The submitted `filename` must end in `.mtl` — the compiler resolves the file to compile by scanning its source folder for that extension, not by parsing whatever single file it's handed, so a request whose `filename` doesn't end in `.mtl` is rejected as invalid up front rather than silently reporting a trivial pass.
+
+`metamodel_ecore` is optional: the real target platform's own `.ecore` content, dynamically registered into EMF's package registry before compiling (see `AcceleoValidator.validate(String, String)`'s own comment for why this needs no genmodel or compile step). Without it, Acceleo's compiler can only ever resolve the metamodels `EMFUtils.init()` hardcodes at the Java build level (today: PIM, SWArch, GitLab) — any other platform's own template, however correct, fails with `"the metamodel couldn't be resolved"`. Every real caller with a target metamodel on hand (`acceleo_agent`'s own real generation path) should always pass it; the size cap on `content` (`MAX_CONTENT_BYTES`) applies to this field too.
+
+Since this field's content ultimately traces back to a stage-agent's own request body (not something this service generates itself), `EMFUtils.loadEPackage()` (the shared loader both this field and `/validate/ecore`'s own codegen path use) parses it with DOCTYPE declarations rejected outright and outbound network resolution disabled for any cross-document reference — see that method's own comment for the real class of attack (XXE, SSRF via EMF's own proxy resolution) this closes.
 
 Same real-compiled-output behavior as `/validate/atl`: `generated_source_path` reports where the compiled `.emtl` module actually landed, and the same optional `run_id`/`stage`/`attempt` fields scope it.
 
