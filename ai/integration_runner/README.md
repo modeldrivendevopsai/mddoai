@@ -35,9 +35,11 @@ when generating a new metamodel).
   advancement, called from every state-transition method for every real event type this run
   produces.
 - **`runs.py`** — the process-wide run registry: which run is current (`current()`), the
-  history of every run this process has seen (`list_runs()`, `get_run_events()`), and the two
+  history of every run this process has seen (`list_runs()`, `get_run_events()`), and the
   genuinely compound operations that need registry-level context (`reset_pipeline()`,
-  `resume_run()`, `start_pipeline()`). Deliberately doesn't duplicate any of
+  `resume_run()`, `start_pipeline()` — serialized against each other by a module-level lock so
+  two concurrent requests can't each swap in a different current run). Deliberately doesn't
+  duplicate any of
   `IntegrationRun`'s own methods as its own proxy functions — callers fetch the real instance
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
@@ -268,14 +270,14 @@ because this service runs single-process (`integration_runner/Dockerfile`'s own 
 `--workers` flag) — a cross-process file lock would be solving a problem this deployment doesn't
 have.
 
-**Known, deliberately out of scope:** `IntegrationRun.busy` (`pipeline.py`) is a plain unguarded
-`bool`, checked then set across two unsynchronized steps spanning a route handler and
-`run_stage_async()`. Since every real mutating endpoint is a sync route dispatched through
-FastAPI's own threadpool, two near-simultaneous requests to the same endpoint really can both
-pass that check before either sets `busy = True`, starting two stage runs against the same run
-concurrently — a correctness issue broader than file naming (two operations racing against the
-same run, not just a folder collision), and a separate, not-yet-fixed problem from the
-attempt-numbering race above.
+**Concurrent mutating requests.** Every mutating endpoint keeps a fast-path `if run.busy` check,
+but that check and setting `busy = True` used to be two unsynchronized steps, so two
+near-simultaneous requests (a double-click, a client retry, the orchestrator and a human both
+acting) could both pass the check and both start a stage against the same run, racing on
+`last_output` / `last_context` / `current_stage_index`. `IntegrationRun.claim_busy()` now makes
+that check-and-set one atomic step under a lock: the loser gets a `BusyError`, which the handler
+turns into the same `409`, with no state half-changed. `/review` claims busy before it advances
+the pipeline, so an approval can never record-and-advance and then fail to start.
 
 ### Reporting a stage result
 
@@ -341,12 +343,14 @@ narration — recording just appends the raw fact and returns it. Turning that i
 human-readable comment is `ai/orchestrator/chat_log.py`'s job, done by polling `GET /events`,
 never by this module calling out to anything.
 
-`run_stage_async(context)` is the one way a stage ever starts running: spawns a real background
-thread, records `call_started`, runs the stage, then records `call_completed`/`call_failed`, and
-returns immediately. `busy` is set to `True` synchronously, before the thread even starts, so
-`/review`, `/rerun`, `/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` can all
-safely check it and return `409` if a stage is genuinely still running — a guard against a
-double-click, not a task queue.
+`run_stage_async(context)` is the one way a stage ever starts running: it claims the run busy
+(`claim_busy()`, raising `BusyError` if a stage is already in flight), spawns a real background
+thread that records `call_started`, runs the stage, records `call_completed`/`call_failed` and
+releases the claim, and returns immediately. `/review` claims busy itself before it advances the
+pipeline, so an approval can't record-and-advance and then fail to start. `/review`, `/rerun`,
+`/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` all keep a fast-path `if busy`
+check and return `409` when a stage is genuinely still running — a guard against a double-click,
+not a task queue.
 
 ### The human review loop
 

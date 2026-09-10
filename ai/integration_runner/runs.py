@@ -13,7 +13,24 @@ current() and call its own methods directly (runs.current().review(...),
 runs.current().add_constraint(...), ...), so there's exactly one place each
 operation is implemented, not two.
 """
-from integration_runner.pipeline import IntegrationRun
+import threading
+
+from integration_runner.pipeline import BusyError, IntegrationRun
+
+# Serializes the functions that reassign _default (start_pipeline,
+# reset_pipeline, resume_run) against each other. Without it, two
+# near-simultaneous /start (or /start + /reset + /resume) in the idle gap
+# between stages could each swap _default for a different IntegrationRun,
+# leaving one orphaned in _runs and _default pointing at the other.
+# Reentrant because start_pipeline() calls reset_pipeline().
+#
+# Residual, not closed here: a mutating handler that captured runs.current()
+# before one of these swaps could still act on the now-previous _default (a
+# wasted stage run on a run no longer current, not corruption of the live
+# one). Closing that needs every mutating handler to hold this lock across
+# its whole "read current, act on it" step - a broader change than the
+# per-run busy claim this commit is scoped to.
+_registry_lock = threading.RLock()
 
 _default = IntegrationRun()
 # Every IntegrationRun that's ever been "the" current run, keyed by run_id, kept
@@ -87,8 +104,9 @@ def reset_pipeline() -> None:
     can show it as history for the life of this process — no persistence
     across a restart, in-memory only, that's the deliberate MVP scope."""
     global _default
-    _default = IntegrationRun()
-    _runs[_default.run_id] = _default
+    with _registry_lock:
+        _default = IntegrationRun()
+        _runs[_default.run_id] = _default
 
 
 def resume_run(run_id: str) -> dict:
@@ -101,11 +119,12 @@ def resume_run(run_id: str) -> dict:
     service's own main.py) to turn into the right HTTP status, same
     convention as IntegrationRun.review()/rerun()."""
     global _default
-    run = get_run(run_id)
-    if run is None:
-        raise ValueError(f"No run with id {run_id!r}")
-    _default = run
-    return {"run_id": _default.run_id, "current_stage": _default.current_stage}
+    with _registry_lock:
+        run = get_run(run_id)
+        if run is None:
+            raise ValueError(f"No run with id {run_id!r}")
+        _default = run
+        return {"run_id": _default.run_id, "current_stage": _default.current_stage}
 
 
 def start_pipeline(
@@ -133,11 +152,19 @@ def start_pipeline(
     docs_options is the same shape rerun()'s overrides accepts for the docs
     stage (hint, exclude_urls, max_pages, max_depth, force_refresh) — set
     once here up front instead of only being reachable via a retry."""
-    if _default.events:
-        reset_pipeline()
-    _default.set_model(model)
-    context = {"platform_description": platform_description, "seed_url": seed_url, **(docs_options or {})}
-    return _default.start_stage_run(context)
+    with _registry_lock:
+        # Under the same lock that serializes the _default swap: a run that's
+        # already executing a stage must not be reset out from under its own
+        # thread, nor reused. The route handler's own pre-flight check
+        # answers this first for the common case; this is the atomic backstop
+        # for the gap between that check and here.
+        if _default.busy:
+            raise BusyError("a stage run is already in flight for this run")
+        if _default.events:
+            reset_pipeline()
+        _default.set_model(model)
+        context = {"platform_description": platform_description, "seed_url": seed_url, **(docs_options or {})}
+        return _default.start_stage_run(context)
 
 
 def wait_for_idle(timeout: float = 5.0) -> None:

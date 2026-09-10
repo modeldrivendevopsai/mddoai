@@ -10,16 +10,10 @@ docstring for why. The one other thing these four stages share besides
 _shared.py's constraints_note() (which they no longer use, see each
 stage's own agent.py).
 
-Known, deliberately out of scope here: IntegrationRun.busy (pipeline.py) is
-a plain unguarded bool, checked then set across two unsynchronized steps
-spanning a route handler and run_stage_async() — every real mutating
-endpoint is a sync `def`, dispatched through FastAPI's own real threadpool
-(not just the asyncio loop), so two near-simultaneous requests to the same
-endpoint really can both pass that check before either sets busy=True,
-starting two stage runs against the same run concurrently. That's a
-correctness issue broader than file naming (two operations racing against
-the same run, not just a folder collision) and deserves its own dedicated
-fix, not a side effect of closing the attempt-numbering race below.
+This module's own concern is the attempt directory and manifest below.
+The related "two near-simultaneous mutating requests race on the same run"
+concern is handled in pipeline.py: IntegrationRun.claim_busy() makes the
+busy check-and-set one atomic step.
 """
 import json
 import os
