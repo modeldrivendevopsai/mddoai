@@ -132,10 +132,11 @@ class AcceleoValidateRequest(BaseModel):
     stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     # The target platform's own real PSM .ecore content, dynamically
-    # registered before compiling - see validator_runner.run_acceleo_validator's
-    # own docstring for why this is needed for any platform besides the
-    # ones EMFUtils.init() hardcodes. Optional: omitted, this behaves
-    # exactly as it always has (only the hardcoded metamodels resolve).
+    # registered before compiling unless the build already provides that
+    # nsURI - see validator_runner.run_acceleo_validator's own docstring
+    # for why this is needed for any platform besides the ones
+    # EMFUtils.init() hardcodes. Optional: omitted, this behaves exactly
+    # as it always has (only the hardcoded metamodels resolve).
     metamodel_ecore: str | None = Field(default=None, description="Raw .ecore content of the target platform's own PSM metamodel.")
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))

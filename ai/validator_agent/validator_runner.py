@@ -200,9 +200,10 @@ def run_acceleo_validator(
 ) -> AcceleoValidationResult:
     """metamodel_ecore, when given, is the target platform's own real PSM
     .ecore content - AcceleoValidatorCli's own optional second arg, which
-    dynamically registers that platform's metamodel before compiling (see
-    AcceleoValidator.validate(String, String)'s own comment for why this
-    needs no genmodel or compile step at all). Without it, only the
+    dynamically registers that platform's metamodel before compiling,
+    unless the build already provides a compiled package for that nsURI
+    (see AcceleoValidator.validate(String, String)'s own comment for why
+    this needs no genmodel or compile step at all). Without it, only the
     metamodels EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab) can
     ever resolve - every other platform's own real generated template would
     otherwise always fail with "the metamodel couldn't be resolved",
