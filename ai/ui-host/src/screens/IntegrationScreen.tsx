@@ -12,11 +12,25 @@ import type { StagePanelProps } from "orchestrator-types"
 // The modular prompt builder's own callback props (see StagePanelProps'
 // own comment on why these live on the shared contract): every one is a
 // direct, un-adapted pass-through to orchestrator.service.ts, the same
-// pattern onApprove/onRetry already use. Built once here, spread into
-// whichever stage panel actually renders (only psm calls any of these
-// today, every other stage panel simply never does) rather than repeated
-// per branch below.
-const promptBuilderProps: Omit<StagePanelProps, "busy" | "latestResult" | "events" | "runId" | "onApprove" | "onRetry" | "onBack" | "readOnly"> = {
+// pattern onApprove/onRetry already use. A function of stage, not one
+// constant: psm's own real functions are their own distinct shape/history,
+// while atl and acceleo reuse one shared, stage-parameterized set (see
+// orchestrator.service.ts's own PromptBuilderStage functions) since both
+// are identically shaped by design. Every other stage gets just the
+// attempts-browser callbacks, already stage-generic - the only two calls
+// psm's own functions above were never psm-specific in the first place.
+type PromptBuilderProps = Omit<
+  StagePanelProps,
+  "busy" | "latestResult" | "events" | "runId" | "onApprove" | "onRetry" | "onBack" | "readOnly"
+>
+
+const attemptsBrowserProps: PromptBuilderProps = {
+  onLoadManifest: orchestratorService.getRunManifest,
+  onLoadAttempt: orchestratorService.getAttempt,
+}
+
+const psmPromptBuilderProps: PromptBuilderProps = {
+  ...attemptsBrowserProps,
   onLoadPromptConfig: orchestratorService.getPromptConfig,
   onSavePromptConfig: orchestratorService.savePromptConfig,
   onListPresets: orchestratorService.listPromptPresets,
@@ -33,8 +47,37 @@ const promptBuilderProps: Omit<StagePanelProps, "busy" | "latestResult" | "event
   onAddLearnedConstraints: orchestratorService.addLearnedConstraints,
   onRemoveLearnedConstraint: orchestratorService.removeLearnedConstraint,
   onPromoteConstraints: orchestratorService.promoteConstraints,
-  onLoadManifest: orchestratorService.getRunManifest,
-  onLoadAttempt: orchestratorService.getAttempt,
+}
+
+function stagePromptBuilderProps(stage: orchestratorService.PromptBuilderStage): PromptBuilderProps {
+  return {
+    ...attemptsBrowserProps,
+    onLoadPromptConfig: (name, preset) => orchestratorService.getStagePromptConfig(stage, name, preset),
+    onSavePromptConfig: (name, preset, config) => orchestratorService.saveStagePromptConfig(stage, name, preset, config),
+    onListPresets: (name) => orchestratorService.listStagePromptPresets(stage, name),
+    onPreviewPromptConfig: (name, preset) => orchestratorService.previewStagePromptConfig(stage, name, preset),
+    onListAvailableFiles: () => orchestratorService.listStageAvailableFiles(stage),
+    onUploadAttachmentFile: (file) => orchestratorService.uploadStageAttachmentFile(stage, file),
+    onLoadPromptHistory: (name, preset) => orchestratorService.getStagePromptConfigHistory(stage, name, preset),
+    onDiffPromptVersions: (name, preset, versionA, versionB) =>
+      orchestratorService.diffStagePromptConfigVersions(stage, name, preset, versionA, versionB),
+    onRestorePromptVersion: (name, preset, version) =>
+      orchestratorService.restoreStagePromptConfigVersion(stage, name, preset, version),
+    onRevertPromptConfig: (name, preset) => orchestratorService.revertStagePromptConfig(stage, name, preset),
+    onPromoteConfigToDefault: (name, preset) => orchestratorService.promoteStageConfigToDefault(stage, name, preset),
+    onCheckPromptReferences: (name, preset) => orchestratorService.checkStagePromptReferences(stage, name, preset),
+    onAddLearnedConstraints: (name, preset, constraints) =>
+      orchestratorService.addStageLearnedConstraints(stage, name, preset, constraints),
+    onRemoveLearnedConstraint: (name, preset, constraint) =>
+      orchestratorService.removeStageLearnedConstraint(stage, name, preset, constraint),
+    onPromoteConstraints: (constraints) => orchestratorService.promoteStageConstraints(stage, constraints),
+  }
+}
+
+function promptBuilderPropsFor(stage: StageId): PromptBuilderProps {
+  if (stage === "psm") return psmPromptBuilderProps
+  if (stage === "atl" || stage === "acceleo") return stagePromptBuilderProps(stage)
+  return attemptsBrowserProps
 }
 
 // Stepper, ChatColumn, and the docs stage's start form are each their own
@@ -211,7 +254,7 @@ export default function IntegrationScreen() {
             onBack={() => setViewedStage(null)}
             readOnly
             stageDetail={stageDetails?.[viewedStage] ?? null}
-            {...promptBuilderProps}
+            {...promptBuilderPropsFor(viewedStage)}
           />
         </RemoteBoundary>
       )
@@ -231,7 +274,7 @@ export default function IntegrationScreen() {
           onApprove={() => approve(currentStage)}
           onRetry={(correction) => retry(currentStage, correction)}
           readOnly={!isCurrent}
-          {...promptBuilderProps}
+          {...promptBuilderPropsFor(currentStage)}
         />
       </RemoteBoundary>
     )

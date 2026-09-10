@@ -352,6 +352,155 @@ export async function resolvePsmMode(platformDescription: string): Promise<{ mod
   return res.json()
 }
 
+// --- Same modular prompt builder surface as psm's own functions above,
+// parameterized by stage instead of hand-duplicated: atl and acceleo are
+// identically shaped by design (both single-mode, no resolve-mode
+// equivalent), a real, current two-case need rather than speculative
+// generalization. psm's own functions above stay as they are, untouched:
+// their own distinct shape/history isn't worth folding into this one. ----
+
+export type PromptBuilderStage = "atl" | "acceleo"
+
+export async function getStagePromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}`)
+  if (!res.ok) throw await errorFor("Prompt config", res)
+  return res.json()
+}
+
+export async function saveStagePromptConfig(
+  stage: PromptBuilderStage,
+  name: string,
+  preset: string,
+  config: PromptConfig
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
+  if (!res.ok) throw await errorFor("Save prompt config", res)
+  return res.json()
+}
+
+export async function listStagePromptPresets(stage: PromptBuilderStage, name: string): Promise<PresetMetadata[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/presets`)
+  if (!res.ok) throw await errorFor("Prompt presets", res)
+  return (await res.json()).presets
+}
+
+export async function previewStagePromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptPreview> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/preview`, { method: "POST" })
+  if (!res.ok) throw await errorFor("Prompt preview", res)
+  return res.json()
+}
+
+export async function listStageAvailableFiles(stage: PromptBuilderStage): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/available-files`)
+  if (!res.ok) throw await errorFor("Available files", res)
+  return (await res.json()).files
+}
+
+export async function getStagePromptConfigHistory(stage: PromptBuilderStage, name: string, preset: string): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/history`)
+  if (!res.ok) throw await errorFor("Prompt history", res)
+  return (await res.json()).versions
+}
+
+export async function diffStagePromptConfigVersions(
+  stage: PromptBuilderStage,
+  name: string,
+  preset: string,
+  versionA: string,
+  versionB: string
+): Promise<PromptDiff> {
+  const params = new URLSearchParams({ a: versionA, b: versionB })
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/diff?${params}`)
+  if (!res.ok) throw await errorFor("Prompt diff", res)
+  return res.json()
+}
+
+export async function restoreStagePromptConfigVersion(
+  stage: PromptBuilderStage,
+  name: string,
+  preset: string,
+  version: string
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/restore/${version}`, {
+    method: "POST",
+  })
+  if (!res.ok) throw await errorFor("Restore prompt version", res)
+  return res.json()
+}
+
+export async function revertStagePromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/revert`, { method: "POST" })
+  if (!res.ok) throw await errorFor("Revert prompt config", res)
+  return res.json()
+}
+
+export async function promoteStageConfigToDefault(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/promote-to-default`, {
+    method: "POST",
+  })
+  if (!res.ok) throw await errorFor("Promote config to default", res)
+  return res.json()
+}
+
+export async function checkStagePromptReferences(stage: PromptBuilderStage, name: string, preset: string): Promise<BrokenReference[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/check-references`)
+  if (!res.ok) throw await errorFor("Check prompt references", res)
+  return (await res.json()).broken
+}
+
+export async function addStageLearnedConstraints(
+  stage: PromptBuilderStage,
+  name: string,
+  preset: string,
+  constraints: string[]
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/learned-constraints`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Add learned constraints", res)
+  return res.json()
+}
+
+export async function removeStageLearnedConstraint(
+  stage: PromptBuilderStage,
+  name: string,
+  preset: string,
+  constraint: string
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/learned-constraints`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraint }),
+  })
+  if (!res.ok) throw await errorFor("Remove learned constraint", res)
+  return res.json()
+}
+
+// Run-aware, same reasoning as psm's own promoteConstraints above.
+export async function promoteStageConstraints(stage: PromptBuilderStage, constraints: string[]): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/promote-constraints`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Promote constraints", res)
+  return res.json()
+}
+
+export async function uploadStageAttachmentFile(stage: PromptBuilderStage, file: File): Promise<string> {
+  const body = new FormData()
+  body.append("file", file)
+  const res = await fetch(`/orchestrator-api/${stage}/attachment-uploads`, { method: "POST", body })
+  if (!res.ok) throw await errorFor("Upload attachment file", res)
+  return (await res.json()).path
+}
+
 export async function getRunManifest(runId: string): Promise<ManifestEntry[]> {
   const res = await fetch(`/orchestrator-api/runs/${runId}/manifest`)
   if (!res.ok) throw await errorFor("Run manifest", res)
