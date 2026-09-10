@@ -80,6 +80,12 @@ public final class AcceleoValidator {
     // itself so that method stays the guard-clauses-then-delegate shape.
     private static AcceleoCompileResult compileInIsolatedWorkDir(File file, String mtlFilePath) {
         File workDir = new File(OUTPUT_ROOT, "acceleo-validate-" + java.util.UUID.randomUUID());
+        // Cleared in the finally on every exit that isn't keeping the .emtl,
+        // including a Throwable that isn't an Exception (a StackOverflowError
+        // from a pathological module) - matches EcoreValidator's own
+        // try/finally rather than deleting only on the happy path and the
+        // catch.
+        boolean keepOutput = false;
         try {
             File sourceDir = new File(workDir, "src");
             File outputDir = new File(workDir, "out");
@@ -100,15 +106,15 @@ public final class AcceleoValidator {
             // writing a .emtl (a broken-enough module produces nothing in
             // outputDir at all) - checking outputDir's real contents, not the
             // pass/fail outcome, is what tells the two cases apart.
-            boolean keepOutput = hasAnyFile(outputDir);
+            keepOutput = hasAnyFile(outputDir);
+            return new AcceleoCompileResult(result, keepOutput ? outputDir.getAbsolutePath() : null);
+        } catch (Exception e) {
+            return AcceleoCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
+                    ValidationIssue.Severity.ERROR, "Failed to compile .mtl file: " + e, mtlFilePath))));
+        } finally {
             if (!keepOutput) {
                 deleteRecursively(workDir);
             }
-            return new AcceleoCompileResult(result, keepOutput ? outputDir.getAbsolutePath() : null);
-        } catch (Exception e) {
-            deleteRecursively(workDir);
-            return AcceleoCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
-                    ValidationIssue.Severity.ERROR, "Failed to compile .mtl file: " + e, mtlFilePath))));
         }
     }
 

@@ -53,6 +53,12 @@ public final class AtlValidator {
         AtlStandaloneCompiler compiler = AtlCompiler.getCompiler(AtlCompiler.DEFAULT_COMPILER_NAME);
 
         File workDir = new File(OUTPUT_ROOT, "atl-validate-" + java.util.UUID.randomUUID());
+        // Cleared in the finally on every exit that isn't keeping the .asm,
+        // including a Throwable that isn't an Exception (a StackOverflowError
+        // from a pathological source) - matches EcoreValidator's own
+        // try/finally rather than deleting only on the happy path and the
+        // catch.
+        boolean keepOutput = false;
         try {
             if (!workDir.mkdirs()) {
                 throw new java.io.IOException("Could not create validator output directory: " + workDir);
@@ -66,16 +72,16 @@ public final class AtlValidator {
                 // without ever writing target (a broken-enough source produces
                 // no .asm at all) - checking the file itself, not the error
                 // count, is what tells the two cases apart.
-                boolean keepOutput = target.exists();
-                if (!keepOutput) {
-                    deleteRecursively(workDir);
-                }
+                keepOutput = target.exists();
                 return new AtlCompileResult(result, keepOutput ? target.getAbsolutePath() : null);
             }
         } catch (Exception e) {
-            deleteRecursively(workDir);
             return AtlCompileResult.of(ValidationResult.of(List.of(new ValidationIssue(
                     ValidationIssue.Severity.ERROR, "Failed to compile .atl file: " + e, atlFilePath))));
+        } finally {
+            if (!keepOutput) {
+                deleteRecursively(workDir);
+            }
         }
     }
 
