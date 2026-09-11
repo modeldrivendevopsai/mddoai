@@ -81,3 +81,27 @@ def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path]
         if resolved.is_file():
             return resolved.read_text(encoding="utf-8")
     raise AttachmentFileError(f"attachment path {path!r} does not exist under any allowed root")
+
+
+def list_reference_and_uploads(reference_example_path: str | Path, uploads_dir: str | Path) -> list[str]:
+    """Real, already-existing files a "file" attachment can reference,
+    found by scanning real directories directly rather than a hardcoded
+    list: the one real master-example file (`reference_example_path`) plus
+    every real uploaded file under `uploads_dir` - the shape shared by
+    every generation-capable service whose picker only ever has one real
+    reference file (atl_agent, acceleo_agent), unlike psm_agent's own
+    broader multi-metamodel listing (its own available_files.py stays
+    separate, it answers a genuinely different question - see its own
+    docstring). Sorted for a deterministic, stable UI listing, not whatever
+    order the filesystem happens to return."""
+    files: list[str] = []
+
+    reference = Path(reference_example_path)
+    if reference.is_file():
+        files.append(reference.name)
+
+    uploads_root = Path(uploads_dir)
+    if uploads_root.is_dir():
+        files.extend(path.name for path in uploads_root.iterdir() if path.is_file())
+
+    return sorted(files)

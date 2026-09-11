@@ -3,6 +3,7 @@ import pytest
 from generation_toolkit.attachments.files import (
     AttachmentFileError,
     PathSegmentError,
+    list_reference_and_uploads,
     resolve_file_attachment,
     validate_path_segment,
 )
@@ -106,3 +107,37 @@ def test_validate_path_segment_rejects_disallowed_characters():
 def test_validate_path_segment_rejects_a_bare_dot_segment():
     with pytest.raises(PathSegmentError):
         validate_path_segment("..")
+
+
+def test_list_reference_and_uploads_includes_the_reference_file(tmp_path):
+    reference = tmp_path / "generate.mtl"
+    reference.write_text("[module m('x')]", encoding="utf-8")
+    uploads_dir = tmp_path / "uploads"
+    uploads_dir.mkdir()
+
+    assert list_reference_and_uploads(reference, uploads_dir) == ["generate.mtl"]
+
+
+def test_list_reference_and_uploads_includes_every_real_upload(tmp_path):
+    reference = tmp_path / "generate.mtl"
+    reference.write_text("[module m('x')]", encoding="utf-8")
+    uploads_dir = tmp_path / "uploads"
+    uploads_dir.mkdir()
+    (uploads_dir / "abc123-custom.mtl").write_text("[module custom('x')]", encoding="utf-8")
+
+    assert list_reference_and_uploads(reference, uploads_dir) == ["abc123-custom.mtl", "generate.mtl"]
+
+
+def test_list_reference_and_uploads_omits_a_missing_reference_file(tmp_path):
+    reference = tmp_path / "missing.mtl"
+    uploads_dir = tmp_path / "uploads"
+    uploads_dir.mkdir()
+
+    assert list_reference_and_uploads(reference, uploads_dir) == []
+
+
+def test_list_reference_and_uploads_tolerates_a_missing_uploads_dir(tmp_path):
+    reference = tmp_path / "generate.mtl"
+    reference.write_text("[module m('x')]", encoding="utf-8")
+
+    assert list_reference_and_uploads(reference, tmp_path / "no-such-uploads-dir") == ["generate.mtl"]

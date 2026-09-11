@@ -4,7 +4,7 @@ routes/test_prompt_config.py uses. Every test requests the
 isolated_prompt_config_dir fixture (see conftest.py) so nothing here ever
 touches the real, git-committed ai/atl_agent/prompts/ directory.
 
-This service has only one real config name, "generation" - _known_name
+This service has only one real config name, "generation" - _context_for
 404s on anything else, tested below.
 """
 import json

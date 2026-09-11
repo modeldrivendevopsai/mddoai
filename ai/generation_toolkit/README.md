@@ -77,6 +77,13 @@ real content, rejecting an absolute path, a disallowed character, or a resolved 
 single path segment with no `/` allowed at all — reused for a `run_id`/`stage`/`attempt` route
 parameter, not just a file attachment's path.
 
+`attachments.files.list_reference_and_uploads(reference_example_path, uploads_dir) -> list[str]`
+lists a service's real "file" attachment candidates for the common one-reference-file shape
+(`atl_agent`/`acceleo_agent`, each with exactly one master example): that one file's own name, plus
+every real uploaded file under `uploads_dir`, sorted. A service with a broader real listing (e.g.
+`psm_agent`, scanning every known platform's own metamodel) keeps that logic itself rather than
+forcing it through this shape.
+
 ## `prompt_config/` — generic, path-parameterized persistence
 
 Every function takes a `config_dir: str | Path` the calling service supplies — this package owns
@@ -131,6 +138,41 @@ same way as any other attachment.
   constraints list: a learned constraint is permanent, applies to every future run of that
   (mode, preset) once promoted, and promotion is always a single, explicit, human-confirmed action,
   never automatic capture of every typed correction.
+
+## `routes/` — the shared prompt-config/files/uploads HTTP surface
+
+`psm_agent`, `atl_agent`, and `acceleo_agent` each expose the exact same real endpoint shapes over
+`prompt_config/`/`attachments/` above (the full prompt-config CRUD surface, one available-files
+listing, one attachment upload). This package builds each shape once, and every service's own
+`routes/*.py` becomes the thin, service-specific adapter binding it to that service's own real
+`config_dir`, `files_root`, and sample context values, rather than each service hand-writing the
+same routing/error-translation logic three times over.
+
+- **`prompt_config.py`** — `PromptConfigRouter(config_dir, files_root, context_for)`: builds the
+  full prompt-config `APIRouter` (`presets`, get/put, `history`, `diff`, `restore/{version}`,
+  `revert`, `promote-to-default`, `check-references`, `learned-constraints` GET/POST/DELETE,
+  `preview`) as bound methods a caller re-exports under the same names its own tests already import
+  directly (e.g. `get_config_endpoint = router.get_config_endpoint`). `context_for(name) -> dict[str, str]`
+  is the one real per-service variation: which `name`s are known and what sample context each one
+  resolves against. `atl_agent`/`acceleo_agent` each have exactly one name; `psm_agent` has two
+  (`"generation"`/`"comparison"`), so this is asked of the caller rather than assumed. `config_dir`
+  and `files_root` are both zero-arg getters, not plain values, called fresh on every request: each
+  service's own test suite isolates prompt-config reads/writes by monkeypatching its own
+  `prompt_paths` module attributes for one test at a time (see each service's own `conftest.py`),
+  which only works if this class re-reads them through that same module reference on every call,
+  not once at construction time. Also exports `PromptConfigBody`/`LearnedConstraintsBody`/
+  `RemoveLearnedConstraintBody`, the three request-body shapes every service's config uses
+  identically.
+- **`files.py`** — `build_files_router(list_available_files) -> (router, available_files_endpoint)`:
+  the shared `GET /available-files` endpoint. What actually counts as an available file stays real,
+  per-service logic (`attachments.files.list_reference_and_uploads` for a service with exactly one
+  reference file, or a service's own broader listing like `psm_agent`'s multi-metamodel scan). This
+  only wires whatever that returns into the one real endpoint shape.
+- **`uploads.py`** — `build_uploads_router(uploads_dir, max_upload_bytes) -> APIRouter`: the shared
+  `POST /attachment-uploads` endpoint over `attachments.uploads.save_uploaded_file`. Both arguments
+  are zero-arg getters, for the same reason `config_dir` above is: a test that monkeypatches a
+  service's own `ATTACHMENT_UPLOADS_DIR`/`MAX_UPLOAD_BYTES` needs the router to re-read it per
+  request, not once at startup.
 
 ## Test
 

@@ -1,7 +1,9 @@
 """Real, git-committable, UI-editable prompt config for this service's two
 real LLM capabilities (generation.py's "generation" mode, comparison.py's
 "comparison" mode) - see generation_toolkit.prompt_config for the actual
-persistence mechanism this router is a thin HTTP surface over.
+persistence mechanism and generation_toolkit.routes.prompt_config.PromptConfigRouter
+for the shared, generic HTTP surface every generation-capable service
+exposes identically over it.
 
 Every real path (config_dir, files_root) and the real sample context
 values a dry-run validation or a static preview needs both live here, not
@@ -10,189 +12,68 @@ config_dir and context_values from its caller, it has no idea this
 service's own directory layout or which context keys generation.py/
 comparison.py actually supply for a real call.
 """
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import HTTPException
 
-from generation_toolkit.prompt_builder import build_prompt
-from generation_toolkit.prompt_config import history, learned_constraints, presets, references, rendering, resolution, storage
+from generation_toolkit.routes.prompt_config import (
+    LearnedConstraintsBody,
+    PromptConfigBody,
+    PromptConfigRouter,
+    RemoveLearnedConstraintBody,
+)
 
 from comparison import META_MODELS_DIR
 import prompt_paths
-
-router = APIRouter(prefix="/prompt-config")
 
 # Every "file" attachment resolves against both real roots: the read-only,
 # pre-existing repo metamodels, and a human's own uploaded files (see
 # routes/uploads.py) - generation_toolkit.attachments.files.resolve_file_attachment's
 # own multi-root support tries each in order, so a config can reference
-# either kind of real file interchangeably.
-_FILES_ROOT = [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+# either kind of real file interchangeably. A function, not a module-level
+# constant, and passed to PromptConfigRouter as-is (not called here):
+# PromptConfigRouter calls it fresh on every request, the same reason its
+# own config_dir argument is a getter - a test that monkeypatches
+# prompt_paths.ATTACHMENT_UPLOADS_DIR for one test (see tests/conftest.py's
+# own isolated_attachment_uploads_dir) needs this rebuilt from that same
+# module reference on every call, not once at import time.
+def _files_root() -> list:
+    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 
 # The real context keys generate()/compare() themselves supply for a real
-# call (see generation.py's own `context_values` inside generate(),
+# call (see generation.py's own context_values inside generate(),
 # comparison.py's own inside _load_and_resolve()) - kept here, not
 # re-derived, so a dry-run validation or a static preview checks against
 # the same shape a real call actually uses. If either of those two
 # functions' own context keys ever change, this mapping needs updating
 # too - there's no single source of truth to read it from otherwise,
-# since generation_toolkit.prompt_config itself is deliberately generic
-# and has no concept of "psm_agent's own context keys."
+# since generation_toolkit itself is deliberately generic and has no
+# concept of "psm_agent's own context keys."
 _SAMPLE_CONTEXT_VALUES: dict[str, dict[str, str]] = {
     "generation": {"pim_ecore": "", "psm_docs": ""},
     "comparison": {"psm_metamodel": "", "serialized_docs": ""},
 }
 
 
-class PromptConfigBody(BaseModel):
-    # No system_prompt field: a config's own first "text" attachment IS
-    # the system message (see generation_toolkit.prompt_config.resolution's
-    # own resolve_for_call), built and edited the same way as every other
-    # attachment, not a separate required field a human can't remove or
-    # reorder.
-    attachments: list[dict]
-    learned_constraints: list[str] = []
-    label: str | None = None
-    platform_hints: list[str] = []
-
-
-class LearnedConstraintsBody(BaseModel):
-    constraints: list[str]
-
-
-class RemoveLearnedConstraintBody(BaseModel):
-    constraint: str
-
-
-def _sample_context(name: str) -> dict[str, str]:
+def _context_for(name: str) -> dict[str, str]:
     if name not in _SAMPLE_CONTEXT_VALUES:
         raise HTTPException(status_code=404, detail=f"unknown prompt config name {name!r}")
     return _SAMPLE_CONTEXT_VALUES[name]
 
 
-@router.get("/{name}/presets")
-def list_presets_endpoint(name: str):
-    _sample_context(name)
-    return {"presets": presets.list_preset_metadata(prompt_paths.PROMPT_CONFIG_DIR, name)}
+_prompt_config = PromptConfigRouter(lambda: prompt_paths.PROMPT_CONFIG_DIR, _files_root, _context_for)
+router = _prompt_config.router
 
-
-@router.get("/{name}/{preset}")
-def get_config_endpoint(name: str, preset: str):
-    _sample_context(name)
-    try:
-        return storage.load_config(prompt_paths.PROMPT_CONFIG_DIR, name, preset)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.put("/{name}/{preset}")
-def save_config_endpoint(name: str, preset: str, body: PromptConfigBody):
-    context_values = _sample_context(name)
-    try:
-        return storage.save_config(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.model_dump(), context_values, _FILES_ROOT
-        )
-    except storage.PromptConfigValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-
-
-@router.get("/{name}/{preset}/history")
-def history_endpoint(name: str, preset: str):
-    _sample_context(name)
-    return {"versions": history.list_history(prompt_paths.PROMPT_CONFIG_DIR, name, preset)}
-
-
-@router.get("/{name}/{preset}/diff")
-def diff_endpoint(name: str, preset: str, a: str, b: str):
-    _sample_context(name)
-    try:
-        return history.diff_versions(prompt_paths.PROMPT_CONFIG_DIR, name, preset, a, b)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.post("/{name}/{preset}/restore/{version}")
-def restore_endpoint(name: str, preset: str, version: str):
-    context_values = _sample_context(name)
-    try:
-        return history.restore_version(prompt_paths.PROMPT_CONFIG_DIR, name, preset, version, context_values, _FILES_ROOT)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.post("/{name}/{preset}/revert")
-def revert_endpoint(name: str, preset: str):
-    context_values = _sample_context(name)
-    try:
-        return history.revert_to_default(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.post("/{name}/{preset}/promote-to-default")
-def promote_to_default_endpoint(name: str, preset: str):
-    _sample_context(name)
-    try:
-        return history.promote_live_to_default(prompt_paths.PROMPT_CONFIG_DIR, name, preset)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.get("/{name}/{preset}/check-references")
-def check_references_endpoint(name: str, preset: str):
-    context_values = _sample_context(name)
-    try:
-        broken = references.check_references(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-    return {"broken": broken}
-
-
-@router.post("/{name}/{preset}/learned-constraints")
-def add_learned_constraints_endpoint(name: str, preset: str, body: LearnedConstraintsBody):
-    context_values = _sample_context(name)
-    try:
-        return learned_constraints.add_learned_constraints(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraints, context_values, _FILES_ROOT
-        )
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.delete("/{name}/{preset}/learned-constraints")
-def remove_learned_constraint_endpoint(name: str, preset: str, body: RemoveLearnedConstraintBody):
-    context_values = _sample_context(name)
-    try:
-        return learned_constraints.remove_learned_constraint(
-            prompt_paths.PROMPT_CONFIG_DIR, name, preset, body.constraint, context_values, _FILES_ROOT
-        )
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.post("/{name}/{preset}/preview")
-def preview_endpoint(name: str, preset: str):
-    """The exact text a real call for this config would send the LLM,
-    without spending a real call: generation_toolkit's own
-    resolution.resolve_for_call already resolves attachments, derives the
-    real system message from the config's own first "text" attachment, and
-    folds in learned_constraints identically for any (name, preset), so
-    this endpoint needs no per-mode branching of its own. `attachments`
-    carries each body attachment's own real resolved content, keyed by its
-    id (the same id resolve_attachments() already uses) - resolution
-    already reads a "file"/"context" attachment's real content to build
-    user_content below, this just also hands that same already-resolved
-    text back per-attachment, so a UI can show what a file/context chip
-    actually contains without a second endpoint or its own path/key
-    validation."""
-    context_values = _sample_context(name)
-    try:
-        config, parts = resolution.resolve_for_call(prompt_paths.PROMPT_CONFIG_DIR, name, preset, context_values, _FILES_ROOT)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-    prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
-    return {
-        "system_prompt": config["system_prompt"],
-        "user_content": rendering.render_user_content(config, prompt),
-        "attachments": parts,
-    }
+# Re-exported under the same names this service's own tests already import
+# directly (see tests/routes/test_prompt_config.py) - each is a bound
+# method on the shared router above, not a duplicate implementation.
+list_presets_endpoint = _prompt_config.list_presets_endpoint
+get_config_endpoint = _prompt_config.get_config_endpoint
+save_config_endpoint = _prompt_config.save_config_endpoint
+history_endpoint = _prompt_config.history_endpoint
+diff_endpoint = _prompt_config.diff_endpoint
+restore_endpoint = _prompt_config.restore_endpoint
+revert_endpoint = _prompt_config.revert_endpoint
+promote_to_default_endpoint = _prompt_config.promote_to_default_endpoint
+check_references_endpoint = _prompt_config.check_references_endpoint
+add_learned_constraints_endpoint = _prompt_config.add_learned_constraints_endpoint
+remove_learned_constraint_endpoint = _prompt_config.remove_learned_constraint_endpoint
+preview_endpoint = _prompt_config.preview_endpoint
