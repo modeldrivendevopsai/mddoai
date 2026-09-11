@@ -56,17 +56,23 @@ public class EMFUtils {
     // (real caller: AcceleoValidator.validate(String, String), fed by
     // ai/validator_agent's own /validate/acceleo metamodel_ecore field,
     // itself fed unmodified from ai/acceleo_agent's own POST /generate
-    // request body). Two independent EMF behaviors need hardening against
+    // request body). Two independent EMF behaviors are hardened against
     // that, not just one: (1) plain XML parsing of a DOCTYPE with an
     // external entity can make this JVM fetch an arbitrary local file or
     // remote URL (classic XXE - EMF's own resource loading applies no
     // parser hardening by default, a real, disclosed gap, see
-    // eclipse-emf/org.eclipse.emf#10); (2) entirely separately, EMF's own
-    // ordinary cross-document proxy resolution (resolveAll() below) will
-    // happily dereference an http(s) href in a well-formed cross-reference
-    // to wherever it points, with no XML entities involved at all. Both are
-    // disabled below; only same-file references still resolve, which is
-    // all a self-contained generated metamodel ever legitimately needs.
+    // eclipse-emf/org.eclipse.emf#10), disabled outright below; (2)
+    // entirely separately, EMF's own ordinary cross-document proxy
+    // resolution (resolveAll() below) will happily dereference an http(s)
+    // href in a well-formed cross-reference to wherever it points -
+    // NetworkBlockingURIHandler below closes that for remote (network)
+    // schemes specifically. It does not attempt to also confine local
+    // filesystem cross-references (a `file:` href, or a relative one that
+    // resolves against this same container's own disk) - this deployment
+    // is local-only, not a multi-tenant service handling content from
+    // untrusted third parties, so that narrower guarantee hasn't been
+    // needed; see NetworkBlockingURIHandler's own comment for the exact
+    // scheme this covers.
     public static EPackage loadEPackage(String ecoreFilePath) {
         ResourceSet resourceSet = new ResourceSetImpl();
         resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap()
