@@ -68,13 +68,43 @@ services:
       - AI_LAYER_URL=http://ai-layer:8000
       - RETRIEVAL_URL=http://retrieval:8010
       - SERIALIZATION_AGENT_URL=http://serialization-agent:8060
+      - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+    volumes:
+      # Mounted at the exact path integration_runner/stages/_validation.py's
+      # own RUNS_DIR resolves to inside this container (this Dockerfile's own
+      # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
+      # relative to that, not to the repo-relative path it looks like in the
+      # Python source). Shared with validator-agent's own mount of the same
+      # volume below: this is where every stage's persist_attempt() writes
+      # (the real artifact + result.json + manifest.json), and where
+      # validator-agent's own compiled output (Ecore's codegen classes, ATL's
+      # .asm, Acceleo's .emtl - all real, reusable pipeline artifacts per
+      # this project's stated direction, not just validation debris) lands
+      # too. For atl/acceleo/psm, that compiled output nests one level inside
+      # the exact attempt directory persist_attempt() writes its own artifact
+      # and result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
+      # <uuid>/), because those stages reserve their own attempt directory
+      # before validator-agent ever gets called and forward both their own
+      # stage name and that attempt's name as the stage/attempt fields (see
+      # stages/atl/agent.py, stages/acceleo/agent.py, stages/psm/agent.py,
+      # and validator_runner.py's own _scoped_output_env()) - for psm
+      # specifically, integration_runner reserves the attempt directory and
+      # forwards those two fields over HTTP to psm_agent, which just carries
+      # them through its own real generate-validate-retry loop unchanged;
+      # pim only ever validates reflectively today, so it never scopes by
+      # run_id, stage, or attempt at all. Get this path wrong and the two
+      # services silently write to different, unrelated directories -
+      # verify it against RUNS_DIR itself before changing either side.
+      - pipeline-runs:/app/integration_runner/runs
     depends_on:
       ai-layer:
         condition: service_healthy
       retrieval:
         condition: service_healthy
       serialization-agent:
+        condition: service_healthy
+      psm-agent:
         condition: service_healthy
       validator-agent:
         condition: service_healthy
@@ -91,11 +121,13 @@ services:
     expose:
       - "8030"
 
-  # Own container, same reasoning as pim-agent. Not wired into the live
-  # pipeline's psm stage yet (still a placeholder LLM prompt), kept callable
-  # via POST /compare for future integration. Needs read access to meta_models/ (the real
-  # .ecore PSM metamodels, outside ai/ entirely) — mounted read-only rather
-  # than copied into the image, so a metamodel change doesn't need a rebuild.
+  # Own container: the real psm stage's whole capability, POST /psm (routes
+  # between generating a new metamodel and checking an existing one for
+  # drift, see psm_agent/psm_flow.py). Calls pim-agent for grounding and
+  # validator-agent to check a freshly generated .ecore loads in EMF before
+  # returning it. Needs read access to meta_models/ (the real .ecore PSM
+  # metamodels, outside ai/ entirely) — mounted read-only rather than copied
+  # into the image, so a metamodel change doesn't need a rebuild.
   psm-agent:
     build:
       context: .
@@ -103,10 +135,16 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - META_MODELS_DIR=/meta_models
+      - PIM_AGENT_URL=http://pim-agent:8030
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
     volumes:
       - ../meta_models:/meta_models:ro
     depends_on:
       ai-layer:
+        condition: service_healthy
+      pim-agent:
+        condition: service_healthy
+      validator-agent:
         condition: service_healthy
     expose:
       - "8040"
@@ -367,9 +405,9 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313) and .atl (issue #314). Named validator-agent, not
-  # ecore-validator: #315 (.mtl) is expected to add another sibling
-  # /validate/<type> route to this same service later.
+  # .ecore (issue #313), .atl (issue #314), and .mtl/Acceleo (issue #315).
+  # Named validator-agent, not ecore-validator: a future validator type would
+  # add another sibling /validate/<type> route to this same service.
   validator-agent:
     build:
       context: ./validator_agent
@@ -378,10 +416,34 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
+      # Writable, shared with integration-runner's own runs/ mount above (the
+      # same named volume, mounted at each service's own real path - see that
+      # mount's own comment for why the paths differ but the storage doesn't).
+      # EcoreValidator's codegen path, AtlValidator, and AcceleoValidator all
+      # persist their real compiled output here instead of deleting it (see
+      # each one's own OUTPUT_ROOT constant), scoped under a per-run_id
+      # subfolder when the caller has one, and two levels deeper still under
+      # the caller's own stage/attempt subfolders when it has reserved one
+      # (validator_runner.py's own _scoped_output_env(), given run_id, stage,
+      # and attempt together by atl_stage/acceleo_stage's own direct calls
+      # here, or by psm_agent's own generation code, using the same two
+      # values stages/psm/agent.py reserved and forwarded to it over HTTP -
+      # see stages/_validation.py's own reserve_attempt_dir()). That nests the
+      # compiled artifact inside the exact attempt_N/ directory
+      # integration_runner's own persist_attempt() writes its artifact and
+      # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
+      # <uuid>/), not beside it. Separate from the read-only main-build-output mount above
+      # (unrelated build artifacts) - a distinct volume, not a subpath of it,
+      # so a bad write here can never touch the real build output. No
+      # automatic expiry/cleanup of old validation runs yet - a known,
+      # documented limitation, not attempted here since nobody's asked for a
+      # retention policy.
+      - pipeline-runs:/runs
     environment:
       - LOG_LEVEL=INFO
       - VALIDATOR_TIMEOUT_SECONDS=60
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
+      - VALIDATOR_OUTPUT_DIR=/runs
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
@@ -391,3 +453,4 @@ services:
 volumes:
   main-gradle-cache:
   main-build-output:
+  pipeline-runs:

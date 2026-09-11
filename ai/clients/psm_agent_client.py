@@ -1,0 +1,49 @@
+"""HTTP client for psm_agent: the real psm stage's whole capability (routes
+between generation and existing-platform comparison internally, see
+psm_agent/psm_flow.py). No fallback on failure, matching this repo's other
+client modules. Generous timeout: a real call can run the Generation Agent's
+multi-round regenerate loop, each round doing one real LLM call plus one real
+validator-agent call."""
+import os
+
+import httpx
+
+PSM_AGENT_URL = os.environ.get("PSM_AGENT_URL", "http://localhost:8040")
+PSM_TIMEOUT = float(os.environ.get("PSM_TIMEOUT", "960.0"))
+
+
+def run_psm(
+    platform_description: str,
+    pim_artifact: str,
+    platform_docs: str,
+    constraints: list[str] | None = None,
+    model: str | None = None,
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+) -> dict:
+    """POST psm_agent's real /psm: returns either a generation-mode result
+    ({"mode": "generation", "artifact", "prompt", "validation", "rounds"}) or
+    a knowledge-mode result ({"mode": "knowledge", "artifact", "gaps", "prompt"}).
+    stage/attempt name the calling stage ("psm") and its own reserved attempt
+    directory - forwarded all the way through to generation.py's own real
+    validator-agent call, so a generation-mode call's real compiled Ecore
+    classes nest inside that same attempt directory instead of landing as an
+    unlinked sibling of it (see stages/psm/agent.py's own reserve_attempt_dir()
+    call, the same pattern stages/atl/agent.py and stages/acceleo/agent.py use)."""
+    response = httpx.post(
+        f"{PSM_AGENT_URL}/psm",
+        json={
+            "platform_description": platform_description,
+            "pim_artifact": pim_artifact,
+            "platform_docs": platform_docs,
+            "constraints": constraints,
+            "model": model,
+            "run_id": run_id,
+            "stage": stage,
+            "attempt": attempt,
+        },
+        timeout=PSM_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()

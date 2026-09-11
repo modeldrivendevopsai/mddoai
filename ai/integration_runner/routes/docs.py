@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from integration_runner import runs
+from integration_runner.pipeline import BusyError
 from integration_runner.stages.docs import actions
 
 router = APIRouter(prefix="/docs")
@@ -38,14 +39,16 @@ def extend_endpoint(request: ExtendRequest):
     run_stage_async() protects with busy for its own background thread. A
     concurrent /rerun or /review approval starting a fresh stage run while
     this fetch is still in flight would otherwise race on last_output with
-    no error at all, silently losing one side's update."""
+    no error at all, silently losing one side's update. claim_busy() makes
+    that check-and-hold one atomic step, the same as every stage start."""
     run = runs.current()
-    if run.busy:
+    try:
+        run.claim_busy()
+    except BusyError:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    run.busy = True
     try:
         return actions.extend_with_page(run, request.url, force_refresh=request.force_refresh)
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
-        run.busy = False
+        run.release_busy()

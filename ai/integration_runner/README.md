@@ -14,9 +14,12 @@ Gets its own real capabilities from `ai-layer` (`POST /chat`, for the `generatio
 LLM completion, the one remaining placeholder that still calls an LLM), `retrieval` (`POST
 /fetch`/`POST /fetch/page`, for the docs stage's real crawl and the docs stage's extra add-on
 action), `serialization_agent` (`POST /serialize`, for the serialization stage's concept
-labeling — its own separate service, not a bundled import), and `validator-agent` (`POST
-/validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`psm`, `atl`, and `acceleo`
-stages' own real validation of their currently-mock DSL output).
+labeling — its own separate service, not a bundled import), `psm_agent` (`POST /psm`, for the
+`psm` stage's own real generation-or-drift-check, routed automatically by platform — see
+[`ai/psm_agent`](../psm_agent)), and `validator-agent` (`POST
+/validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`atl`/`acceleo` stages' own
+real validation of their currently-mock DSL output, and internally by `psm_agent` itself
+when generating a new metamodel).
 
 ## Module layout
 
@@ -32,9 +35,11 @@ stages' own real validation of their currently-mock DSL output).
   advancement, called from every state-transition method for every real event type this run
   produces.
 - **`runs.py`** — the process-wide run registry: which run is current (`current()`), the
-  history of every run this process has seen (`list_runs()`, `get_run_events()`), and the two
+  history of every run this process has seen (`list_runs()`, `get_run_events()`), and the
   genuinely compound operations that need registry-level context (`reset_pipeline()`,
-  `resume_run()`, `start_pipeline()`). Deliberately doesn't duplicate any of
+  `resume_run()`, `start_pipeline()` — serialized against each other by a module-level lock so
+  two concurrent requests can't each swap in a different current run). Deliberately doesn't
+  duplicate any of
   `IntegrationRun`'s own methods as its own proxy functions — callers fetch the real instance
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
@@ -60,8 +65,9 @@ routes/docs.py ──imports──> runs.py, stages/docs/
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
-stages/pim/, psm/, atl/, acceleo/ (agent.py)
+stages/pim/, atl/, acceleo/ (agent.py)
     ──imports──> clients.validator_agent_client, stages/_validation.py
+stages/psm/ (agent.py) ──imports──> clients.psm_agent_client, stages/_validation.py
 stages/generation/ (agent.py) ──imports──> clients.ai_layer_client, stages/_shared.py
 stages/docs/ (agent.py, actions.py) ──imports──> clients.retrieval_client
 stages/serialization/ (agent.py) ──imports──> clients.serialization_agent_client
@@ -101,25 +107,38 @@ stage_agents = {
   real, separate [`ai/serialization_agent`](../serialization_agent) service's `POST /serialize`
   via `clients/serialization_agent_client.py` — a multi-step extraction/labeling pipeline, its own
   container since it makes its own outbound call to `pim_agent`.
-- **`stages/pim/agent.py`**, **`psm/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`** are
-  still placeholders standing in for future real per-stage agents — not yet the real MDE
-  toolchain — but each returns fixed mock DSL content in its real target format (Ecore for
-  `pim`/`psm`, `.atl` for `atl`, `.mtl` for `acceleo`) and validates it for real against
-  `validator-agent`'s `POST /validate/ecore`/`/validate/atl`/`/validate/acceleo` via
-  `clients/validator_agent_client.py`, persisting the artifact and result to disk either way
-  (`stages/_validation.py`, see [Persisted validation attempts](#persisted-validation-attempts)
-  below). Unconditional, unlike `docs_stage`'s own opt-in mock: there's no real
-  extraction/transformation pipeline to fall back to yet for any of these four, so they always
-  return mock content, no toggle, and ignore their input context (a correction has nothing to
-  act on against fixed content). These placeholder names are deliberately *not* `pim_agent`/
-  `psm_agent`: those names belong to the real, separate
-  [`ai/pim_agent/`](../pim_agent)/[`ai/psm_agent/`](../psm_agent) services — the only current
-  caller of either is `serialization_agent`, for its own concept-labeling, unrelated to the
-  `pim`/`psm` stages here.
+- **`stages/pim/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`** are still placeholders
+  standing in for future real per-stage agents — not yet the real MDE toolchain — but each
+  returns fixed mock DSL content in its real target format (Ecore for `pim`, `.atl` for `atl`,
+  `.mtl` for `acceleo`) and validates it for real against `validator-agent`'s `POST
+  /validate/ecore`/`/validate/atl`/`/validate/acceleo` via `clients/validator_agent_client.py`,
+  persisting the artifact and result to disk either way (`stages/_validation.py`, see
+  [Persisted validation attempts](#persisted-validation-attempts) below). Unconditional, unlike
+  `docs_stage`'s own opt-in mock: there's no real extraction/transformation pipeline to fall back
+  to yet for any of these three, so they always return mock content, no toggle, and ignore their
+  input context (a correction has nothing to act on against fixed content). These placeholder
+  names are deliberately *not* `pim_agent`: that name belongs to the real, separate
+  [`ai/pim_agent/`](../pim_agent) service — its callers today are `serialization_agent` (its own
+  concept-labeling) and `psm_agent` (concept grounding on the generation path), neither of them
+  the `pim` stage here.
+- **`stages/psm/agent.py`** is the one real stage among these four: a thin proxy to the real,
+  separate [`ai/psm_agent`](../psm_agent) service's `POST /psm`, which routes automatically
+  between generating a brand-new PSM metamodel (no existing `.ecore` for the target platform yet)
+  and comparing the platform's docs against an existing `.ecore` for drift (a known platform) —
+  see `ai/psm_agent/README.md` for what each path actually does. Unlike the three placeholders
+  above, it reads its real input context: `context["pim_output"]` (no fallback — there's no
+  reasonable stand-in PIM artifact for a caller that skips straight to `psm`), `context["docs_output"]`
+  (falling back to `context["platform_description"]`), and its own recorded constraints, and
+  forwards all of them to `psm_agent` via `clients/psm_agent_client.py`. It still persists its own
+  artifact and result to disk via `stages/_validation.py`, but deliberately does not call
+  `raise_if_invalid()` on a generation-mode failure — see its own module docstring for why, and
+  [Persisted validation attempts](#persisted-validation-attempts) below.
 - **`stages/generation/agent.py`** is the one remaining LLM-prompt placeholder, a plain
   `(context: dict) -> str` call via `clients/ai_layer_client.py`, not yet a real generation step.
-- **`stages/_validation.py`** — `persist_attempt()`/`raise_if_invalid()`, the real thing
-  `pim`/`psm`/`atl`/`acceleo` share (see [Persisted validation attempts](#persisted-validation-attempts)).
+- **`stages/_validation.py`** — `persist_attempt()`, which `pim`/`psm`/`atl`/`acceleo` all share,
+  and `raise_if_invalid()`, which only `pim`/`atl`/`acceleo` call unconditionally — `psm`'s own
+  generation-mode failure deliberately stays a normal completed result instead (see
+  [Persisted validation attempts](#persisted-validation-attempts)).
 - **`stages/_shared.py`** — `constraints_note()`, which only `stages/generation/agent.py` still
   uses, at the `stages/` root rather than duplicated per folder. `stages/docs/agent.py` doesn't
   use it either (see its own module docstring for why).
@@ -138,9 +157,10 @@ placeholders, split into its own file when it went real, then into its own folde
 that one folder's `agent.py`, keep its function name and signature the same, done — nothing
 elsewhere in `integration_runner` needs to change, since `pipeline.py` only ever reads
 `stages.stage_agents[stage]`, never a specific stage's own module. This isn't speculative
-infrastructure: every one of the seven stages is real today — `pim`/`psm`/`atl`/`acceleo` run a
-real validator-agent call against their own (still mock) content, `generation` still calls an
-LLM prompt — this is just where the code for each one lives, shaped so the next stage that grows
+infrastructure: every one of the seven stages is real today — `pim`/`atl`/`acceleo` run a real
+validator-agent call against their own (still mock) content, `psm` is a real proxy to
+`psm_agent`'s own real generation/comparison, `generation` still calls an LLM prompt — this is
+just where the code for each one lives, shaped so the next stage that grows
 its own extra tool (matching `docs`'s own `actions.py`) is a new sibling file, not a
 restructuring.
 
@@ -159,39 +179,77 @@ restructuring.
   model, and forwards both to the real `serialization_agent` service's `POST /serialize` via
   `clients/serialization_agent_client.py`. No constraints support today: this stage has no
   correction-taking parameter of its own to fold one into.
-- **`pim_stage(context)`** / **`psm_stage(context)`** — ignore their input context (fixed mock
-  content has nothing to prefer/fall back between). Each returns its own fixed mock Ecore
-  content (a PIM-level one for `pim`, a per-platform-realization-shaped one for `psm`) after
-  validating it for real via `validator_agent_client.validate_ecore()`.
+- **`pim_stage(context)`** — ignores its input context (fixed mock content has nothing to
+  prefer/fall back between). Returns its own fixed mock PIM-level Ecore content after validating
+  it for real via `validator_agent_client.validate_ecore()`.
+- **`psm_stage(context)`** — reads `context["pim_output"]` (no fallback), `context["docs_output"]`
+  (falling back to `context["platform_description"]`), and its own recorded constraints, and
+  forwards them all to `psm_agent_client.run_psm()`, which routes to a real generation call (a
+  new platform) or a real comparison call (an existing one) — see [`ai/psm_agent`](../psm_agent)
+  for what that actually does. Returns `(artifact, extra)`, where `extra` carries the routing
+  mode and, on the generation path, the real validation/round-count data — see
+  [ai/CLAUDE.md](../CLAUDE.md)'s note on `run_stage()`'s tuple return for why this stage alone
+  needs it. Reserves its own attempt directory first, the same as `atl_stage`/`acceleo_stage`
+  below, and forwards its own stage name and that attempt's name to `run_psm()` too: on the
+  generation path, `psm_agent`'s own real generate-validate-retry loop carries those two values
+  through unchanged into its own validator-agent call, once per regeneration round, so every
+  round's real compiled Ecore classes nest inside that one attempt directory instead of landing
+  as orphaned siblings under the run root.
 - **`atl_stage(context)`** — ignores its input context. Returns fixed mock `.atl` source after
-  validating it for real via `validator_agent_client.validate_atl()`.
+  validating it for real via `validator_agent_client.validate_atl()`, forwarding `run_id` so the
+  real compiled `.asm` bytecode that call produces lands scoped under this run (see
+  [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `pipeline-runs` volume).
 - **`acceleo_stage(context)`** — ignores its input context. Returns fixed mock `.mtl` source
-  after validating it for real via `validator_agent_client.validate_acceleo()`.
+  after validating it for real via `validator_agent_client.validate_acceleo()`, forwarding
+  `run_id` the same way `atl_stage` does, for the real compiled `.emtl` module that call produces.
 - **`gen_stage(context)`** — reads `context["psm_output"]`, `context["atl_output"]`, and
   `context["acceleo_output"]`. Produces a final, concise summary of the whole pipeline plan.
 
 ### Persisted validation attempts
 
 `pim_stage`/`psm_stage`/`atl_stage`/`acceleo_stage` each persist their own artifact and
-validator-agent result to disk before returning or raising — a failed attempt is exactly the
-record this exists to keep, not something to skip on failure. `stages/_validation.py`:
+validation result to disk before returning (or, for `pim`/`atl`/`acceleo`, before raising) — a
+failed attempt is exactly the record this exists to keep, not something to skip on failure. For
+`pim`/`atl`/`acceleo` that result comes from a direct `validator-agent` call; for `psm` it comes
+from `psm_agent`'s own response (real `validator-agent` output on the generation path, a
+trivial always-valid record on the knowledge/comparison path, since there's nothing to validate
+against an existing `.ecore`). `stages/_validation.py`:
 
-- **`persist_attempt(run_id, stage, filename, content, result)`** — writes
+- **`persist_attempt(run_id, stage, filename, content, result, attempt_dir=None)`** — writes
   `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, synchronously,
   before the caller decides pass/fail, and appends this same attempt to `runs/<run_id>/manifest.json`
-  (below). Never overwrites a prior attempt.
-- **`_next_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
+  (below). Never overwrites a prior attempt. `attempt_dir` lets a caller that already reserved its
+  own attempt directory (see `reserve_attempt_dir` below) hand it in directly instead of a second
+  one being reserved; omitted, it reserves its own exactly as it always has.
+- **`reserve_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
   create `attempt_1`, `attempt_2`, ... in turn (`Path.mkdir()`'s default `exist_ok=False` already
   raises `FileExistsError` atomically, backed by the OS's own atomic `mkdir(2)`), not by listing
   the directory first and trusting that snapshot — this service's real mutating endpoints are
   sync routes dispatched through FastAPI's own threadpool, so two concurrent callers computing
   "next" from the same stale listing is a real, reachable race, not just a theoretical one; trying
-  each candidate and catching the collision is what makes this genuinely atomic.
+  each candidate and catching the collision is what makes this genuinely atomic. Public (not
+  `persist_attempt`'s own private helper) so `atl_stage`/`acceleo_stage`/`psm_stage` can call it
+  *before* calling out to `validator_agent_client` (`psm_stage` via `psm_agent_client.run_psm()`
+  instead, since `psm_agent`'s own generation code is what actually calls validator-agent): that
+  call is what triggers `AtlValidator`'s/`AcceleoValidator`'s/`EcoreValidator`'s own real compiled
+  output write, and that write needs the real stage name and attempt number to nest inside, not
+  land beside it as an unrelated sibling (or, missing the stage segment, collide with another
+  stage's own same-numbered attempt). See
+  [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
+- **`reserved_attempt(run_id, stage)`** — a context manager wrapping `reserve_attempt_dir()` for
+  exactly the pattern above: reserve the directory, then make a fallible downstream call, then
+  `persist_attempt()`. If that call raises before `persist_attempt()` recorded the attempt (a
+  `validator-agent` timeout or restart, a network blip), the reserved directory is removed again,
+  so the failure does not strand an unlisted `attempt_N/` on disk or push the next real attempt
+  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty",
+  because `psm`'s codegen validation nests its own compiled output under the directory once per
+  retry round before any result is persisted. A recorded attempt is kept, so a normal validation
+  failure still keeps its full record. Yields `None` when there is no `run_id`.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
   already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never
   called for an infra failure, which `validator_agent_client` itself already raises before
-  `persist_attempt` runs.
+  `persist_attempt` runs (handled by `reserved_attempt` above).
 
 `runs/` sits at this package's own root, sibling to `stages/`, gitignored — in-memory run state's
 on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting
@@ -212,14 +270,31 @@ because this service runs single-process (`integration_runner/Dockerfile`'s own 
 `--workers` flag) — a cross-process file lock would be solving a problem this deployment doesn't
 have.
 
-**Known, deliberately out of scope:** `IntegrationRun.busy` (`pipeline.py`) is a plain unguarded
-`bool`, checked then set across two unsynchronized steps spanning a route handler and
-`run_stage_async()`. Since every real mutating endpoint is a sync route dispatched through
-FastAPI's own threadpool, two near-simultaneous requests to the same endpoint really can both
-pass that check before either sets `busy = True`, starting two stage runs against the same run
-concurrently — a correctness issue broader than file naming (two operations racing against the
-same run, not just a folder collision), and a separate, not-yet-fixed problem from the
-attempt-numbering race above.
+**Concurrent mutating requests.** Every mutating endpoint keeps a fast-path `if run.busy` check
+(a double-click, a client retry, the orchestrator and a human both acting could otherwise both
+pass it and both start a stage against the same run, racing on `last_output` / `last_context` /
+`current_stage_index`), but that check alone isn't atomic. `IntegrationRun.claim_busy()` is the
+real atomic check-and-set, under a lock: the loser gets a `BusyError`, which the handler turns
+into the same `409`, with no state half-changed. `run_stage_async()` (the one path `/start`,
+`/rerun`, and `/stage/run` all start a stage through) and `/docs/extend` both call it directly.
+`/review` claims it for every outcome, not just one that starts a stage: two near-simultaneous
+reviews of the same stage (a double-click, a client retry) must not both mutate state, so a
+rejection recorded twice doesn't double the correction, and approving the final stage twice
+doesn't double-advance past it, even though neither one spawns a thread on its own. It's claimed
+before `record_review()` mutates anything, so an approval can never record-and-advance and then
+fail to start, and released again once `record_review()` returns unless that outcome started a
+stage, in which case the background worker releases it when the stage finishes.
+
+`reset_pipeline()`/`resume_run()` (`/reset`, `/resume/{run_id}`, and `start_pipeline()`'s own
+reset-when-not-blank branch) claim and immediately release busy on the run being replaced before
+swapping `runs._default`, the same atomic backstop applied to reassigning which run is current
+rather than to starting a stage. Without it, a run claimed busy by another request in the gap
+between the route's own pre-flight check and the swap would be silently orphaned mid-execution,
+with nothing pointing at it as current anymore. `start_pipeline()` claims busy on the current run
+before deciding whether to reuse it or reset it, not just before starting the stage: `busy` flips
+true (inside a concurrent `claim_busy()` elsewhere) strictly before that caller's first event is
+ever recorded, so reading `events` to make that decision without claiming busy first could still
+mistake an already-claimed run for a blank slate.
 
 ### Reporting a stage result
 
@@ -285,12 +360,15 @@ narration — recording just appends the raw fact and returns it. Turning that i
 human-readable comment is `ai/orchestrator/chat_log.py`'s job, done by polling `GET /events`,
 never by this module calling out to anything.
 
-`run_stage_async(context)` is the one way a stage ever starts running: spawns a real background
-thread, records `call_started`, runs the stage, then records `call_completed`/`call_failed`, and
-returns immediately. `busy` is set to `True` synchronously, before the thread even starts, so
-`/review`, `/rerun`, `/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` can all
-safely check it and return `409` if a stage is genuinely still running — a guard against a
-double-click, not a task queue.
+`run_stage_async(context)` is the one way a stage ever starts running: it claims the run busy
+(`claim_busy()`, raising `BusyError` if a stage is already in flight), spawns a real background
+thread that records `call_started`, runs the stage, records `call_completed`/`call_failed` and
+releases the claim, and returns immediately (see the
+[Persisted validation attempts](#persisted-validation-attempts) section above for the full
+atomic-claim picture, including `/review`'s own claim and `/reset`/`/resume`'s). `/review`,
+`/rerun`, `/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` all keep a fast-path
+`if busy` check and return `409` when a stage is genuinely still running — a guard against a double-click,
+not a task queue.
 
 ### The human review loop
 
@@ -351,8 +429,9 @@ pip install -r requirements.txt
 cp .env.example .env
 # AI_LAYER_URL defaults to http://localhost:8000, RETRIEVAL_URL to
 # http://localhost:8010, SERIALIZATION_AGENT_URL to http://localhost:8060,
-# VALIDATOR_AGENT_URL to http://localhost:8020, if unset — override only
-# if any of them run somewhere else.
+# VALIDATOR_AGENT_URL to http://localhost:8020, PSM_AGENT_URL to
+# http://localhost:8040, if unset — override only if any of them run
+# somewhere else.
 ```
 
 ## Run
@@ -405,15 +484,30 @@ touches this package's real `runs/` directory.
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_placeholder_stages.py`** — the one remaining LLM-prompt placeholder agent,
   `stages/generation/agent.py`.
-- **`tests/stages/test_mock_validated_stages.py`** — `pim`/`psm`/`atl`/`acceleo`'s own mock
-  content + validation + persistence, `validator_agent_client` mocked.
+- **`tests/stages/test_mock_validated_stages.py`** — `pim`/`atl`/`acceleo`'s own mock content +
+  validation + persistence, `validator_agent_client` mocked. `psm` isn't part of this file: its
+  real behavior doesn't fit this shape — see `tests/stages/test_psm_stage.py` below instead.
 - **`tests/stages/test_mock_validated_stages_real_validator.py`** — the real end-to-end
-  exception: no mocking of `validator_agent_client`, a real HTTP call to a real running
-  `validator-agent`. Auto-skips when it isn't reachable (`docker compose up validator-agent`, or
-  directly via `uvicorn` against a built `main/` distribution — see
+  exception for `pim`/`atl`/`acceleo`: no mocking of `validator_agent_client`, a real HTTP call
+  to a real running `validator-agent`. Auto-skips when it isn't reachable (`docker compose up
+  validator-agent`, or directly via `uvicorn` against a built `main/` distribution — see
   [`ai/validator_agent/README.md`](../validator_agent/README.md)).
+- **`tests/stages/test_psm_stage.py`** — the real `psm_stage` agent (`stages/psm/agent.py`) as a
+  thin proxy: `psm_agent_client.run_psm()` mocked, asserting the `(artifact, extra)` tuple shape,
+  the input-context precedence (`pim_output` over `docs_output` over `platform_description`,
+  preserving the placeholder agent's own already-tested precedence), that constraints/model are
+  forwarded, and that it reserves its own attempt directory and forwards its own stage name plus
+  that attempt's name the same way `atl_stage`/`acceleo_stage` do (a real directory created on
+  disk, not just a mocked call, and the second reserved attempt name on a retry). `test_manifest.py`
+  (below) covers its `persist_attempt()` call instead. The real generation/comparison logic itself
+  has its own tests in `ai/psm_agent/tests/`.
 - **`tests/stages/test_validation.py`** — `stages/_validation.py`'s own `persist_attempt()`/
   `raise_if_invalid()` contract, independent of any one stage.
+- **`tests/stages/test_manifest.py`** — `runs/<run_id>/manifest.json`'s own contract: every
+  `persist_attempt()` call across stages (`pim`, `psm`, `atl`, `acceleo`) appends one entry in
+  order, a failed attempt still lands an entry, timestamps advance, and concurrent updates don't
+  lose entries. `psm_agent_client.run_psm()` and `validator_agent_client`'s validate functions
+  are both mocked, per stage.
 - **`tests/stages/test_stages_registry.py`** — `stages/__init__.py`'s own `stage_agents`/
   `STAGE_DESCRIPTIONS` assembly.
 

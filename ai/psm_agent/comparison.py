@@ -29,11 +29,23 @@ from clients import ai_layer_client
 
 logger = logging.getLogger(__name__)
 
-_META_MODELS_DIR = os.environ.get(
+# Public: reused by generation.py/psm_flow.py too, both of which also need
+# to resolve real .ecore paths under meta_models/, not just this module.
+META_MODELS_DIR = os.environ.get(
     "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
 )
 DEFAULT_PSM_METAMODEL_PATH = str(
-    Path(_META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
+    Path(META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
+)
+# The Generation Agent's master example (generation.py's psm_example):
+# githubMM.ecore, an already-onboarded platform's real metamodel, used as a
+# structural exemplar when generating a NEW platform's PSM metamodel - matches
+# the paper's own "Step 1 (Metamodel)" master-example convention (GHA.ecore).
+# Deliberately not DEFAULT_PSM_METAMODEL_PATH above: that's compare()'s own
+# default drift-check TARGET (GitLab, MDDOAI's primary platform), a different
+# role from "an exemplar to generate a new metamodel's structure from."
+DEFAULT_PSM_MASTER_EXAMPLE_PATH = str(
+    Path(META_MODELS_DIR) / "com.mddoai.metamodel.github" / "model" / "githubMM.ecore"
 )
 
 _SYSTEM_PROMPT = """You are the MDDOAI PSM (Platform-Specific Model) knowledge agent. You are \
@@ -129,7 +141,46 @@ def _parse_suggestions(content: str) -> list[Suggestion]:
     return suggestions
 
 
-def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list[Suggestion]:
+def known_psm_platforms() -> list[str]:
+    """Platform names MDDOAI has a real PSM metamodel for today, discovered
+    from META_MODELS_DIR's own com.mddoai.metamodel.<platform>/model/<platform>MM.ecore
+    layout rather than a hardcoded list, so a newly added platform (bitbucket,
+    once its metamodel exists) is picked up with no code change here."""
+    base = Path(META_MODELS_DIR)
+    if not base.is_dir():
+        return []
+    excluded = {"pim", "swarch"}  # platform-independent / source metamodels, not PSM targets
+    names = []
+    for entry in base.iterdir():
+        if not entry.is_dir() or not entry.name.startswith("com.mddoai.metamodel."):
+            continue
+        name = entry.name.removeprefix("com.mddoai.metamodel.")
+        if name.endswith(".edit") or name.endswith(".editor") or name in excluded:
+            continue
+        if (entry / "model" / f"{name}MM.ecore").is_file():
+            names.append(name)
+    # Sorted, not just whatever order the filesystem's own directory iteration
+    # happens to return (unspecified, and confirmed to vary): resolve_platform_metamodel()
+    # below picks the first match, so an unsorted order would make routing for a
+    # description naming more than one known platform non-deterministic across
+    # machines/runs.
+    return sorted(names)
+
+
+def resolve_platform_metamodel(platform_description: str) -> str | None:
+    """Returns the real .ecore path if `platform_description` names a
+    platform MDDOAI already has a real PSM metamodel for (matched by
+    substring against known_psm_platforms()), else None. Used by psm_flow.py
+    to route a run between the Knowledge Agent (existing platform) and the
+    Generation Agent (new platform, no metamodel yet)."""
+    description_lower = platform_description.lower()
+    for platform in known_psm_platforms():
+        if platform in description_lower:
+            return str(Path(META_MODELS_DIR) / f"com.mddoai.metamodel.{platform}" / "model" / f"{platform}MM.ecore")
+    return None
+
+
+def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: str | None = None) -> list[Suggestion]:
     """Compare serialized docs against a PSM metamodel, return suggestions about
     missing or outdated parts.
 
@@ -140,7 +191,9 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
 
     `psm_metamodel_path` defaults to DEFAULT_PSM_METAMODEL_PATH (gitlabMM.ecore) when not
     given; pass githubMM.ecore's path explicitly to compare against a different platform's
-    PSM (bitbucketMM.ecore's path too, once that metamodel exists).
+    PSM (bitbucketMM.ecore's path too, once that metamodel exists). `model` defaults to
+    ai-layer's own automatic routing when not given, same as every other real chat() call
+    in this repo.
     """
     metamodel_path = psm_metamodel_path or DEFAULT_PSM_METAMODEL_PATH
     metamodel_content = Path(metamodel_path).read_text()
@@ -153,6 +206,6 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None) -> list
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
-    response = ai_layer_client.chat(messages)
+    response = ai_layer_client.chat(messages, model=model)
     content = response["content"] or ""
     return _parse_suggestions(content)

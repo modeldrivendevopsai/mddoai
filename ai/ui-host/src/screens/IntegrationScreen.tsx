@@ -174,6 +174,7 @@ export default function IntegrationScreen() {
           <ViewedPanel
             busy={false}
             latestResult={latestCallResult(events, viewedStage)}
+            events={events}
             onBack={() => setViewedStage(null)}
             readOnly
           />
@@ -189,6 +190,7 @@ export default function IntegrationScreen() {
         <ActivePanel
           busy={busy}
           latestResult={latestResult}
+          events={events}
           onApprove={() => approve(currentStage)}
           onRetry={(correction) => retry(currentStage, correction)}
           readOnly={!isCurrent}

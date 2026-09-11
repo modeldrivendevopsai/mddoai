@@ -43,7 +43,7 @@ public final class AtlValidatorCli {
         }
         String path = args[0];
         try {
-            ValidationResult result = AtlValidator.validate(path);
+            AtlCompileResult result = AtlValidator.validate(path);
             out.println(toJson(result));
             return 0;
         } catch (Exception e) {
@@ -53,7 +53,8 @@ public final class AtlValidatorCli {
         }
     }
 
-    private static String toJson(ValidationResult result) {
+    private static String toJson(AtlCompileResult compileResult) {
+        ValidationResult result = compileResult.result();
         StringBuilder json = new StringBuilder();
         json.append("{\"valid\":").append(result.valid())
                 .append(",\"issues\":[");
@@ -69,7 +70,11 @@ public final class AtlValidatorCli {
                     .append(issue.source() == null ? "null" : "\"" + escape(issue.source()) + "\"")
                     .append("}");
         }
-        json.append("]}");
+        json.append("]")
+                .append(",\"generatedOutputPath\":")
+                .append(compileResult.generatedOutputPath() == null
+                        ? "null" : "\"" + escape(compileResult.generatedOutputPath()) + "\"")
+                .append("}");
         return json.toString();
     }
 

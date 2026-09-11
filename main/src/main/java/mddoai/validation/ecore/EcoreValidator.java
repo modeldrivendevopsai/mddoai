@@ -79,12 +79,22 @@ public final class EcoreValidator {
         return ValidationResult.of(issues);
     }
 
-    public static ValidationResult validateViaCodegen(String ecoreFilePath) {
+    // Where generated .genmodel/src-gen/classes-out output is persisted after a
+    // codegen validation actually produces something, instead of being wiped
+    // before any caller can see it. ai/docker-compose.yml points this at a
+    // dedicated writable volume for validator-agent's container; unset in
+    // local/non-Docker dev falls back to the JVM's own temp directory (still
+    // not deleted below - no automatic cleanup of old runs exists yet, a
+    // known, documented limitation, not a regression from before).
+    private static final String OUTPUT_ROOT =
+            System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
+
+    public static EcoreCodegenResult validateViaCodegen(String ecoreFilePath) {
         requireNonBlank(ecoreFilePath);
 
         ValidationResult reflective = validateReflectively(ecoreFilePath);
         if (!reflective.valid()) {
-            return reflective;
+            return EcoreCodegenResult.of(reflective);
         }
 
         EPackage ePackage = loadSinglePackage(ecoreFilePath);
@@ -92,29 +102,41 @@ public final class EcoreValidator {
             List<ValidationIssue> issues = new ArrayList<>(reflective.issues());
             issues.add(new ValidationIssue(ValidationIssue.Severity.ERROR,
                     "Root content is not a single EPackage; cannot generate code", ecoreFilePath));
-            return ValidationResult.of(issues);
+            return EcoreCodegenResult.of(ValidationResult.of(issues));
         }
 
         List<ValidationIssue> issues = new ArrayList<>(reflective.issues());
         File workDir = null;
+        // True once GenModelBuilder has actually produced src-gen/ - from that point on the
+        // output is worth keeping even if JavaCompilerCheck.compile() below finds real javac
+        // errors, since that's exactly the generated source a human debugging a failed
+        // compile needs to see. Only genuinely empty/broken attempts (an exception, or
+        // GenModelBuilder itself failing) get cleaned up.
+        boolean keepOutput = false;
         try {
-            workDir = java.nio.file.Files.createTempDirectory("ecore-validate-codegen").toFile();
+            workDir = new File(OUTPUT_ROOT, "ecore-validate-" + java.util.UUID.randomUUID());
+            if (!workDir.mkdirs()) {
+                throw new java.io.IOException("Could not create validator output directory: " + workDir);
+            }
             GenModelBuilder.Result genResult = GenModelBuilder.generate(ePackage, workDir, ecoreFilePath);
             issues.addAll(genResult.issues());
             if (genResult.hasError()) {
-                return ValidationResult.of(issues);
+                return EcoreCodegenResult.of(ValidationResult.of(issues));
             }
+            keepOutput = true;
             issues.addAll(JavaCompilerCheck.compile(genResult.sourceDirectory(), ecoreFilePath));
         } catch (Exception e) {
             issues.add(new ValidationIssue(ValidationIssue.Severity.ERROR,
                     "Deeper validation failed: " + e, ecoreFilePath));
         } finally {
-            if (workDir != null) {
+            if (workDir != null && !keepOutput) {
                 deleteRecursively(workDir);
             }
         }
 
-        return ValidationResult.of(issues);
+        ValidationResult result = ValidationResult.of(issues);
+        String outputPath = keepOutput ? workDir.getAbsolutePath() : null;
+        return new EcoreCodegenResult(result, outputPath);
     }
 
     private static EPackage loadSinglePackage(String ecoreFilePath) {

@@ -11,13 +11,13 @@ import json
 import threading
 from unittest.mock import patch
 
-from clients import validator_agent_client
+from clients import psm_agent_client, validator_agent_client
 from integration_runner.stages import _validation
 from integration_runner.stages.acceleo.agent import acceleo_stage
 from integration_runner.stages.atl.agent import atl_stage
 from integration_runner.stages.psm.agent import psm_stage
 from integration_runner.stages.pim.agent import pim_stage
-from helpers import _validation_result
+from helpers import _psm_generation_result, _validation_result
 
 
 def _manifest(run_id: str) -> list[dict]:
@@ -28,6 +28,7 @@ def test_manifest_accumulates_every_attempt_across_stages_in_order():
     run_id = "manifest-order-run"
     with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result(valid=True)):
         pim_stage({"run_id": run_id})
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()):
         psm_stage({"run_id": run_id})  # attempt 1
         psm_stage({"run_id": run_id})  # a retry -> attempt 2, same stage
     with patch.object(validator_agent_client, "validate_atl", return_value=_validation_result(valid=True)):
@@ -64,6 +65,7 @@ def test_manifest_timestamps_are_real_and_advance():
     run_id = "manifest-timestamp-run"
     with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result(valid=True)):
         pim_stage({"run_id": run_id})
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()):
         psm_stage({"run_id": run_id})
 
     manifest = _manifest(run_id)

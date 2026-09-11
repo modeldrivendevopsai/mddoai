@@ -18,7 +18,10 @@ Tests verify:
      advance_stage, add_constraint) delegate to the current _default
      IntegrationRun instance correctly.
 """
+import threading
 from unittest.mock import patch
+
+import pytest
 
 from clients import ai_layer_client, retrieval_client
 from integration_runner import pipeline, runs
@@ -256,6 +259,133 @@ def test_start_pipeline_resets_when_current_run_already_has_events():
 
         assert runs._default.run_id != old_run_id
         assert old_run_id in runs._runs  # kept as history, same as any other reset_pipeline() call
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_start_pipeline_refuses_a_busy_run_instead_of_resetting_it():
+    # The idle gap between stages: a stage claimed busy after the route
+    # handler's own pre-flight check but before start_pipeline() runs. It
+    # must not reset a run out from under its own in-flight thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.start_pipeline("TeamCity", "https://example.com/docs")
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_start_pipeline_does_not_mutate_model_when_refused_as_busy():
+    # A refused start must leave the busy run completely untouched, model
+    # included - claim_busy() runs before set_model() specifically so a
+    # racing claim on the same instance is caught before any mutation, not
+    # discovered only once model has already changed underneath it.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        runs._default.model = "gemini-flash"
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.start_pipeline("TeamCity", "https://example.com/docs", model="mistral-small")
+
+        assert runs._default.model == "gemini-flash"
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_reset_pipeline_refuses_a_busy_run():
+    # Same atomic backstop as start_pipeline()'s own busy check, for the
+    # identical race on /reset: a run claimed busy after the route
+    # handler's own pre-flight check but before reset_pipeline() runs must
+    # not be swapped out from under its own in-flight thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        busy_run_id = runs._default.run_id
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.reset_pipeline()
+
+        assert runs._default.run_id == busy_run_id  # not swapped out
+    finally:
+        runs._default.busy = False
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_resume_run_refuses_when_the_current_run_is_busy():
+    # Same race as reset_pipeline()'s own busy check, for /resume: the run
+    # being replaced (not the one being resumed) must not be swapped out
+    # from under its own in-flight thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        target_run_id = runs._default.run_id
+        runs.reset_pipeline()
+        busy_run_id = runs._default.run_id
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.resume_run(target_run_id)
+
+        assert runs._default.run_id == busy_run_id  # not swapped out
+    finally:
+        runs._default.busy = False
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_list_runs_stays_consistent_under_a_concurrent_reset():
+    # reset_pipeline() inserts into _runs under _registry_lock; list_runs()
+    # must read under the same lock or risk "dictionary changed size during
+    # iteration" when the two run concurrently. Bounded rounds of a fixed,
+    # modest number of resets and reads each, not an open-ended loop: _runs
+    # only ever grows (reset_pipeline() keeps prior runs as history, see its
+    # own docstring), so an unbounded resetter thread racing an unbounded
+    # reader would blow up list_runs()'s own O(size of _runs) cost into a
+    # runaway feedback loop instead of actually testing the race.
+    reset_count = 50
+    read_count = 50
+    original = runs._default
+    try:
+        for _ in range(20):
+            errors = []
+            barrier = threading.Barrier(2)
+
+            def resetter():
+                barrier.wait()
+                for _ in range(reset_count):
+                    runs.reset_pipeline()
+
+            def reader():
+                barrier.wait()
+                for _ in range(read_count):
+                    try:
+                        runs.list_runs()
+                    except RuntimeError as e:
+                        errors.append(e)
+
+            t_reset = threading.Thread(target=resetter)
+            t_read = threading.Thread(target=reader)
+            t_reset.start()
+            t_read.start()
+            t_reset.join(timeout=10)
+            t_read.join(timeout=10)
+
+            assert errors == [], f"list_runs() raised under concurrent reset_pipeline(): {errors}"
     finally:
         runs._default = original
         runs._runs.clear()

@@ -44,7 +44,7 @@ public final class AcceleoValidatorCli {
         }
         String path = args[0];
         try {
-            ValidationResult result = AcceleoValidator.validate(path);
+            AcceleoCompileResult result = AcceleoValidator.validate(path);
             out.println(toJson(result));
             return 0;
         } catch (Exception e) {
@@ -54,7 +54,8 @@ public final class AcceleoValidatorCli {
         }
     }
 
-    private static String toJson(ValidationResult result) {
+    private static String toJson(AcceleoCompileResult compileResult) {
+        ValidationResult result = compileResult.result();
         StringBuilder json = new StringBuilder();
         json.append("{\"valid\":").append(result.valid())
                 .append(",\"issues\":[");
@@ -70,7 +71,11 @@ public final class AcceleoValidatorCli {
                     .append(issue.source() == null ? "null" : "\"" + escape(issue.source()) + "\"")
                     .append("}");
         }
-        json.append("]}");
+        json.append("]")
+                .append(",\"generatedOutputPath\":")
+                .append(compileResult.generatedOutputPath() == null
+                        ? "null" : "\"" + escape(compileResult.generatedOutputPath()) + "\"")
+                .append("}");
         return json.toString();
     }
 

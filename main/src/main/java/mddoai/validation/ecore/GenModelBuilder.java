@@ -78,6 +78,16 @@ final class GenModelBuilder {
         Resource genModelResource = resourceSet.createResource(
                 URI.createFileURI(new File(workDir, "model.genmodel").getAbsolutePath()));
         genModelResource.getContents().add(genModel);
+        // Was previously never actually written to disk (only ever existed in-memory in this
+        // Resource) - harmless before, since the caller always deleted workDir immediately
+        // after regardless, but a real bug once that deletion is disabled to persist output
+        // for a caller to inspect (confirmed empirically: without this save(), workDir/
+        // model.genmodel simply never appears, even though the Resource claims content).
+        try {
+            genModelResource.save(null);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to save generated .genmodel to " + workDir, e);
+        }
 
         // Generated output paths are platform:/resource/<modelPluginID>/... URIs; outside
         // Eclipse that scheme is unresolvable unless mapped to a real directory here. This

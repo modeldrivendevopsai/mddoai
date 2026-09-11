@@ -31,12 +31,23 @@ from integration_runner.event_log import EventLog
 
 # A docs -> serialization -> pim -> psm -> atl -> acceleo -> generation
 # pipeline (see the repo root CLAUDE.md's own description of the real chain:
-# SWArch -> PIM -> PSM -> YAML). docs and serialization are real; the rest
-# are placeholder LLM prompts standing in for future real agents. A human
+# SWArch -> PIM -> PSM -> YAML). docs, serialization, and psm are real; the
+# rest are placeholder LLM prompts standing in for future real agents. A human
 # reviews each stage's output and either approves it (advancing to the next
 # stage) or rejects it with a correction that's recorded as a constraint for
 # the stage's next run.
 STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
+
+
+class BusyError(RuntimeError):
+    """claim_busy() raises this when the run is already executing a stage.
+    Every operation that starts a stage (or, for /docs/extend, mutates
+    last_output the way a stage run would) claims first, before touching
+    any run state, so a request that got past a route handler's pre-flight
+    `if run.busy` check still can't race a stage start: it raises this and
+    the handler returns the same 409, with nothing half-changed. The
+    message is a plain domain string; the HTTP 409 body belongs to the
+    route layer, not here."""
 
 
 class IntegrationRun:
@@ -80,6 +91,13 @@ class IntegrationRun:
         # against a single impatient user double-clicking, not a task queue,
         # this is single-session-only.
         self.busy: bool = False
+        # Guards claim_busy()/release_busy() so the busy check-and-set is one
+        # atomic step: without it, two requests that both passed a route
+        # handler's own pre-flight `if run.busy` check could both then set
+        # busy=True and each spawn a thread against this same run, racing on
+        # last_output/last_context/current_stage_index and interleaving the
+        # event log.
+        self._busy_lock = threading.Lock()
         # The most recently started background thread, if any. Not used by
         # the API itself (callers poll GET /events instead), only exposed so
         # tests/tools can deterministically wait_for_idle() rather than sleep.
@@ -106,10 +124,18 @@ class IntegrationRun:
         # (stages/_validation.py) — a real run identity, not something those agents
         # invent or track themselves.
         enriched_context = {**context, "constraints": self.constraints, "model": self.model, "run_id": self.run_id}
-        output = agent(enriched_context)
+        raw = agent(enriched_context)
+        # Every stage agent's normal contract is (context: dict) -> str (see
+        # ai/CLAUDE.md's stage-agent recipe). psm is the one narrow, documented
+        # exception: it returns (output, extra) since it has real structured
+        # data (the prompt actually used, validation/gap results) the chat-ui
+        # needs alongside the artifact - a plain string has nowhere to put
+        # that. Backward compatible: every other stage's plain str return is
+        # unaffected, extra is just {} for them.
+        output, extra = raw if isinstance(raw, tuple) else (raw, {})
         self.last_output = output
         self.last_completed_stage = stage
-        return {"stage": stage, "output": output}
+        return {"stage": stage, "output": output, **extra}
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
@@ -121,9 +147,11 @@ class IntegrationRun:
         overrides = overrides or {}
         # "only docs" is true today, not permanently: docs is the only stage
         # wrapping a real API (retrieval's /fetch) with real typed
-        # parameters to override, pim/psm/atl/acceleo/generation are still
-        # placeholder chat() prompts with no structured shape of their own
-        # yet (see stages/). Whoever makes the next stage real needs
+        # parameters to override. pim/atl/acceleo/generation are still
+        # placeholder chat() prompts with no override shape of their own
+        # yet; psm is real but takes no rerun overrides beyond the generic
+        # constraints mechanism either (see stages/). Whoever makes the next
+        # stage real needs
         # to design ITS real override shape from ITS real API, the same way
         # docs's was, then extend this guard, don't just delete it.
         if overrides and self.current_stage != "docs":
@@ -149,9 +177,18 @@ class IntegrationRun:
     def start_stage_run(self, context: dict) -> dict:
         """Start the current stage running in the background with the given
         context, and report that it started. The run_stage tool's real
-        target, and what runs.start_pipeline() uses to kick off the docs
-        stage."""
+        target."""
         self.run_stage_async(context)
+        return {"status": "started", "stage": self.current_stage}
+
+    def start_claimed_stage_run(self, context: dict) -> dict:
+        """Same as start_stage_run(), for a caller that has already claimed
+        busy on this instance itself (see claim_busy()) and so must not
+        claim it again through run_stage_async()'s own claim. This is what
+        runs.start_pipeline() uses: it has to claim busy before it even
+        decides whether to reuse this instance or reset it, earlier than
+        start_stage_run()'s own claim would happen."""
+        self._spawn_stage_thread(context)
         return {"status": "started", "stage": self.current_stage}
 
     def advance_stage(self) -> str | None:
@@ -201,12 +238,43 @@ class IntegrationRun:
         the next stage running in the background right away. Used by both
         /review and the stage_result tool, the only difference between a
         human clicking Approve/Reject and an LLM deciding to call
-        stage_result is who's asking."""
-        result = self.record_review(stage_id, approved, correction)
-        if result["status"] == "advanced":
-            self.run_stage_async(result["context"])
-            return {"status": "started", "stage": result["stage"]}
-        return result
+        stage_result is who's asking.
+
+        claim_busy() runs first, before record_review() touches anything, for
+        every outcome, not just one that starts a stage: two near-simultaneous
+        review() calls on the same stage (a double-click, a client retry, the
+        orchestrator and a human both acting) must not both mutate state, or a
+        rejection could double the recorded correction, and approving the
+        final stage could double-advance past it — this is the exact same
+        double-submit hazard claim_busy() already exists to close for every
+        other mutating path, not something a rejection or a final approval is
+        exempt from just because neither one starts a stage on its own. The
+        claim is released here for a review that doesn't start a stage (a
+        rejection, or completing the run); for one that does, the background
+        worker releases it when the stage finishes.
+
+        Known, deliberately unhandled: once record_review() succeeds (the
+        approval and advance are now real, recorded history), a
+        _spawn_stage_thread() failure — Thread.start() itself raising under
+        OS thread-resource exhaustion, not a validation error — still
+        releases busy (below) but doesn't unwind the advance/event already
+        recorded. EventLog is an append-only record of what genuinely
+        happened, not a place to un-happen something once it has, and a
+        failure at this exact point means the whole process is likely
+        already in real trouble regardless — a human can still see the true
+        state via GET /events and rerun the stage directly."""
+        self.claim_busy()
+        started = False
+        try:
+            result = self.record_review(stage_id, approved, correction)
+            if result["status"] == "advanced":
+                self._spawn_stage_thread(result["context"])
+                started = True
+                return {"status": "started", "stage": result["stage"]}
+            return result
+        finally:
+            if not started:
+                self.release_busy()
 
     def record_event(self, event_type: str, stage: str | None, data: dict | None = None) -> dict:
         """Appends a raw fact about this run and returns it, via this run's
@@ -216,18 +284,44 @@ class IntegrationRun:
         GET /events, not by this method calling out to anything."""
         return self.event_log.record(event_type, stage, data)
 
-    def run_stage_async(self, context: dict) -> None:
-        """Starts the current stage's agent on a background thread and
-        returns immediately: calls and stops. The only way a stage ever
-        starts running — every one of this service's own REST endpoints that
-        can trigger a run (POST /start, /review, /rerun, /stage/run) calls
-        this directly, none has its own copy of "run it in the background."
-        Setting busy here (before the thread even starts, not inside it)
-        means a poller can never observe a run that's already been triggered
-        as not-busy."""
-        self.busy = True
+    def claim_busy(self) -> None:
+        """Atomically mark this run as executing a stage, or raise BusyError
+        if it already is. Called before any state change by every operation
+        that starts a stage (run_stage_async(), review()) and by
+        /docs/extend, so a request that got past a route handler's
+        pre-flight `if run.busy` check still can't race a stage start."""
+        with self._busy_lock:
+            if self.busy:
+                raise BusyError("a stage run is already in flight for this run")
+            self.busy = True
+
+    def release_busy(self) -> None:
+        """Clear the busy claim. Called by _run_stage_worker() when a stage
+        run finishes, and by a claim_busy() caller that turns out not to
+        start a stage after all (a rejected review, /docs/extend's own
+        fetch-and-append)."""
+        with self._busy_lock:
+            self.busy = False
+
+    def _spawn_stage_thread(self, context: dict) -> None:
+        """Runs the current stage's agent on a daemon thread. Assumes the
+        caller already holds the busy claim (via claim_busy()) - the thread
+        releases it when it finishes."""
         self._last_thread = threading.Thread(target=self._run_stage_worker, args=(context,), daemon=True)
         self._last_thread.start()
+
+    def run_stage_async(self, context: dict) -> None:
+        """Claims the run busy (raising BusyError if it already is) and
+        starts the current stage's agent on a background thread, then
+        returns. The only way a stage ever starts running from /start,
+        /rerun and /stage/run — none has its own copy of "run it in the
+        background." review() claims busy itself (before it advances the
+        pipeline) and calls _spawn_stage_thread() directly instead, so it
+        doesn't double-claim here. Claiming before the thread starts means a
+        poller can never observe a run that's already been triggered as
+        not-busy."""
+        self.claim_busy()
+        self._spawn_stage_thread(context)
 
     def _run_stage_worker(self, context: dict) -> None:
         stage = self.current_stage
@@ -239,4 +333,4 @@ class IntegrationRun:
             except Exception as e:
                 self.record_event("call_failed", stage, {"error": str(e)})
         finally:
-            self.busy = False
+            self.release_busy()

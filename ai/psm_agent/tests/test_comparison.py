@@ -33,7 +33,7 @@ import json
 from unittest.mock import patch
 
 from clients import ai_layer_client
-from comparison import DEFAULT_PSM_METAMODEL_PATH, Suggestion, compare
+from comparison import DEFAULT_PSM_METAMODEL_PATH, Suggestion, compare, known_psm_platforms, resolve_platform_metamodel
 
 
 def ok_response(content):
@@ -118,6 +118,20 @@ def test_compare_drops_suggestion_missing_required_key():
     assert results[0].target == "Trigger.cron"
 
 
+def test_compare_forwards_the_chosen_model():
+    with patch.object(ai_layer_client, "chat", return_value=json_response([])) as mock_chat:
+        compare("docs", model="gemini-flash")
+
+    assert mock_chat.call_args.kwargs["model"] == "gemini-flash"
+
+
+def test_compare_passes_none_model_when_none_chosen():
+    with patch.object(ai_layer_client, "chat", return_value=json_response([])) as mock_chat:
+        compare("docs")
+
+    assert mock_chat.call_args.kwargs["model"] is None
+
+
 def test_compare_defaults_to_gitlab_metamodel_path():
     with patch.object(ai_layer_client, "chat", return_value=json_response([])) as mock_chat:
         compare("docs")
@@ -149,6 +163,29 @@ def test_compare_preserves_none_source_excerpt():
         results = compare("docs")
 
     assert results[0].source_excerpt is None
+
+
+def test_known_psm_platforms_discovers_real_gitlab_and_github():
+    platforms = known_psm_platforms()
+
+    assert "gitlab" in platforms
+    assert "github" in platforms
+    assert "pim" not in platforms  # excluded: platform-independent, not a PSM target
+
+
+def test_known_psm_platforms_is_sorted_for_deterministic_routing():
+    assert known_psm_platforms() == sorted(known_psm_platforms())
+
+
+def test_resolve_platform_metamodel_matches_known_platform_by_substring():
+    path = resolve_platform_metamodel("A GitLab CI platform")
+
+    assert path is not None
+    assert "gitlab" in path.lower()
+
+
+def test_resolve_platform_metamodel_returns_none_for_unknown_platform():
+    assert resolve_platform_metamodel("TeamCity") is None
 
 
 def test_compare_ignores_stray_bracket_in_trailing_prose():
