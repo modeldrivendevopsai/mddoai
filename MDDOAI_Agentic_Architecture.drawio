@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude" pages="2">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="858" dy="459" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="1334" dy="714" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" value="Base (always visible)" />
@@ -56,7 +56,7 @@
         <mxCell id="retr" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Retrieval Agent" vertex="1">
           <mxGeometry height="50" width="190" x="150" y="270" as="geometry" />
         </mxCell>
-        <mxCell id="docparser" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Documentation Parser Agent" vertex="1">
+        <mxCell id="docparser" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="Serialization Agent" vertex="1">
           <mxGeometry height="50" width="240" x="440" y="270" as="geometry" />
         </mxCell>
         <mxCell id="e_retr_doc" edge="1" parent="layerPhase0" source="retr" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;" target="docparser">
@@ -144,7 +144,7 @@
             <mxPoint x="1350" y="755" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rsZ4uEINc2u_vfYEfqJd-1" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="Validate&#xa;validator-agent&#39;s /validate/&lt;type&gt; call (same call every stage below uses)" vertex="1">
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-1" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=11;fontColor=#ffffff;" value="Validation Agent&lt;br&gt;validator-agent&#39;s /validate/ call (same call every stage below uses)" vertex="1">
           <mxGeometry height="70" width="270" x="1030" y="660" as="geometry" />
         </mxCell>
         <mxCell id="rsZ4uEINc2u_vfYEfqJd-2" edge="1" parent="layerPhase0" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.3;exitY=1;entryX=0.3;entryY=0;" target="rsZ4uEINc2u_vfYEfqJd-1" value="generate">
