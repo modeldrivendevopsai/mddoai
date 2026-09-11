@@ -36,7 +36,7 @@ export function SerializationStagePanel({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={headingStyle}>Serialization stage output</h2>
           <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back to current
+            ← Back to latest stage
           </Button>
         </div>
         <StageInfoNote detail={stageDetail} />
@@ -75,16 +75,17 @@ export function SerializationStagePanel({
       <CodeBlock code={busy ? "Generating…" : hasResult ? output : "No output yet."} title="serialization output" lang="markdown" />
 
       <div>
-        {/* Real wireframe text is "Curate the helper prompt for this stage"
-            (frame "c5: ATL check failed"), where the field is pre-filled with
-            the actual prompt that was used, editable in place. We can't
+        {/* The wireframe this was drawn from pre-fills this field with the
+            actual prompt that was used, editable in place. We can't
             faithfully do that: ai/orchestrator doesn't store or expose "the
             literal prompt used" anywhere, agents build it from context + the
             constraints list, there's no single retrievable prompt string to
             pre-fill with. This is the real, honest equivalent: an empty
             field for a new correction, recorded via the same
-            add-constraint-then-retry mechanism the backend actually has. */}
-        <p style={labelStyle}>Curate the helper prompt for this stage</p>
+            add-constraint-then-retry mechanism the backend actually has -
+            labeled to match what it actually is, not the wireframe's own
+            pre-fill-and-edit framing. */}
+        <p style={labelStyle}>Add a correction</p>
         <textarea
           className="orch-field"
           value={correction}
@@ -164,6 +165,7 @@ function Panel({ children }: { children: ReactNode }) {
         borderRadius: "var(--radius-md)",
         boxSizing: "border-box",
         minHeight: 0,
+        overflow: "auto",
       }}
     >
       {children}

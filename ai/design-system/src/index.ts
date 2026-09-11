@@ -16,8 +16,6 @@ export type { TabItem } from './components/Tabs';
 export { StatusPill } from './components/StatusPill';
 export type { StatusPillVariant } from './components/StatusPill';
 export { StageInfoNote } from './components/StageInfoNote';
-export { PromoteConstraintsAction } from './components/PromoteConstraintsAction';
-export type { PromoteConstraintsActionProps } from './components/PromoteConstraintsAction';
 export { Panel } from './components/Panel';
 export type { PanelTone } from './components/Panel';
 export { CodeBlock } from './CodeBlock';
@@ -28,6 +26,7 @@ export type {
   BrokenReference,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
+  PromptBuilderPromotion,
   PromptBuilderProps,
   PromptConfig,
   PromptDiff,

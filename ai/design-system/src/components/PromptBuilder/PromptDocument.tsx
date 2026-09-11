@@ -1,9 +1,10 @@
 import { useState } from "react"
 import type { DragEvent } from "react"
 import { Button } from "../Button"
+import { PromoteConstraintsAction } from "../PromoteConstraintsAction"
 import { DocumentBlock } from "./DocumentBlock"
 import { LearnedConstraintsList } from "./LearnedConstraintsList"
-import type { Attachment, AttachmentType, BrokenReference } from "./types"
+import type { Attachment, AttachmentType, BrokenReference, PromptBuilderPromotion } from "./types"
 
 interface PromptDocumentProps {
   attachments: Attachment[]
@@ -33,6 +34,12 @@ interface PromptDocumentProps {
   onAddConstraint: (constraint: string) => void
   onRemoveConstraint: (constraint: string) => void
   onReorderConstraints: (constraints: string[]) => void
+  // Rendered directly above the list above, inside the same section, when
+  // given: a validated run's own live corrections, one confirm away from
+  // joining that exact list. Kept physically adjacent to what it writes
+  // into rather than a separate control elsewhere on the page, so it
+  // reads as one feature with two entry points, not two features.
+  promote?: PromptBuilderPromotion
 }
 
 let _nextLocalId = 1
@@ -75,6 +82,7 @@ export function PromptDocument({
   onAddConstraint,
   onRemoveConstraint,
   onReorderConstraints,
+  promote,
 }: PromptDocumentProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
@@ -243,6 +251,11 @@ export function PromptDocument({
           every attachment (see prompt_builder.build_prompt), so this is
           where they belong visually too. */}
       <div style={{ paddingTop: "var(--space-3)", marginTop: "var(--space-2)", borderTop: "1px solid var(--border-subtle)" }}>
+        {promote && !readOnly && (
+          <div style={{ marginBottom: "var(--space-3)" }}>
+            <PromoteConstraintsAction initialConstraintsBlock={promote.initialBlock} onPromote={promote.onPromote} />
+          </div>
+        )}
         <LearnedConstraintsList
           constraints={learnedConstraints}
           readOnly={readOnly}

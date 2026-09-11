@@ -12,6 +12,7 @@ export type {
   BrokenReference,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
+  PromptBuilderPromotion,
   PromptBuilderProps,
   PromptConfig,
   PromptDiff,
@@ -24,7 +25,7 @@ export type {
 // component, a different manifest and callback set per caller, exactly
 // like the backend's generation_toolkit.prompt_config package is the same
 // functions with a different config_dir/context_values per caller.
-export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptBuilderProps) {
+export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }: PromptBuilderProps) {
   const [config, setConfig] = useState<PromptConfig | null>(null)
   const [availableFiles, setAvailableFiles] = useState<string[] | undefined>(undefined)
   const [broken, setBroken] = useState<BrokenReference[]>([])
@@ -115,6 +116,20 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
     setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints, _version: updated._version })
   const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints([constraint]))
   const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(constraint))
+  // Same merge as add/remove above: a promotion also just changes
+  // learned_constraints on this same config, so the promoted correction
+  // shows up in the list immediately, in the same section, rather than
+  // only after this component happens to remount. Still returns the
+  // resolved config (matching the real onPromoteConstraints signature
+  // every caller already has), even though the merge above is what this
+  // component itself actually cares about.
+  const promoteConstraints = promote
+    ? async (constraints: string[]) => {
+        const updated = await promote.onPromote(constraints)
+        mergeLearnedConstraints(updated)
+        return updated
+      }
+    : undefined
 
   // Backed by the same preview endpoint PreviewPane already calls - the
   // first chip expanded in a sitting fetches every attachment's real
@@ -157,6 +172,7 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
         onAddConstraint={addConstraint}
         onRemoveConstraint={removeConstraint}
         onReorderConstraints={(learned_constraints) => setConfig({ ...config, learned_constraints })}
+        promote={promoteConstraints ? { initialBlock: promote!.initialBlock, onPromote: promoteConstraints } : undefined}
       />
 
       <PreviewPane onPreview={() => callbacks.onPreview()} />

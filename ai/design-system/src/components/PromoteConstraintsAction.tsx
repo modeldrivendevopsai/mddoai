@@ -42,22 +42,23 @@ function parseConstraintsBlock(block: string): string[] {
     .filter(Boolean)
 }
 
-// "Save these corrections for future runs": a real, human-confirmed,
-// editable-before-confirming action promoting one successful attempt's own
-// constraints into that stage's own agent's permanent config, the backend
-// gating this on a real validated success (see the calling stage panel's
-// own canPromote check) rather than automatic capture of every typed
-// correction. Generic across every stage that offers promotion (psm, atl,
-// acceleo): it carries no stage identity of its own, only a prefilled
-// constraints block and a promote callback the caller already bound to
-// its own stage's real endpoint.
+// Adds one validated run's own live corrections to the "Permanent
+// constraints" list right below this button: a real, human-confirmed,
+// editable-before-confirming action, the backend gating this on a real
+// validated success (see the calling stage panel's own canPromote check)
+// rather than automatic capture of every typed correction. Generic across
+// every stage that offers promotion (psm, atl, acceleo): it carries no
+// stage identity of its own, only a prefilled constraints block and a
+// promote callback the caller already bound to its own stage's real
+// endpoint. Rendered directly above that same list, inside its own
+// section, so it reads as an entry point into it, not a separate feature.
 export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }: PromoteConstraintsActionProps) {
   const [draft, setDraft] = useState<string | null>(null)
 
   if (draft === null) {
     return (
       <Button variant="secondary" size="sm" onClick={() => setDraft(initialConstraintsBlock)}>
-        Save these corrections for future runs
+        Add this run's corrections to Permanent constraints
       </Button>
     )
   }
@@ -65,8 +66,8 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <p style={labelStyle}>
-        These constraints produced this validated success — edit before confirming, then every future run starts
-        with them already applied.
+        These corrections produced this validated success — edit before confirming, then they join Permanent
+        constraints below and every future run starts with them already applied.
       </p>
       <textarea
         className="orch-field"

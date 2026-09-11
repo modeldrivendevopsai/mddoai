@@ -88,8 +88,23 @@ export interface PromptBuilderCallbacks {
   onRemoveLearnedConstraint: (constraint: string) => Promise<PromptConfig>
 }
 
+// Promoting one validated run's own live corrections into this same
+// config's permanent constraints list - optional, since not every real
+// caller has a run to promote from (e.g. no result yet, or the last
+// result didn't validate). Rendered inside the permanent-constraints
+// section itself, not a separate control elsewhere on the page, since
+// that's the one list it actually writes into.
+export interface PromptBuilderPromotion {
+  // The exact constraint text this run's own latest validated result
+  // produced - shown as an editable draft a human confirms or edits
+  // before it's actually sent, never applied as-is.
+  initialBlock: string
+  onPromote: (constraints: string[]) => Promise<PromptConfig>
+}
+
 export interface PromptBuilderProps {
   manifest: PromptBuilderManifest
   callbacks: PromptBuilderCallbacks
+  promote?: PromptBuilderPromotion
   readOnly?: boolean
 }

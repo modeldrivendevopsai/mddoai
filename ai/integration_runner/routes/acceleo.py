@@ -115,8 +115,8 @@ async def upload_attachment_endpoint(file: UploadFile):
 def promote_constraints_endpoint(request: PromoteConstraintsRequest):
     """Promotes constraints from the current run's own latest, real,
     successfully-validated acceleo result into acceleo_agent's permanent
-    config - the real HTTP target for a human clicking "Save these
-    corrections for future runs" in the UI. 409 while a stage is running
+    config - the real HTTP target for a human clicking "Add this run's
+    corrections to Permanent constraints" in the UI. 409 while a stage is running
     (the "latest result" this reads could be mid-write); 400 when there's
     no verified result to promote from (see actions.promote_constraints's
     own docstring for the exact gate)."""

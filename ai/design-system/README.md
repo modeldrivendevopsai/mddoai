@@ -53,13 +53,14 @@ together, not this package itself.
 ## `PromoteConstraintsAction`
 
 A flat component following that same backend-agnostic principle: an editable-before-confirming
-"Save these corrections for future runs" action, taking only a prefilled constraints block and a
-`onPromote` callback, no stage identity of its own. Every stage panel that offers promotion (psm,
-atl, acceleo) uses this one shared component rather than its own copy, each just binding
-`onPromote` to its own stage's real promote-constraints endpoint (see each stage panel's own README
-for which one). It started as three near-identical per-remote copies before being consolidated here
-once that duplication was real and current, not hypothetical (see the "Multi-file component groups"
-note above on why a component only earns a shared home once its concerns are genuinely independent).
+"Add this run's corrections to Permanent constraints" action, taking only a prefilled constraints
+block and a `onPromote` callback, no stage identity of its own. Rendered by `PromptBuilder` itself
+(via `PromptDocument`'s own optional `promote` prop), directly above the "Permanent constraints"
+list it writes into, not by each stage panel separately: a stage panel only supplies the prefilled
+block and its own real promote-constraints endpoint through `PromptBuilder`'s own `promote` prop
+(see each stage panel's own README for which endpoint). Placing the button inside the same section
+as the list it feeds is deliberate: a separate, distantly-placed button here read as its own
+feature to a first-time user, with no visible connection to the list it actually changed.
 
 ## Repointing to a real published package later
 

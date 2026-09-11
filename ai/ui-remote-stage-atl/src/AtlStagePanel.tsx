@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { AttemptsBrowser, Button, CodeBlock, PromoteConstraintsAction, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
@@ -108,6 +108,11 @@ export function AtlStagePanel({
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),
         }}
+        promote={
+          canPromote && onPromoteConstraints
+            ? { initialBlock: prompt?.constraints ?? "", onPromote: onPromoteConstraints }
+            : undefined
+        }
       />
     )
 
@@ -125,13 +130,6 @@ export function AtlStagePanel({
     />
   )
 
-  const promoteConstraints = onPromoteConstraints && (
-    <PromoteConstraintsAction
-      initialConstraintsBlock={prompt?.constraints ?? ""}
-      onPromote={onPromoteConstraints}
-    />
-  )
-
   const statusPills = (validation || (rounds !== null && rounds > 1)) && (
     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
       {validation && (
@@ -145,7 +143,7 @@ export function AtlStagePanel({
 
   const priorConstraintsPanel = priorConstraints.length > 0 && (
     <div>
-      <p style={labelStyle}>Correction history for this stage</p>
+      <p style={labelStyle}>Corrections tried during this run (not saved permanently)</p>
       <ul style={constraintsListStyle}>
         {priorConstraints.map((c, i) => (
           <li key={i}>{c}</li>
@@ -160,7 +158,7 @@ export function AtlStagePanel({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={headingStyle}>ATL stage output</h2>
           <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back to current
+            ← Back to latest stage
           </Button>
         </div>
         <StageInfoNote detail={stageDetail} />
@@ -214,7 +212,7 @@ export function AtlStagePanel({
         <>
           {promptBuilder ?? (
             <div>
-              <p style={labelStyle}>Curate the helper prompt for this stage</p>
+              <p style={labelStyle}>Add a correction</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -229,7 +227,6 @@ export function AtlStagePanel({
         </>
       ) : (
         <>
-          {canPromote && promoteConstraints}
           {attemptsBrowser}
           {promptBuilder}
           {priorConstraintsPanel}

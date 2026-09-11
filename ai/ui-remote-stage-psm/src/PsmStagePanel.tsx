@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import { AttemptsBrowser, Button, CodeBlock, PromoteConstraintsAction, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
@@ -158,6 +158,11 @@ export function PsmStagePanel({
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(activeManifest.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(activeManifest.name, constraint),
         }}
+        promote={
+          canPromote && onPromoteConstraints
+            ? { initialBlock: prompt?.constraints ?? "", onPromote: onPromoteConstraints }
+            : undefined
+        }
       />
     )
 
@@ -172,13 +177,6 @@ export function PsmStagePanel({
           ? (version) => onRestorePromptVersion(activeManifest.name, version).then(() => undefined)
           : undefined
       }
-    />
-  )
-
-  const promoteConstraints = onPromoteConstraints && (
-    <PromoteConstraintsAction
-      initialConstraintsBlock={prompt?.constraints ?? ""}
-      onPromote={onPromoteConstraints}
     />
   )
 
@@ -202,7 +200,7 @@ export function PsmStagePanel({
   // statusPills above already shows the real, authoritative mode instead).
   const modeChip = latestResult === null && resolvedMode && (
     <StatusPill
-      variant={resolvedMode.mode === "knowledge" ? "warning" : "success"}
+      variant={resolvedMode.mode === "knowledge" ? "info" : "success"}
       title={resolvedMode.metamodel_path ?? undefined}
     >
       {resolvedMode.mode === "knowledge"
@@ -229,7 +227,7 @@ export function PsmStagePanel({
 
   const priorConstraintsPanel = priorConstraints.length > 0 && (
     <div>
-      <p style={labelStyle}>Correction history for this stage</p>
+      <p style={labelStyle}>Corrections tried during this run (not saved permanently)</p>
       <ul style={constraintsListStyle}>
         {priorConstraints.map((c, i) => (
           <li key={i}>{c}</li>
@@ -244,7 +242,7 @@ export function PsmStagePanel({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={headingStyle}>PSM stage output</h2>
           <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back to current
+            ← Back to latest stage
           </Button>
         </div>
         <StageInfoNote detail={stageDetail} />
@@ -303,7 +301,7 @@ export function PsmStagePanel({
         <>
           {promptBuilder ?? (
             <div>
-              <p style={labelStyle}>Curate the helper prompt for this stage</p>
+              <p style={labelStyle}>Add a correction</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -318,7 +316,6 @@ export function PsmStagePanel({
         </>
       ) : (
         <>
-          {canPromote && promoteConstraints}
           {attemptsBrowser}
           {promptBuilder}
           {priorConstraintsPanel}

@@ -259,12 +259,16 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   // The three below are real, recorded backend facts, not just prose —
   // same "info" treatment, distinct from the
   // stage-lifecycle colors above.
-  constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Constraint added" },
+  // A one-off, per-run correction (resets the next time this run resets,
+  // never touches the saved prompt config on its own) - "correction", not
+  // "constraint", matching the stage panels' own "Add a correction" label.
+  constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Correction added" },
   documentation_extended: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Page added to docs" },
   // A human-confirmed, real, permanent promotion (see
-  // stages/psm/actions.py's own promote_constraints) — distinct from
-  // constraint_added's own per-run, ephemeral correction.
-  constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Prompt corrections saved" },
+  // stages/psm/actions.py's own promote_constraints) into the saved
+  // config's own "Permanent constraints" list - distinct from
+  // constraint_added's own per-run, ephemeral correction above.
+  constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Added to Permanent constraints" },
   // A dispatched tool call's own real arguments/result (see assistant.py's
   // send_message()) — distinct from the "message" turn right after it,
   // which is just the AI's own prose summary of what it just did.
