@@ -99,10 +99,9 @@ Configs live under `prompts/generation/` (this service has only one real config 
 `ACCELEO_AGENT_PROMPT_CONFIG_DIR`, defaulting to `acceleo_agent/prompts/` next to this service's
 own source):
 
-- `default.default.json` — the immutable, git-committed shipped default, seeded from the real
-  experiment's own final, most-refined accumulated `learned_constraints` (5 real constraints,
-  accumulated across GitLab and Bamboo before being carried into every later platform — see
-  `generation_toolkit/README.md`'s own `learned_constraints` section).
+- `default.default.json` — the immutable, git-committed shipped default, seeded from real
+  constraints accumulated across GitLab and Bamboo before being carried into every later
+  platform — see `generation_toolkit/README.md`'s own `learned_constraints` section.
 - `default.json` — the live, currently-in-effect config, only created once someone actually saves
   an edit through `PUT /prompt-config/generation/default` (a `revert`/`restore` is also a save).
   `GET /prompt-config/generation/default` falls back to the shipped default when this doesn't
