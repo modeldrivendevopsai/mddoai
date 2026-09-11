@@ -6,9 +6,10 @@ a new ATL model-to-model transformation from PIM to that platform's PSM, refined
 `validator_agent` feedback (`validator_agent_client.validate_atl`) rather than accepted on the
 first attempt, via the shared `generation_toolkit` package's `run_with_retry()` (a stage-agnostic
 "build a prompt, call the LLM, validate, retry" toolkit, not specific to ATL — see
-`generation_toolkit/README.md`). On failure, the validator's first issue becomes one new
-constraint and the prompt is rebuilt for another round, bounded, so a platform whose real
-metamodels genuinely can't produce a compiling ATL transformation fails closed instead of looping
+`generation_toolkit/README.md`). On failure, every one of the validator's ERROR-severity issues
+becomes a new constraint (skipping any already recorded from an earlier round) and the prompt is
+rebuilt for another round, bounded, so a platform whose real metamodels genuinely can't produce a
+compiling ATL transformation fails closed instead of looping
 forever.
 
 Simpler than `psm_agent`: one real mode only, no generation-vs-knowledge-mode routing (there is no

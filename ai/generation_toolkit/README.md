@@ -30,9 +30,9 @@ result = run_with_retry(
     parts,                          # dict[str, str], passed straight to build_prompt()
     constraints=None,               # list[str] | None — corrections carried in from a prior run
     validate_fn=None,                # Callable[[str], dict] | None — omit for a single-shot call
-    root_cause_fn=_default_root_cause,       # Callable[[dict], str] — validation result -> one new constraint
+    root_cause_fn=_default_root_cause,       # Callable[[dict], list[str]] — validation result -> new constraints
     render_user_content=_default_render,     # Callable[[dict[str,str]], str] — prompt dict -> the LLM's user message
-    max_regenerate_rounds=DEFAULT_MAX_REGENERATE_ROUNDS,  # 3
+    max_regenerate_rounds=DEFAULT_MAX_REGENERATE_ROUNDS,  # 6
     model=None,
 )
 # -> {"output": str, "prompt": dict, "validation": dict | None, "rounds": int}
@@ -41,9 +41,10 @@ result = run_with_retry(
 Loop: build the prompt, call `ai-layer` via `clients/ai_layer_client.py`, strip a markdown code
 fence if the model added one anyway (real models routinely do despite being told not to). If
 `validate_fn` was given, call it on the output; if invalid and rounds remain, turn the result into
-one new constraint (`root_cause_fn`, default: the validator's first issue, prefixed `"Fix: "`) and
-rebuild the prompt for another round. Bounded, so a persistently-invalid generation fails closed
-(returns its last, still-invalid attempt) instead of looping forever.
+new constraints, one per validator issue (`root_cause_fn`, default: every issue, each prefixed
+`"Fix: "`), skipping any already recorded from an earlier round, and rebuild the prompt for
+another round. Bounded, so a persistently-invalid generation fails closed (returns its last,
+still-invalid attempt) instead of looping forever.
 
 `validation` is `None` when `validate_fn` was never given — a stage with no real validator yet
 just omits it and gets a plain single-shot call, no code path change needed once that stage grows

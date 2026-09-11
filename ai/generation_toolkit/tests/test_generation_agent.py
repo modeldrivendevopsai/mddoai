@@ -71,10 +71,64 @@ def test_uses_a_custom_root_cause_fn():
         result = run_with_retry(
             "system prompt", {"a": "x"},
             validate_fn=lambda _: validations.pop(0),
-            root_cause_fn=lambda v: f"custom: {v['issues'][0]['message']}",
+            root_cause_fn=lambda v: [f"custom: {v['issues'][0]['message']}"],
         )
 
     assert "custom: missing thing" in result["prompt"]["constraints"]
+
+
+def two_issue_invalid_result():
+    return {"valid": False, "issues": [
+        {"severity": "ERROR", "message": "first problem", "source": None},
+        {"severity": "ERROR", "message": "second problem", "source": None},
+    ]}
+
+
+def test_adds_every_issue_as_its_own_constraint_not_just_the_first():
+    validations = [two_issue_invalid_result(), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    assert "Fix: first problem" in result["prompt"]["constraints"]
+    assert "Fix: second problem" in result["prompt"]["constraints"]
+
+
+def test_does_not_repeat_an_identical_fix_recorded_in_an_earlier_round():
+    # Every round reports the exact same single issue (a model that never
+    # corrects it) - it must be recorded once, not once per round, or the
+    # prompt would grow an identical line for every one of the (now 7)
+    # rounds this loop can run.
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")) as mock_chat:
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: invalid_result("same problem"))
+
+    assert mock_chat.call_count == DEFAULT_MAX_REGENERATE_ROUNDS + 1
+    assert result["prompt"]["constraints"].count("Fix: same problem") == 1
+
+
+def test_adds_new_fixes_in_the_order_discovered():
+    validations = [two_issue_invalid_result(), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    constraints_text = result["prompt"]["constraints"]
+    assert constraints_text.index("Fix: first problem") < constraints_text.index("Fix: second problem")
+
+
+def test_ignores_warning_severity_issues_since_they_did_not_cause_the_failure():
+    # An invalid result can carry WARNING entries alongside the real ERROR
+    # (AtlValidator/EcoreValidator/GenModelBuilder/JavaCompilerCheck all do
+    # this) - a warning isn't why validation failed, so it must not become
+    # a permanent "Fix:" constraint.
+    mixed_severity_result = {"valid": False, "issues": [
+        {"severity": "ERROR", "message": "real blocking problem", "source": None},
+        {"severity": "WARNING", "message": "just a warning", "source": None},
+    ]}
+    validations = [mixed_severity_result, valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    assert "Fix: real blocking problem" in result["prompt"]["constraints"]
+    assert "just a warning" not in result["prompt"]["constraints"]
 
 
 def test_strips_code_fence_regardless_of_language_tag():

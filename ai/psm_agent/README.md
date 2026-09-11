@@ -11,10 +11,11 @@ real PSM metamodel checked into `meta_models/`.
   validate, retry" toolkit, not specific to PSM — see `generation_toolkit/README.md`), asking
   `ai-layer` to generate a new `.ecore` and checking it against `validator_agent`'s real
   `/validate/ecore` in **codegen** mode, not just reflective, so a genuinely new metamodel's own
-  generated Java classes get checked too, as the toolkit's `validate_fn`. On failure, the
-  validator's first issue becomes one new constraint and the prompt is rebuilt for another round,
-  bounded, so a platform whose docs genuinely can't produce a loadable `.ecore` fails closed
-  instead of looping forever. Grounding (pulling relevant PIM-concept context into the prompt)
+  generated Java classes get checked too, as the toolkit's `validate_fn`. On failure, every one of
+  the validator's ERROR-severity issues becomes a new constraint (skipping any already recorded
+  from an earlier round) and the prompt is rebuilt for another round, bounded, so a platform whose
+  docs genuinely can't produce a loadable `.ecore` fails closed instead of looping forever.
+  Grounding (pulling relevant PIM-concept context into the prompt)
   reuses `pim_agent`'s existing `ground()`/`concepts()`, there is no separate RAG agent yet (a
   documented Phase 1 plan, not built here). Every round's own real compiled Ecore classes are
   kept, not deleted after the check (see [validator_agent's own

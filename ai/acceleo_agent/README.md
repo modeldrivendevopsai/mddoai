@@ -12,9 +12,10 @@ ahead of time regardless of which real platform is under test) rather than accep
 attempt, via the
 shared `generation_toolkit` package's `run_with_retry()` (a stage-agnostic "build a prompt, call
 the LLM, validate, retry" toolkit, not specific to Acceleo — see `generation_toolkit/README.md`).
-On failure, the validator's first issue becomes one new constraint and the prompt is rebuilt for
-another round, bounded, so a platform whose real docs genuinely can't produce a compiling template
-fails closed instead of looping forever.
+On failure, every one of the validator's ERROR-severity issues becomes a new constraint (skipping
+any already recorded from an earlier round) and the prompt is rebuilt for another round, bounded,
+so a platform whose real docs genuinely can't produce a compiling template fails closed instead of
+looping forever.
 
 `psm_artifact` (this service's own `POST /generate` request body) reaches validator-agent's real
 Java EMF parsing unmodified, as `metamodel_ecore` above — validator-agent's own `EMFUtils` hardens
