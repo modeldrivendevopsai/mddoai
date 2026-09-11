@@ -1,10 +1,9 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromoteConstraintsAction, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
-import { PromoteConstraintsAction } from "./PromoteConstraintsAction"
 import { constraintsForStage } from "./stageEvents"
 
 // The manifest for atl's own real, config-driven prompt (see

@@ -50,6 +50,17 @@ this package stays backend-agnostic). A consumer that legitimately depends on bo
 a backend-specific one (an `ai/ui-remote-*` stage panel, say) is the adapter that wires the two
 together, not this package itself.
 
+## `PromoteConstraintsAction`
+
+A flat component following that same backend-agnostic principle: an editable-before-confirming
+"Save these corrections for future runs" action, taking only a prefilled constraints block and a
+`onPromote` callback, no stage identity of its own. Every stage panel that offers promotion (psm,
+atl, acceleo) uses this one shared component rather than its own copy, each just binding
+`onPromote` to its own stage's real promote-constraints endpoint (see each stage panel's own README
+for which one). It started as three near-identical per-remote copies before being consolidated here
+once that duplication was real and current, not hypothetical (see the "Multi-file component groups"
+note above on why a component only earns a shared home once its concerns are genuinely independent).
+
 ## Repointing to a real published package later
 
 `src/index.ts`'s own header comment names the plan: if/when an official

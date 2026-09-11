@@ -10,7 +10,22 @@ folder-boundaries section for the `ui-` naming convention.
 
 ## What this exposes
 
-`AtlStagePanel` — the atl stage's own output review.
+`AtlStagePanel` — the atl stage's own real screen: before a first attempt exists, a real "initial
+screen" (`design-system`'s `PromptBuilder`, editing the real, UI-editable prompt config
+`ai/atl_agent`'s own generation call resolves — see that service's own "Prompt configuration")
+with a "Generate" action, since atl is one of the pipeline's manual-start stages (see
+`ai/integration_runner/README.md`'s "The manual-start pause") — nothing runs until a human
+reviews, and possibly edits, that config first. Once a result exists, the usual output/
+validation/correction review, plus `design-system`'s `AttemptsBrowser` for every real, persisted
+past attempt of this stage, and a "Save these corrections for future runs" action on a
+successfully validated generation result, promoting that attempt's own corrections into the
+permanent config (gated on a real validated success, never offered otherwise).
+
+This panel is the one place ATL-specific wiring lives: `PromptBuilder`/`AttemptsBrowser`
+themselves carry no ATL knowledge at all (see `ai/design-system/README.md`'s "Multi-file component
+groups") — this file supplies ATL's own manifest and wires every callback straight to the matching
+`StagePanelProps` prop, the adapter between a backend-agnostic component group and this one
+backend-specific stage.
 
 ## Type sharing
 
@@ -22,14 +37,18 @@ per package — `@module-federation/vite`'s own automatic type-generation plugin
 environment (see `vite.config.ts`'s own `dts: false` comment), and hand-syncing had already caused
 real drift, see `ai/orchestrator-types/README.md`.
 
-Contract used here: `StageId`, `STAGES`, `OrchestratorEvent`, `OrchestratorEventType`.
+Contract used here: `StagePanelProps`, `StageId`, `STAGES`, `OrchestratorEvent`, `OrchestratorEventType`.
+The prompt-builder/attempts shapes themselves (`PromptConfig`, `PromptBuilderManifest`, ...) come
+from `design-system`, not `orchestrator-types` — that package deliberately stays backend-agnostic
+(see its own README).
 
 ## Design system
 
 Depends on `design-system` (`ai/design-system`) via an ordinary local `"file:../design-system"`
 npm dependency, bundled into this package's own build at build time — not a second Module
 Federation remote. See `ai/design-system/README.md` for why, and its own Windows-symlink npm
-install caveat.
+install caveat. Uses `PromptBuilder`, `AttemptsBrowser`, and `PromoteConstraintsAction` alongside the simpler primitives
+(`Button`, `CodeBlock`, `StatusPill`) every other stage panel already uses.
 
 ## Develop
 

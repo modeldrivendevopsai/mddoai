@@ -1,11 +1,10 @@
 import { useState } from "react"
-import { Button } from "design-system"
+import { Button } from "./Button"
 
-interface PromoteConstraintsActionProps {
-  // The exact constraint string that produced this validated success (see
-  // generation_toolkit/prompt_builder.py's build_prompt, which renders
-  // constraints as a "- one\n- two" bullet block) - prefilled into the
-  // editable draft below, never sent as-is.
+export interface PromoteConstraintsActionProps {
+  // The exact constraint string that produced this validated success,
+  // rendered by the backend as a "- one\n- two" bullet block - prefilled
+  // into the editable draft below, never sent as-is.
   initialConstraintsBlock: string
   // Promise<unknown>, not Promise<void>: the real onPromoteConstraints prop
   // resolves to the updated PromptConfig (see orchestrator-types), which
@@ -45,14 +44,13 @@ function parseConstraintsBlock(block: string): string[] {
 
 // "Save these corrections for future runs": a real, human-confirmed,
 // editable-before-confirming action promoting one successful attempt's own
-// constraints into atl_agent's permanent config (see
-// integration_runner/stages/atl/actions.py's own promote_constraints for
-// the real gate this fronts) - only ever offered on a validated success
-// (see AtlStagePanel's own canPromote check), never automatic capture of
-// every typed correction. Its own file, same shape as
-// ui-remote-stage-psm's own copy: a self-contained concern (its own local
-// draft state, its own confirm/cancel actions), independent per remote
-// rather than a new shared cross-remote component.
+// constraints into that stage's own agent's permanent config, the backend
+// gating this on a real validated success (see the calling stage panel's
+// own canPromote check) rather than automatic capture of every typed
+// correction. Generic across every stage that offers promotion (psm, atl,
+// acceleo): it carries no stage identity of its own, only a prefilled
+// constraints block and a promote callback the caller already bound to
+// its own stage's real endpoint.
 export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }: PromoteConstraintsActionProps) {
   const [draft, setDraft] = useState<string | null>(null)
 

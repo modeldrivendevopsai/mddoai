@@ -46,7 +46,7 @@ shapes themselves (`PromptConfig`, `PromptBuilderManifest`, ...) come from `desi
 Depends on `design-system` (`ai/design-system`) via an ordinary local `"file:../design-system"`
 npm dependency, bundled into this package's own build at build time — not a second Module
 Federation remote. See `ai/design-system/README.md` for why, and its own Windows-symlink npm
-install caveat. Uses `PromptBuilder` and `AttemptsBrowser` alongside the simpler primitives
+install caveat. Uses `PromptBuilder`, `AttemptsBrowser`, and `PromoteConstraintsAction` alongside the simpler primitives
 (`Button`, `CodeBlock`, `StatusPill`) every other stage panel already uses.
 
 ## Develop
