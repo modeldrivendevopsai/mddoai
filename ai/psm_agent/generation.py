@@ -39,7 +39,7 @@ from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import pim_agent_client, validator_agent_client
 
-from comparison import META_MODELS_DIR
+from comparison import files_root
 import prompt_paths
 
 # The 9 PIM concept categories pim_agent already knows about (concepts()'s
@@ -127,7 +127,7 @@ def generate(
     if mock:
         context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
         config, parts = prompt_resolution.resolve_for_call(
-            prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, META_MODELS_DIR
+            prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, files_root()
         )
         combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
         prompt = build_prompt(parts, combined_constraints)
@@ -149,7 +149,7 @@ def generate(
 
     context_values = {"pim_ecore": pim_artifact, "psm_docs": psm_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, META_MODELS_DIR
+        prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, files_root()
     )
 
     # A promoted, permanent constraint (see

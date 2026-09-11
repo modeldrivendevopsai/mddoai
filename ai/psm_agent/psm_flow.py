@@ -18,7 +18,7 @@ from pathlib import Path
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 import prompt_paths
-from comparison import COMPARISON_CONFIG_NAME, META_MODELS_DIR, compare, resolve_platform_metamodel
+from comparison import COMPARISON_CONFIG_NAME, compare, files_root, resolve_platform_metamodel
 from generation import generate
 
 
@@ -64,6 +64,6 @@ def run(
     gaps = [asdict(s) for s in suggestions]
     context_values = {"psm_metamodel": existing_artifact, "serialized_docs": platform_docs}
     prompt = prompt_resolution.render_prompt(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, META_MODELS_DIR
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, files_root()
     )
     return {"mode": "knowledge", "artifact": existing_artifact, "gaps": gaps, "prompt": prompt}

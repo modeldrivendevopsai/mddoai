@@ -21,22 +21,17 @@ from generation_toolkit.routes.prompt_config import (
     RemoveLearnedConstraintBody,
 )
 
-from comparison import META_MODELS_DIR
+from comparison import files_root
 import prompt_paths
 
-# Every "file" attachment resolves against both real roots: the read-only,
-# pre-existing repo metamodels, and a human's own uploaded files (see
-# routes/uploads.py) - generation_toolkit.attachments.files.resolve_file_attachment's
-# own multi-root support tries each in order, so a config can reference
-# either kind of real file interchangeably. A function, not a module-level
-# constant, and passed to PromptConfigRouter as-is (not called here):
-# PromptConfigRouter calls it fresh on every request, the same reason its
-# own config_dir argument is a getter - a test that monkeypatches
+# comparison.files_root() is the one, single real source both this editor
+# and generation.py's/psm_flow.py's own real calls resolve "file" attachments
+# against - passed to PromptConfigRouter as-is (not called here), since it
+# calls it fresh on every request, the same reason its own config_dir
+# argument is a getter: a test that monkeypatches
 # prompt_paths.ATTACHMENT_UPLOADS_DIR for one test (see tests/conftest.py's
 # own isolated_attachment_uploads_dir) needs this rebuilt from that same
 # module reference on every call, not once at import time.
-def _files_root() -> list:
-    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 
 # The real context keys generate()/compare() themselves supply for a real
 # call (see generation.py's own context_values inside generate(),
@@ -59,7 +54,7 @@ def _context_for(name: str) -> dict[str, str]:
     return _SAMPLE_CONTEXT_VALUES[name]
 
 
-_prompt_config = PromptConfigRouter(lambda: prompt_paths.PROMPT_CONFIG_DIR, _files_root, _context_for)
+_prompt_config = PromptConfigRouter(lambda: prompt_paths.PROMPT_CONFIG_DIR, files_root, _context_for)
 router = _prompt_config.router
 
 # Re-exported under the same names this service's own tests already import

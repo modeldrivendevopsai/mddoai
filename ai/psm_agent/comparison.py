@@ -47,6 +47,19 @@ COMPARISON_CONFIG_NAME = "comparison"
 META_MODELS_DIR = os.environ.get(
     "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
 )
+
+
+def files_root() -> list[str]:
+    """Every real root a "file" attachment can resolve against: the
+    read-only, pre-existing repo metamodels, and a human's own uploaded
+    files (see routes/uploads.py). Public and called fresh each time
+    (never cached into a plain constant), reused by generation.py's own
+    generate() and psm_flow.py's own knowledge-mode render, so a "file"
+    attachment a human uploaded and attached through the prompt-config
+    editor (which already validates references against both roots, see
+    routes/prompt_config.py) actually resolves on a real call too, not
+    only during editing."""
+    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 DEFAULT_PSM_METAMODEL_PATH = str(
     Path(META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
 )
@@ -195,7 +208,7 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
 
     context_values = {"psm_metamodel": metamodel_content, "serialized_docs": serialized_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, META_MODELS_DIR
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, files_root()
     )
     prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     messages = [

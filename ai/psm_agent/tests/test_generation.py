@@ -10,6 +10,7 @@ convention test_comparison.py uses; only the master example file (real
 githubMM.ecore) and the real, git-committed generation/default.default.json
 prompt config are left real.
 """
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -196,3 +197,36 @@ def test_mock_skips_the_real_llm_call_and_grounding_but_still_validates():
     assert "valid Java identifier" in result["prompt"]["constraints"]
     assert result["preset"] == "default"
     assert "ecore:EPackage" in result["artifact"]
+
+
+def test_generate_resolves_a_file_attachment_the_human_uploaded(
+    isolated_prompt_config_dir, isolated_attachment_uploads_dir
+):
+    # Real regression test: a "file" attachment referencing a human's own
+    # upload is already validated as resolvable by routes/prompt_config.py's
+    # own save/check-references (both resolve against comparison.files_root(),
+    # which includes ATTACHMENT_UPLOADS_DIR) - a real generate() call must
+    # resolve that same attachment too, not only the editor. Before
+    # comparison.files_root() existed, generate() resolved "file" attachments
+    # against META_MODELS_DIR alone, so this exact config would have raised
+    # AttachmentFileError here instead of succeeding.
+    (isolated_attachment_uploads_dir / "custom-guidance.md").write_text(
+        "Always emit camelCase attribute names.", encoding="utf-8"
+    )
+    config = {
+        "attachments": [
+            {"id": "system", "name": "System prompt", "type": "text", "content": "You are the psm generation agent."},
+            {"id": "custom", "name": "Custom guidance", "type": "file", "path": "custom-guidance.md"},
+        ]
+    }
+    directory = isolated_prompt_config_dir / "generation"
+    directory.mkdir(parents=True)
+    (directory / "default.default.json").write_text(json.dumps(config), encoding="utf-8")
+
+    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
+         patch.object(pim_agent_client, "ground", return_value=[]), \
+         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+         patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
+        result = generate("Some new CI platform", "<pim-artifact/>", "target docs text")
+
+    assert result["prompt"]["custom"] == "Always emit camelCase attribute names."

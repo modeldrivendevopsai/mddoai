@@ -34,7 +34,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 from clients import ai_layer_client
-from comparison import DEFAULT_PSM_METAMODEL_PATH, Suggestion, compare, known_psm_platforms, resolve_platform_metamodel
+from comparison import (
+    COMPARISON_CONFIG_NAME,
+    DEFAULT_PSM_METAMODEL_PATH,
+    Suggestion,
+    compare,
+    files_root,
+    known_psm_platforms,
+    resolve_platform_metamodel,
+)
 
 
 def ok_response(content):
@@ -222,3 +230,39 @@ def test_compare_ignores_stray_bracket_in_trailing_prose():
             source_excerpt="Jobs support a `retry` field with a max count.",
         )
     ]
+
+
+def test_files_root_includes_both_metamodels_and_uploads_dir():
+    from comparison import META_MODELS_DIR
+    import prompt_paths
+
+    assert files_root() == [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+
+
+def test_compare_resolves_a_file_attachment_the_human_uploaded(
+    isolated_prompt_config_dir, isolated_attachment_uploads_dir
+):
+    # Same real regression as generation.py's own equivalent test: a "file"
+    # attachment referencing a human's own upload must resolve on a real
+    # compare() call, not only in the prompt-config editor.
+    import json
+
+    (isolated_attachment_uploads_dir / "custom-guidance.md").write_text(
+        "Flag anything using a deprecated GitLab CI keyword.", encoding="utf-8"
+    )
+    config = {
+        "attachments": [
+            {"id": "system", "name": "System prompt", "type": "text", "content": "You are the psm knowledge agent."},
+            {"id": "custom", "name": "Custom guidance", "type": "file", "path": "custom-guidance.md"},
+        ]
+    }
+    directory = isolated_prompt_config_dir / COMPARISON_CONFIG_NAME
+    directory.mkdir(parents=True)
+    (directory / "default.default.json").write_text(json.dumps(config), encoding="utf-8")
+
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("[]")) as mock_chat:
+        compare("docs")
+
+    user_content = mock_chat.call_args.args[0][1]["content"]
+    assert "Flag anything using a deprecated GitLab CI keyword." in user_content
+
