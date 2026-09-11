@@ -50,6 +50,7 @@ Tests verify:
      starts, and records call_completed/call_failed depending on outcome.
 """
 import threading
+import time
 from unittest.mock import patch
 
 import pytest
@@ -264,14 +265,74 @@ def test_review_on_a_busy_run_refuses_without_advancing_or_recording():
 
 
 def test_review_rejected_releases_the_busy_claim():
-    # A rejection claims busy (to keep the whole record-and-maybe-start
-    # atomic) but starts no stage, so it must hand the claim back.
+    # A rejection claims busy (to keep two near-simultaneous rejections of
+    # the same stage from both mutating state) but starts no stage, so it
+    # must hand the claim back once record_review() returns.
     o = pipeline.IntegrationRun()
     _fast_forward_to_generation(o)
 
-    o.review("generation", approved=False, correction="needs retries")
+    with patch.object(o, "claim_busy", wraps=o.claim_busy) as mock_claim:
+        o.review("generation", approved=False, correction="needs retries")
 
+    mock_claim.assert_called_once()
     assert o.busy is False
+
+
+def test_review_approved_on_last_stage_releases_the_busy_claim():
+    # Same reasoning as the rejection case above: completing the final
+    # stage never starts a thread either, so its claim must also come back.
+    o = pipeline.IntegrationRun()
+    o.current_stage_index = len(pipeline.STAGES) - 1
+    o.last_completed_stage = "generation"
+
+    with patch.object(o, "claim_busy", wraps=o.claim_busy) as mock_claim:
+        result = o.review("generation", approved=True)
+
+    mock_claim.assert_called_once()
+    assert result == {"status": "complete"}
+    assert o.busy is False
+
+
+def test_two_concurrent_rejections_of_the_same_stage_do_not_both_apply():
+    # The double-submit hazard claim_busy() exists to close: two
+    # near-simultaneous review() calls on the same stage must not both
+    # mutate state, even though a rejection alone never starts a thread.
+    # A losing claim_busy() raises before record_review() is ever reached,
+    # so the two threads can't rendezvous on a shared barrier the way
+    # run_stage_async()'s own equivalent test does (the loser would never
+    # arrive at it) - record_review() is slowed down instead, one-sided,
+    # so the first thread is still holding the claim by the time the second
+    # one's own claim_busy() runs.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    real_record_review = o.record_review
+
+    def _slow_record_review(*args, **kwargs):
+        time.sleep(0.1)
+        return real_record_review(*args, **kwargs)
+
+    results = []
+    errors = []
+
+    def reject():
+        try:
+            results.append(o.review("generation", approved=False, correction="dup"))
+        except pipeline.BusyError as e:
+            errors.append(e)
+
+    with patch.object(o, "record_review", side_effect=_slow_record_review):
+        t1 = threading.Thread(target=reject)
+        t2 = threading.Thread(target=reject)
+        t1.start()
+        time.sleep(0.02)  # head start, well inside t1's own 0.1s slow record_review
+        t2.start()
+        t1.join(timeout=5)
+        t2.join(timeout=5)
+
+    assert len(errors) == 1  # exactly one loses the race
+    assert len(results) == 1
+    assert o.constraints["generation"] == ["dup"]  # recorded exactly once, not twice
+    assert len([e for e in o.events if e["type"] == "review_rejected"]) == 1
 
 
 def test_review_approved_on_last_stage_returns_complete():

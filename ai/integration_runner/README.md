@@ -270,14 +270,31 @@ because this service runs single-process (`integration_runner/Dockerfile`'s own 
 `--workers` flag) — a cross-process file lock would be solving a problem this deployment doesn't
 have.
 
-**Concurrent mutating requests.** Every mutating endpoint keeps a fast-path `if run.busy` check,
-but that check and setting `busy = True` used to be two unsynchronized steps, so two
-near-simultaneous requests (a double-click, a client retry, the orchestrator and a human both
-acting) could both pass the check and both start a stage against the same run, racing on
-`last_output` / `last_context` / `current_stage_index`. `IntegrationRun.claim_busy()` now makes
-that check-and-set one atomic step under a lock: the loser gets a `BusyError`, which the handler
-turns into the same `409`, with no state half-changed. `/review` claims busy before it advances
-the pipeline, so an approval can never record-and-advance and then fail to start.
+**Concurrent mutating requests.** Every mutating endpoint keeps a fast-path `if run.busy` check
+(a double-click, a client retry, the orchestrator and a human both acting could otherwise both
+pass it and both start a stage against the same run, racing on `last_output` / `last_context` /
+`current_stage_index`), but that check alone isn't atomic. `IntegrationRun.claim_busy()` is the
+real atomic check-and-set, under a lock: the loser gets a `BusyError`, which the handler turns
+into the same `409`, with no state half-changed. `run_stage_async()` (the one path `/start`,
+`/rerun`, and `/stage/run` all start a stage through) and `/docs/extend` both call it directly.
+`/review` claims it for every outcome, not just one that starts a stage: two near-simultaneous
+reviews of the same stage (a double-click, a client retry) must not both mutate state, so a
+rejection recorded twice doesn't double the correction, and approving the final stage twice
+doesn't double-advance past it, even though neither one spawns a thread on its own. It's claimed
+before `record_review()` mutates anything, so an approval can never record-and-advance and then
+fail to start, and released again once `record_review()` returns unless that outcome started a
+stage, in which case the background worker releases it when the stage finishes.
+
+`reset_pipeline()`/`resume_run()` (`/reset`, `/resume/{run_id}`, and `start_pipeline()`'s own
+reset-when-not-blank branch) claim and immediately release busy on the run being replaced before
+swapping `runs._default`, the same atomic backstop applied to reassigning which run is current
+rather than to starting a stage. Without it, a run claimed busy by another request in the gap
+between the route's own pre-flight check and the swap would be silently orphaned mid-execution,
+with nothing pointing at it as current anymore. `start_pipeline()` claims busy on the current run
+before deciding whether to reuse it or reset it, not just before starting the stage: `busy` flips
+true (inside a concurrent `claim_busy()` elsewhere) strictly before that caller's first event is
+ever recorded, so reading `events` to make that decision without claiming busy first could still
+mistake an already-claimed run for a blank slate.
 
 ### Reporting a stage result
 
@@ -346,10 +363,11 @@ never by this module calling out to anything.
 `run_stage_async(context)` is the one way a stage ever starts running: it claims the run busy
 (`claim_busy()`, raising `BusyError` if a stage is already in flight), spawns a real background
 thread that records `call_started`, runs the stage, records `call_completed`/`call_failed` and
-releases the claim, and returns immediately. `/review` claims busy itself before it advances the
-pipeline, so an approval can't record-and-advance and then fail to start. `/review`, `/rerun`,
-`/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` all keep a fast-path `if busy`
-check and return `409` when a stage is genuinely still running — a guard against a double-click,
+releases the claim, and returns immediately (see the
+[Persisted validation attempts](#persisted-validation-attempts) section above for the full
+atomic-claim picture, including `/review`'s own claim and `/reset`/`/resume`'s). `/review`,
+`/rerun`, `/start`, `/reset`, `/resume`, `/stage/run`, and `/docs/extend` all keep a fast-path
+`if busy` check and return `409` when a stage is genuinely still running — a guard against a double-click,
 not a task queue.
 
 ### The human review loop

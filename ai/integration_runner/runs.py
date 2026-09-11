@@ -15,7 +15,7 @@ operation is implemented, not two.
 """
 import threading
 
-from integration_runner.pipeline import BusyError, IntegrationRun
+from integration_runner.pipeline import IntegrationRun
 
 # Serializes the functions that reassign _default (start_pipeline,
 # reset_pipeline, resume_run) against each other. Without it, two
@@ -59,6 +59,22 @@ def current_run_id() -> str:
     return _default.run_id
 
 
+def _reject_if_busy(run: "IntegrationRun") -> None:
+    """Claims and immediately releases busy on `run`, the atomic backstop
+    every function that reassigns _default needs before discarding or
+    stepping away from a possibly-still-executing run — a route's own
+    pre-flight `if run.busy` check (routes/core.py) is a plain read, racing
+    against any other caller's claim_busy() (run_stage_async(), review(),
+    /docs/extend) in the gap between that read and the swap actually
+    running. Raises BusyError instead of silently orphaning that caller's
+    still-running background thread under a run nothing points to as
+    current anymore. Shared by reset_pipeline(), resume_run(), and
+    start_pipeline()'s own reset branch, all three of which need exactly
+    this same check before the same kind of swap."""
+    run.claim_busy()
+    run.release_busy()
+
+
 def _platform_name(run: "IntegrationRun") -> str | None:
     for event in run.events:
         data = event.get("data") or {}
@@ -70,16 +86,27 @@ def _platform_name(run: "IntegrationRun") -> str | None:
 def list_runs() -> list[dict]:
     """Summaries of every run this process has seen, newest first, for the
     sidebar's session list. is_current tells the caller which one is safe
-    to interact with (approve/reject/retry) vs read-only history."""
+    to interact with (approve/reject/retry) vs read-only history.
+
+    Snapshots _runs and the current run_id under _registry_lock before
+    building the summary list: reset_pipeline() inserts into _runs under
+    that same lock, and iterating a dict's own .values() view while another
+    thread inserts into it is a real "dictionary changed size during
+    iteration" RuntimeError, not just a staleness concern - reading the
+    lock-free snapshot outside the lock afterward keeps the lock held only
+    as long as the actual shared-state read needs it."""
+    with _registry_lock:
+        current_id = _default.run_id
+        runs_snapshot = list(_runs.values())
     return [
         {
             "run_id": run.run_id,
             "platform_name": _platform_name(run),
             "current_stage": run.current_stage,
             "busy": run.busy,
-            "is_current": run.run_id == _default.run_id,
+            "is_current": run.run_id == current_id,
         }
-        for run in reversed(list(_runs.values()))
+        for run in reversed(runs_snapshot)
     ]
 
 
@@ -102,9 +129,13 @@ def reset_pipeline() -> None:
     """Start a fresh pipeline run: replace the default IntegrationRun instance.
     The prior run's instance stays in _runs (see list_runs()) so the sidebar
     can show it as history for the life of this process — no persistence
-    across a restart, in-memory only, that's the deliberate MVP scope."""
+    across a restart, in-memory only, that's the deliberate MVP scope.
+
+    Raises BusyError (via _reject_if_busy()) instead of swapping the run
+    being replaced out from under its own in-flight thread."""
     global _default
     with _registry_lock:
+        _reject_if_busy(_default)
         _default = IntegrationRun()
         _runs[_default.run_id] = _default
 
@@ -117,12 +148,15 @@ def resume_run(run_id: str) -> dict:
     nothing is replayed or reset, it just picks up exactly where it left
     off. Raises ValueError for an unknown run_id, left for the caller (this
     service's own main.py) to turn into the right HTTP status, same
-    convention as IntegrationRun.review()/rerun()."""
+    convention as IntegrationRun.review()/rerun(). Raises BusyError (via
+    _reject_if_busy()) if the run being replaced is busy, same as
+    reset_pipeline()."""
     global _default
     with _registry_lock:
         run = get_run(run_id)
         if run is None:
             raise ValueError(f"No run with id {run_id!r}")
+        _reject_if_busy(_default)
         _default = run
         return {"run_id": _default.run_id, "current_stage": _default.current_stage}
 
@@ -153,18 +187,32 @@ def start_pipeline(
     stage (hint, exclude_urls, max_pages, max_depth, force_refresh) — set
     once here up front instead of only being reachable via a retry."""
     with _registry_lock:
-        # Under the same lock that serializes the _default swap: a run that's
-        # already executing a stage must not be reset out from under its own
-        # thread, nor reused. The route handler's own pre-flight check
-        # answers this first for the common case; this is the atomic backstop
-        # for the gap between that check and here.
-        if _default.busy:
-            raise BusyError("a stage run is already in flight for this run")
+        # Claimed before the events check, not just read: busy flips True
+        # (inside claim_busy(), called by run_stage_async()/review()/
+        # /docs/extend) strictly before that caller's first event is ever
+        # recorded, so a plain `if _default.busy` read here could still see
+        # busy=False and events=[] in that gap and wrongly treat an
+        # already-claimed run as a blank slate to reuse. Claiming for real
+        # closes that: a concurrent claim on this same instance now loses
+        # the race cleanly (BusyError propagates, nothing below runs) rather
+        # than racing set_model()/the reused instance's own thread.
+        _default.claim_busy()
         if _default.events:
+            # Discarding this instance for a fresh one - release the claim
+            # first so reset_pipeline() (which runs its own _reject_if_busy()
+            # check) doesn't see it as already busy and refuse itself.
+            _default.release_busy()
             reset_pipeline()
+            # A freshly constructed IntegrationRun is never busy - this
+            # always succeeds, and is what actually protects the new
+            # instance's model/thread-start below.
+            _default.claim_busy()
         _default.set_model(model)
         context = {"platform_description": platform_description, "seed_url": seed_url, **(docs_options or {})}
-        return _default.start_stage_run(context)
+        # start_claimed_stage_run(), not start_stage_run(): busy is already
+        # claimed above, before the reset-or-reuse decision, earlier than
+        # start_stage_run()'s own claim_busy() would run.
+        return _default.start_claimed_stage_run(context)
 
 
 def wait_for_idle(timeout: float = 5.0) -> None:

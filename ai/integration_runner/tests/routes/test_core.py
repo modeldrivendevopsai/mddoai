@@ -1,10 +1,12 @@
-"""routes/core.py unit tests for the concurrency backstop: every endpoint
-that can start a stage keeps its own pre-flight `if run.busy` check, but
-that check has a window before busy is actually set. run_stage_async()'s
-atomic claim raises BusyError in that window; these tests confirm each
-handler turns that BusyError into the same 409 the pre-flight check gives,
-rather than letting it escape as an unhandled 500. Endpoints are called
-directly as plain functions, no TestClient. No real API calls.
+"""routes/core.py unit tests for the concurrency backstop: every mutating
+endpoint keeps its own pre-flight `if run.busy` check, but that check has a
+window before busy is actually claimed. The real atomic claim
+(`IntegrationRun.claim_busy()`, called by `run_stage_async()`/`review()`, or
+`_reject_if_busy()` in `runs.py` for `reset_pipeline()`/`resume_run()`)
+raises `BusyError` in that window; these tests confirm each handler turns
+that `BusyError` into the same 409 the pre-flight check gives, rather than
+letting it escape as an unhandled 500. Endpoints are called directly as
+plain functions, no TestClient. No real API calls.
 """
 from unittest.mock import patch
 
@@ -18,6 +20,8 @@ from integration_runner.routes.core import (
     StageRunRequest,
     StartRequest,
     rerun_endpoint,
+    resume_endpoint,
+    reset_endpoint,
     review_endpoint,
     stage_run_endpoint,
     start_endpoint,
@@ -67,4 +71,20 @@ def test_rerun_endpoint_maps_a_racing_busyerror_to_409():
     with patch.object(run, "rerun", side_effect=pipeline.BusyError("busy")):
         with pytest.raises(HTTPException) as exc_info:
             rerun_endpoint("docs", None)
+    assert exc_info.value.status_code == 409
+
+
+def test_reset_endpoint_maps_a_racing_busyerror_to_409():
+    runs._default = pipeline.IntegrationRun()  # not busy, so the pre-flight check passes
+    with patch.object(runs, "reset_pipeline", side_effect=pipeline.BusyError("busy")):
+        with pytest.raises(HTTPException) as exc_info:
+            reset_endpoint()
+    assert exc_info.value.status_code == 409
+
+
+def test_resume_endpoint_maps_a_racing_busyerror_to_409():
+    runs._default = pipeline.IntegrationRun()  # not busy, so the pre-flight check passes
+    with patch.object(runs, "resume_run", side_effect=pipeline.BusyError("busy")):
+        with pytest.raises(HTTPException) as exc_info:
+            resume_endpoint("some-run-id")
     assert exc_info.value.status_code == 409

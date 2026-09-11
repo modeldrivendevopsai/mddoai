@@ -159,7 +159,10 @@ def reset_endpoint():
     the run history, it just stops being current."""
     if runs.current().busy:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
-    runs.reset_pipeline()
+    try:
+        runs.reset_pipeline()
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     return {"status": "reset"}
 
 
@@ -174,6 +177,8 @@ def resume_endpoint(run_id: str):
         return runs.resume_run(run_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
 
 
 @router.post("/review/{stage_id}")
