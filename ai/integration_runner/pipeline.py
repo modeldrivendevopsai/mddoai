@@ -211,9 +211,18 @@ class IntegrationRun:
     def start_stage_run(self, context: dict) -> dict:
         """Start the current stage running in the background with the given
         context, and report that it started. The run_stage tool's real
-        target, and what runs.start_pipeline() uses to kick off the docs
-        stage."""
+        target."""
         self.run_stage_async(context)
+        return {"status": "started", "stage": self.current_stage}
+
+    def start_claimed_stage_run(self, context: dict) -> dict:
+        """Same as start_stage_run(), for a caller that has already claimed
+        busy on this instance itself (see claim_busy()) and so must not
+        claim it again through run_stage_async()'s own claim. This is what
+        runs.start_pipeline() uses: it has to claim busy before it even
+        decides whether to reuse this instance or reset it, earlier than
+        start_stage_run()'s own claim would happen."""
+        self._spawn_stage_thread(context)
         return {"status": "started", "stage": self.current_stage}
 
     def advance_stage(self) -> str | None:
@@ -271,15 +280,30 @@ class IntegrationRun:
         a human clicking Approve/Reject and an LLM deciding to call
         stage_result is who's asking.
 
-        claim_busy() runs first, before record_review() touches anything: an
-        approval both records an event and advances current_stage_index, so
-        if the stage start were then refused as busy the pipeline would be
-        left advanced-but-not-running and a retry of the same review would
-        fail validation. Claiming up front means a busy run is refused with
-        nothing changed. The claim is released here for a review that
-        doesn't start a stage (a rejection, or a manual-start pause); for
-        one that does, the background worker releases it when the stage
-        finishes."""
+        claim_busy() runs first, before record_review() touches anything, for
+        every outcome, not just one that starts a stage: two near-simultaneous
+        review() calls on the same stage (a double-click, a client retry, the
+        orchestrator and a human both acting) must not both mutate state, or a
+        rejection could double the recorded correction, and approving the
+        final stage could double-advance past it — this is the exact same
+        double-submit hazard claim_busy() already exists to close for every
+        other mutating path, not something a rejection or a final approval is
+        exempt from just because neither one starts a stage on its own. The
+        claim is released here for a review that doesn't start a stage (a
+        rejection, completing the run, or a manual-start pause); for one that
+        spawns a background thread, that worker releases it when the stage
+        finishes.
+
+        Known, deliberately unhandled: once record_review() succeeds (the
+        approval and advance are now real, recorded history), a
+        _spawn_stage_thread() failure — Thread.start() itself raising under
+        OS thread-resource exhaustion, not a validation error — still
+        releases busy (below) but doesn't unwind the advance/event already
+        recorded. EventLog is an append-only record of what genuinely
+        happened, not a place to un-happen something once it has, and a
+        failure at this exact point means the whole process is likely
+        already in real trouble regardless — a human can still see the true
+        state via GET /events and rerun the stage directly."""
         self.claim_busy()
         started = False
         try:
