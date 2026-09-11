@@ -124,7 +124,7 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                 "add one specific known page without redoing the whole crawl, use "
                 "add_page_to_docs instead. Those five parameters only mean anything on the docs "
                 "stage; using them on any other stage is rejected. mock (see below) is different: "
-                "it also means something on the psm stage."
+                "it also means something on the psm, atl, and acceleo stages."
             ),
             parameters={
                 "type": "object",
@@ -149,10 +149,10 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                         "description": (
                             "Skip the real, slow step and use a fixed placeholder instead: on the "
                             "docs stage, skip the real crawl entirely for canned placeholder "
-                            "output; on the psm stage, skip the real LLM call for a fixed, "
-                            "already-valid placeholder metamodel (the real prompt config and the "
-                            "real validator-agent check still run). Only set this when the human "
-                            "explicitly asks for a mock/test/fake rerun."
+                            "output; on the psm, atl, and acceleo stages, skip the real LLM call "
+                            "for a fixed, already-valid placeholder artifact (the real prompt "
+                            "config and the real validator-agent check still run). Only set this "
+                            "when the human explicitly asks for a mock/test/fake rerun."
                         ),
                     },
                 },

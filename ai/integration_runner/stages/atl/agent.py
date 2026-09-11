@@ -18,11 +18,12 @@ not just the final text.
 Also persists every real attempt to disk via stages/_validation.py's
 persist_attempt(). Deliberately does NOT call raise_if_invalid() even when
 the real regenerate loop exhausts every round and still fails - unlike
-pim/acceleo's own one-shot mock call, atl_agent's generate() already
-retried up to 3 times internally, and a human reviewing a still-failed
-result needs the real detail (which round, what the validator actually
-said) a bare raised failure would throw away, matching psm's own real
-generation-mode choice.
+pim's own one-shot mock call, atl_agent's generate() already retried
+several times internally, and a human reviewing a still-failed result
+needs the real detail (which round, what the validator actually said) a
+bare raised failure would throw away, matching psm's own real
+generation-mode choice (acceleo's own proxy makes the same choice for the
+same reason - see its own docstring).
 """
 from clients import atl_agent_client
 from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
