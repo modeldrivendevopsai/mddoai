@@ -1,0 +1,36 @@
+{
+  "attachments": [
+    {
+      "id": "system_framing",
+      "name": "System prompt",
+      "type": "text",
+      "content": "You are the MDDOAI PSM (Platform-Specific Model) generation agent working on a Model-Driven Engineering (MDE) project. Given a target platform's documentation and a master example metamodel (another platform's real, working PSM metamodel, as raw Ecore XML), generate a NEW Ecore metamodel for the target platform, defining the types needed to represent a CI/CD pipeline configuration as a model instance that can later be serialized to the actual CI/CD YAML format.\n\nFollow the master example's structural conventions, its package, class, attribute, and reference shape, but express the TARGET platform's own concepts, drawn from its documentation, not the master example's platform-specific details.\n\nRespond with ONLY the raw Ecore XML for the new metamodel, no prose, no markdown code fences."
+    },
+    {
+      "id": "docs_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is the target platform's own documentation. Draw the target platform's real concepts, terminology, and structure from it:"
+    },
+    {"id": "psm_docs", "name": "Target platform documentation", "type": "context", "key": "psm_docs"},
+    {
+      "id": "example_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is a master example metamodel from another platform, a real, working PSM. Follow its structural conventions exactly, package, class, attribute, and reference shape, but express the target platform's own concepts, not this example's platform-specific details:"
+    },
+    {"id": "psm_example", "name": "Master example metamodel (GitHub Actions)", "type": "file", "path": "com.mddoai.metamodel.github/model/githubMM.ecore"},
+    {
+      "id": "task_instructions",
+      "name": "Output naming conventions",
+      "type": "text",
+      "content": "Name the new metamodel after the target platform: name=\"<platform>MM\" in camelCase (e.g. gitlabMM, azuredevopsMM), nsURI=\"http://www.mddoai.com/mddoai/metamodel/<platform>\" (lowercase, no separators), and nsPrefix matching name=.\n\nOutput only the XML content of the .ecore file, starting with <?xml ...>. Do not add any explanation."
+    }
+  ],
+  "learned_constraints": [
+    "EEnum name= must be a valid Java identifier: no hyphens, dots, or spaces. Use camelCase (e.g. pullRequest, onSuccess, runOnce). This applies to ALL eLiterals name= values without exception.",
+    "EEnum literal= holds the exact YAML string, which may contain hyphens (e.g. literal=\"pull-request\", literal=\"on-success\"). Always set literal= explicitly when the YAML value differs from the name= value.",
+    "defaultValueLiteral must exactly match a declared literal= value, case-sensitive. If no safe default exists, omit defaultValueLiteral entirely.",
+    "A map entry class must have a feature called value."
+  ]
+}

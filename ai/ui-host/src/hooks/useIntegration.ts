@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   getEvents,
   getProviders,
+  getStageMetadata,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -12,7 +13,7 @@ import {
 } from "@/services/orchestrator.service"
 import type { DocsOptions } from "orchestrator-types"
 import { PIPELINE_EVENT_TYPES } from "orchestrator-types"
-import type { OrchestratorEvent, Provider, StageId } from "orchestrator-types"
+import type { OrchestratorEvent, Provider, StageDetail, StageId } from "orchestrator-types"
 
 // Real backend error messages (see orchestrator.service's errorFor())
 // are actually useful, e.g. "'psm' is not the current pending stage" or a
@@ -43,8 +44,18 @@ export function useIntegration(runId?: string) {
   // this itself; moved here so it stays purely prop-driven like every other
   // federated remote (see ai/ui-remote-chat/README.md).
   const [providers, setProviders] = useState<Provider[]>([])
+  // Static, real per-stage input/output/real shape (see
+  // integration_runner's STAGE_DETAILS), fetched once like providers below,
+  // never per-run: it describes the pipeline itself, not any one run of it.
+  const [stageDetails, setStageDetails] = useState<Record<StageId, StageDetail> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isCurrent, setIsCurrent] = useState(true)
+  // The real run this hook is currently showing, whether live or a past
+  // one being viewed read-only — distinct from this hook's own `runId`
+  // parameter above (only ever set when viewing a specific past run from
+  // the URL; undefined for the live run). AttemptsBrowser needs this real
+  // id regardless of which case it is.
+  const [viewedRunId, setViewedRunId] = useState<string | null>(null)
   const pollingRef = useRef(false)
   // Mirrors isCurrent for the interval poll below, which can't depend on the
   // state value directly without re-subscribing the effect every tick.
@@ -73,6 +84,14 @@ export function useIntegration(runId?: string) {
       .catch(() => setProviders([]))
   }, [])
 
+  // Same reasoning as providers above: real, static data describing the
+  // pipeline's own stages, fetched once per mount, not tied to runId.
+  useEffect(() => {
+    getStageMetadata()
+      .then((metadata) => setStageDetails(metadata.details))
+      .catch(() => setStageDetails(null))
+  }, [])
+
   const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
     allEventsRef.current = replace ? body.events : [...allEventsRef.current, ...body.events]
     setEvents(allEventsRef.current)
@@ -81,6 +100,7 @@ export function useIntegration(runId?: string) {
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
+    setViewedRunId(body.run_id)
     // current_stage defaults to "docs" (index 0) even on a completely fresh,
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
@@ -292,8 +312,10 @@ export function useIntegration(runId?: string) {
     started,
     model,
     providers,
+    stageDetails,
     error,
     isCurrent,
+    viewedRunId,
     start,
     approve,
     retry,

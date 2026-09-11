@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -125,6 +125,17 @@ def providers_endpoint():
     return ai_layer_client.list_providers()
 
 
+@app.get("/stages")
+def stages_endpoint():
+    """Static pipeline metadata (stage list, LLM-narration descriptions,
+    and the fuller per-stage input/output/real detail) - a thin proxy to
+    integration_runner's own real GET /stages, the same shape
+    tools.stage_metadata() already fetches for the system prompt, exposed
+    here too so the UI can explain a stage to a human, not just narrate it
+    to an LLM."""
+    return integration_runner_client.get_stage_metadata()
+
+
 @app.post("/review/{stage_id}")
 def review_endpoint(stage_id: str, request: ReviewRequest):
     result = integration_runner_client.review(stage_id, request.approved, request.correction)
@@ -152,3 +163,279 @@ def message_endpoint(request: MessageRequest):
         return assistant.send_message(request.message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Run/attempt introspection ---------------------------------------------------
+# Generic, stage-agnostic: thin proxy to integration_runner's own
+# /runs/{run_id}/manifest and /runs/{run_id}/{stage}/{attempt}.
+# IntegrationRunnerError (404 for an unknown run/attempt) is handled once,
+# above, by integration_runner_error_handler - no try/except needed here.
+
+
+@app.get("/runs/{run_id}/manifest")
+def manifest_endpoint(run_id: str):
+    return {"attempts": integration_runner_client.get_run_manifest(run_id)}
+
+
+@app.get("/runs/{run_id}/{stage}/{attempt}")
+def attempt_endpoint(run_id: str, stage: str, attempt: str):
+    return integration_runner_client.get_attempt(run_id, stage, attempt)
+
+
+# --- Prompt-config CRUD (psm/atl/acceleo) -----------------------------------------
+# Each of these three real, separate services (psm_agent, atl_agent,
+# acceleo_agent) exposes an identically-shaped prompt-config surface,
+# reached through integration_runner's own matching /psm, /atl, /acceleo
+# proxy routes (see clients/integration_runner_client.py's own
+# get_psm_prompt_config/get_atl_prompt_config/get_acceleo_prompt_config
+# etc.). One shared request-body shape per concern below (all three
+# services' real config schema is identical), one endpoint group per
+# prefix - ui-host never reaches integration_runner directly, only through
+# this service, the same rule every other endpoint above already follows.
+
+
+class SaveConfigRequest(BaseModel):
+    # No system_prompt field: a config's own first "text" attachment IS
+    # the system message (see each real service's own PromptConfigBody,
+    # the real schema this pass-through mirrors).
+    attachments: list[dict]
+    learned_constraints: list[str] = []
+
+
+class LearnedConstraintsRequest(BaseModel):
+    constraints: list[str]
+
+
+class RemoveLearnedConstraintRequest(BaseModel):
+    constraint: str
+
+
+class PromoteConstraintsRequest(BaseModel):
+    constraints: list[str]
+
+
+# --- psm ---
+
+
+@app.get("/psm/prompt-config/{name}")
+def psm_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_psm_prompt_config(name)
+
+
+@app.put("/psm/prompt-config/{name}")
+def psm_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_psm_prompt_config(name, request.model_dump())
+
+
+@app.get("/psm/prompt-config/{name}/history")
+def psm_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_psm_prompt_config_history(name)}
+
+
+@app.get("/psm/prompt-config/{name}/diff")
+def psm_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_psm_prompt_config_versions(name, a, b)
+
+
+@app.post("/psm/prompt-config/{name}/restore/{version}")
+def psm_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_psm_prompt_config_version(name, version)
+
+
+@app.post("/psm/prompt-config/{name}/revert")
+def psm_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_psm_prompt_config(name)
+
+
+@app.post("/psm/prompt-config/{name}/promote-to-default")
+def psm_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_psm_prompt_config_to_default(name)
+
+
+@app.get("/psm/prompt-config/{name}/check-references")
+def psm_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_psm_prompt_config_references(name)}
+
+
+@app.post("/psm/prompt-config/{name}/preview")
+def psm_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_psm_prompt_config(name)
+
+
+@app.post("/psm/prompt-config/{name}/learned-constraints")
+def psm_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_psm_learned_constraints(name, request.constraints)
+
+
+@app.delete("/psm/prompt-config/{name}/learned-constraints")
+def psm_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_psm_learned_constraint(name, request.constraint)
+
+
+@app.get("/psm/available-files")
+def psm_available_files_endpoint():
+    return {"files": integration_runner_client.list_psm_available_files()}
+
+
+@app.get("/psm/resolve-mode")
+def psm_resolve_mode_endpoint(platform_description: str):
+    return integration_runner_client.resolve_psm_mode(platform_description)
+
+
+@app.post("/psm/attachment-uploads")
+async def psm_upload_attachment_endpoint(file: UploadFile):
+    content = await file.read()
+    return {"path": integration_runner_client.upload_psm_attachment_file(file.filename or "upload", content)}
+
+
+@app.post("/psm/promote-constraints")
+def psm_promote_constraints_endpoint(request: PromoteConstraintsRequest):
+    return integration_runner_client.promote_psm_constraints(request.constraints)
+
+
+# --- atl ---
+
+
+@app.get("/atl/prompt-config/{name}")
+def atl_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_atl_prompt_config(name)
+
+
+@app.put("/atl/prompt-config/{name}")
+def atl_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_atl_prompt_config(name, request.model_dump())
+
+
+@app.get("/atl/prompt-config/{name}/history")
+def atl_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_atl_prompt_config_history(name)}
+
+
+@app.get("/atl/prompt-config/{name}/diff")
+def atl_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_atl_prompt_config_versions(name, a, b)
+
+
+@app.post("/atl/prompt-config/{name}/restore/{version}")
+def atl_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_atl_prompt_config_version(name, version)
+
+
+@app.post("/atl/prompt-config/{name}/revert")
+def atl_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_atl_prompt_config(name)
+
+
+@app.post("/atl/prompt-config/{name}/promote-to-default")
+def atl_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_atl_prompt_config_to_default(name)
+
+
+@app.get("/atl/prompt-config/{name}/check-references")
+def atl_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_atl_prompt_config_references(name)}
+
+
+@app.post("/atl/prompt-config/{name}/preview")
+def atl_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_atl_prompt_config(name)
+
+
+@app.post("/atl/prompt-config/{name}/learned-constraints")
+def atl_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_atl_learned_constraints(name, request.constraints)
+
+
+@app.delete("/atl/prompt-config/{name}/learned-constraints")
+def atl_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_atl_learned_constraint(name, request.constraint)
+
+
+@app.get("/atl/available-files")
+def atl_available_files_endpoint():
+    return {"files": integration_runner_client.list_atl_available_files()}
+
+
+@app.post("/atl/attachment-uploads")
+async def atl_upload_attachment_endpoint(file: UploadFile):
+    content = await file.read()
+    return {"path": integration_runner_client.upload_atl_attachment_file(file.filename or "upload", content)}
+
+
+@app.post("/atl/promote-constraints")
+def atl_promote_constraints_endpoint(request: PromoteConstraintsRequest):
+    return integration_runner_client.promote_atl_constraints(request.constraints)
+
+
+# --- acceleo ---
+
+
+@app.get("/acceleo/prompt-config/{name}")
+def acceleo_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_acceleo_prompt_config(name)
+
+
+@app.put("/acceleo/prompt-config/{name}")
+def acceleo_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_acceleo_prompt_config(name, request.model_dump())
+
+
+@app.get("/acceleo/prompt-config/{name}/history")
+def acceleo_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_acceleo_prompt_config_history(name)}
+
+
+@app.get("/acceleo/prompt-config/{name}/diff")
+def acceleo_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_acceleo_prompt_config_versions(name, a, b)
+
+
+@app.post("/acceleo/prompt-config/{name}/restore/{version}")
+def acceleo_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_acceleo_prompt_config_version(name, version)
+
+
+@app.post("/acceleo/prompt-config/{name}/revert")
+def acceleo_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_acceleo_prompt_config(name)
+
+
+@app.post("/acceleo/prompt-config/{name}/promote-to-default")
+def acceleo_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_acceleo_prompt_config_to_default(name)
+
+
+@app.get("/acceleo/prompt-config/{name}/check-references")
+def acceleo_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_acceleo_prompt_config_references(name)}
+
+
+@app.post("/acceleo/prompt-config/{name}/preview")
+def acceleo_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_acceleo_prompt_config(name)
+
+
+@app.post("/acceleo/prompt-config/{name}/learned-constraints")
+def acceleo_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_acceleo_learned_constraints(name, request.constraints)
+
+
+@app.delete("/acceleo/prompt-config/{name}/learned-constraints")
+def acceleo_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_acceleo_learned_constraint(name, request.constraint)
+
+
+@app.get("/acceleo/available-files")
+def acceleo_available_files_endpoint():
+    return {"files": integration_runner_client.list_acceleo_available_files()}
+
+
+@app.post("/acceleo/attachment-uploads")
+async def acceleo_upload_attachment_endpoint(file: UploadFile):
+    content = await file.read()
+    return {"path": integration_runner_client.upload_acceleo_attachment_file(file.filename or "upload", content)}
+
+
+@app.post("/acceleo/promote-constraints")
+def acceleo_promote_constraints_endpoint(request: PromoteConstraintsRequest):
+    return integration_runner_client.promote_acceleo_constraints(request.constraints)

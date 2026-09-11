@@ -1,8 +1,25 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button, CodeBlock } from "design-system"
+import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, StatusPill } from "design-system"
+import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
+import { constraintsForStage } from "./stageEvents"
+
+// The manifest for atl's own real, config-driven prompt (see
+// atl_agent/prompts/generation/default.default.json for the real
+// attachment content this loads) - same PromptBuilder component psm and
+// acceleo reuse, just this stage's own manifest and its own backend prompt
+// module behind it.
+const GENERATION_MANIFEST: PromptBuilderManifest = {
+  name: "generation",
+  label: "ATL generation prompt",
+  attachmentTypes: ["text", "file", "context"],
+  contextKeyOptions: [
+    { key: "pim_ecore", label: "PIM metamodel" },
+    { key: "psm_ecore", label: "Target platform PSM metamodel" },
+  ],
+}
 
 // ATL's own stage panel — approve/retry when ATL is the live pending stage
 // (onApprove/onRetry given), a read-only "back to current" view when it's a
@@ -10,12 +27,130 @@ import type { StagePanelProps } from "orchestrator-types"
 // file, not a shared component parameterized by StageId: ATL's real backend
 // output and prompt are free to diverge from the other five stages' own,
 // independently, without touching them.
-export function AtlStagePanel({ busy, latestResult, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
+//
+// Unlike psm, atl has no generation-vs-knowledge-mode duality: atl_agent's
+// real backend (see integration_runner/stages/atl/agent.py) always
+// generates fresh, from this run's own real PIM and target-platform PSM
+// artifacts, and returns just the exact prompt used plus a validation
+// result alongside the plain output string.
+export function AtlStagePanel({
+  busy,
+  latestResult,
+  events,
+  runId,
+  onApprove,
+  onRetry,
+  onBack,
+  readOnly = false,
+  stageDetail = null,
+  onLoadPromptConfig,
+  onSavePromptConfig,
+  onPreviewPromptConfig,
+  onListAvailableFiles,
+  onUploadAttachmentFile,
+  onLoadPromptHistory,
+  onDiffPromptVersions,
+  onRestorePromptVersion,
+  onRevertPromptConfig,
+  onPromoteConfigToDefault,
+  onCheckPromptReferences,
+  onAddLearnedConstraints,
+  onRemoveLearnedConstraint,
+  onPromoteConstraints,
+  onLoadManifest,
+  onLoadAttempt,
+}: StagePanelProps) {
   const [correction, setCorrection] = useState("")
+
   const failed = latestResult?.type === "call_failed"
+  const data = latestResult?.data
   const output = failed
-    ? String(latestResult?.data?.error ?? "Stage failed.")
-    : String(latestResult?.data?.output ?? (onBack ? "No output recorded for this stage yet." : ""))
+    ? String(data?.error ?? "Stage failed.")
+    : String(data?.output ?? (onBack ? "No output recorded for this stage yet." : ""))
+
+  const prompt = (data?.prompt ?? null) as Record<string, string> | null
+  const validation = (data?.validation ?? null) as { valid?: boolean } | null
+  const rounds = typeof data?.rounds === "number" ? data.rounds : null
+  const priorConstraints = constraintsForStage(events, "atl")
+  // A real, HTTP-200 result can still have failed validator-agent's own
+  // check after exhausting every regenerate round (the request itself
+  // didn't fail, `failed` stays false) - this needs its own check, not
+  // just folding into `failed` below.
+  const invalid = validation?.valid === false
+  const canPromote = validation?.valid === true && Boolean(onPromoteConstraints)
+
+  const promptBuilder = onLoadPromptConfig &&
+    onSavePromptConfig &&
+    onPreviewPromptConfig &&
+    onLoadPromptHistory &&
+    onDiffPromptVersions &&
+    onRestorePromptVersion &&
+    onRevertPromptConfig &&
+    onPromoteConfigToDefault &&
+    onCheckPromptReferences &&
+    onAddLearnedConstraints &&
+    onRemoveLearnedConstraint && (
+      <PromptBuilder
+        manifest={GENERATION_MANIFEST}
+        readOnly={readOnly}
+        callbacks={{
+          onLoad: () => onLoadPromptConfig(GENERATION_MANIFEST.name),
+          onSave: (config) => onSavePromptConfig(GENERATION_MANIFEST.name, config as PromptConfig),
+          onPreview: () => onPreviewPromptConfig(GENERATION_MANIFEST.name),
+          onListAvailableFiles,
+          onUploadFile: onUploadAttachmentFile,
+          onLoadHistory: () => onLoadPromptHistory(GENERATION_MANIFEST.name),
+          onDiffVersions: (a, b) => onDiffPromptVersions(GENERATION_MANIFEST.name, a, b),
+          onRestoreVersion: (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, version),
+          onRevertToDefault: () => onRevertPromptConfig(GENERATION_MANIFEST.name),
+          onPromoteToDefault: () => onPromoteConfigToDefault(GENERATION_MANIFEST.name),
+          onCheckReferences: () => onCheckPromptReferences(GENERATION_MANIFEST.name),
+          onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
+          onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),
+        }}
+        promote={
+          canPromote && onPromoteConstraints
+            ? { initialBlock: prompt?.constraints ?? "", onPromote: onPromoteConstraints }
+            : undefined
+        }
+      />
+    )
+
+  const attemptsBrowser = runId && onLoadManifest && onLoadAttempt && (
+    <AttemptsBrowser
+      runId={runId}
+      stage="atl"
+      onLoadManifest={onLoadManifest}
+      onLoadAttempt={onLoadAttempt}
+      onRestoreConfigFromAttempt={
+        onRestorePromptVersion
+          ? (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, version).then(() => undefined)
+          : undefined
+      }
+    />
+  )
+
+  const statusPills = (validation || (rounds !== null && rounds > 1)) && (
+    <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+      {validation && (
+        <StatusPill variant={validation.valid ? "success" : "danger"}>
+          {validation.valid ? "Compiles" : "Failed ATL compilation"}
+        </StatusPill>
+      )}
+      {rounds !== null && rounds > 1 && <StatusPill variant="warning">Self-corrected over {rounds} rounds</StatusPill>}
+    </div>
+  )
+
+  const priorConstraintsPanel = priorConstraints.length > 0 && (
+    <div>
+      <p style={labelStyle}>Corrections tried during this run (not saved permanently)</p>
+      <ul style={constraintsListStyle}>
+        {priorConstraints.map((c, i) => (
+          <li key={i}>{c}</li>
+        ))}
+      </ul>
+    </div>
+  )
 
   if (onBack) {
     return (
@@ -23,10 +158,14 @@ export function AtlStagePanel({ busy, latestResult, onApprove, onRetry, onBack, 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={headingStyle}>ATL stage output</h2>
           <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back to current
+            ← Back to latest stage
           </Button>
         </div>
+        <StageInfoNote detail={stageDetail} />
+        {statusPills}
         <CodeBlock code={output} title="atl output (read-only)" lang="atl" />
+        {attemptsBrowser}
+        {promptBuilder}
       </Panel>
     )
   }
@@ -36,12 +175,13 @@ export function AtlStagePanel({ busy, latestResult, onApprove, onRetry, onBack, 
   return (
     <Panel>
       <h2 style={headingStyle}>ATL stage output</h2>
+      <StageInfoNote detail={stageDetail} />
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),
           radius-md, 14px/16px padding — see tokens.css's --danger-border
           for why that one's a token this port adds on top of the source. */}
-      {failed && (
+      {(failed || invalid) && (
         <div
           style={{
             display: "flex",
@@ -53,39 +193,65 @@ export function AtlStagePanel({ busy, latestResult, onApprove, onRetry, onBack, 
             fontFamily: "var(--font-sans)",
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-strong)" }}>Automated check: FAILED</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-strong)" }}>
+            {failed ? "Automated check: FAILED" : "Automated check: FAILED (doesn't compile)"}
+          </div>
         </div>
       )}
 
-      <CodeBlock code={busy ? "Generating…" : hasResult ? output : "No output yet."} title="atl output" lang="atl" />
+      {statusPills}
 
-      <div>
-        {/* Real wireframe text is "Curate the helper prompt for this stage"
-            (frame "c5: ATL check failed"), where the field is pre-filled with
-            the actual prompt that was used, editable in place. We can't
-            faithfully do that: ai/orchestrator doesn't store or expose "the
-            literal prompt used" anywhere, agents build it from context + the
-            constraints list, there's no single retrievable prompt string to
-            pre-fill with. This is the real, honest equivalent: an empty
-            field for a new correction, recorded via the same
-            add-constraint-then-retry mechanism the backend actually has. */}
-        <p style={labelStyle}>Curate the helper prompt for this stage</p>
-        <textarea
-          className="orch-field"
-          value={correction}
-          onChange={(e) => setCorrection(e.target.value)}
-          placeholder="Describe what should change"
-          rows={2}
-          disabled={readOnly}
-          style={textareaStyle}
-        />
-      </div>
+      {(hasResult || busy) && <CodeBlock code={busy ? "Generating…" : output} title="atl output" lang="atl" />}
+
+      {!hasResult ? (
+        // The real "initial screen" before generation ever starts: arriving
+        // at atl advances the pipeline but deliberately does not auto-run
+        // it (see pipeline.py's own _REQUIRES_MANUAL_START) - a human
+        // reviews or edits the prompt here first, then Generate below fires
+        // the real first attempt.
+        <>
+          {promptBuilder ?? (
+            <div>
+              <p style={labelStyle}>Add a correction</p>
+              <textarea
+                className="orch-field"
+                value={correction}
+                onChange={(e) => setCorrection(e.target.value)}
+                placeholder="Describe what should change"
+                rows={2}
+                disabled={readOnly}
+                style={textareaStyle}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {attemptsBrowser}
+          {promptBuilder}
+          {priorConstraintsPanel}
+          {!onBack && (
+            <div>
+              <p style={labelStyle}>Add a one-off correction and retry</p>
+              <textarea
+                className="orch-field"
+                value={correction}
+                onChange={(e) => setCorrection(e.target.value)}
+                placeholder="Describe what should change"
+                rows={2}
+                disabled={readOnly}
+                style={textareaStyle}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
         <Button
           variant="primary"
           size="sm"
-          disabled={busy || !hasResult || failed || readOnly}
+          disabled={busy || !hasResult || failed || invalid || readOnly}
           onClick={() => onApprove?.()}
         >
           Approve
@@ -99,7 +265,7 @@ export function AtlStagePanel({ busy, latestResult, onApprove, onRetry, onBack, 
             setCorrection("")
           }}
         >
-          Retry this stage
+          {hasResult ? "Retry this stage" : "Generate"}
         </Button>
       </div>
     </Panel>
@@ -135,6 +301,17 @@ const textareaStyle = {
   color: "var(--text-body)",
 } as const
 
+const constraintsListStyle = {
+  margin: 0,
+  paddingLeft: "var(--space-4)",
+  fontFamily: "var(--font-sans)",
+  fontSize: "var(--text-xs)",
+  color: "var(--text-body)",
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-1)",
+} as const
+
 function Panel({ children }: { children: ReactNode }) {
   return (
     <div
@@ -149,6 +326,7 @@ function Panel({ children }: { children: ReactNode }) {
         borderRadius: "var(--radius-md)",
         boxSizing: "border-box",
         minHeight: 0,
+        overflow: "auto",
       }}
     >
       {children}

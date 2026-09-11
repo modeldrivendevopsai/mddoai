@@ -53,7 +53,11 @@ when generating a new metamodel).
   `core.py` (stage-agnostic pipeline-lifecycle endpoints, plus the busy-guard and `/rerun`
   stage-mismatch validation that used to live in `orchestrator/main.py` before that split — a
   check made in one process before a mutating call to a different process is a real race, not
-  just a relocation) and `docs.py` (the docs stage's own extra endpoint).
+  just a relocation), `docs.py` (the docs stage's own extra endpoint), `psm.py` (thin
+  pass-throughs to `psm_agent`'s own real prompt-config capability, plus `promote_constraints`,
+  the one run-aware action in that file — see [The manual-start
+  pause](#the-manual-start-pause-psm-atl-acceleo) below), and `attempts.py`
+  (read-only attempt introspection, any stage).
 - **`main.py`** — just app assembly: creates the real `FastAPI` instance and includes both
   routers. Doesn't grow as new stage-specific routes are added, since those land in their own
   `routes/<stage>.py` file instead.
@@ -62,15 +66,18 @@ when generating a new metamodel).
 main.py ──imports──> routes/
 routes/core.py ──imports──> runs.py, pipeline.py, stages/
 routes/docs.py ──imports──> runs.py, stages/docs/
+routes/psm.py ──imports──> runs.py, stages/psm/actions.py, clients.psm_agent_client
+routes/attempts.py ──imports──> stages/_attempts_read.py
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
 stages/pim/, atl/, acceleo/ (agent.py)
     ──imports──> clients.validator_agent_client, stages/_validation.py
-stages/psm/ (agent.py) ──imports──> clients.psm_agent_client, stages/_validation.py
+stages/psm/ (agent.py, actions.py) ──imports──> clients.psm_agent_client, stages/_validation.py
 stages/generation/ (agent.py) ──imports──> clients.ai_layer_client, stages/_shared.py
 stages/docs/ (agent.py, actions.py) ──imports──> clients.retrieval_client
 stages/serialization/ (agent.py) ──imports──> clients.serialization_agent_client
+stages/_attempts_read.py ──imports──> generation_toolkit.attachments.files
 ```
 
 See [ai/CLAUDE.md](../CLAUDE.md) for the step-by-step recipe for adding a new stage-specific
@@ -107,31 +114,30 @@ stage_agents = {
   real, separate [`ai/serialization_agent`](../serialization_agent) service's `POST /serialize`
   via `clients/serialization_agent_client.py` — a multi-step extraction/labeling pipeline, its own
   container since it makes its own outbound call to `pim_agent`.
-- **`stages/pim/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`** are still placeholders
-  standing in for future real per-stage agents — not yet the real MDE toolchain — but each
-  returns fixed mock DSL content in its real target format (Ecore for `pim`, `.atl` for `atl`,
-  `.mtl` for `acceleo`) and validates it for real against `validator-agent`'s `POST
-  /validate/ecore`/`/validate/atl`/`/validate/acceleo` via `clients/validator_agent_client.py`,
+- **`stages/pim/agent.py`** is still a placeholder standing in for a future real PIM extraction
+  agent — not yet the real MDE toolchain — and returns fixed mock Ecore content, validated for
+  real against `validator-agent`'s `POST /validate/ecore` via `clients/validator_agent_client.py`,
   persisting the artifact and result to disk either way (`stages/_validation.py`, see
   [Persisted validation attempts](#persisted-validation-attempts) below). Unconditional, unlike
-  `docs_stage`'s own opt-in mock: there's no real extraction/transformation pipeline to fall back
-  to yet for any of these three, so they always return mock content, no toggle, and ignore their
-  input context (a correction has nothing to act on against fixed content). These placeholder
-  names are deliberately *not* `pim_agent`: that name belongs to the real, separate
-  [`ai/pim_agent/`](../pim_agent) service — its callers today are `serialization_agent` (its own
-  concept-labeling) and `psm_agent` (concept grounding on the generation path), neither of them
-  the `pim` stage here.
-- **`stages/psm/agent.py`** is the one real stage among these four: a thin proxy to the real,
-  separate [`ai/psm_agent`](../psm_agent) service's `POST /psm`, which routes automatically
-  between generating a brand-new PSM metamodel (no existing `.ecore` for the target platform yet)
-  and comparing the platform's docs against an existing `.ecore` for drift (a known platform) —
-  see `ai/psm_agent/README.md` for what each path actually does. Unlike the three placeholders
-  above, it reads its real input context: `context["pim_output"]` (no fallback — there's no
-  reasonable stand-in PIM artifact for a caller that skips straight to `psm`), `context["docs_output"]`
-  (falling back to `context["platform_description"]`), and its own recorded constraints, and
-  forwards all of them to `psm_agent` via `clients/psm_agent_client.py`. It still persists its own
-  artifact and result to disk via `stages/_validation.py`, but deliberately does not call
-  `raise_if_invalid()` on a generation-mode failure — see its own module docstring for why, and
+  `docs_stage`'s own opt-in mock: there's no real PIM extraction pipeline to fall back to yet, so
+  it always returns mock content, no toggle, and ignores its input context (a correction has
+  nothing to act on against fixed content). This placeholder name is deliberately *not*
+  `pim_agent`: that name belongs to the real, separate [`ai/pim_agent/`](../pim_agent) service —
+  its callers today are `serialization_agent` (its own concept-labeling) and `psm_agent` (concept
+  grounding on the generation path), neither of them the `pim` stage here.
+- **`stages/psm/agent.py`**, **`atl/agent.py`**, **`acceleo/agent.py`** are each a thin proxy to a
+  real, separate LLM-generation service of the same name
+  ([`ai/psm_agent`](../psm_agent), [`ai/atl_agent`](../atl_agent), [`ai/acceleo_agent`](../acceleo_agent)) —
+  see each service's own README for what its real `POST /generate` (or, for `psm`, `POST /psm`'s
+  own generation-vs-knowledge-mode routing) actually does. Unlike `pim`'s placeholder above, all
+  three read their real input context (`psm` needs `context["pim_output"]`, no fallback — there's
+  no reasonable stand-in PIM artifact for a caller that skips straight to `psm`; `atl` needs
+  `context["pim_output"]`/`context["psm_output"]`; `acceleo` needs `context["psm_output"]`/the
+  labeled platform docs) and their own recorded constraints, forwarding all of it to that stage's
+  own real service via `clients/{psm,atl,acceleo}_agent_client.py`. Each persists its own artifact
+  and result to disk via `stages/_validation.py`, but deliberately does not call
+  `raise_if_invalid()` when its own service's real regenerate loop still ends invalid after
+  exhausting every round — see each stage's own module docstring for why, and
   [Persisted validation attempts](#persisted-validation-attempts) below.
 - **`stages/generation/agent.py`** is the one remaining LLM-prompt placeholder, a plain
   `(context: dict) -> str` call via `clients/ai_layer_client.py`, not yet a real generation step.
@@ -215,12 +221,23 @@ from `psm_agent`'s own response (real `validator-agent` output on the generation
 trivial always-valid record on the knowledge/comparison path, since there's nothing to validate
 against an existing `.ecore`). `stages/_validation.py`:
 
-- **`persist_attempt(run_id, stage, filename, content, result, attempt_dir=None)`** — writes
-  `runs/<run_id>/<stage>/attempt_N/<filename>` and `.../attempt_N/result.json`, synchronously,
-  before the caller decides pass/fail, and appends this same attempt to `runs/<run_id>/manifest.json`
-  (below). Never overwrites a prior attempt. `attempt_dir` lets a caller that already reserved its
-  own attempt directory (see `reserve_attempt_dir` below) hand it in directly instead of a second
-  one being reserved; omitted, it reserves its own exactly as it always has.
+- **`persist_attempt(run_id, stage, filename, content, result, attempt_dir=None, prompt=None,
+  prompt_version=None)`** — writes `runs/<run_id>/<stage>/attempt_N/<filename>` and
+  `.../attempt_N/result.json`, synchronously, before the caller decides pass/fail, and appends this
+  same attempt to `runs/<run_id>/manifest.json` (below). Never overwrites a prior attempt.
+  `attempt_dir` lets a caller that already reserved its own attempt directory (see
+  `reserve_attempt_dir` below) hand it in directly instead of a second one being reserved; omitted,
+  it reserves its own exactly as it always has. `prompt`/`prompt_version`, when given, also write
+  `.../attempt_N/prompt.json` (`{"prompt": ..., "prompt_version": ...}`) — the real prompt that
+  produced this attempt, mirroring the real `ai-research` branch's own round layout (`prompt.md`
+  alongside `output.ecore`/`notes.md`). Only `psm_stage` passes these today, since it's the only
+  stage with a real, resolved-from-config prompt to record; `pim`/`atl`/`acceleo`'s mock calls omit
+  them and simply get no `prompt.json`.
+- **`stages/_attempts_read.py`** — the read side of the same on-disk layout, a different concern
+  from `persist_attempt`'s write side, so it lives in its own file: `read_manifest(run_id)` and
+  `read_attempt(run_id, stage, attempt)`, backing `routes/attempts.py` (below). Reuses
+  `generation_toolkit.attachments.files.validate_path_segment` on the caller-supplied
+  `run_id`/`stage`/`attempt` before ever touching the filesystem with them.
 - **`reserve_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
   create `attempt_1`, `attempt_2`, ... in turn (`Path.mkdir()`'s default `exist_ok=False` already
   raises `FileExistsError` atomically, backed by the OS's own atomic `mkdir(2)`), not by listing
@@ -388,12 +405,41 @@ backs the REST API.
 3. **Approve** → `record_review()` advances `current_stage_index` and, if there's a next stage,
    returns `{"status": "advanced", "stage": ..., "context": ...}` with that stage's context
    built from `last_context` plus `{stage_id}_output: last_output`, without running it.
-   `review()` wraps `record_review()` and, on `"advanced"`, immediately calls
-   `run_stage_async()` on that context. If `generation` was just approved, both return
-   `{"status": "complete"}`.
+   `review()` wraps `record_review()` and, on `"advanced"`, either immediately calls
+   `run_stage_async()` on that context (returning `{"status": "started", ...}`), or, if the new
+   current stage is in `_REQUIRES_MANUAL_START`, stores the context and returns
+   `{"status": "advanced_pending", "stage": ...}` without running it — see [The manual-start
+   pause](#the-manual-start-pause-psm-atl-acceleo) below. If `generation` was just
+   approved, both return `{"status": "complete"}`.
 4. **Reject** → `add_constraint(stage, correction)` records the correction; the same stage
    stays current and must be rerun via `POST /rerun/{stage_id}`, which reads the live
    `constraints` dict fresh, so the just-added correction is folded in automatically.
+
+### The manual-start pause (psm, atl, acceleo)
+
+A stage with a real, UI-editable prompt config (`_REQUIRES_MANUAL_START` in `pipeline.py`,
+`{"psm", "atl", "acceleo"}`) does not auto-run the moment a human approves the stage before it —
+arriving at one of these leaves it current but not running, `busy` false, so a human gets to
+review, and possibly edit, that stage's own prompt config (see
+[`ai/psm_agent`](../psm_agent)'s/[`ai/atl_agent`](../atl_agent)'s/[`ai/acceleo_agent`](../acceleo_agent)'s
+own "Prompt configuration") before its very first real attempt ever fires, not only after seeing a
+first result. Named and commented, not derived automatically; extend this one entry at a time as
+`generation` gets a real implementation of its own too.
+
+Starting the stage for real is the same `rerun()`/`POST /rerun/{stage_id}` mechanism a normal
+retry already uses, called with no overrides — the "Generate" button on a pending manual-start
+stage's initial screen and the "Retry" button after a result both wire to this one endpoint, no
+separate backend action exists for "start for the first time" versus "run again."
+
+`rerun()`'s own override guard (`_STAGE_OVERRIDE_KEYS`, also in `pipeline.py`) is a separate,
+related concept: a mapping from each stage to the exact real override keys its own stage agent
+recognizes. `docs` wraps a real API (retrieval's `/fetch`) with several typed parameters; `psm`,
+`atl`, and `acceleo` each recognize one, `mock` (each stage's own `context.get("mock")`, forwarded
+to that stage's own real generate() call — see each service's own `POST /generate` docs for
+exactly what it skips and what it still runs for real). A stage absent from the mapping rejects
+any override outright, and any stage rejects a key it doesn't itself recognize (a docs-shaped
+override sent while `psm` is current, say) — extend the mapping, with the new stage's own real
+override shape, the same way `psm`'s was, don't just delete the guard.
 
 ## API endpoints
 
@@ -410,8 +456,8 @@ The service starts at `http://localhost:8050`.
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
 | `POST /reset` | Replaces the current run with a fresh, blank one. `409` if busy. |
 | `POST /resume/{run_id}` | Makes a past run current again. `404` unknown run, `409` if busy. |
-| `POST /review/{stage_id}` | Records a review decision; approving starts the next stage. `400` on stage mismatch or missing correction, `409` if busy. |
-| `POST /rerun/{stage_id}` | Reruns the current stage. `400` on stage mismatch, or overrides on a non-docs stage; `409` if busy. Accepts the docs stage's real structured overrides (`hint`, `exclude_urls`, `max_pages`, `max_depth`, `force_refresh`, `mock`). |
+| `POST /review/{stage_id}` | Records a review decision; approving starts the next stage, or, for a stage in `_REQUIRES_MANUAL_START`, advances without starting it (`{"status": "advanced_pending", ...}` — see [The manual-start pause](#the-manual-start-pause-psm-atl-acceleo)). `400` on stage mismatch or missing correction, `409` if busy. |
+| `POST /rerun/{stage_id}` | Reruns the current stage — also the real "Generate" trigger for a stage that's pending a manual start. `400` on stage mismatch, an unsupported stage, or an override key the current stage doesn't recognize; `409` if busy. Accepts each stage's own real structured overrides (`_STAGE_OVERRIDE_KEYS`): docs (`hint`, `exclude_urls`, `max_pages`, `max_depth`, `force_refresh`, `mock`), psm (`mock`). |
 | `POST /constraint/{stage}` | Records a correction without rerunning — the `add_constraint` tool's real target. |
 | `POST /stage/run` | Runs the current stage with new context — the `run_stage` tool's real target. `409` if busy. |
 | `POST /model` | Changes the model for the rest of the run. |
@@ -421,6 +467,44 @@ The service starts at `http://localhost:8050`.
 | Endpoint | Notes |
 |---|---|
 | `POST /docs/extend` | Fetches one specific page for real and appends it to the docs stage's current pending output — the `add_page_to_docs` tool's real target. `400` if docs isn't the current pending stage, or if the fetch itself failed; `409` if busy. |
+
+### `routes/psm.py` — psm-stage-specific
+
+Two different kinds of real HTTP surface: thin pass-throughs to `psm_agent`'s own real
+prompt-config capability (no run awareness — a prompt config is editable any time, independent of
+any one run), and `promote_constraints`, which IS run-aware.
+
+| Endpoint | Notes |
+|---|---|
+| `GET /psm/prompt-config/{name}` | Proxies `psm_agent`'s own `GET /prompt-config/{name}`. |
+| `PUT /psm/prompt-config/{name}` | Proxies `PUT /prompt-config/{name}`. |
+| `GET /psm/prompt-config/{name}/history` | Proxies the version-history listing. |
+| `GET /psm/prompt-config/{name}/diff?a=&b=` | Proxies the structural diff between two versions. |
+| `POST /psm/prompt-config/{name}/restore/{version}` | Proxies restoring a past version. |
+| `POST /psm/prompt-config/{name}/revert` | Proxies reverting to the shipped default. |
+| `POST /psm/prompt-config/{name}/promote-to-default` | Proxies promoting the live config over the shipped default. |
+| `GET /psm/prompt-config/{name}/check-references` | Proxies on-demand drift detection against the currently loaded config. |
+| `POST /psm/prompt-config/{name}/preview` | Proxies the exact text a real call would send the LLM, no real call spent. |
+| `POST /psm/prompt-config/{name}/learned-constraints` | Proxies adding permanent constraints. |
+| `DELETE /psm/prompt-config/{name}/learned-constraints` | Proxies removing one. |
+| `GET /psm/available-files` | Proxies the real-file picker for a "file" attachment. |
+| `POST /psm/promote-constraints` | Promotes the current run's own latest, real, successfully-validated psm result's corrections into `psm_agent`'s permanent config — see `stages/psm/actions.py`'s own docstring for the exact gate. `400` when there's no verified result to promote from; `409` if busy. |
+
+See [`ai/psm_agent`](../psm_agent)'s own README for what each proxied endpoint actually does —
+this router adds no logic beyond the HTTP call itself.
+
+### `routes/attempts.py` — attempt introspection, any stage
+
+| Endpoint | Notes |
+|---|---|
+| `GET /runs/{run_id}/manifest` | The same flat `manifest.json` [Persisted validation attempts](#persisted-validation-attempts) already describes, over HTTP. `404` for an unknown `run_id`. |
+| `GET /runs/{run_id}/{stage}/{attempt}` | One real attempt's persisted artifact, `result.json`, and `prompt.json` (when the stage that produced it is prompt-driven) — the real per-attempt record a UI's "attempts" view reads directly, linked back to the exact config that produced it via `prompt_version`. `404` for an unknown run/stage/attempt. |
+
+`run_id`/`stage`/`attempt` are validated as plain path segments (no `/`, no path traversal) via
+`generation_toolkit.attachments.files.validate_path_segment` before touching the filesystem —
+these are user-suppliable route parameters into a real directory lookup, the same class of risk a
+"file" attachment's own path already has, reusing that package's existing check rather than a
+second implementation of it.
 
 ## Setup
 

@@ -3,3 +3,6 @@ uvicorn>=0.30.0
 httpx>=0.27.0
 python-dotenv>=1.0.0
 pytest>=8.0.0
+# Real file uploads (routes/psm.py's own attachment-upload proxy) - FastAPI's
+# own UploadFile/multipart form support needs this installed.
+python-multipart>=0.0.32

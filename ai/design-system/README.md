@@ -32,6 +32,36 @@ or an elevated shell, depending on the npm/Node version — if `npm install`
 in a consuming package fails to link this one, that's the first thing to
 check, not a real dependency problem.
 
+## Multi-file component groups
+
+Most components here are one flat `.tsx` file. A component whose own concerns are each real and
+independently findable/testable (an editor with its own attachment list, version history, and
+preview pane, say) gets a folder instead (`PromptBuilder/`, `AttemptsBrowser/`), one file per
+concern plus an `index.tsx` that only composes them, still exported from the package's own barrel
+the same as any flat component. This isn't a rule to split every component up front — most
+components here have exactly one concern and stay one file — only for one that genuinely already
+has several.
+
+A component group like this stays manifest- and callback-driven, carrying no assumption about
+which backend or which pipeline stage renders it: its own `types.ts` defines a local, structurally-
+matching shape (a manifest plus a set of async callback props), never importing a backend-specific
+package like `orchestrator-types` directly (see `ai/CLAUDE.md`'s folder-boundaries section for why
+this package stays backend-agnostic). A consumer that legitimately depends on both this package and
+a backend-specific one (an `ai/ui-remote-*` stage panel, say) is the adapter that wires the two
+together, not this package itself.
+
+## `PromoteConstraintsAction`
+
+A flat component following that same backend-agnostic principle: an editable-before-confirming
+"Add this run's corrections to Permanent constraints" action, taking only a prefilled constraints
+block and a `onPromote` callback, no stage identity of its own. Rendered by `PromptBuilder` itself
+(via `PromptDocument`'s own optional `promote` prop), directly above the "Permanent constraints"
+list it writes into, not by each stage panel separately: a stage panel only supplies the prefilled
+block and its own real promote-constraints endpoint through `PromptBuilder`'s own `promote` prop
+(see each stage panel's own README for which endpoint). Placing the button inside the same section
+as the list it feeds is deliberate: a separate, distantly-placed button here read as its own
+feature to a first-time user, with no visible connection to the list it actually changed.
+
 ## Repointing to a real published package later
 
 `src/index.ts`'s own header comment names the plan: if/when an official

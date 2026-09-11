@@ -127,3 +127,231 @@ def add_page_to_docs(url: str, force_refresh: bool = False) -> dict:
 
 def set_model(model: str | None) -> dict:
     return _request("POST", "/model", json={"model": model}).json()
+
+
+# --- Generic run/attempt introspection (routes/attempts.py) ---------------
+
+
+def get_run_manifest(run_id: str) -> list[dict]:
+    return _request("GET", f"/runs/{run_id}/manifest").json()["attempts"]
+
+
+def get_attempt(run_id: str, stage: str, attempt: str) -> dict:
+    return _request("GET", f"/runs/{run_id}/{stage}/{attempt}").json()
+
+
+# --- psm's own prompt-config pass-throughs (routes/psm.py) ----------------
+# Every one of these is itself a thin pass-through on integration_runner's
+# own side too (see routes/psm.py), all the way down to psm_agent, which is
+# the service that actually owns this data - integration_runner and this
+# client both just relay it.
+
+
+def get_psm_prompt_config(name: str) -> dict:
+    return _request("GET", f"/psm/prompt-config/{name}").json()
+
+
+def save_psm_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/psm/prompt-config/{name}", json=config).json()
+
+
+def get_psm_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/psm/prompt-config/{name}/history").json()["versions"]
+
+
+def diff_psm_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/psm/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
+
+
+def restore_psm_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_psm_prompt_config(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/revert").json()
+
+
+def promote_psm_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/promote-to-default").json()
+
+
+def check_psm_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/psm/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_psm_prompt_config(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/preview").json()
+
+
+def add_psm_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "POST", f"/psm/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
+    ).json()
+
+
+def remove_psm_learned_constraint(name: str, constraint: str) -> dict:
+    return _request(
+        "DELETE", f"/psm/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
+    ).json()
+
+
+def list_psm_available_files() -> list[str]:
+    return _request("GET", "/psm/available-files").json()["files"]
+
+
+def promote_psm_constraints(constraints: list[str]) -> dict:
+    return _request("POST", "/psm/promote-constraints", json={"constraints": constraints}).json()
+
+
+def resolve_psm_mode(platform_description: str) -> dict:
+    return _request("GET", "/psm/resolve-mode", params={"platform_description": platform_description}).json()
+
+
+def upload_psm_attachment_file(filename: str, content: bytes) -> str:
+    """POSTs a real multipart file upload to integration_runner's own real
+    /psm/attachment-uploads (a thin proxy over psm_agent's own real upload
+    endpoint) - returns the real, safe stored path to use as a new "file"
+    attachment's own `path`."""
+    return _request(
+        "POST", "/psm/attachment-uploads", files={"file": (filename, content)}
+    ).json()["path"]
+
+
+# --- atl prompt-config/uploads/constraints - same shape as the psm functions
+# above, a real, separate service (atl_agent) reached at its own /atl prefix.
+
+
+def get_atl_prompt_config(name: str) -> dict:
+    return _request("GET", f"/atl/prompt-config/{name}").json()
+
+
+def save_atl_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/atl/prompt-config/{name}", json=config).json()
+
+
+def get_atl_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/atl/prompt-config/{name}/history").json()["versions"]
+
+
+def diff_atl_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/atl/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
+
+
+def restore_atl_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_atl_prompt_config(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/revert").json()
+
+
+def promote_atl_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/promote-to-default").json()
+
+
+def check_atl_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/atl/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_atl_prompt_config(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/preview").json()
+
+
+def add_atl_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "POST", f"/atl/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
+    ).json()
+
+
+def remove_atl_learned_constraint(name: str, constraint: str) -> dict:
+    return _request(
+        "DELETE", f"/atl/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
+    ).json()
+
+
+def list_atl_available_files() -> list[str]:
+    return _request("GET", "/atl/available-files").json()["files"]
+
+
+def promote_atl_constraints(constraints: list[str]) -> dict:
+    return _request("POST", "/atl/promote-constraints", json={"constraints": constraints}).json()
+
+
+def upload_atl_attachment_file(filename: str, content: bytes) -> str:
+    """POSTs a real multipart file upload to integration_runner's own real
+    /atl/attachment-uploads (a thin proxy over atl_agent's own real upload
+    endpoint) - returns the real, safe stored path to use as a new "file"
+    attachment's own `path`."""
+    return _request(
+        "POST", "/atl/attachment-uploads", files={"file": (filename, content)}
+    ).json()["path"]
+
+
+# --- acceleo prompt-config/uploads/constraints - same shape as atl's above,
+# a real, separate service (acceleo_agent) reached at its own /acceleo prefix.
+
+
+def get_acceleo_prompt_config(name: str) -> dict:
+    return _request("GET", f"/acceleo/prompt-config/{name}").json()
+
+
+def save_acceleo_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/acceleo/prompt-config/{name}", json=config).json()
+
+
+def get_acceleo_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/acceleo/prompt-config/{name}/history").json()["versions"]
+
+
+def diff_acceleo_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/acceleo/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
+
+
+def restore_acceleo_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_acceleo_prompt_config(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/revert").json()
+
+
+def promote_acceleo_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/promote-to-default").json()
+
+
+def check_acceleo_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/acceleo/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_acceleo_prompt_config(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/preview").json()
+
+
+def add_acceleo_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "POST", f"/acceleo/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
+    ).json()
+
+
+def remove_acceleo_learned_constraint(name: str, constraint: str) -> dict:
+    return _request(
+        "DELETE", f"/acceleo/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
+    ).json()
+
+
+def list_acceleo_available_files() -> list[str]:
+    return _request("GET", "/acceleo/available-files").json()["files"]
+
+
+def promote_acceleo_constraints(constraints: list[str]) -> dict:
+    return _request("POST", "/acceleo/promote-constraints", json={"constraints": constraints}).json()
+
+
+def upload_acceleo_attachment_file(filename: str, content: bytes) -> str:
+    """POSTs a real multipart file upload to integration_runner's own real
+    /acceleo/attachment-uploads (a thin proxy over acceleo_agent's own real
+    upload endpoint) - returns the real, safe stored path to use as a new
+    "file" attachment's own `path`."""
+    return _request(
+        "POST", "/acceleo/attachment-uploads", files={"file": (filename, content)}
+    ).json()["path"]

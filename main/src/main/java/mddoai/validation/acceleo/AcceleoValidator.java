@@ -4,6 +4,7 @@ import main.java.mddoai.utils.EMFUtils;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
 import org.eclipse.acceleo.parser.compiler.AcceleoCompilerHelper;
+import org.eclipse.emf.ecore.EPackage;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -70,6 +71,72 @@ public final class AcceleoValidator {
         }
 
         return compileInIsolatedWorkDir(file, mtlFilePath);
+    }
+
+    // Additive overload: on top of everything validate(String) already does
+    // (including EMFUtils.init()'s own fixed PIM/SWArch/GitLab registration,
+    // still needed by the mock-mode path below, which always targets the
+    // registered GitLab metamodel regardless of which real platform is
+    // under test - see acceleo_agent/generation.py's own _MOCK_ARTIFACT),
+    // also dynamically registers the given platform's own real target
+    // metamodel, so a freshly-generated platform with no genmodel or
+    // compiled Java package of its own can still be resolved - unless a
+    // compiled package already owns that nsURI, in which case the compiled
+    // one is kept (see the inline comments below). See
+    // EMFUtils.loadEPackage()'s own comment for why this needs no code
+    // generation or compile step at all. A null/blank targetEcoreFilePath
+    // behaves exactly like validate(String) alone.
+    public static AcceleoCompileResult validate(String mtlFilePath, String targetEcoreFilePath) {
+        if (targetEcoreFilePath != null && !targetEcoreFilePath.isBlank()) {
+            // Register this build's own compiled metamodels first. Each
+            // compiled *Factory's static init casts
+            // EPackage.Registry.INSTANCE.getEFactory(nsURI) to its own
+            // concrete *Factory type, so that init must run while the
+            // registry still holds the compiled factory for that nsURI,
+            // never a dynamic EPackage put under the same nsURI below.
+            EMFUtils.init();
+
+            EPackage ePackage = EMFUtils.loadEPackage(targetEcoreFilePath);
+            if (ePackage == null) {
+                return AcceleoCompileResult.of(ValidationResult.of(
+                        describeUnloadableTargetMetamodel(targetEcoreFilePath)));
+            }
+
+            // Register the dynamically loaded metamodel only when no
+            // package already resolves for its nsURI. A generated .ecore
+            // that reuses a known nsURI - e.g. an LLM copying the reference
+            // GitLab metamodel wholesale, nsURI and all - must not shadow
+            // the compiled package: the compiled one resolves the module
+            // just as well, and overwriting it makes EMFUtils.init()'s own
+            // (compiled *Factory) getEFactory(nsURI) cast throw a
+            // ClassCastException for the rest of this JVM. getEPackage(),
+            // not containsKey(), so a lazy Descriptor already registered
+            // for that nsURI counts as resolved too.
+            String nsURI = ePackage.getNsURI();
+            if (nsURI != null && EPackage.Registry.INSTANCE.getEPackage(nsURI) == null) {
+                EPackage.Registry.INSTANCE.put(nsURI, ePackage);
+            }
+        }
+        return validate(mtlFilePath);
+    }
+
+    // A null from loadEPackage() only says the file didn't parse to a
+    // single EPackage, not why. Run the reflective ecore check to turn
+    // that into a real diagnostic (parse error, DOCTYPE rejected, dangling
+    // reference, ...) the regenerate loop can actually act on, falling
+    // back to a plain message if even that finds nothing wrong.
+    private static List<ValidationIssue> describeUnloadableTargetMetamodel(String targetEcoreFilePath) {
+        List<ValidationIssue> issues = new ArrayList<>();
+        for (ValidationIssue issue :
+                main.java.mddoai.validation.ecore.EcoreValidator.validateReflectively(targetEcoreFilePath).issues()) {
+            issues.add(new ValidationIssue(issue.severity(),
+                    "Target metamodel " + targetEcoreFilePath + ": " + issue.message(), targetEcoreFilePath));
+        }
+        if (issues.isEmpty()) {
+            issues.add(new ValidationIssue(ValidationIssue.Severity.ERROR,
+                    "Could not load target metamodel: " + targetEcoreFilePath, targetEcoreFilePath));
+        }
+        return issues;
     }
 
     // AcceleoCompilerHelper compiles a whole source folder, not a single file

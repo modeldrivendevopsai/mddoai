@@ -131,6 +131,13 @@ class AcceleoValidateRequest(BaseModel):
     # scope and why.
     stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
+    # The target platform's own real PSM .ecore content, dynamically
+    # registered before compiling unless the build already provides that
+    # nsURI - see validator_runner.run_acceleo_validator's own docstring
+    # for why this is needed for any platform besides the ones
+    # EMFUtils.init() hardcodes. Optional: omitted, this behaves exactly
+    # as it always has (only the hardcoded metamodels resolve).
+    metamodel_ecore: str | None = Field(default=None, description="Raw .ecore content of the target platform's own PSM metamodel.")
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
     _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
@@ -183,11 +190,18 @@ def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidat
     content_bytes = len(request.content.encode("utf-8"))
     if content_bytes > MAX_CONTENT_BYTES:
         raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+    if request.metamodel_ecore is not None and len(request.metamodel_ecore.encode("utf-8")) > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"metamodel_ecore exceeds {MAX_CONTENT_BYTES} bytes")
 
     logger.info("POST /validate/acceleo filename=%s bytes=%d", request.filename, content_bytes)
     try:
         result = run_acceleo_validator(
-            request.content, request.filename, request.run_id, request.stage, request.attempt
+            request.content,
+            request.filename,
+            request.run_id,
+            request.stage,
+            request.attempt,
+            metamodel_ecore=request.metamodel_ecore,
         )
     except ValidatorInfraError as e:
         logger.error("POST /validate/acceleo infra failure: %s", e)

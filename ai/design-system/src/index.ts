@@ -15,6 +15,27 @@ export { Tabs } from './components/Tabs';
 export type { TabItem } from './components/Tabs';
 export { StatusPill } from './components/StatusPill';
 export type { StatusPillVariant } from './components/StatusPill';
+export { StageInfoNote } from './components/StageInfoNote';
 export { Panel } from './components/Panel';
 export type { PanelTone } from './components/Panel';
 export { CodeBlock } from './CodeBlock';
+export { PromptBuilder } from './components/PromptBuilder';
+export type {
+  Attachment,
+  AttachmentType,
+  BrokenReference,
+  PromptBuilderCallbacks,
+  PromptBuilderManifest,
+  PromptBuilderPromotion,
+  PromptBuilderProps,
+  PromptConfig,
+  PromptDiff,
+  PromptPreview,
+} from './components/PromptBuilder';
+export { AttemptsBrowser } from './components/AttemptsBrowser';
+export type {
+  AttemptArtifact,
+  AttemptDetailData,
+  AttemptsBrowserProps,
+  ManifestEntry,
+} from './components/AttemptsBrowser';

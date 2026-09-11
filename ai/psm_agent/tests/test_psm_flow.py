@@ -37,6 +37,16 @@ def test_forwards_stage_and_attempt_to_generate_on_the_generation_path():
     assert mock_generate.call_args.kwargs.get("attempt") == "attempt_1"
 
 
+def test_forwards_mock_to_generate_on_the_generation_path():
+    with patch("psm_flow.resolve_platform_metamodel", return_value=None), \
+         patch("psm_flow.generate", return_value={
+             "artifact": "<new-ecore/>", "prompt": {}, "validation": {"valid": True}, "rounds": 1,
+         }) as mock_generate:
+        psm_flow.run("TeamCity", "<pim/>", "docs", mock=True)
+
+    assert mock_generate.call_args.kwargs.get("mock") is True
+
+
 def test_routes_to_knowledge_agent_for_known_platform(tmp_path):
     existing = tmp_path / "gitlabMM.ecore"
     existing.write_text("<real-existing-ecore/>")
@@ -51,6 +61,38 @@ def test_routes_to_knowledge_agent_for_known_platform(tmp_path):
     assert result["mode"] == "knowledge"
     assert result["artifact"] == "<real-existing-ecore/>"
     assert result["gaps"] == []
+
+
+def test_knowledge_path_resolves_a_file_attachment_the_human_uploaded(
+    tmp_path, isolated_prompt_config_dir, isolated_attachment_uploads_dir
+):
+    # psm_flow.run()'s own knowledge-mode branch calls
+    # prompt_resolution.render_prompt() directly (for the "prompt" field in
+    # its own response), a real call site distinct from compare()'s own -
+    # it must resolve a "file" attachment against comparison.files_root()
+    # too, not just META_MODELS_DIR.
+    import json
+
+    existing = tmp_path / "gitlabMM.ecore"
+    existing.write_text("<real-existing-ecore/>")
+    (isolated_attachment_uploads_dir / "custom-guidance.md").write_text(
+        "Flag anything using a deprecated GitLab CI keyword.", encoding="utf-8"
+    )
+    config = {
+        "attachments": [
+            {"id": "system", "name": "System prompt", "type": "text", "content": "You are the psm knowledge agent."},
+            {"id": "custom", "name": "Custom guidance", "type": "file", "path": "custom-guidance.md"},
+        ]
+    }
+    directory = isolated_prompt_config_dir / "comparison"
+    directory.mkdir(parents=True)
+    (directory / "default.default.json").write_text(json.dumps(config), encoding="utf-8")
+
+    with patch("psm_flow.resolve_platform_metamodel", return_value=str(existing)), \
+         patch("psm_flow.compare", return_value=[]):
+        result = psm_flow.run("A GitLab CI platform", "<pim/>", "docs")
+
+    assert result["prompt"]["custom"] == "Flag anything using a deprecated GitLab CI keyword."
 
 
 def test_knowledge_agent_surfaces_gaps_as_informational_only(tmp_path):

@@ -191,13 +191,32 @@ def run_atl_validator(
 
 
 def run_acceleo_validator(
-    content: str, filename: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None
+    content: str,
+    filename: str,
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+    metamodel_ecore: str | None = None,
 ) -> AcceleoValidationResult:
+    """metamodel_ecore, when given, is the target platform's own real PSM
+    .ecore content - AcceleoValidatorCli's own optional second arg, which
+    dynamically registers that platform's metamodel before compiling,
+    unless the build already provides a compiled package for that nsURI
+    (see AcceleoValidator.validate(String, String)'s own comment for why
+    this needs no genmodel or compile step at all). Without it, only the
+    metamodels EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab) can
+    ever resolve - every other platform's own real generated template would
+    otherwise always fail with "the metamodel couldn't be resolved",
+    regardless of how correct it actually is."""
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "generate.mtl")
         target.write_text(content, encoding="utf-8")
 
         argv = ["java", "-cp", f"{LIB_DIR}/*", ACCELEO_MAIN_CLASS, str(target)]
+        if metamodel_ecore is not None:
+            ecore_target = Path(tmp) / "target_metamodel.ecore"
+            ecore_target.write_text(metamodel_ecore, encoding="utf-8")
+            argv.append(str(ecore_target))
         result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
 
         result["duration_ms"] = duration_ms

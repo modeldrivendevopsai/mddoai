@@ -15,12 +15,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   needs to make that outbound call — this is how real cross-service communication happens in `ai/`,
   not a second, competing mechanism alongside it. `generation_toolkit/` is a shared, stage-agnostic
   "build a prompt, call the LLM, validate, retry" toolkit, imported directly as a Python package by
-  whichever service's own stage agent needs that shape (`psm_agent` today). Extracted ahead of a
-  second real consumer on a stated, concrete direction: whichever of `integration_runner`'s
-  remaining placeholder stages (`pim`, `atl`, `acceleo`, `generation`) gets a real implementation
-  next should reuse this rather than rebuilding the same prompt-assembly and regenerate-loop
-  pattern from scratch. A stage with no real validator yet just omits the optional `validate_fn`
-  and gets a plain single-shot call — see `generation_toolkit/generation_agent.py`'s own docstring.
+  every service with a real, config-driven generation step (`psm_agent`, `atl_agent`, and
+  `acceleo_agent` today). Whichever of `integration_runner`'s remaining placeholder stages (`pim`,
+  `generation`) gets a real implementation next should reuse this too, rather than rebuilding the
+  same prompt-assembly and regenerate-loop pattern from scratch. A stage with no real validator yet
+  just omits the optional `validate_fn` and gets a plain single-shot call — see
+  `generation_toolkit/generation_agent.py`'s own docstring.
   `design-system/` is the frontend's equivalent for shared UI: a component/token package (its own
   `src/index.ts` barrel export is the current source of truth for exactly what it exports).
   `orchestrator-types/` is the frontend's equivalent for a shared type contract: `ai/orchestrator`'s
@@ -32,9 +32,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   feature (what Module Federation is for), each is a dependency every other frontend piece needs
   just to render or compile at all, so making either a live container would turn a handful of small
   components (or, for `orchestrator-types`, mostly type declarations plus a couple of small constant
-  arrays) into a single point of failure for the whole app. A stage-local helper needed by only one
-  `ui-remote-*` package (not yet a second consumer) stays local to that package instead of being
-  pulled into `orchestrator-types` — that package's own charter is the type contract plus those two
+  arrays) into a single point of failure for the whole app. A stage-local helper stays local to its
+  own `ui-remote-*` package even once a near-identical copy exists in another one (e.g. each stage
+  panel's own small `stageEvents.ts`): these are independent Module Federation remotes that only
+  ever consume each other through a federated import at runtime, never a source import at build
+  time, so sharing this kind of helper would mean pulling it into `orchestrator-types` instead,
+  whose own charter is the type contract plus those two
   constant arrays, not a general utility grab-bag.
 - Every deployed frontend package's folder is prefixed `ui-`: `ui-host/` (the host/shell — routing,
   `AppShell`, `useIntegration.ts`'s state hub, and every real backend service call) and
@@ -61,7 +64,9 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
 - **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one Docker
   volume (`pipeline-runs` in `ai/docker-compose.yml`) for real, on-disk pipeline artifacts. This
-  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, see
+  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, and,
+  for a stage with a real, UI-editable prompt config, a third file, `prompt.json`, recording the
+  exact prompt and config version that produced this attempt — see
   `integration_runner/stages/_validation.py`) and every real compiled artifact `validator_agent`'s
   own deep checks produce (`EcoreValidator`'s codegen classes, `AtlValidator`'s `.asm`,
   `AcceleoValidator`'s `.emtl`, none of which validator_agent itself ever deletes anymore). These
@@ -99,6 +104,19 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   copy the other container's mount string, since the two Dockerfiles have different `WORKDIR`s, so
   the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
   comments in `ai/docker-compose.yml`).
+- **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
+  pre-existing MDE-engine data (a metamodel, a master-example transformation or code-generation
+  template) it doesn't own gets a read-only Docker bind mount of that specific data, not a copy
+  into its own image, so a metamodel or reference-example change doesn't need a service rebuild.
+  `psm_agent` mounts the whole `meta_models/` tree this way (`META_MODELS_DIR`). `atl_agent` and
+  `acceleo_agent` each mount a single real file instead of a whole directory, narrower still: one
+  real, working reference transformation/template this project already has, attached as their
+  default prompt's syntax example (`REFERENCE_EXAMPLE_PATH` in each service's own
+  `prompt_paths.py`; see `ai/docker-compose.yml` for the real mounts). This is a read of real MDE
+  *data*, never Java/Eclipse *code* — that boundary is the second exception above, `validator_agent`'s
+  own, and stays separate from this one. This exception does not extend to any `ui-*` package,
+  `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
+  `main/`, `meta_models/`, or `code_generation/` without the same explicit justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 
@@ -111,6 +129,8 @@ See [ai/README.md](./README.md) for how the services fit together and how to run
 2. Nothing else changes: `stages/__init__.py` already points `stage_agents[stage]` at that function by name, and `pipeline.py` only ever reads `stages.stage_agents[stage]`, never a specific stage's own module.
 
 **When a stage's real output is more than one string:** `pipeline.py`'s `run_stage()` also accepts `(context: dict) -> tuple[str, dict]` — the tuple's second element is merged into the `call_completed` event's own data alongside `output`. This is a narrow, deliberate exception to the plain `-> str` contract above, for a stage whose real capability produces genuinely structured data (e.g. the exact prompt used, or a validation/gap result) that a plain string has nowhere to carry — `stages/psm/agent.py` is the one stage that needs this today. Don't reach for it by default: every other stage stays plain `-> str`, and `run_stage()` treats a non-tuple return exactly as before.
+
+**When a stage gets a real, UI-editable prompt config** (via `generation_toolkit.prompt_config`, see `ai/generation_toolkit/README.md` for the mechanism and `ai/psm_agent/README.md` for a real, worked example): add the stage to `pipeline.py`'s `_REQUIRES_MANUAL_START` so a human gets to review, and possibly edit, the config before that stage's very first real attempt fires, rather than only after a first result. If that stage's own agent needs a real rerun override (`mock`, to skip a slow/billed real call for fast local iteration, or a genuinely new one), add its recognized keys to `pipeline.py`'s `_STAGE_OVERRIDE_KEYS` — a key valid for one stage but sent to a different one is rejected, not silently ignored, so every stage's own real override shape needs its own entry.
 
 **Adding a new real, chat-callable capability for a stage** (something beyond running/rerunning the stage itself, e.g. an action targeting one specific piece of a stage's existing output):
 1. Write the real implementation in `stages/<stage>/actions.py` (create it if this stage doesn't have one yet) as a function taking the run instance as its first argument and mutating it directly. It must have real effect, actually changing what the run holds, not just log a summary of what happened: any chat-callable action must invoke the same real state-changing path a manual or direct REST caller would use for the same intent, never a weaker echo of it.

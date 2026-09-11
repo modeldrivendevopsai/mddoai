@@ -25,13 +25,20 @@ the Orchestrator to eventually drive the pipeline autonomously.
 
 ## Module layout
 
-- **`main.py`** — the FastAPI routes (see [API endpoints](#api-endpoints-mainpy) below). Every
+- **`main.py`** — every real FastAPI route this service exposes (see [API
+  endpoints](#api-endpoints-mainpy) below), one flat file, not split into a `routes/` package the
+  way `integration_runner` is: that split is `integration_runner`'s own real, established
+  convention (a genuinely large, many-stage surface), not one this service has adopted. Every
   endpoint is a thin forwarding call to `clients/integration_runner_client.py` or
   `clients/ai_layer_client.py`, plus one registered exception handler
   (`IntegrationRunnerError`) that reconstructs `integration_runner`'s own real status code and
   message — there's no validation logic duplicated here, `integration_runner` is the one place
   that enforces busy guards and stage staleness checks, since a check made in this process
-  before a mutating call to a different one would be a real race, not just a relocation.
+  before a mutating call to a different one would be a real race, not just a relocation. The
+  prompt-config endpoints under `/psm/...`, `/atl/...`, and `/acceleo/...`, and the run/attempt
+  ones under `/runs/...`, live here too, each just a one-line proxy into the matching function on
+  `clients/integration_runner_client.py` — see [`ai/integration_runner`](../integration_runner)'s
+  own README for what each proxied endpoint actually does.
 - **`assistant.py`** — the one reply mechanism: `react_to_event()` (narration) and
   `send_message()` (a human's free-form message, the tools-enabled path through the same
   function).
@@ -251,7 +258,13 @@ Records a human's decision on the named stage's most recent output. `400` if `st
 match the current pending stage, or if `correction` is missing on a rejection; `409` if busy.
 
 Request (approve): `{ "approved": true }` → Response (`202`): `{ "status": "started", "stage": "psm" }`
-(or `200`, `{ "status": "complete" }`, on the last stage).
+(or `200`, `{ "status": "complete" }`, on the last stage) — **unless** the newly-current stage has
+a real, UI-editable prompt config a human should get to review before its first real attempt fires
+(`integration_runner`'s own `_REQUIRES_MANUAL_START`, today just `psm`), in which case the response
+is `200`, `{ "status": "advanced_pending", "stage": "psm" }`: the stage is now current, but nothing
+runs until a real `POST /rerun/{stage_id}` starts it (the panel's own "Generate" action). See
+[`ai/integration_runner`](../integration_runner)'s own "The manual-start pause" for the full
+mechanism.
 
 Request (reject): `{ "approved": false, "correction": "Include a lint stage before build" }` →
 Response (`200`, nothing started): `{ "status": "rerun", "stage": "psm" }`.
@@ -259,8 +272,10 @@ Response (`200`, nothing started): `{ "status": "rerun", "stage": "psm" }`.
 ### `POST /rerun/{stage_id}`
 
 Starts the current pending stage running again, reusing its last context and picking up any
-constraints recorded since then, unless overrides are given. `400` on stage mismatch, or
-overrides on any stage but `docs`; `409` if busy.
+constraints recorded since then, unless overrides are given — also the real trigger for a stage
+that's pending a manual start (above), called with no overrides. `400` on stage mismatch, or an
+override key the current stage doesn't recognize (`integration_runner`'s own
+`_STAGE_OVERRIDE_KEYS`, today `docs` and `psm`); `409` if busy.
 
 ### `POST /message`
 
@@ -293,6 +308,17 @@ options.
 ### `POST /model`
 
 Changes the model for the rest of the run, not just what `/start` chose.
+
+## Prompt-config and attempt-introspection endpoints
+
+Every endpoint under `/psm/prompt-config/...`, `/atl/prompt-config/...`,
+`/acceleo/prompt-config/...` (each service's `available-files`/`promote-constraints`/
+`attachment-uploads` too), `/runs/{run_id}/manifest`, and `/runs/{run_id}/{stage}/{attempt}` is a
+one-line proxy into the matching `clients/integration_runner_client.py` function, same shape as
+`/review/{stage_id}` above — no logic of its own beyond the HTTP call, and no per-endpoint
+documentation duplicated here. See [`ai/integration_runner`](../integration_runner)'s own README
+for the full endpoint list and what each one actually does; the path and request/response shape
+are identical here, this service just sits in front of it.
 
 ## Setup
 

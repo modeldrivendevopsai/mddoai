@@ -5,7 +5,53 @@ import { STAGE_PANELS } from "@/features/integration/stages/registry"
 import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
+import * as orchestratorService from "@/services/orchestrator.service"
 import type { StageId } from "orchestrator-types"
+import type { StagePanelProps } from "orchestrator-types"
+
+// The modular prompt builder's own callback props (see StagePanelProps'
+// own comment on why these live on the shared contract): every one is a
+// direct, un-adapted pass-through to orchestrator.service.ts, the same
+// pattern onApprove/onRetry already use. psm, atl, and acceleo all bind
+// the same stage-parameterized function set (see orchestrator.service.ts's
+// own PromptBuilderStage functions) since all three are identically
+// shaped by design; psm alone also gets onResolvePsmMode, the one real
+// psm-specific concept. Every other stage gets just the attempts-browser
+// callbacks, already stage-generic.
+type PromptBuilderProps = Omit<
+  StagePanelProps,
+  "busy" | "latestResult" | "events" | "runId" | "onApprove" | "onRetry" | "onBack" | "readOnly"
+>
+
+const attemptsBrowserProps: PromptBuilderProps = {
+  onLoadManifest: orchestratorService.getRunManifest,
+  onLoadAttempt: orchestratorService.getAttempt,
+}
+
+function promptBuilderPropsFor(stage: StageId): PromptBuilderProps {
+  if (stage !== "psm" && stage !== "atl" && stage !== "acceleo") return attemptsBrowserProps
+
+  const base: PromptBuilderProps = {
+    ...attemptsBrowserProps,
+    onLoadPromptConfig: (name) => orchestratorService.getPromptConfig(stage, name),
+    onSavePromptConfig: (name, config) => orchestratorService.savePromptConfig(stage, name, config),
+    onPreviewPromptConfig: (name) => orchestratorService.previewPromptConfig(stage, name),
+    onListAvailableFiles: () => orchestratorService.listAvailableFiles(stage),
+    onUploadAttachmentFile: (file) => orchestratorService.uploadAttachmentFile(stage, file),
+    onLoadPromptHistory: (name) => orchestratorService.getPromptConfigHistory(stage, name),
+    onDiffPromptVersions: (name, versionA, versionB) =>
+      orchestratorService.diffPromptConfigVersions(stage, name, versionA, versionB),
+    onRestorePromptVersion: (name, version) => orchestratorService.restorePromptConfigVersion(stage, name, version),
+    onRevertPromptConfig: (name) => orchestratorService.revertPromptConfig(stage, name),
+    onPromoteConfigToDefault: (name) => orchestratorService.promoteConfigToDefault(stage, name),
+    onCheckPromptReferences: (name) => orchestratorService.checkPromptReferences(stage, name),
+    onAddLearnedConstraints: (name, constraints) => orchestratorService.addLearnedConstraints(stage, name, constraints),
+    onRemoveLearnedConstraint: (name, constraint) =>
+      orchestratorService.removeLearnedConstraint(stage, name, constraint),
+    onPromoteConstraints: (constraints) => orchestratorService.promoteConstraints(stage, constraints),
+  }
+  return stage === "psm" ? { ...base, onResolvePsmMode: orchestratorService.resolvePsmMode } : base
+}
 
 // Stepper, ChatColumn, and the docs stage's start form are each their own
 // Module Federation remote too (ui-remote-stepper, ui-remote-chat,
@@ -86,8 +132,10 @@ export default function IntegrationScreen() {
     started,
     model,
     providers,
+    stageDetails,
     error,
     isCurrent,
+    viewedRunId,
     start,
     approve,
     retry,
@@ -175,8 +223,11 @@ export default function IntegrationScreen() {
             busy={false}
             latestResult={latestCallResult(events, viewedStage)}
             events={events}
+            runId={viewedRunId}
             onBack={() => setViewedStage(null)}
             readOnly
+            stageDetail={stageDetails?.[viewedStage] ?? null}
+            {...promptBuilderPropsFor(viewedStage)}
           />
         </RemoteBoundary>
       )
@@ -189,11 +240,14 @@ export default function IntegrationScreen() {
       <RemoteBoundary name={`${currentStage} stage panel`} resetKey={currentStage}>
         <ActivePanel
           busy={busy}
+          stageDetail={stageDetails?.[currentStage] ?? null}
           latestResult={latestResult}
           events={events}
+          runId={viewedRunId}
           onApprove={() => approve(currentStage)}
           onRetry={(correction) => retry(currentStage, correction)}
           readOnly={!isCurrent}
+          {...promptBuilderPropsFor(currentStage)}
         />
       </RemoteBoundary>
     )

@@ -25,6 +25,7 @@ def test_run_psm_posts_the_real_payload_shape():
         json={
             "platform_description": "GitLab CI", "pim_artifact": "<pim/>", "platform_docs": "docs",
             "constraints": None, "model": None, "run_id": None, "stage": None, "attempt": None,
+            "mock": False,
         },
         timeout=psm_agent_client.PSM_TIMEOUT,
     )
@@ -39,3 +40,158 @@ def test_run_psm_forwards_stage_and_attempt_for_compiled_output_nesting():
 
     assert mock_post.call_args.kwargs["json"]["stage"] == "psm"
     assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_1"
+
+
+def test_run_psm_forwards_mock():
+    with patch("psm_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        psm_agent_client.run_psm("GitLab CI", "<pim/>", "docs", mock=True)
+
+    assert mock_post.call_args.kwargs["json"]["mock"] is True
+
+
+# --- prompt-config wrappers: every one is a thin httpx.request() call, ------
+# mocked directly at that one real network boundary, matching run_psm()'s
+# own convention above.
+
+
+def test_get_prompt_config_hits_the_real_endpoint():
+    config = {"system_prompt": "x", "attachments": []}
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
+        result = psm_agent_client.get_prompt_config("generation")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result == config
+
+
+def test_save_prompt_config_puts_the_real_body():
+    config = {"system_prompt": "x", "attachments": []}
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({**config, "_version": "v1"})) as mock_request:
+        result = psm_agent_client.save_prompt_config("generation", config)
+
+    mock_request.assert_called_once_with(
+        "PUT", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, json=config,
+    )
+    assert result["_version"] == "v1"
+
+
+def test_get_prompt_config_history():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"versions": ["v1", "v2"]})):
+        result = psm_agent_client.get_prompt_config_history("generation")
+
+    assert result == ["v1", "v2"]
+
+
+def test_diff_prompt_config_versions_sends_both_versions_as_query_params():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt_changed": False})) as mock_request:
+        psm_agent_client.diff_prompt_config_versions("generation", "v1", "v2")
+
+    assert mock_request.call_args.kwargs["params"] == {"a": "v1", "b": "v2"}
+
+
+def test_restore_prompt_config_version():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "restored"})) as mock_request:
+        result = psm_agent_client.restore_prompt_config_version("generation", "v1")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/restore/v1",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result["system_prompt"] == "restored"
+
+
+def test_revert_prompt_config():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "shipped"})) as mock_request:
+        psm_agent_client.revert_prompt_config("generation")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/revert",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+
+
+def test_promote_prompt_config_to_default():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x"})) as mock_request:
+        psm_agent_client.promote_prompt_config_to_default("generation")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/promote-to-default",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+
+
+def test_check_prompt_config_references():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"broken": [{"id": "a"}]})):
+        result = psm_agent_client.check_prompt_config_references("generation")
+
+    assert result == [{"id": "a"}]
+
+
+def test_preview_prompt_config():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x", "user_content": "y"})) as mock_request:
+        result = psm_agent_client.preview_prompt_config("generation")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/preview",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result == {"system_prompt": "x", "user_content": "y"}
+
+
+def test_add_learned_constraints_posts_the_real_body():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": ["x"]})) as mock_request:
+        result = psm_agent_client.add_learned_constraints("generation", ["x"])
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/learned-constraints",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, json={"constraints": ["x"]},
+    )
+    assert result == {"learned_constraints": ["x"]}
+
+
+def test_remove_learned_constraint_deletes_with_the_real_body():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": []})) as mock_request:
+        result = psm_agent_client.remove_learned_constraint("generation", "x")
+
+    mock_request.assert_called_once_with(
+        "DELETE", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/learned-constraints",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, json={"constraint": "x"},
+    )
+    assert result == {"learned_constraints": []}
+
+
+def test_list_available_files():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"files": ["a.ecore"]})) as mock_request:
+        result = psm_agent_client.list_available_files()
+
+    mock_request.assert_called_once_with(
+        "GET", f"{psm_agent_client.PSM_AGENT_URL}/available-files",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result == ["a.ecore"]
+
+
+def test_resolve_psm_mode_sends_platform_description_as_a_query_param():
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"mode": "generation", "metamodel_path": None})) as mock_request:
+        result = psm_agent_client.resolve_psm_mode("A brand new platform")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{psm_agent_client.PSM_AGENT_URL}/resolve-mode",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, params={"platform_description": "A brand new platform"},
+    )
+    assert result == {"mode": "generation", "metamodel_path": None}
+
+
+def test_upload_attachment_file_posts_the_real_multipart_body():
+    with patch("psm_agent_client.httpx.post", return_value=_fake_httpx_response_raw({"path": "abc123-model.ecore"})) as mock_post:
+        result = psm_agent_client.upload_attachment_file("model.ecore", b"<ecore/>")
+
+    mock_post.assert_called_once_with(
+        f"{psm_agent_client.PSM_AGENT_URL}/attachment-uploads",
+        files={"file": ("model.ecore", b"<ecore/>")},
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+    )
+    assert result == "abc123-model.ecore"

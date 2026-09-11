@@ -5,16 +5,17 @@ between two distinct real capabilities depending on whether the target platform 
 real PSM metamodel checked into `meta_models/`.
 
 - **No existing metamodel (new platform)** → the **Generation Agent** (`generation.py`'s
-  `generate()`): given the real, run-specific PIM artifact and the target platform's docs, assembles
-  the master example metamodel + docs + PIM artifact into a prompt and runs it through the shared
+  `generate()`): resolves a real, UI-editable prompt config (see "Prompt configuration" below) for
+  the target platform, folds in real PIM-concept grounding, and runs the result through the shared
   `generation_toolkit` package's `run_with_retry()` (a stage-agnostic "build a prompt, call the LLM,
   validate, retry" toolkit, not specific to PSM — see `generation_toolkit/README.md`), asking
   `ai-layer` to generate a new `.ecore` and checking it against `validator_agent`'s real
   `/validate/ecore` in **codegen** mode, not just reflective, so a genuinely new metamodel's own
-  generated Java classes get checked too, as the toolkit's `validate_fn`. On failure, the
-  validator's first issue becomes one new constraint and the prompt is rebuilt for another round,
-  bounded, so a platform whose docs genuinely can't produce a loadable `.ecore` fails closed
-  instead of looping forever. Grounding (pulling relevant PIM-concept context into the prompt)
+  generated Java classes get checked too, as the toolkit's `validate_fn`. On failure, every one of
+  the validator's ERROR-severity issues becomes a new constraint (skipping any already recorded
+  from an earlier round) and the prompt is rebuilt for another round, bounded, so a platform whose
+  docs genuinely can't produce a loadable `.ecore` fails closed instead of looping forever.
+  Grounding (pulling relevant PIM-concept context into the prompt)
   reuses `pim_agent`'s existing `ground()`/`concepts()`, there is no separate RAG agent yet (a
   documented Phase 1 plan, not built here). Every round's own real compiled Ecore classes are
   kept, not deleted after the check (see [validator_agent's own
@@ -60,7 +61,8 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   "model": null,
   "run_id": "run-123",
   "stage": "psm",
-  "attempt": "attempt_1"
+  "attempt": "attempt_1",
+  "mock": false
 }
 
 // response (200, generation mode - no existing metamodel for this platform)
@@ -68,7 +70,6 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   "mode": "generation",
   "artifact": "<?xml version=\"1.0\"?><ecore:EPackage ...>",
   "prompt": {
-    "pim_ecore": "A pipeline consists of jobs organized into stages...",
     "psm_docs": "# TeamCity CI/CD Configuration\n...",
     "psm_example": "<?xml version=\"1.0\"?>... (githubMM.ecore's real content)",
     "constraints": "- Fix: dangling reference to RetryPolicy"
@@ -77,7 +78,8 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
     "valid": true, "mode": "codegen", "issues": [], "duration_ms": 120,
     "generated_source_path": "/runs/run-123/psm/attempt_1/ecore-validate-abc123"
   },
-  "rounds": 2
+  "rounds": 2,
+  "prompt_version": null
 }
 
 // response (200, knowledge mode - platform already has a real metamodel)
@@ -92,7 +94,7 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
       "source_excerpt": "Jobs can be configured to retry up to 2 times on failure."
     }
   ],
-  "prompt": {"pim_ecore": "...", "psm_docs": "...", "psm_example": "...", "constraints": ""}
+  "prompt": {"psm_metamodel": "...", "serialized_docs": "...", "constraints": ""}
 }
 ```
 
@@ -104,6 +106,15 @@ validation happens (see [validator_agent's own README](../validator_agent/README
 this service never touches the filesystem with them directly. `400` if a resolved metamodel path
 doesn't exist on disk.
 
+`mock` (optional, default `false`) only ever matters on the generation path too: it skips the two
+slow, billed steps (PIM-concept grounding and the real LLM call), returning a fixed, already-valid
+placeholder artifact instead, while still resolving the real prompt config and still running the
+real `validator_agent` call against that placeholder — a fast, free way to exercise the prompt
+config mechanism and the real attempt-persistence path without spending either. `prompt_version`
+in a generation-mode response names exactly which saved config (see below) produced this output,
+the real link an attempt's own persisted `prompt.json` and a later "restore the config that
+produced this" UI action both need.
+
 ### `POST /compare`
 
 Still available standalone (`psm_flow.run()` calls it internally for the knowledge-mode path
@@ -113,6 +124,58 @@ before: `{"serialized_docs", "psm_metamodel_path"}` → `{"suggestions": [...]}`
 ### `GET /health`
 
 Used by the Dockerfile's `HEALTHCHECK`.
+
+## Prompt configuration
+
+Neither `generate()` nor `compare()` has a hardcoded system prompt: both resolve a real,
+git-committed, UI-editable config through `generation_toolkit.prompt_config` (see
+`generation_toolkit/README.md` for the mechanism itself, generic across any service that supplies
+it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP surface over it,
+`routes/files.py` a related but separate concern (see below); both routers live under
+`routes/`, this service's own equivalent of `integration_runner/routes/`, and are wired into
+`main.py` via `app.include_router(...)`.
+
+Configs live under `prompts/{name}/`, `name` one of `"generation"`/`"comparison"` (matching this
+service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, overridable via
+`PSM_PROMPT_CONFIG_DIR`, defaulting to `psm_agent/prompts/` next to this service's own source):
+
+- `default.default.json` — the immutable, git-committed shipped default. Every `name` ships one,
+  seeded from the real experiment with the most already-proven `learned_constraints` at the time
+  it was ported (see `generation_toolkit/README.md`'s own `learned_constraints` section) — one
+  shared config per name, not one per platform, so the constraint list keeps growing in one place
+  as more platforms are generated for real, instead of starting over per platform. A target
+  platform's own identity is supplied as plain runtime data (the target platform's documentation,
+  passed in as `platform_docs` and resolved into the prompt as `psm_docs`), never as a separately
+  saved config, so onboarding a new platform never requires creating a new file here.
+- `default.json` — the live, currently-in-effect config, only created once someone actually saves
+  an edit through `PUT /prompt-config/{name}` (a `revert`/`restore` is also a save, so it exists
+  after either of those too). `GET /prompt-config/{name}` falls back to the shipped default when
+  this doesn't exist yet.
+- `history/default.{version}.json` — an immutable snapshot of every version that's ever been live,
+  one per save, `{version}` a sortable UTC timestamp plus a random suffix.
+
+`ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write
+(`./psm_agent/prompts:/app/psm_agent/prompts`), so a save through the running dev container lands
+on the real host git checkout, and `history/` is git-visible too.
+
+**Promoting a run's own live corrections into the permanent config**: `POST
+/prompt-config/{name}/learned-constraints` (and its `DELETE` counterpart) persist a change to
+`learned_constraints`, applied to every future run of that `name` from then on. This is always a
+single, explicit, human-confirmed action (`integration_runner`'s own `POST
+/psm/promote-constraints`, gated on a real validated success — see `integration_runner/README.md`),
+never automatic capture of a typed correction.
+
+Every other prompt-config endpoint (`history`, `diff`, `restore/{version}`, `revert`,
+`promote-to-default`, `check-references`, `preview`) is a thin, one-line call into the matching
+`generation_toolkit.prompt_config` function — see that package's own README for what each one does.
+
+## Available files
+
+`GET /available-files` (`routes/files.py`, backed by `available_files.py`) lists every real
+`.ecore` file under `META_MODELS_DIR`, as forward-slash paths relative to it — the picker a "file"
+attachment (see `generation_toolkit/README.md`'s `attachments/` section) offers, and independently
+the same root `generation_toolkit.attachments.files.resolve_file_attachment` validates a saved
+attachment's `path` against, since a client can't be trusted to only send what the picker offered.
 
 ## Setup
 
@@ -125,7 +188,9 @@ pip install -r requirements.txt
 dev. Override it only if `meta_models/` is reachable somewhere else, e.g. the Docker Compose
 read-only bind mount `ai/docker-compose.yml`'s `psm-agent` service entry sets it to.
 `PIM_AGENT_URL`/`VALIDATOR_AGENT_URL` (both `ai/clients/` modules) point at those sibling
-services, defaulting to their own local-dev ports.
+services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` is optional too,
+defaulting to `psm_agent/prompts/` next to this service's own source (see "Prompt configuration"
+above) — override only if that directory is bind-mounted somewhere else.
 
 ## Run
 

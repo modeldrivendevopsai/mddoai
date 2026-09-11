@@ -44,6 +44,14 @@ class ReviewRequest(BaseModel):
 
 
 class RerunOverrides(BaseModel):
+    """One shared shape for every stage's rerun overrides, even though most
+    fields are docs-specific (retrieval's real /fetch parameters) - see
+    pipeline.py's own _STAGE_OVERRIDE_KEYS for exactly which stage
+    recognizes which field; an override this model allows but the current
+    stage doesn't recognize still raises there. `mock` is the one field two
+    stages share: docs skips the real crawl, psm skips the real LLM call -
+    each stage's own agent reads it from context, this model just carries it."""
+
     seed_url: str | None = None
     hint: str | None = None
     exclude_urls: list[str] | None = None
@@ -113,8 +121,15 @@ def status_endpoint():
 def stages_endpoint():
     """Static pipeline metadata: orchestrator fetches this once and caches
     it, rather than duplicating STAGES/STAGE_DESCRIPTIONS as a second,
-    hardcoded copy that could drift from this, the real source."""
-    return {"stages": pipeline.STAGES, "descriptions": stages.STAGE_DESCRIPTIONS}
+    hardcoded copy that could drift from this, the real source. `details`
+    carries the fuller per-stage shape (input/output/real) from
+    stages.STAGE_DETAILS, for a UI to explain a stage to a human rather
+    than just narrate it to an LLM."""
+    return {
+        "stages": pipeline.STAGES,
+        "descriptions": stages.STAGE_DESCRIPTIONS,
+        "details": {stage: vars(info) for stage, info in stages.STAGE_DETAILS.items()},
+    }
 
 
 @router.get("/runs")

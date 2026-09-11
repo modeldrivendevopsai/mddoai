@@ -1,56 +1,73 @@
-"""The ATL transformation stage. Still a placeholder — no real ATL engine
-invocation exists yet — but no longer LLM prose either: this always
-returns fixed mock ATL source and validates it for real against
-validator-agent's /validate/atl, the same way a real ATL transformation's
-output eventually will. Unconditional for the same reason
-stages/pim/agent.py's mock is: no real ATL generation to fall back to yet.
+"""The ATL transformation stage: a thin proxy to atl_agent's real
+/generate capability (generates a new ATL model-to-model transformation
+from this run's own real PIM artifact and target platform PSM metamodel),
+matching every other real stage agent's shape (compare stages/psm/agent.py).
+Its own opt-in mock (context["mock"], the same per-run override docs_stage
+reads) skips only atl_agent's own real LLM call, still resolving the real
+prompt config and running the real validator-agent call against a fixed
+valid artifact - see atl_agent's generation.py generate() docstring for
+exactly what mock does and doesn't skip.
+
+Returns (output, extra) instead of the plain str every other stage agent
+returns - see pipeline.py's run_stage() for the backward-compatible handling
+of this, and ai/CLAUDE.md's stage-agent recipe for why this narrow
+extension exists: this stage has real structured data (the prompt actually
+used, validation results) the chat-ui needs to show alongside the artifact,
+not just the final text.
+
+Also persists every real attempt to disk via stages/_validation.py's
+persist_attempt(). Deliberately does NOT call raise_if_invalid() even when
+the real regenerate loop exhausts every round and still fails - unlike
+pim's own one-shot mock call, atl_agent's generate() already retried
+several times internally, and a human reviewing a still-failed result
+needs the real detail (which round, what the validator actually said) a
+bare raised failure would throw away, matching psm's own real
+generation-mode choice (acceleo's own proxy makes the same choice for the
+same reason - see its own docstring).
 """
-from clients import validator_agent_client
-from integration_runner.stages._validation import (
-    attempt_scope_kwargs,
-    persist_attempt,
-    raise_if_invalid,
-    reserved_attempt,
-)
+from clients import atl_agent_client
+from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
 
-_FILENAME = "atl_mock.atl"
-# Same rule shape as validator_agent/tests/fixtures/valid.atl (already
-# proven to compile via the real ATL standalone compiler, see that
-# fixture's own use in validator_agent's test suite), renamed to reflect a
-# PIM -> PSM mapping instead of that fixture's SWArch -> PIM one, not the
-# full 522-line real pim2gitlabmodel.atl.
-_MOCK_CONTENT = """module MockPim2Psm;
-create OUT : PSM from IN : PIM;
-
-rule MockPipelineBlock2MockPipeline {
-\tfrom
-\t\ts : PIM!MockPipelineBlock
-\tto
-\t\tt : PSM!MockPipeline (
-\t\t\tstages <- s.name
-\t\t)
-}
-"""
+_FILENAME = "atl.atl"
 
 
-def atl_stage(context: dict) -> str:
-    # Reserved before validate_atl() runs, not after: validate_atl() is what
-    # triggers AtlValidator's own real compiled .asm write, and that write
-    # needs the real stage+attempt path to land inside, not beside it. See
-    # reserve_attempt_dir()'s own docstring. attempt_dir.name alone is only
-    # "attempt_N" - the stage segment ("atl") has to be forwarded separately
-    # too, or the compiled output would nest one level too shallow (missing
-    # the stage folder entirely) and could even collide with another
-    # stage's own same-numbered attempt under the same run_id. Without a
-    # run_id there is no run tree to reserve an attempt under, so
-    # persist_attempt() below still reserves its own in that case, exactly
-    # as it always has. reserved_attempt() undoes the reservation if
-    # validate_atl() raises before persist_attempt() writes anything.
+def atl_stage(context: dict) -> tuple[str, dict]:
+    # pim_output/psm_output are what a live run actually has once "pim"/
+    # "psm" precede "atl" - no fallback for either: there's no reasonable
+    # stand-in for a caller that skips straight to atl, so a direct/test
+    # call without them deliberately gets empty artifacts, not a silently
+    # wrong substitute.
+    pim_artifact = context.get("pim_output", "")
+    psm_artifact = context.get("psm_output", "")
+    constraints = context.get("constraints", {}).get("atl", [])
+    # Reserved before run_atl() runs, not after: run_atl() is what triggers
+    # atl_agent's own real validator-agent call, once per retry round, and
+    # each one's real compiled .asm bytecode needs the real attempt path
+    # to nest inside, not land as an unlinked sibling of it. reserved_attempt()
+    # undoes the reservation if run_atl() raises before persist_attempt()
+    # records anything.
     run_id = context.get("run_id")
     with reserved_attempt(run_id, "atl") as attempt_dir:
-        result = validator_agent_client.validate_atl(
-            _MOCK_CONTENT, _FILENAME, run_id=run_id, **attempt_scope_kwargs("atl", attempt_dir),
+        result = atl_agent_client.run_atl(
+            pim_artifact,
+            psm_artifact,
+            constraints=constraints,
+            model=context.get("model"),
+            run_id=run_id,
+            # The same per-run "Mock" override docs_stage's own context["mock"]
+            # already reads (see RerunOverrides.mock/StartRequest.mock).
+            mock=bool(context.get("mock")),
+            **attempt_scope_kwargs("atl", attempt_dir),
         )
-        persist_attempt(run_id or "unknown", "atl", _FILENAME, _MOCK_CONTENT, result, attempt_dir=attempt_dir)
-        raise_if_invalid("atl", result)
-    return _MOCK_CONTENT
+        artifact = result["artifact"]
+        persist_attempt(
+            run_id or "unknown",
+            "atl",
+            _FILENAME,
+            artifact,
+            result["validation"],
+            attempt_dir=attempt_dir,
+            prompt=result.get("prompt"),
+            prompt_version=result.get("prompt_version"),
+        )
+    return artifact, {k: v for k, v in result.items() if k != "artifact"}

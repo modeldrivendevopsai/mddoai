@@ -11,13 +11,13 @@ import json
 import threading
 from unittest.mock import patch
 
-from clients import psm_agent_client, validator_agent_client
+from clients import acceleo_agent_client, atl_agent_client, psm_agent_client, validator_agent_client
 from integration_runner.stages import _validation
 from integration_runner.stages.acceleo.agent import acceleo_stage
 from integration_runner.stages.atl.agent import atl_stage
 from integration_runner.stages.psm.agent import psm_stage
 from integration_runner.stages.pim.agent import pim_stage
-from helpers import _psm_generation_result, _validation_result
+from helpers import _acceleo_generation_result, _atl_generation_result, _psm_generation_result, _validation_result
 
 
 def _manifest(run_id: str) -> list[dict]:
@@ -31,7 +31,7 @@ def test_manifest_accumulates_every_attempt_across_stages_in_order():
     with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()):
         psm_stage({"run_id": run_id})  # attempt 1
         psm_stage({"run_id": run_id})  # a retry -> attempt 2, same stage
-    with patch.object(validator_agent_client, "validate_atl", return_value=_validation_result(valid=True)):
+    with patch.object(atl_agent_client, "run_atl", return_value=_atl_generation_result(valid=True)):
         atl_stage({"run_id": run_id})
 
     manifest = _manifest(run_id)
@@ -45,13 +45,15 @@ def test_manifest_accumulates_every_attempt_across_stages_in_order():
 
 
 def test_manifest_records_a_failed_attempt_not_silently_dropped():
+    # acceleo doesn't raise on a failing validation (its own real
+    # regenerate loop already exhausted its retries before returning, see
+    # test_pipeline.py's own non-raising-exhausted-retries tests) - the
+    # real point here is unchanged either way: persist_attempt() writes the
+    # manifest entry unconditionally, before any raise/return decision.
     run_id = "manifest-failure-run"
-    failing = _validation_result(valid=False, issues=[{"severity": "error", "message": "broken", "source": None}])
-    with patch.object(validator_agent_client, "validate_acceleo", return_value=failing):
-        try:
-            acceleo_stage({"run_id": run_id})
-        except RuntimeError:
-            pass  # raise_if_invalid() is expected to raise here — the point is the manifest entry still lands
+    failing = _acceleo_generation_result(valid=False)
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=failing):
+        acceleo_stage({"run_id": run_id})
 
     manifest = _manifest(run_id)
 
