@@ -35,11 +35,8 @@ import prompt_paths
 
 logger = logging.getLogger(__name__)
 
-# This mode's own name under prompt_paths.PROMPT_CONFIG_DIR (see generation.py's own
-# "generation"), always the "default" preset: a comparison always targets
-# one already-known, existing metamodel, not a brand new platform a preset
-# would need resolving for the way generation.py's own platform_description
-# does, so there's no per-platform preset concept here.
+# This mode's own name under prompt_paths.PROMPT_CONFIG_DIR (see
+# generation.py's own "generation").
 COMPARISON_CONFIG_NAME = "comparison"
 
 # Public: reused by generation.py/psm_flow.py too, both of which also need
@@ -208,7 +205,7 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
 
     context_values = {"psm_metamodel": metamodel_content, "serialized_docs": serialized_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, files_root()
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, context_values, files_root()
     )
     prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     messages = [

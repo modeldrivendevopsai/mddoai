@@ -25,16 +25,14 @@ result maps to a "valid"/pass-fail check and a root-cause constraint.
 
 The system prompt and the parts fed into it are no longer hardcoded here:
 they come from a real, UI-editable prompt config
-(generation_toolkit.prompt_config), one per real target platform
-("preset", resolved from the free-text platform_description), falling back
-to a generic default for a platform with no preset of its own yet. See
-ai/psm_agent/prompts/ for the real, git-committed starting content.
+(generation_toolkit.prompt_config). See ai/psm_agent/prompts/ for the
+real, git-committed starting content.
 """
 from concurrent.futures import ThreadPoolExecutor
 
 from generation_toolkit.generation_agent import run_with_retry
 from generation_toolkit.prompt_builder import build_prompt
-from generation_toolkit.prompt_config import presets, rendering
+from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import pim_agent_client, validator_agent_client
@@ -96,7 +94,6 @@ def _validate(artifact: str, run_id: str | None = None, stage: str | None = None
 
 
 def generate(
-    platform_description: str,
     pim_artifact: str,
     platform_docs: str,
     constraints: list[str] | None = None,
@@ -107,27 +104,23 @@ def generate(
     mock: bool = False,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict,
-    "rounds": int, "preset": str, "prompt_version": str}. `preset` and
-    `prompt_version` name exactly which saved config produced this
-    output, the real link an attempt's own persisted record (see
-    integration_runner/stages/_validation.py's persist_attempt) and a
-    later "restore the config that produced this" UI action both need.
+    "rounds": int, "prompt_version": str}. `prompt_version` names exactly
+    which saved config produced this output, the real link an attempt's
+    own persisted record (see integration_runner/stages/_validation.py's
+    persist_attempt) and a later "restore the config that produced this"
+    UI action both need.
 
     mock=True (the per-run "Mock" override, same opt-in as docs_stage's own
-    context["mock"]) still resolves the real preset/config/attachments and
-    still runs the real validator-agent call against a fixed, already-valid
+    context["mock"]) still resolves the real config/attachments and still
+    runs the real validator-agent call against a fixed, already-valid
     artifact, so the prompt-builder mechanism and the real attempt-
     persistence path are both exercised for real - it only skips the two
     slow, billed steps (grounding's pim_agent calls and the real LLM call),
     for fast local iteration on a config without spending either."""
-    preset_id = presets.resolve_preset(
-        platform_description, presets.list_preset_metadata(prompt_paths.PROMPT_CONFIG_DIR, "generation")
-    )
-
     if mock:
         context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
         config, parts = prompt_resolution.resolve_for_call(
-            prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, files_root()
+            prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
         )
         combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
         prompt = build_prompt(parts, combined_constraints)
@@ -137,7 +130,6 @@ def generate(
             "prompt": prompt,
             "validation": validation,
             "rounds": 1,
-            "preset": preset_id,
             "prompt_version": config.get("_version"),
         }
 
@@ -149,15 +141,15 @@ def generate(
 
     context_values = {"pim_ecore": pim_artifact, "psm_docs": psm_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, "generation", preset_id, context_values, files_root()
+        prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
     )
 
     # A promoted, permanent constraint (see
     # generation_toolkit.prompt_config.learned_constraints) applies to
-    # every run of this preset from now on; this run's own live
-    # corrections (integration_runner's IntegrationRun.constraints, an
-    # entirely separate, per-run, ephemeral mechanism) still apply on top,
-    # for this call only.
+    # every future run; this run's own live corrections
+    # (integration_runner's IntegrationRun.constraints, an entirely
+    # separate, per-run, ephemeral mechanism) still apply on top, for this
+    # call only.
     combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
 
     result = run_with_retry(
@@ -173,6 +165,5 @@ def generate(
         "prompt": result["prompt"],
         "validation": result["validation"],
         "rounds": result["rounds"],
-        "preset": preset_id,
         "prompt_version": config.get("_version"),
     }

@@ -20,12 +20,12 @@ def _fake_result(artifact="[module m('x')]"):
 
 def test_run_acceleo_posts_the_real_payload_shape():
     with patch("acceleo_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
-        response = acceleo_agent_client.run_acceleo("<psm/>", "docs", "TeamCity")
+        response = acceleo_agent_client.run_acceleo("<psm/>", "docs")
 
     mock_post.assert_called_once_with(
         f"{acceleo_agent_client.ACCELEO_AGENT_URL}/generate",
         json={
-            "psm_artifact": "<psm/>", "platform_docs": "docs", "platform_description": "TeamCity",
+            "psm_artifact": "<psm/>", "platform_docs": "docs",
             "constraints": None, "model": None, "run_id": None, "stage": None, "attempt": None,
             "mock": False,
         },
@@ -52,10 +52,10 @@ def test_run_acceleo_forwards_mock():
 def test_get_prompt_config_hits_the_real_endpoint():
     config = {"attachments": []}
     with patch("acceleo_agent_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
-        result = acceleo_agent_client.get_prompt_config("generation", "default")
+        result = acceleo_agent_client.get_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "GET", f"{acceleo_agent_client.ACCELEO_AGENT_URL}/prompt-config/generation/default",
+        "GET", f"{acceleo_agent_client.ACCELEO_AGENT_URL}/prompt-config/generation",
         timeout=acceleo_agent_client.ACCELEO_CONFIG_TIMEOUT,
     )
     assert result == config

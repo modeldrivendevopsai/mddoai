@@ -26,7 +26,6 @@ export type {
   Attachment,
   AttachmentType,
   BrokenReference,
-  PresetInfo,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
   PromptBuilderProps,

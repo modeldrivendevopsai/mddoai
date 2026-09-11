@@ -159,7 +159,6 @@ def _fake_atl_response(artifact="Generic stage output", valid=True):
         "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
         "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
     return resp
@@ -175,7 +174,6 @@ def _fake_acceleo_response(artifact="Generic stage output", valid=True):
         "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
         "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
     return resp

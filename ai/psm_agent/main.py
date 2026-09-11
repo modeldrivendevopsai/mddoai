@@ -24,7 +24,7 @@ app.include_router(uploads.router)
 
 @app.exception_handler(PathSegmentError)
 def _path_segment_error_handler(request: Request, exc: PathSegmentError) -> JSONResponse:
-    # A real, user-suppliable name/preset/version route parameter failed
+    # A real, user-suppliable name/version route parameter failed
     # generation_toolkit.prompt_config's own path-safety validation - a
     # real 400 (bad request), not an unhandled 500, registered once here
     # rather than a try/except repeated in every prompt_config.py handler.

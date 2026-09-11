@@ -147,57 +147,51 @@ def get_attempt(run_id: str, stage: str, attempt: str) -> dict:
 # client both just relay it.
 
 
-def list_psm_presets(name: str) -> list[dict]:
-    return _request("GET", f"/psm/prompt-config/{name}/presets").json()["presets"]
+def get_psm_prompt_config(name: str) -> dict:
+    return _request("GET", f"/psm/prompt-config/{name}").json()
 
 
-def get_psm_prompt_config(name: str, preset: str) -> dict:
-    return _request("GET", f"/psm/prompt-config/{name}/{preset}").json()
+def save_psm_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/psm/prompt-config/{name}", json=config).json()
 
 
-def save_psm_prompt_config(name: str, preset: str, config: dict) -> dict:
-    return _request("PUT", f"/psm/prompt-config/{name}/{preset}", json=config).json()
+def get_psm_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/psm/prompt-config/{name}/history").json()["versions"]
 
 
-def get_psm_prompt_config_history(name: str, preset: str) -> list[str]:
-    return _request("GET", f"/psm/prompt-config/{name}/{preset}/history").json()["versions"]
+def diff_psm_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/psm/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
 
 
-def diff_psm_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
+def restore_psm_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_psm_prompt_config(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/revert").json()
+
+
+def promote_psm_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/promote-to-default").json()
+
+
+def check_psm_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/psm/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_psm_prompt_config(name: str) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/preview").json()
+
+
+def add_psm_learned_constraints(name: str, constraints: list[str]) -> dict:
     return _request(
-        "GET", f"/psm/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
+        "POST", f"/psm/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
     ).json()
 
 
-def restore_psm_prompt_config_version(name: str, preset: str, version: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/{preset}/restore/{version}").json()
-
-
-def revert_psm_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/{preset}/revert").json()
-
-
-def promote_psm_prompt_config_to_default(name: str, preset: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/{preset}/promote-to-default").json()
-
-
-def check_psm_prompt_config_references(name: str, preset: str) -> list[dict]:
-    return _request("GET", f"/psm/prompt-config/{name}/{preset}/check-references").json()["broken"]
-
-
-def preview_psm_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/{preset}/preview").json()
-
-
-def add_psm_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
+def remove_psm_learned_constraint(name: str, constraint: str) -> dict:
     return _request(
-        "POST", f"/psm/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
-    ).json()
-
-
-def remove_psm_learned_constraint(name: str, preset: str, constraint: str) -> dict:
-    return _request(
-        "DELETE", f"/psm/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
+        "DELETE", f"/psm/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
     ).json()
 
 
@@ -227,57 +221,51 @@ def upload_psm_attachment_file(filename: str, content: bytes) -> str:
 # above, a real, separate service (atl_agent) reached at its own /atl prefix.
 
 
-def list_atl_presets(name: str) -> list[dict]:
-    return _request("GET", f"/atl/prompt-config/{name}/presets").json()["presets"]
+def get_atl_prompt_config(name: str) -> dict:
+    return _request("GET", f"/atl/prompt-config/{name}").json()
 
 
-def get_atl_prompt_config(name: str, preset: str) -> dict:
-    return _request("GET", f"/atl/prompt-config/{name}/{preset}").json()
+def save_atl_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/atl/prompt-config/{name}", json=config).json()
 
 
-def save_atl_prompt_config(name: str, preset: str, config: dict) -> dict:
-    return _request("PUT", f"/atl/prompt-config/{name}/{preset}", json=config).json()
+def get_atl_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/atl/prompt-config/{name}/history").json()["versions"]
 
 
-def get_atl_prompt_config_history(name: str, preset: str) -> list[str]:
-    return _request("GET", f"/atl/prompt-config/{name}/{preset}/history").json()["versions"]
+def diff_atl_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/atl/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
 
 
-def diff_atl_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
+def restore_atl_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_atl_prompt_config(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/revert").json()
+
+
+def promote_atl_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/promote-to-default").json()
+
+
+def check_atl_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/atl/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_atl_prompt_config(name: str) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/preview").json()
+
+
+def add_atl_learned_constraints(name: str, constraints: list[str]) -> dict:
     return _request(
-        "GET", f"/atl/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
+        "POST", f"/atl/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
     ).json()
 
 
-def restore_atl_prompt_config_version(name: str, preset: str, version: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/{preset}/restore/{version}").json()
-
-
-def revert_atl_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/{preset}/revert").json()
-
-
-def promote_atl_prompt_config_to_default(name: str, preset: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/{preset}/promote-to-default").json()
-
-
-def check_atl_prompt_config_references(name: str, preset: str) -> list[dict]:
-    return _request("GET", f"/atl/prompt-config/{name}/{preset}/check-references").json()["broken"]
-
-
-def preview_atl_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/{preset}/preview").json()
-
-
-def add_atl_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
+def remove_atl_learned_constraint(name: str, constraint: str) -> dict:
     return _request(
-        "POST", f"/atl/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
-    ).json()
-
-
-def remove_atl_learned_constraint(name: str, preset: str, constraint: str) -> dict:
-    return _request(
-        "DELETE", f"/atl/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
+        "DELETE", f"/atl/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
     ).json()
 
 
@@ -303,57 +291,51 @@ def upload_atl_attachment_file(filename: str, content: bytes) -> str:
 # a real, separate service (acceleo_agent) reached at its own /acceleo prefix.
 
 
-def list_acceleo_presets(name: str) -> list[dict]:
-    return _request("GET", f"/acceleo/prompt-config/{name}/presets").json()["presets"]
+def get_acceleo_prompt_config(name: str) -> dict:
+    return _request("GET", f"/acceleo/prompt-config/{name}").json()
 
 
-def get_acceleo_prompt_config(name: str, preset: str) -> dict:
-    return _request("GET", f"/acceleo/prompt-config/{name}/{preset}").json()
+def save_acceleo_prompt_config(name: str, config: dict) -> dict:
+    return _request("PUT", f"/acceleo/prompt-config/{name}", json=config).json()
 
 
-def save_acceleo_prompt_config(name: str, preset: str, config: dict) -> dict:
-    return _request("PUT", f"/acceleo/prompt-config/{name}/{preset}", json=config).json()
+def get_acceleo_prompt_config_history(name: str) -> list[str]:
+    return _request("GET", f"/acceleo/prompt-config/{name}/history").json()["versions"]
 
 
-def get_acceleo_prompt_config_history(name: str, preset: str) -> list[str]:
-    return _request("GET", f"/acceleo/prompt-config/{name}/{preset}/history").json()["versions"]
+def diff_acceleo_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _request("GET", f"/acceleo/prompt-config/{name}/diff", params={"a": version_a, "b": version_b}).json()
 
 
-def diff_acceleo_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
+def restore_acceleo_prompt_config_version(name: str, version: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/restore/{version}").json()
+
+
+def revert_acceleo_prompt_config(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/revert").json()
+
+
+def promote_acceleo_prompt_config_to_default(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/promote-to-default").json()
+
+
+def check_acceleo_prompt_config_references(name: str) -> list[dict]:
+    return _request("GET", f"/acceleo/prompt-config/{name}/check-references").json()["broken"]
+
+
+def preview_acceleo_prompt_config(name: str) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/preview").json()
+
+
+def add_acceleo_learned_constraints(name: str, constraints: list[str]) -> dict:
     return _request(
-        "GET", f"/acceleo/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
+        "POST", f"/acceleo/prompt-config/{name}/learned-constraints", json={"constraints": constraints}
     ).json()
 
 
-def restore_acceleo_prompt_config_version(name: str, preset: str, version: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/{preset}/restore/{version}").json()
-
-
-def revert_acceleo_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/{preset}/revert").json()
-
-
-def promote_acceleo_prompt_config_to_default(name: str, preset: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/{preset}/promote-to-default").json()
-
-
-def check_acceleo_prompt_config_references(name: str, preset: str) -> list[dict]:
-    return _request("GET", f"/acceleo/prompt-config/{name}/{preset}/check-references").json()["broken"]
-
-
-def preview_acceleo_prompt_config(name: str, preset: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/{preset}/preview").json()
-
-
-def add_acceleo_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
+def remove_acceleo_learned_constraint(name: str, constraint: str) -> dict:
     return _request(
-        "POST", f"/acceleo/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
-    ).json()
-
-
-def remove_acceleo_learned_constraint(name: str, preset: str, constraint: str) -> dict:
-    return _request(
-        "DELETE", f"/acceleo/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
+        "DELETE", f"/acceleo/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
     ).json()
 
 

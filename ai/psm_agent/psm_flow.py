@@ -54,7 +54,7 @@ def run(
     existing_metamodel_path = resolve_platform_metamodel(platform_description)
     if existing_metamodel_path is None:
         result = generate(
-            platform_description, pim_artifact, platform_docs, constraints=constraints, model=model,
+            pim_artifact, platform_docs, constraints=constraints, model=model,
             run_id=run_id, stage=stage, attempt=attempt, mock=mock,
         )
         return {"mode": "generation", **result}
@@ -64,6 +64,6 @@ def run(
     gaps = [asdict(s) for s in suggestions]
     context_values = {"psm_metamodel": existing_artifact, "serialized_docs": platform_docs}
     prompt = prompt_resolution.render_prompt(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, "default", context_values, files_root()
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, context_values, files_root()
     )
     return {"mode": "knowledge", "artifact": existing_artifact, "gaps": gaps, "prompt": prompt}

@@ -45,7 +45,6 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
         result = acceleo_agent_client.run_acceleo(
             psm_artifact,
             docs,
-            platform_description,
             constraints=constraints,
             model=context.get("model"),
             run_id=run_id,

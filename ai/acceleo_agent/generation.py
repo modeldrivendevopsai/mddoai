@@ -21,7 +21,7 @@ ai/acceleo_agent/prompts/ for the real, git-committed starting content.
 """
 from generation_toolkit.generation_agent import run_with_retry
 from generation_toolkit.prompt_builder import build_prompt
-from generation_toolkit.prompt_config import presets, rendering
+from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import validator_agent_client
@@ -70,7 +70,6 @@ def _validate(
 def generate(
     psm_artifact: str,
     platform_docs: str,
-    platform_description: str = "",
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
@@ -79,28 +78,25 @@ def generate(
     mock: bool = False,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict,
-    "rounds": int, "preset": str, "prompt_version": str} - the same shape
-    psm_agent.generation.generate() returns, for the same reason: `preset`
-    and `prompt_version` name exactly which saved config produced this
+    "rounds": int, "prompt_version": str} - the same shape
+    psm_agent.generation.generate() returns, for the same reason:
+    `prompt_version` names exactly which saved config produced this
     output, the real link an attempt's own persisted record and a later
     "restore the config that produced this" UI action both need.
 
     mock=True (the per-run "Mock" override, same opt-in as psm_agent's own)
-    still resolves the real preset/config/attachments and still runs the
-    real validator-agent call against a fixed, already-valid artifact, so
-    the prompt-builder mechanism and the real attempt-persistence path are
+    still resolves the real config/attachments and still runs the real
+    validator-agent call against a fixed, already-valid artifact, so the
+    prompt-builder mechanism and the real attempt-persistence path are
     both exercised for real - it only skips the real, slow, billed LLM
     call, for fast local iteration on a config without spending it. It
     calls _validate() with the mock's own filename (mockAcceleo.mtl,
     matching its own module name - Acceleo requires a module's file be
     named after its own module identifier), not the real "generate.mtl"
     every real call uses."""
-    preset_id = presets.resolve_preset(
-        platform_description, presets.list_preset_metadata(prompt_paths.PROMPT_CONFIG_DIR, CONFIG_NAME)
-    )
     context_values = {"psm_ecore": psm_artifact, "platform_docs": platform_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, CONFIG_NAME, preset_id, context_values, _FILES_ROOT
+        prompt_paths.PROMPT_CONFIG_DIR, CONFIG_NAME, context_values, _FILES_ROOT
     )
     combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
 
@@ -112,7 +108,6 @@ def generate(
             "prompt": prompt,
             "validation": validation,
             "rounds": 1,
-            "preset": preset_id,
             "prompt_version": config.get("_version"),
         }
 
@@ -129,6 +124,5 @@ def generate(
         "prompt": result["prompt"],
         "validation": result["validation"],
         "rounds": result["rounds"],
-        "preset": preset_id,
         "prompt_version": config.get("_version"),
     }

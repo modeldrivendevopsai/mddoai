@@ -33,24 +33,21 @@ function promptBuilderPropsFor(stage: StageId): PromptBuilderProps {
 
   const base: PromptBuilderProps = {
     ...attemptsBrowserProps,
-    onLoadPromptConfig: (name, preset) => orchestratorService.getPromptConfig(stage, name, preset),
-    onSavePromptConfig: (name, preset, config) => orchestratorService.savePromptConfig(stage, name, preset, config),
-    onListPresets: (name) => orchestratorService.listPromptPresets(stage, name),
-    onPreviewPromptConfig: (name, preset) => orchestratorService.previewPromptConfig(stage, name, preset),
+    onLoadPromptConfig: (name) => orchestratorService.getPromptConfig(stage, name),
+    onSavePromptConfig: (name, config) => orchestratorService.savePromptConfig(stage, name, config),
+    onPreviewPromptConfig: (name) => orchestratorService.previewPromptConfig(stage, name),
     onListAvailableFiles: () => orchestratorService.listAvailableFiles(stage),
     onUploadAttachmentFile: (file) => orchestratorService.uploadAttachmentFile(stage, file),
-    onLoadPromptHistory: (name, preset) => orchestratorService.getPromptConfigHistory(stage, name, preset),
-    onDiffPromptVersions: (name, preset, versionA, versionB) =>
-      orchestratorService.diffPromptConfigVersions(stage, name, preset, versionA, versionB),
-    onRestorePromptVersion: (name, preset, version) =>
-      orchestratorService.restorePromptConfigVersion(stage, name, preset, version),
-    onRevertPromptConfig: (name, preset) => orchestratorService.revertPromptConfig(stage, name, preset),
-    onPromoteConfigToDefault: (name, preset) => orchestratorService.promoteConfigToDefault(stage, name, preset),
-    onCheckPromptReferences: (name, preset) => orchestratorService.checkPromptReferences(stage, name, preset),
-    onAddLearnedConstraints: (name, preset, constraints) =>
-      orchestratorService.addLearnedConstraints(stage, name, preset, constraints),
-    onRemoveLearnedConstraint: (name, preset, constraint) =>
-      orchestratorService.removeLearnedConstraint(stage, name, preset, constraint),
+    onLoadPromptHistory: (name) => orchestratorService.getPromptConfigHistory(stage, name),
+    onDiffPromptVersions: (name, versionA, versionB) =>
+      orchestratorService.diffPromptConfigVersions(stage, name, versionA, versionB),
+    onRestorePromptVersion: (name, version) => orchestratorService.restorePromptConfigVersion(stage, name, version),
+    onRevertPromptConfig: (name) => orchestratorService.revertPromptConfig(stage, name),
+    onPromoteConfigToDefault: (name) => orchestratorService.promoteConfigToDefault(stage, name),
+    onCheckPromptReferences: (name) => orchestratorService.checkPromptReferences(stage, name),
+    onAddLearnedConstraints: (name, constraints) => orchestratorService.addLearnedConstraints(stage, name, constraints),
+    onRemoveLearnedConstraint: (name, constraint) =>
+      orchestratorService.removeLearnedConstraint(stage, name, constraint),
     onPromoteConstraints: (constraints) => orchestratorService.promoteConstraints(stage, constraints),
   }
   return stage === "psm" ? { ...base, onResolvePsmMode: orchestratorService.resolvePsmMode } : base

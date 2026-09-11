@@ -12,16 +12,21 @@ from fastapi.testclient import TestClient
 import main
 
 
-def test_a_path_traversal_preset_in_the_url_returns_400_not_500():
+def test_a_path_traversal_version_in_the_url_returns_400_not_500():
     client = TestClient(main.app)
 
     # A literal, un-encoded ".." segment never reaches this route at all -
     # httpx (like a real browser) normalizes it client-side before sending,
-    # so the request never leaves as anything but a 404 for "/prompt-config/".
-    # Percent-encoding is the real bypass technique for that normalization
-    # (the dots only become literal after the server decodes the path
-    # parameter, which happens after any client- or proxy-level
-    # normalization already ran) - %2e is ".".
-    response = client.get("/prompt-config/generation/%2e%2e")
+    # so the request never leaves as anything but a 404. Percent-encoding is
+    # the real bypass technique for that normalization (the dots only
+    # become literal after the server decodes the path parameter, which
+    # happens after any client- or proxy-level normalization already ran) -
+    # %2e is ".". Targets `version` specifically, not `name`: `name` is
+    # checked against a fixed set of known names before it ever reaches
+    # path construction (a 404, not a 500 or 400, for anything else), so a
+    # traversal payload there never reaches validate_path_segment at all -
+    # `version` is the real remaining path where a user-suppliable segment
+    # flows straight into a filesystem path.
+    response = client.post("/prompt-config/generation/restore/%2e%2e")
 
     assert response.status_code == 400

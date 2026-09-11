@@ -200,8 +200,6 @@ class SaveConfigRequest(BaseModel):
     # the real schema this pass-through mirrors).
     attachments: list[dict]
     learned_constraints: list[str] = []
-    label: str | None = None
-    platform_hints: list[str] = []
 
 
 class LearnedConstraintsRequest(BaseModel):
@@ -219,64 +217,59 @@ class PromoteConstraintsRequest(BaseModel):
 # --- psm ---
 
 
-@app.get("/psm/prompt-config/{name}/presets")
-def psm_list_presets_endpoint(name: str):
-    return {"presets": integration_runner_client.list_psm_presets(name)}
+@app.get("/psm/prompt-config/{name}")
+def psm_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_psm_prompt_config(name)
 
 
-@app.get("/psm/prompt-config/{name}/{preset}")
-def psm_get_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.get_psm_prompt_config(name, preset)
+@app.put("/psm/prompt-config/{name}")
+def psm_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_psm_prompt_config(name, request.model_dump())
 
 
-@app.put("/psm/prompt-config/{name}/{preset}")
-def psm_save_prompt_config_endpoint(name: str, preset: str, request: SaveConfigRequest):
-    return integration_runner_client.save_psm_prompt_config(name, preset, request.model_dump())
+@app.get("/psm/prompt-config/{name}/history")
+def psm_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_psm_prompt_config_history(name)}
 
 
-@app.get("/psm/prompt-config/{name}/{preset}/history")
-def psm_prompt_config_history_endpoint(name: str, preset: str):
-    return {"versions": integration_runner_client.get_psm_prompt_config_history(name, preset)}
+@app.get("/psm/prompt-config/{name}/diff")
+def psm_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_psm_prompt_config_versions(name, a, b)
 
 
-@app.get("/psm/prompt-config/{name}/{preset}/diff")
-def psm_prompt_config_diff_endpoint(name: str, preset: str, a: str, b: str):
-    return integration_runner_client.diff_psm_prompt_config_versions(name, preset, a, b)
+@app.post("/psm/prompt-config/{name}/restore/{version}")
+def psm_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_psm_prompt_config_version(name, version)
 
 
-@app.post("/psm/prompt-config/{name}/{preset}/restore/{version}")
-def psm_restore_prompt_config_endpoint(name: str, preset: str, version: str):
-    return integration_runner_client.restore_psm_prompt_config_version(name, preset, version)
+@app.post("/psm/prompt-config/{name}/revert")
+def psm_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_psm_prompt_config(name)
 
 
-@app.post("/psm/prompt-config/{name}/{preset}/revert")
-def psm_revert_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.revert_psm_prompt_config(name, preset)
+@app.post("/psm/prompt-config/{name}/promote-to-default")
+def psm_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_psm_prompt_config_to_default(name)
 
 
-@app.post("/psm/prompt-config/{name}/{preset}/promote-to-default")
-def psm_promote_prompt_config_to_default_endpoint(name: str, preset: str):
-    return integration_runner_client.promote_psm_prompt_config_to_default(name, preset)
+@app.get("/psm/prompt-config/{name}/check-references")
+def psm_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_psm_prompt_config_references(name)}
 
 
-@app.get("/psm/prompt-config/{name}/{preset}/check-references")
-def psm_check_prompt_config_references_endpoint(name: str, preset: str):
-    return {"broken": integration_runner_client.check_psm_prompt_config_references(name, preset)}
+@app.post("/psm/prompt-config/{name}/preview")
+def psm_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_psm_prompt_config(name)
 
 
-@app.post("/psm/prompt-config/{name}/{preset}/preview")
-def psm_preview_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.preview_psm_prompt_config(name, preset)
+@app.post("/psm/prompt-config/{name}/learned-constraints")
+def psm_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_psm_learned_constraints(name, request.constraints)
 
 
-@app.post("/psm/prompt-config/{name}/{preset}/learned-constraints")
-def psm_add_learned_constraints_endpoint(name: str, preset: str, request: LearnedConstraintsRequest):
-    return integration_runner_client.add_psm_learned_constraints(name, preset, request.constraints)
-
-
-@app.delete("/psm/prompt-config/{name}/{preset}/learned-constraints")
-def psm_remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLearnedConstraintRequest):
-    return integration_runner_client.remove_psm_learned_constraint(name, preset, request.constraint)
+@app.delete("/psm/prompt-config/{name}/learned-constraints")
+def psm_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_psm_learned_constraint(name, request.constraint)
 
 
 @app.get("/psm/available-files")
@@ -303,64 +296,59 @@ def psm_promote_constraints_endpoint(request: PromoteConstraintsRequest):
 # --- atl ---
 
 
-@app.get("/atl/prompt-config/{name}/presets")
-def atl_list_presets_endpoint(name: str):
-    return {"presets": integration_runner_client.list_atl_presets(name)}
+@app.get("/atl/prompt-config/{name}")
+def atl_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_atl_prompt_config(name)
 
 
-@app.get("/atl/prompt-config/{name}/{preset}")
-def atl_get_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.get_atl_prompt_config(name, preset)
+@app.put("/atl/prompt-config/{name}")
+def atl_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_atl_prompt_config(name, request.model_dump())
 
 
-@app.put("/atl/prompt-config/{name}/{preset}")
-def atl_save_prompt_config_endpoint(name: str, preset: str, request: SaveConfigRequest):
-    return integration_runner_client.save_atl_prompt_config(name, preset, request.model_dump())
+@app.get("/atl/prompt-config/{name}/history")
+def atl_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_atl_prompt_config_history(name)}
 
 
-@app.get("/atl/prompt-config/{name}/{preset}/history")
-def atl_prompt_config_history_endpoint(name: str, preset: str):
-    return {"versions": integration_runner_client.get_atl_prompt_config_history(name, preset)}
+@app.get("/atl/prompt-config/{name}/diff")
+def atl_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_atl_prompt_config_versions(name, a, b)
 
 
-@app.get("/atl/prompt-config/{name}/{preset}/diff")
-def atl_prompt_config_diff_endpoint(name: str, preset: str, a: str, b: str):
-    return integration_runner_client.diff_atl_prompt_config_versions(name, preset, a, b)
+@app.post("/atl/prompt-config/{name}/restore/{version}")
+def atl_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_atl_prompt_config_version(name, version)
 
 
-@app.post("/atl/prompt-config/{name}/{preset}/restore/{version}")
-def atl_restore_prompt_config_endpoint(name: str, preset: str, version: str):
-    return integration_runner_client.restore_atl_prompt_config_version(name, preset, version)
+@app.post("/atl/prompt-config/{name}/revert")
+def atl_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_atl_prompt_config(name)
 
 
-@app.post("/atl/prompt-config/{name}/{preset}/revert")
-def atl_revert_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.revert_atl_prompt_config(name, preset)
+@app.post("/atl/prompt-config/{name}/promote-to-default")
+def atl_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_atl_prompt_config_to_default(name)
 
 
-@app.post("/atl/prompt-config/{name}/{preset}/promote-to-default")
-def atl_promote_prompt_config_to_default_endpoint(name: str, preset: str):
-    return integration_runner_client.promote_atl_prompt_config_to_default(name, preset)
+@app.get("/atl/prompt-config/{name}/check-references")
+def atl_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_atl_prompt_config_references(name)}
 
 
-@app.get("/atl/prompt-config/{name}/{preset}/check-references")
-def atl_check_prompt_config_references_endpoint(name: str, preset: str):
-    return {"broken": integration_runner_client.check_atl_prompt_config_references(name, preset)}
+@app.post("/atl/prompt-config/{name}/preview")
+def atl_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_atl_prompt_config(name)
 
 
-@app.post("/atl/prompt-config/{name}/{preset}/preview")
-def atl_preview_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.preview_atl_prompt_config(name, preset)
+@app.post("/atl/prompt-config/{name}/learned-constraints")
+def atl_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_atl_learned_constraints(name, request.constraints)
 
 
-@app.post("/atl/prompt-config/{name}/{preset}/learned-constraints")
-def atl_add_learned_constraints_endpoint(name: str, preset: str, request: LearnedConstraintsRequest):
-    return integration_runner_client.add_atl_learned_constraints(name, preset, request.constraints)
-
-
-@app.delete("/atl/prompt-config/{name}/{preset}/learned-constraints")
-def atl_remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLearnedConstraintRequest):
-    return integration_runner_client.remove_atl_learned_constraint(name, preset, request.constraint)
+@app.delete("/atl/prompt-config/{name}/learned-constraints")
+def atl_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_atl_learned_constraint(name, request.constraint)
 
 
 @app.get("/atl/available-files")
@@ -382,64 +370,59 @@ def atl_promote_constraints_endpoint(request: PromoteConstraintsRequest):
 # --- acceleo ---
 
 
-@app.get("/acceleo/prompt-config/{name}/presets")
-def acceleo_list_presets_endpoint(name: str):
-    return {"presets": integration_runner_client.list_acceleo_presets(name)}
+@app.get("/acceleo/prompt-config/{name}")
+def acceleo_get_prompt_config_endpoint(name: str):
+    return integration_runner_client.get_acceleo_prompt_config(name)
 
 
-@app.get("/acceleo/prompt-config/{name}/{preset}")
-def acceleo_get_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.get_acceleo_prompt_config(name, preset)
+@app.put("/acceleo/prompt-config/{name}")
+def acceleo_save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return integration_runner_client.save_acceleo_prompt_config(name, request.model_dump())
 
 
-@app.put("/acceleo/prompt-config/{name}/{preset}")
-def acceleo_save_prompt_config_endpoint(name: str, preset: str, request: SaveConfigRequest):
-    return integration_runner_client.save_acceleo_prompt_config(name, preset, request.model_dump())
+@app.get("/acceleo/prompt-config/{name}/history")
+def acceleo_prompt_config_history_endpoint(name: str):
+    return {"versions": integration_runner_client.get_acceleo_prompt_config_history(name)}
 
 
-@app.get("/acceleo/prompt-config/{name}/{preset}/history")
-def acceleo_prompt_config_history_endpoint(name: str, preset: str):
-    return {"versions": integration_runner_client.get_acceleo_prompt_config_history(name, preset)}
+@app.get("/acceleo/prompt-config/{name}/diff")
+def acceleo_prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return integration_runner_client.diff_acceleo_prompt_config_versions(name, a, b)
 
 
-@app.get("/acceleo/prompt-config/{name}/{preset}/diff")
-def acceleo_prompt_config_diff_endpoint(name: str, preset: str, a: str, b: str):
-    return integration_runner_client.diff_acceleo_prompt_config_versions(name, preset, a, b)
+@app.post("/acceleo/prompt-config/{name}/restore/{version}")
+def acceleo_restore_prompt_config_endpoint(name: str, version: str):
+    return integration_runner_client.restore_acceleo_prompt_config_version(name, version)
 
 
-@app.post("/acceleo/prompt-config/{name}/{preset}/restore/{version}")
-def acceleo_restore_prompt_config_endpoint(name: str, preset: str, version: str):
-    return integration_runner_client.restore_acceleo_prompt_config_version(name, preset, version)
+@app.post("/acceleo/prompt-config/{name}/revert")
+def acceleo_revert_prompt_config_endpoint(name: str):
+    return integration_runner_client.revert_acceleo_prompt_config(name)
 
 
-@app.post("/acceleo/prompt-config/{name}/{preset}/revert")
-def acceleo_revert_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.revert_acceleo_prompt_config(name, preset)
+@app.post("/acceleo/prompt-config/{name}/promote-to-default")
+def acceleo_promote_prompt_config_to_default_endpoint(name: str):
+    return integration_runner_client.promote_acceleo_prompt_config_to_default(name)
 
 
-@app.post("/acceleo/prompt-config/{name}/{preset}/promote-to-default")
-def acceleo_promote_prompt_config_to_default_endpoint(name: str, preset: str):
-    return integration_runner_client.promote_acceleo_prompt_config_to_default(name, preset)
+@app.get("/acceleo/prompt-config/{name}/check-references")
+def acceleo_check_prompt_config_references_endpoint(name: str):
+    return {"broken": integration_runner_client.check_acceleo_prompt_config_references(name)}
 
 
-@app.get("/acceleo/prompt-config/{name}/{preset}/check-references")
-def acceleo_check_prompt_config_references_endpoint(name: str, preset: str):
-    return {"broken": integration_runner_client.check_acceleo_prompt_config_references(name, preset)}
+@app.post("/acceleo/prompt-config/{name}/preview")
+def acceleo_preview_prompt_config_endpoint(name: str):
+    return integration_runner_client.preview_acceleo_prompt_config(name)
 
 
-@app.post("/acceleo/prompt-config/{name}/{preset}/preview")
-def acceleo_preview_prompt_config_endpoint(name: str, preset: str):
-    return integration_runner_client.preview_acceleo_prompt_config(name, preset)
+@app.post("/acceleo/prompt-config/{name}/learned-constraints")
+def acceleo_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return integration_runner_client.add_acceleo_learned_constraints(name, request.constraints)
 
 
-@app.post("/acceleo/prompt-config/{name}/{preset}/learned-constraints")
-def acceleo_add_learned_constraints_endpoint(name: str, preset: str, request: LearnedConstraintsRequest):
-    return integration_runner_client.add_acceleo_learned_constraints(name, preset, request.constraints)
-
-
-@app.delete("/acceleo/prompt-config/{name}/{preset}/learned-constraints")
-def acceleo_remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLearnedConstraintRequest):
-    return integration_runner_client.remove_acceleo_learned_constraint(name, preset, request.constraint)
+@app.delete("/acceleo/prompt-config/{name}/learned-constraints")
+def acceleo_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return integration_runner_client.remove_acceleo_learned_constraint(name, request.constraint)
 
 
 @app.get("/acceleo/available-files")

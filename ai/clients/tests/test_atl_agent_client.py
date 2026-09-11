@@ -19,12 +19,12 @@ def _fake_result(artifact="module m;"):
 
 def test_run_atl_posts_the_real_payload_shape():
     with patch("atl_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
-        response = atl_agent_client.run_atl("<pim/>", "<psm/>", "TeamCity")
+        response = atl_agent_client.run_atl("<pim/>", "<psm/>")
 
     mock_post.assert_called_once_with(
         f"{atl_agent_client.ATL_AGENT_URL}/generate",
         json={
-            "pim_artifact": "<pim/>", "psm_artifact": "<psm/>", "platform_description": "TeamCity",
+            "pim_artifact": "<pim/>", "psm_artifact": "<psm/>",
             "constraints": None, "model": None, "run_id": None, "stage": None, "attempt": None,
             "mock": False,
         },
@@ -51,10 +51,10 @@ def test_run_atl_forwards_mock():
 def test_get_prompt_config_hits_the_real_endpoint():
     config = {"attachments": []}
     with patch("atl_agent_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
-        result = atl_agent_client.get_prompt_config("generation", "default")
+        result = atl_agent_client.get_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "GET", f"{atl_agent_client.ATL_AGENT_URL}/prompt-config/generation/default",
+        "GET", f"{atl_agent_client.ATL_AGENT_URL}/prompt-config/generation",
         timeout=atl_agent_client.ATL_CONFIG_TIMEOUT,
     )
     assert result == config

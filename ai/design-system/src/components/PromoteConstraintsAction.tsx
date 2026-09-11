@@ -65,8 +65,8 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <p style={labelStyle}>
-        These constraints produced this validated success — edit before confirming, then every future run of this
-        preset starts with them already applied.
+        These constraints produced this validated success — edit before confirming, then every future run starts
+        with them already applied.
       </p>
       <textarea
         className="orch-field"

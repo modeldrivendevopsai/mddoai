@@ -37,7 +37,6 @@ def atl_stage(context: dict) -> tuple[str, dict]:
     # stand-in for a caller that skips straight to atl, so a direct/test
     # call without them deliberately gets empty artifacts, not a silently
     # wrong substitute.
-    platform_description = context.get("platform_description", "")
     pim_artifact = context.get("pim_output", "")
     psm_artifact = context.get("psm_output", "")
     constraints = context.get("constraints", {}).get("atl", [])
@@ -52,7 +51,6 @@ def atl_stage(context: dict) -> tuple[str, dict]:
         result = atl_agent_client.run_atl(
             pim_artifact,
             psm_artifact,
-            platform_description,
             constraints=constraints,
             model=context.get("model"),
             run_id=run_id,

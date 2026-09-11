@@ -169,13 +169,13 @@ export interface Provider {
 export type DocsOptions = Omit<RerunOverrides, "seed_url">
 
 // --- Modular prompt builder ------------------------------------------------
-// Mirrors generation_toolkit.prompt_config's own real shapes exactly (see
-// ai/generation_toolkit/attachments/resolve.py, prompt_config/storage.py,
-// prompt_config/presets.py, prompt_config/history.py). Not psm-specific:
-// the same shapes apply to every stage with a real, editable prompt config
-// (psm, atl, acceleo today) — "name" is that stage's own mode string
-// ("generation", "comparison", ...), "preset" is a platform slug or
-// "default".
+// Mirrors the backend's own real prompt-config shapes exactly: an
+// attachment-based document plus a permanent learned-constraints list,
+// persisted and resolved by a shared backend library every generation
+// service reuses. Not psm-specific: the same shapes apply to every stage
+// with a real, editable prompt config (psm, atl, acceleo today) - "name"
+// is that stage's own mode string ("generation", "comparison", ...);
+// there's exactly one config per name.
 
 export type PromptAttachmentType = "text" | "file" | "context"
 
@@ -202,15 +202,7 @@ export interface PromptConfig {
   // once (see storage.save_config) - a freshly shipped, never-edited
   // default has neither.
   learned_constraints?: string[]
-  label?: string | null
-  platform_hints?: string[]
   _version?: string
-}
-
-export interface PresetMetadata {
-  id: string
-  label: string
-  platform_hints: string[]
 }
 
 export interface PromptDiff {

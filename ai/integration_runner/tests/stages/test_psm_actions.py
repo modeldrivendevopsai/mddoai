@@ -12,28 +12,27 @@ from integration_runner import pipeline
 from integration_runner.stages.psm.actions import promote_constraints
 
 
-def _generation_completed_event(preset="default", valid=True):
+def _generation_completed_event(valid=True):
     return {
         "type": "call_completed",
         "stage": "psm",
         "data": {
             "mode": "generation",
             "output": "<ecore/>",
-            "preset": preset,
             "validation": {"valid": valid, "issues": []},
         },
     }
 
 
-def test_promote_constraints_calls_the_real_client_with_the_runs_own_preset():
+def test_promote_constraints_calls_the_real_client():
     run = pipeline.IntegrationRun()
     run.current_stage_index = pipeline.STAGES.index("psm")
-    run.event_log.events.append(_generation_completed_event(preset="gitlab"))
+    run.event_log.events.append(_generation_completed_event())
 
     with patch.object(psm_agent_client, "add_learned_constraints", return_value={"learned_constraints": ["x"]}) as mock_add:
         result = promote_constraints(run, ["Use camelCase"])
 
-    mock_add.assert_called_once_with("generation", "gitlab", ["Use camelCase"])
+    mock_add.assert_called_once_with("generation", ["Use camelCase"])
     assert result == {"learned_constraints": ["x"]}
 
 
@@ -90,10 +89,13 @@ def test_promote_constraints_rejects_a_failed_validation():
 def test_promote_constraints_uses_the_latest_completed_result_not_an_earlier_one():
     run = pipeline.IntegrationRun()
     run.current_stage_index = pipeline.STAGES.index("psm")
-    run.event_log.events.append(_generation_completed_event(preset="gitlab"))
-    run.event_log.events.append(_generation_completed_event(preset="azuredevops"))
+    # If promote_constraints looked at the first (invalid) event instead of
+    # the latest (valid) one, this would raise ValueError instead of
+    # succeeding - the real regression this guards against.
+    run.event_log.events.append(_generation_completed_event(valid=False))
+    run.event_log.events.append(_generation_completed_event(valid=True))
 
     with patch.object(psm_agent_client, "add_learned_constraints", return_value={}) as mock_add:
         promote_constraints(run, ["x"])
 
-    mock_add.assert_called_once_with("generation", "azuredevops", ["x"])
+    mock_add.assert_called_once_with("generation", ["x"])

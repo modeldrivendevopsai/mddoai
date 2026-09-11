@@ -73,7 +73,6 @@ def _atl_generation_result(artifact="module m; ...", valid=True):
         "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
         "validation": _validation_result(valid=valid),
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
 
@@ -87,7 +86,6 @@ def _acceleo_generation_result(artifact="[module generate('x')] ...", valid=True
         "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
         "validation": _validation_result(valid=valid),
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
 

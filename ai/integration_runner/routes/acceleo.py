@@ -7,8 +7,7 @@ reasoning.
    (clients/acceleo_agent_client.py), the same "integration_runner proxies,
    acceleo_agent owns the actual data" shape stages/acceleo/agent.py's own
    real /generate call already uses. No run awareness at all: a prompt
-   config is a platform-preset resource, not scoped to any one run,
-   editable any time.
+   config is editable any time, independent of any one run.
 2. promote_constraints, which IS run-aware (stages/acceleo/actions.py),
    the real HTTP target for turning a verified run's own live corrections
    into acceleo_agent's permanent config.
@@ -32,8 +31,6 @@ class SaveConfigRequest(BaseModel):
     # real schema this pass-through mirrors).
     attachments: list[dict]
     learned_constraints: list[str] = []
-    label: str | None = None
-    platform_hints: list[str] = []
 
 
 class LearnedConstraintsRequest(BaseModel):
@@ -48,64 +45,59 @@ class PromoteConstraintsRequest(BaseModel):
     constraints: list[str]
 
 
-@router.get("/prompt-config/{name}/presets")
-def list_presets_endpoint(name: str):
-    return {"presets": acceleo_agent_client.list_presets(name)}
+@router.get("/prompt-config/{name}")
+def get_prompt_config_endpoint(name: str):
+    return acceleo_agent_client.get_prompt_config(name)
 
 
-@router.get("/prompt-config/{name}/{preset}")
-def get_prompt_config_endpoint(name: str, preset: str):
-    return acceleo_agent_client.get_prompt_config(name, preset)
+@router.put("/prompt-config/{name}")
+def save_prompt_config_endpoint(name: str, request: SaveConfigRequest):
+    return acceleo_agent_client.save_prompt_config(name, request.model_dump())
 
 
-@router.put("/prompt-config/{name}/{preset}")
-def save_prompt_config_endpoint(name: str, preset: str, request: SaveConfigRequest):
-    return acceleo_agent_client.save_prompt_config(name, preset, request.model_dump())
+@router.get("/prompt-config/{name}/history")
+def prompt_config_history_endpoint(name: str):
+    return {"versions": acceleo_agent_client.get_prompt_config_history(name)}
 
 
-@router.get("/prompt-config/{name}/{preset}/history")
-def prompt_config_history_endpoint(name: str, preset: str):
-    return {"versions": acceleo_agent_client.get_prompt_config_history(name, preset)}
+@router.get("/prompt-config/{name}/diff")
+def prompt_config_diff_endpoint(name: str, a: str, b: str):
+    return acceleo_agent_client.diff_prompt_config_versions(name, a, b)
 
 
-@router.get("/prompt-config/{name}/{preset}/diff")
-def prompt_config_diff_endpoint(name: str, preset: str, a: str, b: str):
-    return acceleo_agent_client.diff_prompt_config_versions(name, preset, a, b)
+@router.post("/prompt-config/{name}/restore/{version}")
+def restore_prompt_config_endpoint(name: str, version: str):
+    return acceleo_agent_client.restore_prompt_config_version(name, version)
 
 
-@router.post("/prompt-config/{name}/{preset}/restore/{version}")
-def restore_prompt_config_endpoint(name: str, preset: str, version: str):
-    return acceleo_agent_client.restore_prompt_config_version(name, preset, version)
+@router.post("/prompt-config/{name}/revert")
+def revert_prompt_config_endpoint(name: str):
+    return acceleo_agent_client.revert_prompt_config(name)
 
 
-@router.post("/prompt-config/{name}/{preset}/revert")
-def revert_prompt_config_endpoint(name: str, preset: str):
-    return acceleo_agent_client.revert_prompt_config(name, preset)
+@router.post("/prompt-config/{name}/promote-to-default")
+def promote_prompt_config_to_default_endpoint(name: str):
+    return acceleo_agent_client.promote_prompt_config_to_default(name)
 
 
-@router.post("/prompt-config/{name}/{preset}/promote-to-default")
-def promote_prompt_config_to_default_endpoint(name: str, preset: str):
-    return acceleo_agent_client.promote_prompt_config_to_default(name, preset)
+@router.get("/prompt-config/{name}/check-references")
+def check_prompt_config_references_endpoint(name: str):
+    return {"broken": acceleo_agent_client.check_prompt_config_references(name)}
 
 
-@router.get("/prompt-config/{name}/{preset}/check-references")
-def check_prompt_config_references_endpoint(name: str, preset: str):
-    return {"broken": acceleo_agent_client.check_prompt_config_references(name, preset)}
+@router.post("/prompt-config/{name}/preview")
+def preview_prompt_config_endpoint(name: str):
+    return acceleo_agent_client.preview_prompt_config(name)
 
 
-@router.post("/prompt-config/{name}/{preset}/preview")
-def preview_prompt_config_endpoint(name: str, preset: str):
-    return acceleo_agent_client.preview_prompt_config(name, preset)
+@router.post("/prompt-config/{name}/learned-constraints")
+def add_learned_constraints_endpoint(name: str, request: LearnedConstraintsRequest):
+    return acceleo_agent_client.add_learned_constraints(name, request.constraints)
 
 
-@router.post("/prompt-config/{name}/{preset}/learned-constraints")
-def add_learned_constraints_endpoint(name: str, preset: str, request: LearnedConstraintsRequest):
-    return acceleo_agent_client.add_learned_constraints(name, preset, request.constraints)
-
-
-@router.delete("/prompt-config/{name}/{preset}/learned-constraints")
-def remove_learned_constraint_endpoint(name: str, preset: str, request: RemoveLearnedConstraintRequest):
-    return acceleo_agent_client.remove_learned_constraint(name, preset, request.constraint)
+@router.delete("/prompt-config/{name}/learned-constraints")
+def remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
+    return acceleo_agent_client.remove_learned_constraint(name, request.constraint)
 
 
 @router.get("/available-files")

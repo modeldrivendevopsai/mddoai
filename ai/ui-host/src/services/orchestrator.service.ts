@@ -5,7 +5,6 @@ import type {
   EventsResponse,
   ManifestEntry,
   MessageResponse,
-  PresetMetadata,
   Provider,
   PromptConfig,
   PromptDiff,
@@ -222,8 +221,8 @@ export async function setModel(model?: string): Promise<{ model: string | null }
 
 export type PromptBuilderStage = "psm" | "atl" | "acceleo"
 
-export async function getPromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}`)
+export async function getPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}`)
   if (!res.ok) throw await errorFor("Prompt config", res)
   return res.json()
 }
@@ -231,10 +230,9 @@ export async function getPromptConfig(stage: PromptBuilderStage, name: string, p
 export async function savePromptConfig(
   stage: PromptBuilderStage,
   name: string,
-  preset: string,
   config: PromptConfig
 ): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}`, {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
@@ -243,14 +241,8 @@ export async function savePromptConfig(
   return res.json()
 }
 
-export async function listPromptPresets(stage: PromptBuilderStage, name: string): Promise<PresetMetadata[]> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/presets`)
-  if (!res.ok) throw await errorFor("Prompt presets", res)
-  return (await res.json()).presets
-}
-
-export async function previewPromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptPreview> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/preview`, { method: "POST" })
+export async function previewPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptPreview> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/preview`, { method: "POST" })
   if (!res.ok) throw await errorFor("Prompt preview", res)
   return res.json()
 }
@@ -261,8 +253,8 @@ export async function listAvailableFiles(stage: PromptBuilderStage): Promise<str
   return (await res.json()).files
 }
 
-export async function getPromptConfigHistory(stage: PromptBuilderStage, name: string, preset: string): Promise<string[]> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/history`)
+export async function getPromptConfigHistory(stage: PromptBuilderStage, name: string): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/history`)
   if (!res.ok) throw await errorFor("Prompt history", res)
   return (await res.json()).versions
 }
@@ -270,12 +262,11 @@ export async function getPromptConfigHistory(stage: PromptBuilderStage, name: st
 export async function diffPromptConfigVersions(
   stage: PromptBuilderStage,
   name: string,
-  preset: string,
   versionA: string,
   versionB: string
 ): Promise<PromptDiff> {
   const params = new URLSearchParams({ a: versionA, b: versionB })
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/diff?${params}`)
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/diff?${params}`)
   if (!res.ok) throw await errorFor("Prompt diff", res)
   return res.json()
 }
@@ -283,32 +274,31 @@ export async function diffPromptConfigVersions(
 export async function restorePromptConfigVersion(
   stage: PromptBuilderStage,
   name: string,
-  preset: string,
   version: string
 ): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/restore/${version}`, {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/restore/${version}`, {
     method: "POST",
   })
   if (!res.ok) throw await errorFor("Restore prompt version", res)
   return res.json()
 }
 
-export async function revertPromptConfig(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/revert`, { method: "POST" })
+export async function revertPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/revert`, { method: "POST" })
   if (!res.ok) throw await errorFor("Revert prompt config", res)
   return res.json()
 }
 
-export async function promoteConfigToDefault(stage: PromptBuilderStage, name: string, preset: string): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/promote-to-default`, {
+export async function promoteConfigToDefault(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/promote-to-default`, {
     method: "POST",
   })
   if (!res.ok) throw await errorFor("Promote config to default", res)
   return res.json()
 }
 
-export async function checkPromptReferences(stage: PromptBuilderStage, name: string, preset: string): Promise<BrokenReference[]> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/check-references`)
+export async function checkPromptReferences(stage: PromptBuilderStage, name: string): Promise<BrokenReference[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/check-references`)
   if (!res.ok) throw await errorFor("Check prompt references", res)
   return (await res.json()).broken
 }
@@ -316,10 +306,9 @@ export async function checkPromptReferences(stage: PromptBuilderStage, name: str
 export async function addLearnedConstraints(
   stage: PromptBuilderStage,
   name: string,
-  preset: string,
   constraints: string[]
 ): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/learned-constraints`, {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ constraints }),
@@ -331,10 +320,9 @@ export async function addLearnedConstraints(
 export async function removeLearnedConstraint(
   stage: PromptBuilderStage,
   name: string,
-  preset: string,
   constraint: string
 ): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/${preset}/learned-constraints`, {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ constraint }),
@@ -344,8 +332,8 @@ export async function removeLearnedConstraint(
 }
 
 // Run-aware (see each stage's own stages/<stage>/actions.py promote_constraints):
-// no name/preset here, the backend infers both from the current run's own
-// latest, real, successfully-validated result for that stage.
+// no name here, the backend infers it from the current run's own latest,
+// real, successfully-validated result for that stage.
 export async function promoteConstraints(stage: PromptBuilderStage, constraints: string[]): Promise<PromptConfig> {
   const res = await fetch(`/orchestrator-api/${stage}/promote-constraints`, {
     method: "POST",

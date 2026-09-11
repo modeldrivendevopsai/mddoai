@@ -25,15 +25,7 @@ export interface PromptConfig {
   // every other attachment, not a separate field a human can't remove.
   attachments: Attachment[]
   learned_constraints?: string[]
-  label?: string | null
-  platform_hints?: string[]
   _version?: string
-}
-
-export interface PresetInfo {
-  id: string
-  label: string
-  platform_hints: string[]
 }
 
 export interface PromptDiff {
@@ -58,8 +50,8 @@ export interface BrokenReference {
   error: string
 }
 
-// Which platform's own prompt is being edited (a slug, "gitlab", or
-// "default") plus what a human-editable label/hints picker offers.
+// Which real config is being edited, plus what a human-editable prompt
+// document offers.
 export interface PromptBuilderManifest {
   // The stage's own mode string ("generation", "comparison", ...) - never
   // shown to a human, just what identifies which real prompt this is to
@@ -70,14 +62,12 @@ export interface PromptBuilderManifest {
   label: string
   attachmentTypes: AttachmentType[]
   contextKeyOptions: { key: string; label: string }[]
-  supportsPresets: boolean
 }
 
 export interface PromptBuilderCallbacks {
-  onLoad: (preset: string) => Promise<PromptConfig>
-  onSave: (preset: string, config: PromptConfig) => Promise<PromptConfig>
-  onListPresets?: () => Promise<PresetInfo[]>
-  onPreview: (preset: string) => Promise<PromptPreview>
+  onLoad: () => Promise<PromptConfig>
+  onSave: (config: PromptConfig) => Promise<PromptConfig>
+  onPreview: () => Promise<PromptPreview>
   onListAvailableFiles?: () => Promise<string[]>
   // Real file uploads (dropping an OS file onto the document): saves it to
   // a real backend "attachments volume" and returns the safe stored path
@@ -88,14 +78,14 @@ export interface PromptBuilderCallbacks {
   // content copied in client-side), see PromptDocument.tsx's own
   // insertFilesAt.
   onUploadFile?: (file: File) => Promise<string>
-  onLoadHistory: (preset: string) => Promise<string[]>
-  onDiffVersions: (preset: string, versionA: string, versionB: string) => Promise<PromptDiff>
-  onRestoreVersion: (preset: string, version: string) => Promise<PromptConfig>
-  onRevertToDefault: (preset: string) => Promise<PromptConfig>
-  onPromoteToDefault: (preset: string) => Promise<PromptConfig>
-  onCheckReferences: (preset: string) => Promise<BrokenReference[]>
-  onAddLearnedConstraints: (preset: string, constraints: string[]) => Promise<PromptConfig>
-  onRemoveLearnedConstraint: (preset: string, constraint: string) => Promise<PromptConfig>
+  onLoadHistory: () => Promise<string[]>
+  onDiffVersions: (versionA: string, versionB: string) => Promise<PromptDiff>
+  onRestoreVersion: (version: string) => Promise<PromptConfig>
+  onRevertToDefault: () => Promise<PromptConfig>
+  onPromoteToDefault: () => Promise<PromptConfig>
+  onCheckReferences: () => Promise<BrokenReference[]>
+  onAddLearnedConstraints: (constraints: string[]) => Promise<PromptConfig>
+  onRemoveLearnedConstraint: (constraint: string) => Promise<PromptConfig>
 }
 
 export interface PromptBuilderProps {

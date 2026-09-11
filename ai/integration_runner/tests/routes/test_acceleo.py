@@ -22,7 +22,6 @@ from integration_runner.routes.acceleo import (
     add_learned_constraints_endpoint,
     available_files_endpoint,
     get_prompt_config_endpoint,
-    list_presets_endpoint,
     promote_constraints_endpoint,
     remove_learned_constraint_endpoint,
     save_prompt_config_endpoint,
@@ -54,44 +53,36 @@ def _reset_default_run():
     runs._runs[original.run_id] = original
 
 
-def test_list_presets_endpoint_proxies_the_real_client():
-    with patch.object(acceleo_agent_client, "list_presets", return_value=[{"id": "default"}]) as mock_list:
-        result = list_presets_endpoint("generation")
-
-    mock_list.assert_called_once_with("generation")
-    assert result == {"presets": [{"id": "default"}]}
-
-
 def test_get_prompt_config_endpoint_proxies_the_real_client():
     config = {"system_prompt": "x", "attachments": []}
     with patch.object(acceleo_agent_client, "get_prompt_config", return_value=config) as mock_get:
-        result = get_prompt_config_endpoint("generation", "default")
+        result = get_prompt_config_endpoint("generation")
 
-    mock_get.assert_called_once_with("generation", "default")
+    mock_get.assert_called_once_with("generation")
     assert result == config
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
     body = SaveConfigRequest(attachments=[])
     with patch.object(acceleo_agent_client, "save_prompt_config", return_value={"_version": "v1"}) as mock_save:
-        result = save_prompt_config_endpoint("generation", "default", body)
+        result = save_prompt_config_endpoint("generation", body)
 
-    mock_save.assert_called_once_with("generation", "default", body.model_dump())
+    mock_save.assert_called_once_with("generation", body.model_dump())
     assert result == {"_version": "v1"}
 
 
 def test_add_learned_constraints_endpoint_forwards_constraints():
     with patch.object(acceleo_agent_client, "add_learned_constraints", return_value={}) as mock_add:
-        add_learned_constraints_endpoint("generation", "default", LearnedConstraintsRequest(constraints=["x"]))
+        add_learned_constraints_endpoint("generation", LearnedConstraintsRequest(constraints=["x"]))
 
-    mock_add.assert_called_once_with("generation", "default", ["x"])
+    mock_add.assert_called_once_with("generation", ["x"])
 
 
 def test_remove_learned_constraint_endpoint_forwards_the_constraint():
     with patch.object(acceleo_agent_client, "remove_learned_constraint", return_value={}) as mock_remove:
-        remove_learned_constraint_endpoint("generation", "default", RemoveLearnedConstraintRequest(constraint="x"))
+        remove_learned_constraint_endpoint("generation", RemoveLearnedConstraintRequest(constraint="x"))
 
-    mock_remove.assert_called_once_with("generation", "default", "x")
+    mock_remove.assert_called_once_with("generation", "x")
 
 
 def test_available_files_endpoint_proxies_the_real_client():
@@ -137,7 +128,7 @@ def test_promote_constraints_endpoint_succeeds_for_a_real_verified_result():
     run.current_stage_index = pipeline.STAGES.index("acceleo")
     run.event_log.events.append({
         "type": "call_completed", "stage": "acceleo",
-        "data": {"preset": "default", "validation": {"valid": True}},
+        "data": {"validation": {"valid": True}},
     })
 
     with patch.object(acceleo_agent_client, "add_learned_constraints", return_value={"learned_constraints": ["x"]}):

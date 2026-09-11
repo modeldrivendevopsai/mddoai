@@ -28,7 +28,7 @@ interface PromptDocumentProps {
   // last part of the real user message, after every attachment, so this
   // is where they visually belong too - the one part of "the real prompt"
   // that isn't itself an attachment (a permanent, promoted lesson applying
-  // to every future run of this preset, not one block's own content).
+  // to every future run, not one block's own content).
   learnedConstraints: string[]
   onAddConstraint: (constraint: string) => void
   onRemoveConstraint: (constraint: string) => void

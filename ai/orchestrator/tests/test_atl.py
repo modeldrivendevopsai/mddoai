@@ -16,74 +16,66 @@ from clients import integration_runner_client
 client = TestClient(main.app)
 
 
-def test_list_presets_endpoint_proxies_the_real_client():
-    with patch.object(integration_runner_client, "list_atl_presets", return_value=[{"id": "default"}]) as mock_list:
-        response = client.get("/atl/prompt-config/generation/presets")
-
-    mock_list.assert_called_once_with("generation")
-    assert response.json() == {"presets": [{"id": "default"}]}
-
-
 def test_get_prompt_config_endpoint_proxies_the_real_client():
     config = {"attachments": []}
     with patch.object(integration_runner_client, "get_atl_prompt_config", return_value=config) as mock_get:
-        response = client.get("/atl/prompt-config/generation/default")
+        response = client.get("/atl/prompt-config/generation")
 
-    mock_get.assert_called_once_with("generation", "default")
+    mock_get.assert_called_once_with("generation")
     assert response.json() == config
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
-    body = {"attachments": [], "learned_constraints": [], "label": None, "platform_hints": []}
+    body = {"attachments": [], "learned_constraints": []}
     with patch.object(integration_runner_client, "save_atl_prompt_config", return_value={**body, "_version": "v1"}) as mock_save:
-        response = client.put("/atl/prompt-config/generation/default", json=body)
+        response = client.put("/atl/prompt-config/generation", json=body)
 
-    mock_save.assert_called_once_with("generation", "default", body)
+    mock_save.assert_called_once_with("generation", body)
     assert response.json()["_version"] == "v1"
 
 
 def test_prompt_config_history_endpoint():
     with patch.object(integration_runner_client, "get_atl_prompt_config_history", return_value=["v1", "v2"]):
-        response = client.get("/atl/prompt-config/generation/default/history")
+        response = client.get("/atl/prompt-config/generation/history")
 
     assert response.json() == {"versions": ["v1", "v2"]}
 
 
 def test_prompt_config_diff_endpoint_forwards_query_params():
     with patch.object(integration_runner_client, "diff_atl_prompt_config_versions", return_value={"attachments_changed": []}) as mock_diff:
-        response = client.get("/atl/prompt-config/generation/default/diff", params={"a": "v1", "b": "v2"})
+        response = client.get("/atl/prompt-config/generation/diff", params={"a": "v1", "b": "v2"})
 
-    mock_diff.assert_called_once_with("generation", "default", "v1", "v2")
+    mock_diff.assert_called_once_with("generation", "v1", "v2")
     assert response.json() == {"attachments_changed": []}
 
 
 def test_restore_prompt_config_endpoint():
     with patch.object(integration_runner_client, "restore_atl_prompt_config_version", return_value={"attachments": []}) as mock_restore:
-        response = client.post("/atl/prompt-config/generation/default/restore/v1")
+        response = client.post("/atl/prompt-config/generation/restore/v1")
 
-    mock_restore.assert_called_once_with("generation", "default", "v1")
+    mock_restore.assert_called_once_with("generation", "v1")
     assert response.json() == {"attachments": []}
 
 
 def test_revert_prompt_config_endpoint():
     with patch.object(integration_runner_client, "revert_atl_prompt_config", return_value={"attachments": []}) as mock_revert:
-        response = client.post("/atl/prompt-config/generation/default/revert")
+        response = client.post("/atl/prompt-config/generation/revert")
 
-    mock_revert.assert_called_once_with("generation", "default")
+    mock_revert.assert_called_once_with("generation")
     assert response.json() == {"attachments": []}
 
 
 def test_promote_prompt_config_to_default_endpoint():
     with patch.object(integration_runner_client, "promote_atl_prompt_config_to_default", return_value={"attachments": []}) as mock_promote:
-        response = client.post("/atl/prompt-config/generation/default/promote-to-default")
+        response = client.post("/atl/prompt-config/generation/promote-to-default")
 
-    mock_promote.assert_called_once_with("generation", "default")
+    mock_promote.assert_called_once_with("generation")
     assert response.json() == {"attachments": []}
 
 
 def test_check_prompt_config_references_endpoint():
     with patch.object(integration_runner_client, "check_atl_prompt_config_references", return_value=[]):
-        response = client.get("/atl/prompt-config/generation/default/check-references")
+        response = client.get("/atl/prompt-config/generation/check-references")
 
     assert response.json() == {"broken": []}
 
@@ -91,24 +83,24 @@ def test_check_prompt_config_references_endpoint():
 def test_preview_prompt_config_endpoint():
     preview = {"system_prompt": "x", "user_content": "y", "attachments": {}}
     with patch.object(integration_runner_client, "preview_atl_prompt_config", return_value=preview):
-        response = client.post("/atl/prompt-config/generation/default/preview")
+        response = client.post("/atl/prompt-config/generation/preview")
 
     assert response.json() == preview
 
 
 def test_add_learned_constraints_endpoint_forwards_the_real_body():
     with patch.object(integration_runner_client, "add_atl_learned_constraints", return_value={"learned_constraints": ["x"]}) as mock_add:
-        response = client.post("/atl/prompt-config/generation/default/learned-constraints", json={"constraints": ["x"]})
+        response = client.post("/atl/prompt-config/generation/learned-constraints", json={"constraints": ["x"]})
 
-    mock_add.assert_called_once_with("generation", "default", ["x"])
+    mock_add.assert_called_once_with("generation", ["x"])
     assert response.json() == {"learned_constraints": ["x"]}
 
 
 def test_remove_learned_constraint_endpoint_forwards_the_real_body():
     with patch.object(integration_runner_client, "remove_atl_learned_constraint", return_value={"learned_constraints": []}) as mock_remove:
-        response = client.request("DELETE", "/atl/prompt-config/generation/default/learned-constraints", json={"constraint": "x"})
+        response = client.request("DELETE", "/atl/prompt-config/generation/learned-constraints", json={"constraint": "x"})
 
-    mock_remove.assert_called_once_with("generation", "default", "x")
+    mock_remove.assert_called_once_with("generation", "x")
     assert response.json() == {"learned_constraints": []}
 
 

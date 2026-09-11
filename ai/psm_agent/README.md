@@ -79,7 +79,6 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
     "generated_source_path": "/runs/run-123/psm/attempt_1/ecore-validate-abc123"
   },
   "rounds": 2,
-  "preset": "default",
   "prompt_version": null
 }
 
@@ -111,10 +110,10 @@ doesn't exist on disk.
 slow, billed steps (PIM-concept grounding and the real LLM call), returning a fixed, already-valid
 placeholder artifact instead, while still resolving the real prompt config and still running the
 real `validator_agent` call against that placeholder — a fast, free way to exercise the prompt
-config mechanism and the real attempt-persistence path without spending either. `preset` and
-`prompt_version` in a generation-mode response name exactly which saved config (see below)
-produced this output, the real link an attempt's own persisted `prompt.json` and a later "restore
-the config that produced this" UI action both need.
+config mechanism and the real attempt-persistence path without spending either. `prompt_version`
+in a generation-mode response names exactly which saved config (see below) produced this output,
+the real link an attempt's own persisted `prompt.json` and a later "restore the config that
+produced this" UI action both need.
 
 ### `POST /compare`
 
@@ -140,37 +139,33 @@ Configs live under `prompts/{name}/`, `name` one of `"generation"`/`"comparison"
 service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, overridable via
 `PSM_PROMPT_CONFIG_DIR`, defaulting to `psm_agent/prompts/` next to this service's own source):
 
-- `{preset}.default.json` — the immutable, git-committed shipped default for one preset. Every
-  `name` ships at least a generic `default.default.json`, seeded from the real experiment with the
-  most already-proven `learned_constraints` at the time it was ported (see
-  `generation_toolkit/README.md`'s own `learned_constraints` section) rather than one default per
-  platform, so the constraint list keeps growing in one place as more platforms are generated for
-  real, instead of starting over per platform.
-- `{preset}.json` — the live, currently-in-effect config, only created once someone actually saves
-  an edit through `PUT /prompt-config/{name}/{preset}` (a `revert`/`restore` is also a save, so it
-  exists after either of those too). `GET /prompt-config/{name}/{preset}` falls back to the shipped
-  default when this doesn't exist yet.
-- `history/{preset}.{version}.json` — an immutable snapshot of every version that's ever been
-  live, one per save, `{version}` a sortable UTC timestamp plus a random suffix.
+- `default.default.json` — the immutable, git-committed shipped default. Every `name` ships one,
+  seeded from the real experiment with the most already-proven `learned_constraints` at the time
+  it was ported (see `generation_toolkit/README.md`'s own `learned_constraints` section) — one
+  shared config per name, not one per platform, so the constraint list keeps growing in one place
+  as more platforms are generated for real, instead of starting over per platform. A target
+  platform's own identity is supplied as plain runtime data (the target platform's documentation,
+  passed in as `platform_docs` and resolved into the prompt as `psm_docs`), never as a separately
+  saved config, so onboarding a new platform never requires creating a new file here.
+- `default.json` — the live, currently-in-effect config, only created once someone actually saves
+  an edit through `PUT /prompt-config/{name}` (a `revert`/`restore` is also a save, so it exists
+  after either of those too). `GET /prompt-config/{name}` falls back to the shipped default when
+  this doesn't exist yet.
+- `history/default.{version}.json` — an immutable snapshot of every version that's ever been live,
+  one per save, `{version}` a sortable UTC timestamp plus a random suffix.
 
 `ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write
 (`./psm_agent/prompts:/app/psm_agent/prompts`), so a save through the running dev container lands
 on the real host git checkout, and `history/` is git-visible too.
 
-**Which preset applies**: `generate()`/`compare()` resolve a preset from the real, free-text
-`platform_description` they're called with via `presets.resolve_preset`, matching against each
-preset's own `platform_hints` metadata (`PromptConfigBody.platform_hints`), never the preset's
-storage id — a preset's identity is platform-agnostic, its hints are what name the platform(s) it
-applies to. No hints matching falls back to `"default"`.
-
 **Promoting a run's own live corrections into the permanent config**: `POST
-/prompt-config/{name}/{preset}/learned-constraints` (and its `DELETE` counterpart) persist a
-change to `learned_constraints`, applied to every future run of that `(name, preset)` from then on.
-This is always a single, explicit, human-confirmed action (`integration_runner`'s own `POST
+/prompt-config/{name}/learned-constraints` (and its `DELETE` counterpart) persist a change to
+`learned_constraints`, applied to every future run of that `name` from then on. This is always a
+single, explicit, human-confirmed action (`integration_runner`'s own `POST
 /psm/promote-constraints`, gated on a real validated success — see `integration_runner/README.md`),
 never automatic capture of a typed correction.
 
-Every other prompt-config endpoint (`presets`, `history`, `diff`, `restore/{version}`, `revert`,
+Every other prompt-config endpoint (`history`, `diff`, `restore/{version}`, `revert`,
 `promote-to-default`, `check-references`, `preview`) is a thin, one-line call into the matching
 `generation_toolkit.prompt_config` function — see that package's own README for what each one does.
 

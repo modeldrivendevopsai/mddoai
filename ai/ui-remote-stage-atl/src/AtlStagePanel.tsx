@@ -19,7 +19,6 @@ const GENERATION_MANIFEST: PromptBuilderManifest = {
     { key: "pim_ecore", label: "PIM metamodel" },
     { key: "psm_ecore", label: "Target platform PSM metamodel" },
   ],
-  supportsPresets: true,
 }
 
 // ATL's own stage panel — approve/retry when ATL is the live pending stage
@@ -46,7 +45,6 @@ export function AtlStagePanel({
   stageDetail = null,
   onLoadPromptConfig,
   onSavePromptConfig,
-  onListPresets,
   onPreviewPromptConfig,
   onListAvailableFiles,
   onUploadAttachmentFile,
@@ -96,20 +94,19 @@ export function AtlStagePanel({
         manifest={GENERATION_MANIFEST}
         readOnly={readOnly}
         callbacks={{
-          onLoad: (preset) => onLoadPromptConfig(GENERATION_MANIFEST.name, preset),
-          onSave: (preset, config) => onSavePromptConfig(GENERATION_MANIFEST.name, preset, config as PromptConfig),
-          onListPresets: onListPresets ? () => onListPresets(GENERATION_MANIFEST.name) : undefined,
-          onPreview: (preset) => onPreviewPromptConfig(GENERATION_MANIFEST.name, preset),
+          onLoad: () => onLoadPromptConfig(GENERATION_MANIFEST.name),
+          onSave: (config) => onSavePromptConfig(GENERATION_MANIFEST.name, config as PromptConfig),
+          onPreview: () => onPreviewPromptConfig(GENERATION_MANIFEST.name),
           onListAvailableFiles,
           onUploadFile: onUploadAttachmentFile,
-          onLoadHistory: (preset) => onLoadPromptHistory(GENERATION_MANIFEST.name, preset),
-          onDiffVersions: (preset, a, b) => onDiffPromptVersions(GENERATION_MANIFEST.name, preset, a, b),
-          onRestoreVersion: (preset, version) => onRestorePromptVersion(GENERATION_MANIFEST.name, preset, version),
-          onRevertToDefault: (preset) => onRevertPromptConfig(GENERATION_MANIFEST.name, preset),
-          onPromoteToDefault: (preset) => onPromoteConfigToDefault(GENERATION_MANIFEST.name, preset),
-          onCheckReferences: (preset) => onCheckPromptReferences(GENERATION_MANIFEST.name, preset),
-          onAddLearnedConstraints: (preset, constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, preset, constraints),
-          onRemoveLearnedConstraint: (preset, constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, preset, constraint),
+          onLoadHistory: () => onLoadPromptHistory(GENERATION_MANIFEST.name),
+          onDiffVersions: (a, b) => onDiffPromptVersions(GENERATION_MANIFEST.name, a, b),
+          onRestoreVersion: (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, version),
+          onRevertToDefault: () => onRevertPromptConfig(GENERATION_MANIFEST.name),
+          onPromoteToDefault: () => onPromoteConfigToDefault(GENERATION_MANIFEST.name),
+          onCheckReferences: () => onCheckPromptReferences(GENERATION_MANIFEST.name),
+          onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
+          onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),
         }}
       />
     )
@@ -122,7 +119,7 @@ export function AtlStagePanel({
       onLoadAttempt={onLoadAttempt}
       onRestoreConfigFromAttempt={
         onRestorePromptVersion
-          ? (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, "default", version).then(() => undefined)
+          ? (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, version).then(() => undefined)
           : undefined
       }
     />

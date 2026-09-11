@@ -21,7 +21,6 @@ ACCELEO_CONFIG_TIMEOUT = float(os.environ.get("ACCELEO_CONFIG_TIMEOUT", "10.0"))
 def run_acceleo(
     psm_artifact: str,
     platform_docs: str,
-    platform_description: str = "",
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
@@ -30,8 +29,8 @@ def run_acceleo(
     mock: bool = False,
 ) -> dict:
     """POST acceleo_agent's real /generate: returns {"artifact", "prompt",
-    "validation", "rounds", "preset", "prompt_version"}. stage/attempt name
-    the calling stage ("acceleo") and its own reserved attempt directory -
+    "validation", "rounds", "prompt_version"}. stage/attempt name the
+    calling stage ("acceleo") and its own reserved attempt directory -
     forwarded all the way through to generation.py's own real
     validator-agent call, so a call's real compiled .emtl module nests
     inside that same attempt directory instead of landing as an unlinked
@@ -44,7 +43,6 @@ def run_acceleo(
         json={
             "psm_artifact": psm_artifact,
             "platform_docs": platform_docs,
-            "platform_description": platform_description,
             "constraints": constraints,
             "model": model,
             "run_id": run_id,
@@ -64,58 +62,48 @@ def _config_request(method: str, path: str, **kwargs) -> dict:
     return response.json()
 
 
-def list_presets(name: str) -> list[dict]:
-    return _config_request("GET", f"/prompt-config/{name}/presets")["presets"]
+def get_prompt_config(name: str) -> dict:
+    return _config_request("GET", f"/prompt-config/{name}")
 
 
-def get_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}")
+def save_prompt_config(name: str, config: dict) -> dict:
+    return _config_request("PUT", f"/prompt-config/{name}", json=config)
 
 
-def save_prompt_config(name: str, preset: str, config: dict) -> dict:
-    return _config_request("PUT", f"/prompt-config/{name}/{preset}", json=config)
+def get_prompt_config_history(name: str) -> list[str]:
+    return _config_request("GET", f"/prompt-config/{name}/history")["versions"]
 
 
-def get_prompt_config_history(name: str, preset: str) -> list[str]:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}/history")["versions"]
+def diff_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _config_request("GET", f"/prompt-config/{name}/diff", params={"a": version_a, "b": version_b})
 
 
-def diff_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
-    return _config_request(
-        "GET", f"/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
-    )
+def restore_prompt_config_version(name: str, version: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/restore/{version}")
 
 
-def restore_prompt_config_version(name: str, preset: str, version: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/restore/{version}")
+def revert_prompt_config(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/revert")
 
 
-def revert_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/revert")
+def promote_prompt_config_to_default(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/promote-to-default")
 
 
-def promote_prompt_config_to_default(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/promote-to-default")
+def check_prompt_config_references(name: str) -> list[dict]:
+    return _config_request("GET", f"/prompt-config/{name}/check-references")["broken"]
 
 
-def check_prompt_config_references(name: str, preset: str) -> list[dict]:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}/check-references")["broken"]
+def preview_prompt_config(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/preview")
 
 
-def preview_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/preview")
+def add_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/learned-constraints", json={"constraints": constraints})
 
 
-def add_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
-    return _config_request(
-        "POST", f"/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
-    )
-
-
-def remove_learned_constraint(name: str, preset: str, constraint: str) -> dict:
-    return _config_request(
-        "DELETE", f"/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
-    )
+def remove_learned_constraint(name: str, constraint: str) -> dict:
+    return _config_request("DELETE", f"/prompt-config/{name}/learned-constraints", json={"constraint": constraint})
 
 
 def list_available_files() -> list[str]:

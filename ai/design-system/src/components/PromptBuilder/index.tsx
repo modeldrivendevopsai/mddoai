@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Button } from "../Button"
 import { JsonView } from "./JsonView"
-import { PresetPicker } from "./PresetPicker"
 import { PreviewPane } from "./PreviewPane"
 import { PromptDocument } from "./PromptDocument"
 import { VersionHistory } from "./VersionHistory"
@@ -11,7 +10,6 @@ export type {
   Attachment,
   AttachmentType,
   BrokenReference,
-  PresetInfo,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
   PromptBuilderProps,
@@ -27,7 +25,6 @@ export type {
 // like the backend's generation_toolkit.prompt_config package is the same
 // functions with a different config_dir/context_values per caller.
 export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptBuilderProps) {
-  const [preset, setPreset] = useState("default")
   const [config, setConfig] = useState<PromptConfig | null>(null)
   const [availableFiles, setAvailableFiles] = useState<string[] | undefined>(undefined)
   const [broken, setBroken] = useState<BrokenReference[]>([])
@@ -35,10 +32,9 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   // Cached from the last onPreview() call (see loadAttachmentPreview
-  // below), keyed by attachment id - reused across every chip's own
-  // "Show real content" click within one preset, rather than re-resolving
-  // the whole config on every single click. Cleared when the preset
-  // changes (the effect below), same as every other preset-scoped state.
+  // below), keyed by attachment id - reused across every chip's own "Show
+  // real content" click, rather than re-resolving the whole config on
+  // every single click.
   const [previewAttachments, setPreviewAttachments] = useState<Record<string, string> | null>(null)
 
   useEffect(() => {
@@ -46,7 +42,7 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
     setLoadError(null)
     setPreviewAttachments(null)
     callbacks
-      .onLoad(preset)
+      .onLoad()
       .then((loaded) => {
         if (!cancelled) setConfig(loaded)
       })
@@ -54,7 +50,7 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
         if (!cancelled) setLoadError(e instanceof Error ? e.message : "Could not load prompt.")
       })
     callbacks
-      .onCheckReferences(preset)
+      .onCheckReferences()
       .then((result) => {
         if (!cancelled) setBroken(result)
       })
@@ -63,7 +59,7 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset])
+  }, [])
 
   useEffect(() => {
     if (!callbacks.onListAvailableFiles) return
@@ -86,15 +82,15 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
     setSaving(true)
     setSaveError(null)
     try {
-      const saved = await callbacks.onSave(preset, config)
+      const saved = await callbacks.onSave(config)
       setConfig(saved)
-      setBroken(await callbacks.onCheckReferences(preset))
+      setBroken(await callbacks.onCheckReferences())
       // A save is the only thing that can change what a real call would
       // resolve (an in-memory, unsaved edit never does, see
       // loadAttachmentPreview's own comment) - without this, a chip
       // previewed once before a save would keep showing its pre-save
       // content forever, since the cache below is otherwise only cleared
-      // on a preset switch.
+      // by a fresh save.
       setPreviewAttachments(null)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed.")
@@ -103,9 +99,9 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
     }
   }
 
-  const revert = async () => setConfig(await callbacks.onRevertToDefault(preset))
+  const revert = async () => setConfig(await callbacks.onRevertToDefault())
   const promoteToDefault = async () => {
-    await callbacks.onPromoteToDefault(preset)
+    await callbacks.onPromoteToDefault()
   }
 
   // Only merges learned_constraints (+ the new _version that save stamped)
@@ -117,18 +113,18 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
   // before ever clicking Save.
   const mergeLearnedConstraints = (updated: PromptConfig) =>
     setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints, _version: updated._version })
-  const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints(preset, [constraint]))
-  const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(preset, constraint))
+  const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints([constraint]))
+  const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(constraint))
 
   // Backed by the same preview endpoint PreviewPane already calls - the
   // first chip expanded in a sitting fetches every attachment's real
-  // content in one call, every later chip in this same preset just reads
-  // the cache. May go stale for one save cycle (the same real limitation
-  // PreviewPane's own "Preview exact prompt text" button already has) -
-  // acceptable since this is a preview, not the source of truth being saved.
+  // content in one call, every later chip just reads the cache. May go
+  // stale for one save cycle (the same real limitation PreviewPane's own
+  // "Preview exact prompt text" button already has) - acceptable since
+  // this is a preview, not the source of truth being saved.
   const loadAttachmentPreview = async (id: string): Promise<string | undefined> => {
     if (previewAttachments) return previewAttachments[id]
-    const preview = await callbacks.onPreview(preset)
+    const preview = await callbacks.onPreview()
     setPreviewAttachments(preview.attachments)
     return preview.attachments[id]
   }
@@ -147,10 +143,6 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
         {manifest.label}
       </h3>
 
-      {manifest.supportsPresets && callbacks.onListPresets && (
-        <PresetPicker activePreset={preset} onListPresets={callbacks.onListPresets} onChange={setPreset} />
-      )}
-
       <PromptDocument
         attachments={config.attachments}
         attachmentTypes={manifest.attachmentTypes}
@@ -167,12 +159,12 @@ export function PromptBuilder({ manifest, callbacks, readOnly = false }: PromptB
         onReorderConstraints={(learned_constraints) => setConfig({ ...config, learned_constraints })}
       />
 
-      <PreviewPane onPreview={() => callbacks.onPreview(preset)} />
+      <PreviewPane onPreview={() => callbacks.onPreview()} />
       <JsonView config={config} />
       <VersionHistory
-        onLoadHistory={() => callbacks.onLoadHistory(preset)}
-        onDiffVersions={(versionA, versionB) => callbacks.onDiffVersions(preset, versionA, versionB)}
-        onRestoreVersion={(version) => callbacks.onRestoreVersion(preset, version)}
+        onLoadHistory={() => callbacks.onLoadHistory()}
+        onDiffVersions={(versionA, versionB) => callbacks.onDiffVersions(versionA, versionB)}
+        onRestoreVersion={(version) => callbacks.onRestoreVersion(version)}
         onRestored={setConfig}
         readOnly={readOnly}
       />

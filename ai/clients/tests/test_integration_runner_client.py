@@ -35,20 +35,13 @@ def test_get_attempt_hits_the_real_endpoint():
     assert result == attempt
 
 
-def test_list_psm_presets():
-    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"presets": [{"id": "default"}]})):
-        result = integration_runner_client.list_psm_presets("generation")
-
-    assert result == [{"id": "default"}]
-
-
 def test_get_psm_prompt_config_hits_the_real_endpoint():
     config = {"system_prompt": "x", "attachments": []}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
-        result = integration_runner_client.get_psm_prompt_config("generation", "default")
+        result = integration_runner_client.get_psm_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default",
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation",
         timeout=10.0,
     )
     assert result == config
@@ -57,10 +50,10 @@ def test_get_psm_prompt_config_hits_the_real_endpoint():
 def test_save_psm_prompt_config_puts_the_real_body():
     config = {"system_prompt": "x", "attachments": []}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({**config, "_version": "v1"})) as mock_request:
-        result = integration_runner_client.save_psm_prompt_config("generation", "default", config)
+        result = integration_runner_client.save_psm_prompt_config("generation", config)
 
     mock_request.assert_called_once_with(
-        "PUT", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default",
+        "PUT", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation",
         timeout=10.0, json=config,
     )
     assert result["_version"] == "v1"
@@ -68,24 +61,24 @@ def test_save_psm_prompt_config_puts_the_real_body():
 
 def test_get_psm_prompt_config_history():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"versions": ["v1", "v2"]})):
-        result = integration_runner_client.get_psm_prompt_config_history("generation", "default")
+        result = integration_runner_client.get_psm_prompt_config_history("generation")
 
     assert result == ["v1", "v2"]
 
 
 def test_diff_psm_prompt_config_versions_sends_query_params():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt_changed": False})) as mock_request:
-        integration_runner_client.diff_psm_prompt_config_versions("generation", "default", "v1", "v2")
+        integration_runner_client.diff_psm_prompt_config_versions("generation", "v1", "v2")
 
     assert mock_request.call_args.kwargs["params"] == {"a": "v1", "b": "v2"}
 
 
 def test_restore_psm_prompt_config_version():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "restored"})) as mock_request:
-        result = integration_runner_client.restore_psm_prompt_config_version("generation", "default", "v1")
+        result = integration_runner_client.restore_psm_prompt_config_version("generation", "v1")
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/restore/v1",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/restore/v1",
         timeout=10.0,
     )
     assert result["system_prompt"] == "restored"
@@ -93,37 +86,37 @@ def test_restore_psm_prompt_config_version():
 
 def test_revert_psm_prompt_config():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "shipped"})) as mock_request:
-        integration_runner_client.revert_psm_prompt_config("generation", "default")
+        integration_runner_client.revert_psm_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/revert",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/revert",
         timeout=10.0,
     )
 
 
 def test_promote_psm_prompt_config_to_default():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x"})) as mock_request:
-        integration_runner_client.promote_psm_prompt_config_to_default("generation", "default")
+        integration_runner_client.promote_psm_prompt_config_to_default("generation")
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/promote-to-default",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/promote-to-default",
         timeout=10.0,
     )
 
 
 def test_check_psm_prompt_config_references():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"broken": [{"id": "a"}]})):
-        result = integration_runner_client.check_psm_prompt_config_references("generation", "default")
+        result = integration_runner_client.check_psm_prompt_config_references("generation")
 
     assert result == [{"id": "a"}]
 
 
 def test_preview_psm_prompt_config():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x", "user_content": "y"})) as mock_request:
-        result = integration_runner_client.preview_psm_prompt_config("generation", "default")
+        result = integration_runner_client.preview_psm_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/preview",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/preview",
         timeout=10.0,
     )
     assert result == {"system_prompt": "x", "user_content": "y"}
@@ -131,10 +124,10 @@ def test_preview_psm_prompt_config():
 
 def test_add_psm_learned_constraints_posts_the_real_body():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": ["x"]})) as mock_request:
-        result = integration_runner_client.add_psm_learned_constraints("generation", "default", ["x"])
+        result = integration_runner_client.add_psm_learned_constraints("generation", ["x"])
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/learned-constraints",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/learned-constraints",
         timeout=10.0, json={"constraints": ["x"]},
     )
     assert result == {"learned_constraints": ["x"]}
@@ -142,10 +135,10 @@ def test_add_psm_learned_constraints_posts_the_real_body():
 
 def test_remove_psm_learned_constraint_deletes_with_the_real_body():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": []})) as mock_request:
-        result = integration_runner_client.remove_psm_learned_constraint("generation", "default", "x")
+        result = integration_runner_client.remove_psm_learned_constraint("generation", "x")
 
     mock_request.assert_called_once_with(
-        "DELETE", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/default/learned-constraints",
+        "DELETE", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/learned-constraints",
         timeout=10.0, json={"constraint": "x"},
     )
     assert result == {"learned_constraints": []}
@@ -195,24 +188,13 @@ def test_upload_psm_attachment_file_posts_the_real_multipart_body():
 # above, each hitting its own /atl or /acceleo prefix instead.
 
 
-def test_list_atl_presets_hits_the_real_endpoint():
-    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"presets": [{"id": "default"}]})) as mock_request:
-        result = integration_runner_client.list_atl_presets("generation")
-
-    mock_request.assert_called_once_with(
-        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/prompt-config/generation/presets",
-        timeout=10.0,
-    )
-    assert result == [{"id": "default"}]
-
-
 def test_get_atl_prompt_config_hits_the_real_endpoint():
     config = {"attachments": []}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
-        result = integration_runner_client.get_atl_prompt_config("generation", "default")
+        result = integration_runner_client.get_atl_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/prompt-config/generation/default",
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/atl/prompt-config/generation",
         timeout=10.0,
     )
     assert result == config
@@ -240,24 +222,13 @@ def test_promote_atl_constraints_hits_the_real_endpoint():
     assert result == {"learned_constraints": ["x"]}
 
 
-def test_list_acceleo_presets_hits_the_real_endpoint():
-    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"presets": [{"id": "default"}]})) as mock_request:
-        result = integration_runner_client.list_acceleo_presets("generation")
-
-    mock_request.assert_called_once_with(
-        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/prompt-config/generation/presets",
-        timeout=10.0,
-    )
-    assert result == [{"id": "default"}]
-
-
 def test_get_acceleo_prompt_config_hits_the_real_endpoint():
     config = {"attachments": []}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(config)) as mock_request:
-        result = integration_runner_client.get_acceleo_prompt_config("generation", "default")
+        result = integration_runner_client.get_acceleo_prompt_config("generation")
 
     mock_request.assert_called_once_with(
-        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/prompt-config/generation/default",
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/acceleo/prompt-config/generation",
         timeout=10.0,
     )
     assert result == config

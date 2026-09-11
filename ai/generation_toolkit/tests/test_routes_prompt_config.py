@@ -34,7 +34,7 @@ def test_get_config_returns_the_shipped_default(tmp_path):
     _seed_default(tmp_path, system_prompt="hello")
     router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
 
-    result = router.get_config_endpoint("generation", "default")
+    result = router.get_config_endpoint("generation")
 
     assert result["attachments"][0]["content"] == "hello"
 
@@ -46,7 +46,7 @@ def test_unknown_name_404s_before_touching_storage(tmp_path):
     router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), reject_everything)
 
     with pytest.raises(HTTPException) as exc_info:
-        router.get_config_endpoint("not-a-real-name", "default")
+        router.get_config_endpoint("not-a-real-name")
 
     assert exc_info.value.status_code == 404
 
@@ -65,11 +65,11 @@ def test_config_dir_is_read_fresh_on_every_call_not_captured_once(tmp_path):
     current_dir = {"path": first_dir}
     router = PromptConfigRouter(lambda: current_dir["path"], _fixed(tmp_path), _always_known)
 
-    assert router.get_config_endpoint("generation", "default")["attachments"][0]["content"] == "from first"
+    assert router.get_config_endpoint("generation")["attachments"][0]["content"] == "from first"
 
     current_dir["path"] = second_dir
 
-    assert router.get_config_endpoint("generation", "default")["attachments"][0]["content"] == "from second"
+    assert router.get_config_endpoint("generation")["attachments"][0]["content"] == "from second"
 
 
 def test_files_root_is_read_fresh_on_every_call_not_captured_once(tmp_path):
@@ -97,23 +97,22 @@ def test_files_root_is_read_fresh_on_every_call_not_captured_once(tmp_path):
     )
 
     with pytest.raises(Exception):
-        router.save_config_endpoint("generation", "default", body)
+        router.save_config_endpoint("generation", body)
 
     current_root["path"] = second_root
 
-    saved = router.save_config_endpoint("generation", "default", body)
+    saved = router.save_config_endpoint("generation", body)
     assert saved["_version"]
 
 
-def test_save_then_list_presets_round_trip(tmp_path):
+def test_save_then_get_config_round_trip(tmp_path):
     _seed_default(tmp_path)
     router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
 
-    saved = router.save_config_endpoint("generation", "default", PromptConfigBody(attachments=[]))
+    saved = router.save_config_endpoint("generation", PromptConfigBody(attachments=[]))
     assert saved["_version"]
 
-    presets = router.list_presets_endpoint("generation")
-    assert any(p["id"] == "default" for p in presets["presets"])
+    assert router.get_config_endpoint("generation")["_version"] == saved["_version"]
 
 
 def test_add_learned_constraints_persists_them(tmp_path):
@@ -121,7 +120,7 @@ def test_add_learned_constraints_persists_them(tmp_path):
     router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
 
     result = router.add_learned_constraints_endpoint(
-        "generation", "default", LearnedConstraintsBody(constraints=["Fix: use camelCase"])
+        "generation", LearnedConstraintsBody(constraints=["Fix: use camelCase"])
     )
 
     assert result["learned_constraints"] == ["Fix: use camelCase"]

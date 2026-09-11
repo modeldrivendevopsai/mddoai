@@ -14,99 +14,91 @@ from clients import integration_runner_client
 client = TestClient(main.app)
 
 
-def test_list_presets_endpoint_proxies_the_real_client():
-    with patch.object(integration_runner_client, "list_psm_presets", return_value=[{"id": "default"}]) as mock_list:
-        response = client.get("/psm/prompt-config/generation/presets")
-
-    mock_list.assert_called_once_with("generation")
-    assert response.json() == {"presets": [{"id": "default"}]}
-
-
 def test_get_prompt_config_endpoint_proxies_the_real_client():
     config = {"system_prompt": "x", "attachments": []}
     with patch.object(integration_runner_client, "get_psm_prompt_config", return_value=config) as mock_get:
-        response = client.get("/psm/prompt-config/generation/default")
+        response = client.get("/psm/prompt-config/generation")
 
-    mock_get.assert_called_once_with("generation", "default")
+    mock_get.assert_called_once_with("generation")
     assert response.json() == config
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
-    body = {"attachments": [], "learned_constraints": [], "label": None, "platform_hints": []}
+    body = {"attachments": [], "learned_constraints": []}
     with patch.object(integration_runner_client, "save_psm_prompt_config", return_value={**body, "_version": "v1"}) as mock_save:
-        response = client.put("/psm/prompt-config/generation/default", json=body)
+        response = client.put("/psm/prompt-config/generation", json=body)
 
-    mock_save.assert_called_once_with("generation", "default", body)
+    mock_save.assert_called_once_with("generation", body)
     assert response.json()["_version"] == "v1"
 
 
 def test_prompt_config_history_endpoint():
     with patch.object(integration_runner_client, "get_psm_prompt_config_history", return_value=["v1", "v2"]):
-        response = client.get("/psm/prompt-config/generation/default/history")
+        response = client.get("/psm/prompt-config/generation/history")
 
     assert response.json() == {"versions": ["v1", "v2"]}
 
 
 def test_prompt_config_diff_endpoint_forwards_query_params():
     with patch.object(integration_runner_client, "diff_psm_prompt_config_versions", return_value={"system_prompt_changed": False}) as mock_diff:
-        response = client.get("/psm/prompt-config/generation/default/diff", params={"a": "v1", "b": "v2"})
+        response = client.get("/psm/prompt-config/generation/diff", params={"a": "v1", "b": "v2"})
 
-    mock_diff.assert_called_once_with("generation", "default", "v1", "v2")
+    mock_diff.assert_called_once_with("generation", "v1", "v2")
     assert response.json() == {"system_prompt_changed": False}
 
 
 def test_restore_prompt_config_endpoint():
     with patch.object(integration_runner_client, "restore_psm_prompt_config_version", return_value={"system_prompt": "restored"}) as mock_restore:
-        response = client.post("/psm/prompt-config/generation/default/restore/v1")
+        response = client.post("/psm/prompt-config/generation/restore/v1")
 
-    mock_restore.assert_called_once_with("generation", "default", "v1")
+    mock_restore.assert_called_once_with("generation", "v1")
     assert response.json()["system_prompt"] == "restored"
 
 
 def test_revert_prompt_config_endpoint():
     with patch.object(integration_runner_client, "revert_psm_prompt_config", return_value={"system_prompt": "shipped"}) as mock_revert:
-        client.post("/psm/prompt-config/generation/default/revert")
+        client.post("/psm/prompt-config/generation/revert")
 
-    mock_revert.assert_called_once_with("generation", "default")
+    mock_revert.assert_called_once_with("generation")
 
 
 def test_promote_prompt_config_to_default_endpoint():
     with patch.object(integration_runner_client, "promote_psm_prompt_config_to_default", return_value={"system_prompt": "x"}) as mock_promote:
-        client.post("/psm/prompt-config/generation/default/promote-to-default")
+        client.post("/psm/prompt-config/generation/promote-to-default")
 
-    mock_promote.assert_called_once_with("generation", "default")
+    mock_promote.assert_called_once_with("generation")
 
 
 def test_check_references_endpoint():
     with patch.object(integration_runner_client, "check_psm_prompt_config_references", return_value=[{"id": "a"}]):
-        response = client.get("/psm/prompt-config/generation/default/check-references")
+        response = client.get("/psm/prompt-config/generation/check-references")
 
     assert response.json() == {"broken": [{"id": "a"}]}
 
 
 def test_preview_endpoint():
     with patch.object(integration_runner_client, "preview_psm_prompt_config", return_value={"system_prompt": "x", "user_content": "y"}) as mock_preview:
-        response = client.post("/psm/prompt-config/generation/default/preview")
+        response = client.post("/psm/prompt-config/generation/preview")
 
-    mock_preview.assert_called_once_with("generation", "default")
+    mock_preview.assert_called_once_with("generation")
     assert response.json() == {"system_prompt": "x", "user_content": "y"}
 
 
 def test_add_learned_constraints_endpoint_forwards_the_real_body():
     with patch.object(integration_runner_client, "add_psm_learned_constraints", return_value={"learned_constraints": ["x"]}) as mock_add:
-        response = client.post("/psm/prompt-config/generation/default/learned-constraints", json={"constraints": ["x"]})
+        response = client.post("/psm/prompt-config/generation/learned-constraints", json={"constraints": ["x"]})
 
-    mock_add.assert_called_once_with("generation", "default", ["x"])
+    mock_add.assert_called_once_with("generation", ["x"])
     assert response.json() == {"learned_constraints": ["x"]}
 
 
 def test_remove_learned_constraint_endpoint_forwards_the_real_body():
     with patch.object(integration_runner_client, "remove_psm_learned_constraint", return_value={"learned_constraints": []}) as mock_remove:
         response = client.request(
-            "DELETE", "/psm/prompt-config/generation/default/learned-constraints", json={"constraint": "x"}
+            "DELETE", "/psm/prompt-config/generation/learned-constraints", json={"constraint": "x"}
         )
 
-    mock_remove.assert_called_once_with("generation", "default", "x")
+    mock_remove.assert_called_once_with("generation", "x")
     assert response.json() == {"learned_constraints": []}
 
 

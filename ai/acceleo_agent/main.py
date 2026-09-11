@@ -25,7 +25,7 @@ app.include_router(uploads.router)
 
 @app.exception_handler(PathSegmentError)
 def _path_segment_error_handler(request: Request, exc: PathSegmentError) -> JSONResponse:
-    # A real, user-suppliable name/preset/version route parameter failed
+    # A real, user-suppliable name/version route parameter failed
     # generation_toolkit.prompt_config's own path-safety validation - a
     # real 400 (bad request), not an unhandled 500, registered once here
     # rather than a try/except repeated in every prompt_config.py handler.
@@ -35,7 +35,6 @@ def _path_segment_error_handler(request: Request, exc: PathSegmentError) -> JSON
 class GenerateRequest(BaseModel):
     psm_artifact: str
     platform_docs: str
-    platform_description: str = ""
     constraints: list[str] | None = None
     model: str | None = None
     run_id: str | None = None
@@ -64,7 +63,6 @@ def generate_endpoint(request: GenerateRequest):
     return generation.generate(
         request.psm_artifact,
         request.platform_docs,
-        platform_description=request.platform_description,
         constraints=request.constraints,
         model=request.model,
         run_id=request.run_id,

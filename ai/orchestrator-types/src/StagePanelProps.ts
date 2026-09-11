@@ -3,7 +3,6 @@ import type {
   BrokenReference,
   ManifestEntry,
   OrchestratorEvent,
-  PresetMetadata,
   PromptConfig,
   PromptDiff,
   PromptPreview,
@@ -44,10 +43,9 @@ export interface StagePanelProps {
   // simply never calls these. psm, atl, and acceleo all reuse this same
   // set, each with its own manifest and its own backend prompt module
   // behind it, rather than each stage threading its own separate contract.
-  onLoadPromptConfig?: (name: string, preset: string) => Promise<PromptConfig>
-  onSavePromptConfig?: (name: string, preset: string, config: PromptConfig) => Promise<PromptConfig>
-  onListPresets?: (name: string) => Promise<PresetMetadata[]>
-  onPreviewPromptConfig?: (name: string, preset: string) => Promise<PromptPreview>
+  onLoadPromptConfig?: (name: string) => Promise<PromptConfig>
+  onSavePromptConfig?: (name: string, config: PromptConfig) => Promise<PromptConfig>
+  onPreviewPromptConfig?: (name: string) => Promise<PromptPreview>
   onListAvailableFiles?: () => Promise<string[]>
   // Real backend upload (routes/uploads.py) - a dropped OS file is saved
   // for real and becomes a real "file" attachment referencing it, not a
@@ -57,17 +55,17 @@ export interface StagePanelProps {
   // mode) for a given platform description, exposed read-only so a panel
   // can show which one a real run would actually take before it happens.
   onResolvePsmMode?: (platformDescription: string) => Promise<{ mode: string; metamodel_path: string | null }>
-  onLoadPromptHistory?: (name: string, preset: string) => Promise<string[]>
-  onDiffPromptVersions?: (name: string, preset: string, versionA: string, versionB: string) => Promise<PromptDiff>
-  onRestorePromptVersion?: (name: string, preset: string, version: string) => Promise<PromptConfig>
-  onRevertPromptConfig?: (name: string, preset: string) => Promise<PromptConfig>
-  onPromoteConfigToDefault?: (name: string, preset: string) => Promise<PromptConfig>
-  onCheckPromptReferences?: (name: string, preset: string) => Promise<BrokenReference[]>
-  onAddLearnedConstraints?: (name: string, preset: string, constraints: string[]) => Promise<PromptConfig>
-  onRemoveLearnedConstraint?: (name: string, preset: string, constraint: string) => Promise<PromptConfig>
+  onLoadPromptHistory?: (name: string) => Promise<string[]>
+  onDiffPromptVersions?: (name: string, versionA: string, versionB: string) => Promise<PromptDiff>
+  onRestorePromptVersion?: (name: string, version: string) => Promise<PromptConfig>
+  onRevertPromptConfig?: (name: string) => Promise<PromptConfig>
+  onPromoteConfigToDefault?: (name: string) => Promise<PromptConfig>
+  onCheckPromptReferences?: (name: string) => Promise<BrokenReference[]>
+  onAddLearnedConstraints?: (name: string, constraints: string[]) => Promise<PromptConfig>
+  onRemoveLearnedConstraint?: (name: string, constraint: string) => Promise<PromptConfig>
   // Run-aware (see stages/psm/actions.py's own promote_constraints): no
-  // name/preset here, the backend infers both from the current run's own
-  // latest, real, successfully-validated result.
+  // name here, the backend infers it from the current run's own latest,
+  // real, successfully-validated result.
   onPromoteConstraints?: (constraints: string[]) => Promise<PromptConfig>
 
   // --- Attempts browser (design-system's AttemptsBrowser) --------------

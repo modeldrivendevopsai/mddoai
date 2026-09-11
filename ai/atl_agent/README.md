@@ -38,7 +38,6 @@ why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, do
 {
   "pim_artifact": "<?xml version=\"1.0\"?><ecore:EPackage ...>",
   "psm_artifact": "<?xml version=\"1.0\"?><ecore:EPackage ...>",
-  "platform_description": "TeamCity",
   "constraints": [],
   "model": null,
   "run_id": "run-123",
@@ -56,7 +55,6 @@ why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, do
     "generated_source_path": "/runs/run-123/atl/attempt_1/atl-validate-abc123"
   },
   "rounds": 2,
-  "preset": "default",
   "prompt_version": null
 }
 ```
@@ -89,29 +87,25 @@ source):
 
 - `default.default.json` — the immutable, git-committed shipped default, seeded from the real
   experiment's own final, most-refined accumulated `learned_constraints` (see
-  `generation_toolkit/README.md`'s own `learned_constraints` section).
+  `generation_toolkit/README.md`'s own `learned_constraints` section). One shared config, not one
+  per platform: the real, validated experiments always generated a fresh ATL transformation from
+  the current run's own PIM/PSM artifacts regardless of target platform, so there's no per-platform
+  guidance to separate out.
 - `default.json` — the live, currently-in-effect config, only created once someone actually saves
-  an edit through `PUT /prompt-config/generation/default` (a `revert`/`restore` is also a save).
-  `GET /prompt-config/generation/default` falls back to the shipped default when this doesn't
-  exist yet.
+  an edit through `PUT /prompt-config/generation` (a `revert`/`restore` is also a save).
+  `GET /prompt-config/generation` falls back to the shipped default when this doesn't exist yet.
 - `history/default.{version}.json` — an immutable snapshot of every version that's ever been live.
 
 `ai/docker-compose.yml`'s `atl-agent` service bind-mounts `prompts/` read-write, so a save through
 the running dev container lands on the real host git checkout, and `history/` is git-visible too.
 
-Presets are supported for parity with `psm_agent` (resolved from the real, free-text
-`platform_description` via `presets.resolve_preset`, matching each preset's own `platform_hints`),
-even though only `"default"` has real content today — a future platform needing its own
-ATL-generation guidance can get one with no code change.
-
 **Promoting a run's own live corrections into the permanent config**: `POST
-/prompt-config/generation/{preset}/learned-constraints` (and its `DELETE` counterpart) persist a
-change to `learned_constraints`, applied to every future run of that preset from then on. Always a
-single, explicit, human-confirmed action (`integration_runner`'s own `POST
-/atl/promote-constraints`, gated on a real validated result), never automatic capture of a typed
-correction.
+/prompt-config/generation/learned-constraints` (and its `DELETE` counterpart) persist a change to
+`learned_constraints`, applied to every future run from then on. Always a single, explicit,
+human-confirmed action (`integration_runner`'s own `POST /atl/promote-constraints`, gated on a
+real validated result), never automatic capture of a typed correction.
 
-Every other prompt-config endpoint (`presets`, `history`, `diff`, `restore/{version}`, `revert`,
+Every other prompt-config endpoint (`history`, `diff`, `restore/{version}`, `revert`,
 `promote-to-default`, `check-references`, `preview`) is a thin, one-line call into the matching
 `generation_toolkit.prompt_config` function.
 

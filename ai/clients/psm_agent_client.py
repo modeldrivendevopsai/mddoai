@@ -65,61 +65,48 @@ def _config_request(method: str, path: str, **kwargs) -> dict:
     return response.json()
 
 
-def list_presets(name: str) -> list[dict]:
-    """Every real preset psm_agent knows about for this mode ("generation"
-    or "comparison"), as {"id", "label", "platform_hints"} metadata - see
-    generation_toolkit.prompt_config.presets.list_preset_metadata."""
-    return _config_request("GET", f"/prompt-config/{name}/presets")["presets"]
+def get_prompt_config(name: str) -> dict:
+    return _config_request("GET", f"/prompt-config/{name}")
 
 
-def get_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}")
+def save_prompt_config(name: str, config: dict) -> dict:
+    return _config_request("PUT", f"/prompt-config/{name}", json=config)
 
 
-def save_prompt_config(name: str, preset: str, config: dict) -> dict:
-    return _config_request("PUT", f"/prompt-config/{name}/{preset}", json=config)
+def get_prompt_config_history(name: str) -> list[str]:
+    return _config_request("GET", f"/prompt-config/{name}/history")["versions"]
 
 
-def get_prompt_config_history(name: str, preset: str) -> list[str]:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}/history")["versions"]
+def diff_prompt_config_versions(name: str, version_a: str, version_b: str) -> dict:
+    return _config_request("GET", f"/prompt-config/{name}/diff", params={"a": version_a, "b": version_b})
 
 
-def diff_prompt_config_versions(name: str, preset: str, version_a: str, version_b: str) -> dict:
-    return _config_request(
-        "GET", f"/prompt-config/{name}/{preset}/diff", params={"a": version_a, "b": version_b}
-    )
+def restore_prompt_config_version(name: str, version: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/restore/{version}")
 
 
-def restore_prompt_config_version(name: str, preset: str, version: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/restore/{version}")
+def revert_prompt_config(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/revert")
 
 
-def revert_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/revert")
+def promote_prompt_config_to_default(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/promote-to-default")
 
 
-def promote_prompt_config_to_default(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/promote-to-default")
+def check_prompt_config_references(name: str) -> list[dict]:
+    return _config_request("GET", f"/prompt-config/{name}/check-references")["broken"]
 
 
-def check_prompt_config_references(name: str, preset: str) -> list[dict]:
-    return _config_request("GET", f"/prompt-config/{name}/{preset}/check-references")["broken"]
+def preview_prompt_config(name: str) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/preview")
 
 
-def preview_prompt_config(name: str, preset: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/{preset}/preview")
+def add_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _config_request("POST", f"/prompt-config/{name}/learned-constraints", json={"constraints": constraints})
 
 
-def add_learned_constraints(name: str, preset: str, constraints: list[str]) -> dict:
-    return _config_request(
-        "POST", f"/prompt-config/{name}/{preset}/learned-constraints", json={"constraints": constraints}
-    )
-
-
-def remove_learned_constraint(name: str, preset: str, constraint: str) -> dict:
-    return _config_request(
-        "DELETE", f"/prompt-config/{name}/{preset}/learned-constraints", json={"constraint": constraint}
-    )
+def remove_learned_constraint(name: str, constraint: str) -> dict:
+    return _config_request("DELETE", f"/prompt-config/{name}/learned-constraints", json={"constraint": constraint})
 
 
 def list_available_files() -> list[str]:

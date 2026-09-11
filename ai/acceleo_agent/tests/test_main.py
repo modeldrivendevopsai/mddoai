@@ -25,7 +25,6 @@ def test_generate_endpoint_forwards_request_fields_to_generate():
         "prompt": {"constraints": ""},
         "validation": {"valid": True, "issues": [], "duration_ms": 1, "generated_source_path": None},
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
     with patch.object(generation, "generate", return_value=fake_result) as mock_generate:
@@ -34,7 +33,6 @@ def test_generate_endpoint_forwards_request_fields_to_generate():
             json={
                 "psm_artifact": "<psm/>",
                 "platform_docs": "docs",
-                "platform_description": "TeamCity",
                 "run_id": "run-1",
                 "stage": "acceleo",
                 "attempt": "attempt_1",
@@ -46,7 +44,6 @@ def test_generate_endpoint_forwards_request_fields_to_generate():
     assert response.json() == fake_result
     mock_generate.assert_called_once_with(
         "<psm/>", "docs",
-        platform_description="TeamCity",
         constraints=None,
         model=None,
         run_id="run-1",

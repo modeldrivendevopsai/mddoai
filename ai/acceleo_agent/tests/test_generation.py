@@ -143,6 +143,5 @@ def test_mock_skips_the_real_llm_call_but_still_validates_and_resolves_config():
     mock_validate.assert_called_once()
     assert result["validation"] == valid_result()
     assert result["rounds"] == 1
-    assert result["preset"] == "default"
     # Real config still resolved: prompt still carries the real master example.
     assert result["prompt"]["acceleo_example"] == Path(REFERENCE_EXAMPLE_PATH).read_text()

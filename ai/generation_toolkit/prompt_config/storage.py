@@ -36,21 +36,16 @@ class PromptConfigValidationError(ValueError):
     for the same check against an already-saved config."""
 
 
-def load_config(config_dir: str | Path, name: str, preset: str = "default") -> dict:
-    """Reads the live config for (name, preset), falling back to that
-    preset's own shipped default, then to the generic default, so an
-    unresolved preset still returns a real, working config rather than
-    raising. Raises FileNotFoundError only if none of the three exist,
+def load_config(config_dir: str | Path, name: str) -> dict:
+    """Reads the live config for name, falling back to its shipped
+    default, so an unsaved name still returns a real, working config
+    rather than raising. Raises FileNotFoundError only if neither exists,
     which should never happen once default.default.json is committed."""
-    for path in (
-        _paths.config_path(config_dir, name, preset),
-        _paths.default_path(config_dir, name, preset),
-        _paths.generic_default_path(config_dir, name),
-    ):
+    for path in (_paths.config_path(config_dir, name), _paths.default_path(config_dir, name)):
         if path.is_file():
             return json.loads(path.read_text(encoding="utf-8"))
     raise FileNotFoundError(
-        f"no config found for {name!r}/{preset!r}, and no default.default.json exists "
+        f"no config found for {name!r}, and no default.default.json exists "
         f"under {_paths.mode_dir(config_dir, name)}"
     )
 
@@ -58,7 +53,6 @@ def load_config(config_dir: str | Path, name: str, preset: str = "default") -> d
 def save_config(
     config_dir: str | Path,
     name: str,
-    preset: str,
     config: dict,
     context_values: dict[str, str],
     files_root: str | Path | list[str | Path],
@@ -89,6 +83,6 @@ def save_config(
     stamped = {**config, "_version": version}
 
     with _write_lock:
-        _paths.atomic_write_json(_paths.config_path(config_dir, name, preset), stamped)
-        _paths.atomic_write_json(_paths.history_path(config_dir, name, preset, version), stamped)
+        _paths.atomic_write_json(_paths.config_path(config_dir, name), stamped)
+        _paths.atomic_write_json(_paths.history_path(config_dir, name, version), stamped)
     return stamped

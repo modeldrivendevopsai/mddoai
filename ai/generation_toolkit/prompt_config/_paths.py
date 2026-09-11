@@ -1,23 +1,23 @@
 """Internal file-layout helpers shared by this package's own modules, not
 part of prompt_config's public, module-qualified surface (storage,
-presets, history, references). The same "leading underscore means
-internal to this codebase, not a second public entry point" convention
+history, references). The same "leading underscore means internal to this
+codebase, not a second public entry point" convention
 integration_runner/stages/_validation.py already uses.
 
 Layout, under a caller-supplied config_dir:
-  config_dir/<name>/<preset>.json                    - the live config
-  config_dir/<name>/<preset>.default.json             - immutable, git-shipped
-                                                         per-preset baseline
-  config_dir/<name>/default.default.json              - generic fallback
-                                                         baseline
-  config_dir/<name>/history/<preset>.<version>.json   - immutable snapshots,
-                                                         one per save
-`<name>` is the stage's own mode ("generation", "comparison", ...);
-`<preset>` is a platform slug ("gitlab", "default", ...).
+  config_dir/<name>/default.json              - the live config
+  config_dir/<name>/default.default.json      - immutable, git-shipped
+                                                 baseline
+  config_dir/<name>/history/default.<version>.json - immutable snapshots,
+                                                 one per save
+`<name>` is the stage's own mode ("generation", "comparison", ...). There
+is exactly one config per name: every real config this project has ever
+shipped or saved has been this one, so the file names keep the "default"
+segment rather than dropping it, matching what's already on disk.
 
-`name`/`preset`/`version` are frequently user-suppliable (a REST route
-parameter, ultimately from a browser). Every one of them is validated via
-attachments.files.validate_path_segment before it reaches a filename, even
+`name`/`version` are frequently user-suppliable (a REST route parameter,
+ultimately from a browser). Both are validated via
+attachments.files.validate_path_segment before they reach a filename, even
 where a caller's own suffix (".json", ".default.json") already happens to
 make a bare ".." harmless today - validating here, at this package's one
 real path-construction choke point, means that stays true regardless of
@@ -36,15 +36,11 @@ def mode_dir(config_dir: str | Path, name: str) -> Path:
     return Path(config_dir) / validate_path_segment(name)
 
 
-def config_path(config_dir: str | Path, name: str, preset: str) -> Path:
-    return mode_dir(config_dir, name) / f"{validate_path_segment(preset)}.json"
+def config_path(config_dir: str | Path, name: str) -> Path:
+    return mode_dir(config_dir, name) / "default.json"
 
 
-def default_path(config_dir: str | Path, name: str, preset: str) -> Path:
-    return mode_dir(config_dir, name) / f"{validate_path_segment(preset)}.default.json"
-
-
-def generic_default_path(config_dir: str | Path, name: str) -> Path:
+def default_path(config_dir: str | Path, name: str) -> Path:
     return mode_dir(config_dir, name) / "default.default.json"
 
 
@@ -52,8 +48,8 @@ def history_dir(config_dir: str | Path, name: str) -> Path:
     return mode_dir(config_dir, name) / "history"
 
 
-def history_path(config_dir: str | Path, name: str, preset: str, version: str) -> Path:
-    return history_dir(config_dir, name) / f"{validate_path_segment(preset)}.{validate_path_segment(version)}.json"
+def history_path(config_dir: str | Path, name: str, version: str) -> Path:
+    return history_dir(config_dir, name) / f"default.{validate_path_segment(version)}.json"
 
 
 def atomic_write_json(path: Path, data: dict) -> None:

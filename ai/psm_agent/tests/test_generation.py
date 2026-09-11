@@ -42,7 +42,7 @@ def test_uses_psm_generation_system_prompt():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        generate("Some new CI platform", "<pim/>", "docs")
+        generate("<pim/>", "docs")
 
     messages = mock_chat.call_args.args[0]
     assert messages[0]["role"] == "system"
@@ -57,7 +57,7 @@ def test_prompt_assembles_docs_and_real_master_example():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        result = generate("Some new CI platform", "<pim-artifact/>", "target docs text")
+        result = generate("<pim-artifact/>", "target docs text")
 
     prompt = result["prompt"]
     assert "pim_ecore" not in prompt
@@ -71,7 +71,7 @@ def test_grounding_is_folded_into_psm_docs():
          patch.object(pim_agent_client, "ground", return_value=[{"category": "metamodel", "title": "Job", "content": "A unit of work."}]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        result = generate("Some new CI platform", "<pim/>", "docs")
+        result = generate("<pim/>", "docs")
 
     assert "Job: A unit of work." in result["prompt"]["psm_docs"]
 
@@ -81,7 +81,7 @@ def test_validation_result_is_the_real_validator_agent_response():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
-        result = generate("Some new CI platform", "<pim/>", "docs", run_id="run-123")
+        result = generate("<pim/>", "docs", run_id="run-123")
 
     mock_validate.assert_called_once_with(
         "<ecore:EPackage/>", mode="codegen", run_id="run-123", stage=None, attempt=None
@@ -98,7 +98,7 @@ def test_forwards_stage_and_attempt_for_compiled_output_nesting():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
-        generate("Some new CI platform", "<pim/>", "docs", run_id="run-123", stage="psm", attempt="attempt_1")
+        generate("<pim/>", "docs", run_id="run-123", stage="psm", attempt="attempt_1")
 
     mock_validate.assert_called_once_with(
         "<ecore:EPackage/>", mode="codegen", run_id="run-123", stage="psm", attempt="attempt_1"
@@ -111,7 +111,7 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore",
                        side_effect=[invalid_result("missing RetryPolicy"), valid_result()]):
-        result = generate("Some new CI platform", "<pim/>", "docs")
+        result = generate("<pim/>", "docs")
 
     assert mock_chat.call_count == 2
     assert result["rounds"] == 2
@@ -123,7 +123,7 @@ def test_prior_constraints_carried_into_first_round():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        generate("Some new CI platform", "<pim/>", "docs", constraints=["Use camelCase names"])
+        generate("<pim/>", "docs", constraints=["Use camelCase names"])
 
     user_content = mock_chat.call_args.args[0][1]["content"]
     assert "Use camelCase names" in user_content
@@ -134,19 +134,18 @@ def test_forwards_model_to_chat():
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        generate("Some new CI platform", "<pim/>", "docs", model="gemini-flash")
+        generate("<pim/>", "docs", model="gemini-flash")
 
     assert mock_chat.call_args.kwargs["model"] == "gemini-flash"
 
 
-def test_uses_the_default_preset_for_an_unknown_platform():
+def test_returns_a_real_prompt_version_or_none():
     with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        result = generate("A brand new platform nobody has a preset for", "<pim/>", "docs")
+        result = generate("<pim/>", "docs")
 
-    assert result["preset"] == "default"
     # Only a live, human-edited save stamps a real "_version" (see
     # generation_toolkit.prompt_config.storage) - the shipped
     # default.default.json alone has none. This repo's own real dev stack
@@ -162,13 +161,13 @@ def test_uses_the_default_preset_for_an_unknown_platform():
 def test_shipped_learned_constraints_are_applied_even_with_no_run_level_constraints():
     # The generic default (ai/psm_agent/prompts/generation/default.default.json)
     # ships with real, already-proven constraints (ported from the real
-    # ai-research experiments) - they should apply to every run of this
-    # preset, not just a run that also supplies its own live corrections.
+    # ai-research experiments) - they should apply to every run, not just a
+    # run that also supplies its own live corrections.
     with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        generate("Some new CI platform", "<pim/>", "docs")
+        generate("<pim/>", "docs")
 
     user_content = mock_chat.call_args.args[0][1]["content"]
     assert "valid Java identifier" in user_content
@@ -183,7 +182,7 @@ def test_mock_skips_the_real_llm_call_and_grounding_but_still_validates():
          patch.object(pim_agent_client, "ground") as mock_ground, \
          patch.object(ai_layer_client, "chat") as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
-        result = generate("Some new CI platform", "<pim-artifact/>", "target docs text", mock=True)
+        result = generate("<pim-artifact/>", "target docs text", mock=True)
 
     mock_concepts.assert_not_called()
     mock_ground.assert_not_called()
@@ -195,7 +194,6 @@ def test_mock_skips_the_real_llm_call_and_grounding_but_still_validates():
     # real learned constraints a non-mock call would resolve.
     assert result["prompt"]["psm_example"] == Path(DEFAULT_PSM_MASTER_EXAMPLE_PATH).read_text()
     assert "valid Java identifier" in result["prompt"]["constraints"]
-    assert result["preset"] == "default"
     assert "ecore:EPackage" in result["artifact"]
 
 
@@ -227,6 +225,6 @@ def test_generate_resolves_a_file_attachment_the_human_uploaded(
          patch.object(pim_agent_client, "ground", return_value=[]), \
          patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        result = generate("Some new CI platform", "<pim-artifact/>", "target docs text")
+        result = generate("<pim-artifact/>", "target docs text")
 
     assert result["prompt"]["custom"] == "Always emit camelCase attribute names."

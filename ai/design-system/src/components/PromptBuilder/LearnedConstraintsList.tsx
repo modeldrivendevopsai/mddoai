@@ -20,7 +20,7 @@ interface LearnedConstraintsListProps {
 }
 
 // The permanent-constraints section: a config's own learned_constraints
-// list, applied to every future run of this preset (see
+// list, applied to every future run (see
 // generation_toolkit.prompt_config.learned_constraints) - distinct enough
 // from the rest of the builder (its own add/remove actions, its own input
 // field) to earn its own file, the same one-concern-per-file split every
@@ -70,7 +70,7 @@ export function LearnedConstraintsList({ constraints, readOnly = false, onAdd, o
           color: "var(--text-strong)",
         }}
       >
-        Permanent constraints (apply to every future run of this preset)
+        Permanent constraints (apply to every future run)
       </span>
       {constraints.length === 0 && (
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: 0 }}>

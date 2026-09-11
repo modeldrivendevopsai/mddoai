@@ -61,7 +61,6 @@ router = _prompt_config.router
 # Re-exported under the same names this service's own tests already import
 # directly (see tests/routes/test_prompt_config.py) - each is a bound
 # method on the shared router above, not a duplicate implementation.
-list_presets_endpoint = _prompt_config.list_presets_endpoint
 get_config_endpoint = _prompt_config.get_config_endpoint
 save_config_endpoint = _prompt_config.save_config_endpoint
 history_endpoint = _prompt_config.history_endpoint

@@ -34,7 +34,6 @@ def _generation_response(artifact="[module generate('x')] ..."):
         "prompt": {"psm_ecore": "x", "platform_docs": "y", "acceleo_example": "z", "constraints": ""},
         "validation": {"valid": True},
         "rounds": 1,
-        "preset": "default",
         "prompt_version": None,
     }
 

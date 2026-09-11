@@ -23,7 +23,6 @@ const GENERATION_MANIFEST: PromptBuilderManifest = {
     { key: "pim_ecore", label: "PIM artifact" },
     { key: "psm_docs", label: "Target platform documentation" },
   ],
-  supportsPresets: true,
 }
 
 const COMPARISON_MANIFEST: PromptBuilderManifest = {
@@ -34,7 +33,6 @@ const COMPARISON_MANIFEST: PromptBuilderManifest = {
     { key: "psm_metamodel", label: "Existing PSM metamodel" },
     { key: "serialized_docs", label: "Serialized platform documentation" },
   ],
-  supportsPresets: false,
 }
 
 // PSM's own stage panel — approve/retry when PSM is the live pending stage
@@ -49,7 +47,7 @@ const COMPARISON_MANIFEST: PromptBuilderManifest = {
 // alongside the plain output string: the exact prompt actually used, plus
 // either a validation result (Generation Agent) or gap suggestions
 // (Knowledge Agent). The prompt itself is now shown via the full
-// PromptBuilder (editable, presets, version history) rather than a
+// PromptBuilder (editable, version history) rather than a
 // read-only Tabs viewer, and every real past attempt is browsable via
 // AttemptsBrowser, not just the latest one.
 export function PsmStagePanel({
@@ -64,7 +62,6 @@ export function PsmStagePanel({
   stageDetail = null,
   onLoadPromptConfig,
   onSavePromptConfig,
-  onListPresets,
   onPreviewPromptConfig,
   onListAvailableFiles,
   onUploadAttachmentFile,
@@ -124,13 +121,12 @@ export function PsmStagePanel({
   const canPromote = mode === "generation" && validation?.valid === true && Boolean(onPromoteConstraints)
 
   // Which real config this result actually used - the knowledge branch
-  // never had a platform-description-based preset to resolve, so it's
-  // always "comparison"/"default"; the generation branch's own real preset
-  // comes back on the result itself. Defaults to the generation manifest
-  // before any result exists yet, since editing that prompt ahead of a
-  // brand-new platform's very first attempt is the real point of this
-  // screen - a platform that turns out to already have a metamodel just
-  // silently routes to comparison mode instead once Generate is clicked.
+  // always edits "comparison", the generation branch always edits
+  // "generation". Defaults to the generation manifest before any result
+  // exists yet, since editing that prompt ahead of a brand-new platform's
+  // very first attempt is the real point of this screen - a platform that
+  // turns out to already have a metamodel just silently routes to
+  // comparison mode instead once Generate is clicked.
   const activeManifest = mode === "knowledge" ? COMPARISON_MANIFEST : GENERATION_MANIFEST
 
   const promptBuilder = onLoadPromptConfig &&
@@ -148,20 +144,19 @@ export function PsmStagePanel({
         manifest={activeManifest}
         readOnly={readOnly}
         callbacks={{
-          onLoad: (preset) => onLoadPromptConfig(activeManifest.name, preset),
-          onSave: (preset, config) => onSavePromptConfig(activeManifest.name, preset, config as PromptConfig),
-          onListPresets: onListPresets ? () => onListPresets(activeManifest.name) : undefined,
-          onPreview: (preset) => onPreviewPromptConfig(activeManifest.name, preset),
+          onLoad: () => onLoadPromptConfig(activeManifest.name),
+          onSave: (config) => onSavePromptConfig(activeManifest.name, config as PromptConfig),
+          onPreview: () => onPreviewPromptConfig(activeManifest.name),
           onListAvailableFiles,
           onUploadFile: onUploadAttachmentFile,
-          onLoadHistory: (preset) => onLoadPromptHistory(activeManifest.name, preset),
-          onDiffVersions: (preset, a, b) => onDiffPromptVersions(activeManifest.name, preset, a, b),
-          onRestoreVersion: (preset, version) => onRestorePromptVersion(activeManifest.name, preset, version),
-          onRevertToDefault: (preset) => onRevertPromptConfig(activeManifest.name, preset),
-          onPromoteToDefault: (preset) => onPromoteConfigToDefault(activeManifest.name, preset),
-          onCheckReferences: (preset) => onCheckPromptReferences(activeManifest.name, preset),
-          onAddLearnedConstraints: (preset, constraints) => onAddLearnedConstraints(activeManifest.name, preset, constraints),
-          onRemoveLearnedConstraint: (preset, constraint) => onRemoveLearnedConstraint(activeManifest.name, preset, constraint),
+          onLoadHistory: () => onLoadPromptHistory(activeManifest.name),
+          onDiffVersions: (a, b) => onDiffPromptVersions(activeManifest.name, a, b),
+          onRestoreVersion: (version) => onRestorePromptVersion(activeManifest.name, version),
+          onRevertToDefault: () => onRevertPromptConfig(activeManifest.name),
+          onPromoteToDefault: () => onPromoteConfigToDefault(activeManifest.name),
+          onCheckReferences: () => onCheckPromptReferences(activeManifest.name),
+          onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(activeManifest.name, constraints),
+          onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(activeManifest.name, constraint),
         }}
       />
     )
@@ -174,7 +169,7 @@ export function PsmStagePanel({
       onLoadAttempt={onLoadAttempt}
       onRestoreConfigFromAttempt={
         onRestorePromptVersion
-          ? (version) => onRestorePromptVersion(activeManifest.name, "default", version).then(() => undefined)
+          ? (version) => onRestorePromptVersion(activeManifest.name, version).then(() => undefined)
           : undefined
       }
     />

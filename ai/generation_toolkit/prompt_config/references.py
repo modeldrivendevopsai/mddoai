@@ -15,14 +15,13 @@ from . import storage
 def check_references(
     config_dir: str | Path,
     name: str,
-    preset: str,
     context_values: dict[str, str],
     files_root: str | Path | list[str | Path],
 ) -> list[dict]:
     """Returns one entry per broken attachment: {"id": str, "error": str}.
     An empty list means every attachment in the currently loaded config
     still resolves cleanly."""
-    config = storage.load_config(config_dir, name, preset)
+    config = storage.load_config(config_dir, name)
     broken = []
     for attachment in config.get("attachments", []):
         try:
