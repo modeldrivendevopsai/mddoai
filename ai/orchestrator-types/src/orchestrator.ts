@@ -172,10 +172,10 @@ export type DocsOptions = Omit<RerunOverrides, "seed_url">
 // Mirrors generation_toolkit.prompt_config's own real shapes exactly (see
 // ai/generation_toolkit/attachments/resolve.py, prompt_config/storage.py,
 // prompt_config/presets.py, prompt_config/history.py). Not psm-specific:
-// the same shapes apply to any stage with a real, editable prompt config
-// once atl/acceleo/generation each get one of their own — "name" is that
-// stage's own mode string ("generation", "comparison", ...), "preset" is a
-// platform slug or "default".
+// the same shapes apply to every stage with a real, editable prompt config
+// (psm, atl, acceleo today) — "name" is that stage's own mode string
+// ("generation", "comparison", ...), "preset" is a platform slug or
+// "default".
 
 export type PromptAttachmentType = "text" | "file" | "context"
 

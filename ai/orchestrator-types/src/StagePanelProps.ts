@@ -40,11 +40,10 @@ export interface StagePanelProps {
 
   // --- Modular prompt builder (design-system's PromptBuilder/
   // AttemptsBrowser) — all optional, matching onBack?'s own precedent: a
-  // stage panel with no real, editable prompt config yet (every stage
-  // besides psm today) simply never calls these. Added to the shared
-  // contract now, not threaded around it separately, because the stated,
-  // concrete plan is for atl/acceleo/generation to reuse this same set once
-  // each gets a real LLM implementation, not just psm alone.
+  // stage panel with no real, editable prompt config yet (generation today)
+  // simply never calls these. psm, atl, and acceleo all reuse this same
+  // set, each with its own manifest and its own backend prompt module
+  // behind it, rather than each stage threading its own separate contract.
   onLoadPromptConfig?: (name: string, preset: string) => Promise<PromptConfig>
   onSavePromptConfig?: (name: string, preset: string, config: PromptConfig) => Promise<PromptConfig>
   onListPresets?: (name: string) => Promise<PresetMetadata[]>

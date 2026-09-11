@@ -12,10 +12,9 @@ interface PsmGap {
 }
 
 // The manifest for psm's own real, config-driven prompt: the same
-// PromptBuilder component atl/acceleo reuse once each gets a real LLM
-// implementation of its own, just with their own manifest and their own
-// backend prompt module behind it - this file's only real job is this
-// wiring, no prompt-builder logic of its own beyond it.
+// PromptBuilder component atl/acceleo also reuse, each with its own
+// manifest and its own backend prompt module behind it - this file's only
+// real job is this wiring, no prompt-builder logic of its own beyond it.
 const GENERATION_MANIFEST: PromptBuilderManifest = {
   name: "generation",
   label: "PSM generation prompt",
