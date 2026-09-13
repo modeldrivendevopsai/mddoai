@@ -3,6 +3,7 @@ import {
   getEvents,
   getProviders,
   getRuns,
+  previewPromptConfig,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -321,6 +322,30 @@ describe("orchestratorService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }))
 
     await expect(resumeRun("no-such-run")).rejects.toThrow("Resume request failed: 404")
+  })
+
+  it("previewPromptConfig sends the given draft config as the request body", async () => {
+    const draft = { attachments: [{ id: "a", name: "n", type: "text" as const, content: "hi" }] }
+    const payload = { system_prompt: "hi", user_content: "", attachments: {} }
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await previewPromptConfig("psm", "generation", draft)
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/psm/prompt-config/generation/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draft),
+    })
+    expect(result).toEqual(payload)
+  })
+
+  it("previewPromptConfig throws with the status code on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+
+    await expect(previewPromptConfig("psm", "generation", { attachments: [] })).rejects.toThrow(
+      "Prompt preview request failed: 500"
+    )
   })
 
   it("surfaces the backend's real error detail instead of a generic status message when one is given", async () => {

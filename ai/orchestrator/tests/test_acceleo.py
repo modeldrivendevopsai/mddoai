@@ -26,7 +26,7 @@ def test_get_prompt_config_endpoint_proxies_the_real_client():
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
-    body = {"attachments": [], "learned_constraints": []}
+    body = {"attachments": []}
     with patch.object(integration_runner_client, "save_acceleo_prompt_config", return_value={**body, "_version": "v1"}) as mock_save:
         response = client.put("/acceleo/prompt-config/generation", json=body)
 
@@ -57,19 +57,14 @@ def test_restore_prompt_config_endpoint():
     assert response.json() == {"attachments": []}
 
 
-def test_revert_prompt_config_endpoint():
-    with patch.object(integration_runner_client, "revert_acceleo_prompt_config", return_value={"attachments": []}) as mock_revert:
-        response = client.post("/acceleo/prompt-config/generation/revert")
+def test_restore_prompt_config_endpoint_with_the_shipped_default_is_revert():
+    # "Revert to default" is not a separate endpoint any more - restoring
+    # generation_toolkit.prompt_config.history's own SHIPPED_DEFAULT_VERSION
+    # sentinel through this same restore route IS reverting to default.
+    with patch.object(integration_runner_client, "restore_acceleo_prompt_config_version", return_value={"attachments": []}) as mock_restore:
+        response = client.post("/acceleo/prompt-config/generation/restore/shipped")
 
-    mock_revert.assert_called_once_with("generation")
-    assert response.json() == {"attachments": []}
-
-
-def test_promote_prompt_config_to_default_endpoint():
-    with patch.object(integration_runner_client, "promote_acceleo_prompt_config_to_default", return_value={"attachments": []}) as mock_promote:
-        response = client.post("/acceleo/prompt-config/generation/promote-to-default")
-
-    mock_promote.assert_called_once_with("generation")
+    mock_restore.assert_called_once_with("generation", "shipped")
     assert response.json() == {"attachments": []}
 
 
@@ -82,9 +77,23 @@ def test_check_prompt_config_references_endpoint():
 
 def test_preview_prompt_config_endpoint():
     preview = {"system_prompt": "x", "user_content": "y", "attachments": {}}
-    with patch.object(integration_runner_client, "preview_acceleo_prompt_config", return_value=preview):
+    with patch.object(integration_runner_client, "preview_acceleo_prompt_config", return_value=preview) as mock_preview:
         response = client.post("/acceleo/prompt-config/generation/preview")
 
+    mock_preview.assert_called_once_with("generation", None)
+    assert response.json() == preview
+
+
+def test_preview_prompt_config_endpoint_forwards_a_given_draft():
+    """A caller previewing its own current, unsaved draft sends it as the
+    request body - it must reach integration_runner_client exactly as
+    given, not get dropped in favor of a no-body preview of what's saved."""
+    preview = {"system_prompt": "x", "user_content": "y", "attachments": {}}
+    draft = {"attachments": [{"id": "a", "name": "n", "type": "text", "content": "hi"}]}
+    with patch.object(integration_runner_client, "preview_acceleo_prompt_config", return_value=preview) as mock_preview:
+        response = client.post("/acceleo/prompt-config/generation/preview", json=draft)
+
+    mock_preview.assert_called_once_with("generation", draft)
     assert response.json() == preview
 
 

@@ -9,6 +9,23 @@
 
 export type AttachmentType = "text" | "file" | "context"
 
+// The placeholder name a brand-new "file" attachment starts with (see
+// PromptDocument.tsx's own defaultAttachment) - shared as one constant
+// rather than duplicated as a bare string literal, since DocumentBlock.tsx's
+// own upload flow compares against it too (to only replace a still-default
+// name, never one the human already typed themselves), and a second,
+// independent copy of the same literal is the kind of thing a future rename
+// silently stops matching.
+export const DEFAULT_FILE_ATTACHMENT_NAME = "New file reference"
+
+// The version id generation_toolkit.prompt_config.history's own
+// SHIPPED_DEFAULT_VERSION sentinel uses for the git-committed shipped
+// default, folded into the same version-history timeline as its oldest
+// entry rather than a separate "revert to default" concept - restoring it
+// (VersionHistory.tsx's own Restore button) IS reverting to default, no
+// separate button or callback needed.
+export const SHIPPED_DEFAULT_VERSION = "shipped"
+
 export interface Attachment {
   id: string
   name: string
@@ -50,6 +67,16 @@ export interface BrokenReference {
   error: string
 }
 
+// What adding/removing/promoting a learned constraint actually returns
+// now - just the real, current list, not a full PromptConfig. Constraints
+// live in their own separate, never-reverted store (backend's own
+// learned_constraints.py), entirely outside the versioned attachments/text
+// a Save/Restore touches, so there's no "_version" or "attachments" for
+// one of these actions to plausibly hand back any more.
+export interface LearnedConstraintsUpdate {
+  learned_constraints: string[]
+}
+
 // Which real config is being edited, plus what a human-editable prompt
 // document offers.
 export interface PromptBuilderManifest {
@@ -66,8 +93,16 @@ export interface PromptBuilderManifest {
 
 export interface PromptBuilderCallbacks {
   onLoad: () => Promise<PromptConfig>
-  onSave: (config: PromptConfig) => Promise<PromptConfig>
-  onPreview: () => Promise<PromptPreview>
+  // `options.keepalive`, when true, asks the underlying request to outlive
+  // this page (see useAutoSave's own unload/unmount flush) - only that one
+  // flush call ever sets it, since a keepalive request is capped at 64KB by
+  // the browser and an everyday save shouldn't risk hitting that.
+  onSave: (config: PromptConfig, options?: { keepalive?: boolean }) => Promise<PromptConfig>
+  // Resolves exactly the `config` given, not whatever the last Save left
+  // on disk - a caller always passes its own current, possibly-unsaved
+  // draft, so "preview" and "show real content" (see DocumentBlock.tsx's
+  // own AttachmentPreview) reflect what's actually on screen right now.
+  onPreview: (config: PromptConfig) => Promise<PromptPreview>
   onListAvailableFiles?: () => Promise<string[]>
   // Real file uploads (dropping an OS file onto the document): saves it to
   // a real backend "attachments volume" and returns the safe stored path
@@ -80,12 +115,14 @@ export interface PromptBuilderCallbacks {
   onUploadFile?: (file: File) => Promise<string>
   onLoadHistory: () => Promise<string[]>
   onDiffVersions: (versionA: string, versionB: string) => Promise<PromptDiff>
+  // "Revert to default" is not a separate callback: the shipped default is
+  // just the oldest entry in the same history onLoadHistory returns (see
+  // VersionHistory.tsx's own SHIPPED_DEFAULT_VERSION), restored through
+  // this exact same call.
   onRestoreVersion: (version: string) => Promise<PromptConfig>
-  onRevertToDefault: () => Promise<PromptConfig>
-  onPromoteToDefault: () => Promise<PromptConfig>
   onCheckReferences: () => Promise<BrokenReference[]>
-  onAddLearnedConstraints: (constraints: string[]) => Promise<PromptConfig>
-  onRemoveLearnedConstraint: (constraint: string) => Promise<PromptConfig>
+  onAddLearnedConstraints: (constraints: string[]) => Promise<LearnedConstraintsUpdate>
+  onRemoveLearnedConstraint: (constraint: string) => Promise<LearnedConstraintsUpdate>
 }
 
 // Promoting one validated run's own live corrections into this same
@@ -99,7 +136,7 @@ export interface PromptBuilderPromotion {
   // produced - shown as an editable draft a human confirms or edits
   // before it's actually sent, never applied as-is.
   initialBlock: string
-  onPromote: (constraints: string[]) => Promise<PromptConfig>
+  onPromote: (constraints: string[]) => Promise<LearnedConstraintsUpdate>
 }
 
 export interface PromptBuilderProps {

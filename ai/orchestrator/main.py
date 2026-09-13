@@ -197,9 +197,10 @@ def attempt_endpoint(run_id: str, stage: str, attempt: str):
 class SaveConfigRequest(BaseModel):
     # No system_prompt field: a config's own first "text" attachment IS
     # the system message (see each real service's own PromptConfigBody,
-    # the real schema this pass-through mirrors).
+    # the real schema this pass-through mirrors). No learned_constraints
+    # field either: those live in their own separate, never-reverted
+    # store, not in what Save/Preview's own body carries.
     attachments: list[dict]
-    learned_constraints: list[str] = []
 
 
 class LearnedConstraintsRequest(BaseModel):
@@ -242,24 +243,14 @@ def psm_restore_prompt_config_endpoint(name: str, version: str):
     return integration_runner_client.restore_psm_prompt_config_version(name, version)
 
 
-@app.post("/psm/prompt-config/{name}/revert")
-def psm_revert_prompt_config_endpoint(name: str):
-    return integration_runner_client.revert_psm_prompt_config(name)
-
-
-@app.post("/psm/prompt-config/{name}/promote-to-default")
-def psm_promote_prompt_config_to_default_endpoint(name: str):
-    return integration_runner_client.promote_psm_prompt_config_to_default(name)
-
-
 @app.get("/psm/prompt-config/{name}/check-references")
 def psm_check_prompt_config_references_endpoint(name: str):
     return {"broken": integration_runner_client.check_psm_prompt_config_references(name)}
 
 
 @app.post("/psm/prompt-config/{name}/preview")
-def psm_preview_prompt_config_endpoint(name: str):
-    return integration_runner_client.preview_psm_prompt_config(name)
+def psm_preview_prompt_config_endpoint(name: str, request: SaveConfigRequest | None = None):
+    return integration_runner_client.preview_psm_prompt_config(name, request.model_dump() if request is not None else None)
 
 
 @app.post("/psm/prompt-config/{name}/learned-constraints")
@@ -321,24 +312,14 @@ def atl_restore_prompt_config_endpoint(name: str, version: str):
     return integration_runner_client.restore_atl_prompt_config_version(name, version)
 
 
-@app.post("/atl/prompt-config/{name}/revert")
-def atl_revert_prompt_config_endpoint(name: str):
-    return integration_runner_client.revert_atl_prompt_config(name)
-
-
-@app.post("/atl/prompt-config/{name}/promote-to-default")
-def atl_promote_prompt_config_to_default_endpoint(name: str):
-    return integration_runner_client.promote_atl_prompt_config_to_default(name)
-
-
 @app.get("/atl/prompt-config/{name}/check-references")
 def atl_check_prompt_config_references_endpoint(name: str):
     return {"broken": integration_runner_client.check_atl_prompt_config_references(name)}
 
 
 @app.post("/atl/prompt-config/{name}/preview")
-def atl_preview_prompt_config_endpoint(name: str):
-    return integration_runner_client.preview_atl_prompt_config(name)
+def atl_preview_prompt_config_endpoint(name: str, request: SaveConfigRequest | None = None):
+    return integration_runner_client.preview_atl_prompt_config(name, request.model_dump() if request is not None else None)
 
 
 @app.post("/atl/prompt-config/{name}/learned-constraints")
@@ -395,24 +376,14 @@ def acceleo_restore_prompt_config_endpoint(name: str, version: str):
     return integration_runner_client.restore_acceleo_prompt_config_version(name, version)
 
 
-@app.post("/acceleo/prompt-config/{name}/revert")
-def acceleo_revert_prompt_config_endpoint(name: str):
-    return integration_runner_client.revert_acceleo_prompt_config(name)
-
-
-@app.post("/acceleo/prompt-config/{name}/promote-to-default")
-def acceleo_promote_prompt_config_to_default_endpoint(name: str):
-    return integration_runner_client.promote_acceleo_prompt_config_to_default(name)
-
-
 @app.get("/acceleo/prompt-config/{name}/check-references")
 def acceleo_check_prompt_config_references_endpoint(name: str):
     return {"broken": integration_runner_client.check_acceleo_prompt_config_references(name)}
 
 
 @app.post("/acceleo/prompt-config/{name}/preview")
-def acceleo_preview_prompt_config_endpoint(name: str):
-    return integration_runner_client.preview_acceleo_prompt_config(name)
+def acceleo_preview_prompt_config_endpoint(name: str, request: SaveConfigRequest | None = None):
+    return integration_runner_client.preview_acceleo_prompt_config(name, request.model_dump() if request is not None else None)
 
 
 @app.post("/acceleo/prompt-config/{name}/learned-constraints")

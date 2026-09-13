@@ -10,6 +10,27 @@ There is no separate stored "system_prompt" field - a config's own first
 resolution.py's own resolve_for_call, not a special field this module
 knows about; this module persists "attachments" like any other key,
 with no opinion on what any one entry in it means to a caller.
+
+save_config also strips any "learned_constraints" key it's handed before
+writing - constraints live entirely in their own separate store now (see
+learned_constraints.py), and this is the one real write choke point every
+path that can produce a live/history file (a plain save, a revert, a
+restore) funnels through. Without this, an already-shipped config that
+still carries the older embedded shape (from before constraints got their
+own store) would keep re-writing that same stale array into the live file
+and every new history snapshot forever, even though nothing ever reads it
+back off this file any more.
+
+Stripping alone would create a real race with learned_constraints.py's own
+one-time migration, though: that migration only ever runs the first time
+something calls load_constraints, reading whatever load_config currently
+returns - if a save, revert, or restore reaches this function BEFORE that
+first read ever happens, its own strip above would become the very thing
+that erases the last remaining copy of an older, real, already-accumulated
+constraints list nobody had migrated yet. save_config guards against
+exactly that ordering by migrating straight from whatever `config` it was
+actually given (see learned_constraints.migrate_if_missing), not by
+re-reading disk, before ever stripping or writing anything.
 """
 import json
 import secrets
@@ -70,6 +91,18 @@ def save_config(
         resolve_attachments(config.get("attachments", []), context_values, files_root)
     except Exception as e:
         raise PromptConfigValidationError(str(e)) from e
+
+    # A local import: learned_constraints.py already imports this module at
+    # module level, so importing it back at module level here would be
+    # circular.
+    from . import learned_constraints
+
+    if "learned_constraints" in config:
+        learned_constraints.migrate_if_missing(config_dir, name, config["learned_constraints"])
+
+    # Drops a legacy embedded "learned_constraints" key rather than ever
+    # writing it back out - see this module's own docstring for why.
+    config = {key: value for key, value in config.items() if key != "learned_constraints"}
 
     # A plain microsecond timestamp alone can collide: two saves issued
     # back to back (a script, a retry, two test calls with no sleep

@@ -12,6 +12,8 @@ import json
 import pytest
 from fastapi import HTTPException
 
+from generation_toolkit.prompt_config.history import SHIPPED_DEFAULT_VERSION
+
 from routes.prompt_config import (
     LearnedConstraintsBody,
     PromptConfigBody,
@@ -22,10 +24,8 @@ from routes.prompt_config import (
     get_config_endpoint,
     history_endpoint,
     preview_endpoint,
-    promote_to_default_endpoint,
     remove_learned_constraint_endpoint,
     restore_endpoint,
-    revert_endpoint,
     save_config_endpoint,
 )
 
@@ -88,7 +88,9 @@ def test_history_lists_every_saved_version(isolated_prompt_config_dir):
 
     result = history_endpoint("generation")
 
-    assert len(result["versions"]) == 2
+    # 2 real saves plus the shipped default, always the oldest entry.
+    assert len(result["versions"]) == 3
+    assert result["versions"][-1] == SHIPPED_DEFAULT_VERSION
 
 
 def test_diff_reports_no_changes_between_a_version_and_itself(isolated_prompt_config_dir):
@@ -113,23 +115,13 @@ def test_restore_brings_back_an_old_version_as_a_new_one(isolated_prompt_config_
     assert restored["_version"] != v1["_version"]
 
 
-def test_revert_restores_the_shipped_default(isolated_prompt_config_dir):
+def test_restoring_the_shipped_default_version_reverts_to_it(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir, system_prompt="shipped")
     save_config_endpoint("generation", PromptConfigBody(attachments=[_system_prompt("edited")]))
 
-    reverted = revert_endpoint("generation")
+    reverted = restore_endpoint("generation", SHIPPED_DEFAULT_VERSION)
 
     assert reverted["attachments"][0]["content"] == "shipped"
-
-
-def test_promote_to_default_updates_the_shipped_file(isolated_prompt_config_dir):
-    _seed_default(isolated_prompt_config_dir, system_prompt="old default")
-    save_config_endpoint("generation", PromptConfigBody(attachments=[_system_prompt("new and improved")]))
-
-    promote_to_default_endpoint("generation")
-
-    default_file = isolated_prompt_config_dir / "generation" / "default.default.json"
-    assert "new and improved" in default_file.read_text(encoding="utf-8")
 
 
 def test_check_references_reports_nothing_broken_for_a_healthy_config(isolated_prompt_config_dir):

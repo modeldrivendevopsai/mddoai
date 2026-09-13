@@ -10,6 +10,12 @@ Layout, under a caller-supplied config_dir:
                                                  baseline
   config_dir/<name>/history/default.<version>.json - immutable snapshots,
                                                  one per save
+  config_dir/<name>/constraints.json          - learned_constraints, kept
+                                                 entirely outside the above:
+                                                 a permanent, always-current
+                                                 list a revert/restore never
+                                                 touches (see
+                                                 learned_constraints.py)
 `<name>` is the stage's own mode ("generation", "comparison", ...). There
 is exactly one config per name: every real config this project has ever
 shipped or saved has been this one, so the file names keep the "default"
@@ -50,6 +56,10 @@ def history_dir(config_dir: str | Path, name: str) -> Path:
 
 def history_path(config_dir: str | Path, name: str, version: str) -> Path:
     return history_dir(config_dir, name) / f"default.{validate_path_segment(version)}.json"
+
+
+def constraints_path(config_dir: str | Path, name: str) -> Path:
+    return mode_dir(config_dir, name) / "constraints.json"
 
 
 def atomic_write_json(path: Path, data: dict) -> None:

@@ -22,6 +22,7 @@ from integration_runner.routes.acceleo import (
     add_learned_constraints_endpoint,
     available_files_endpoint,
     get_prompt_config_endpoint,
+    preview_prompt_config_endpoint,
     promote_constraints_endpoint,
     remove_learned_constraint_endpoint,
     save_prompt_config_endpoint,
@@ -69,6 +70,28 @@ def test_save_prompt_config_endpoint_forwards_the_real_body():
 
     mock_save.assert_called_once_with("generation", body.model_dump())
     assert result == {"_version": "v1"}
+
+
+def test_preview_prompt_config_endpoint_with_no_body_previews_the_saved_config():
+    preview = {"system_prompt": "x", "user_content": "y", "attachments": {}}
+    with patch.object(acceleo_agent_client, "preview_prompt_config", return_value=preview) as mock_preview:
+        result = preview_prompt_config_endpoint("generation")
+
+    mock_preview.assert_called_once_with("generation", None)
+    assert result == preview
+
+
+def test_preview_prompt_config_endpoint_forwards_a_given_draft():
+    """A caller previewing its own current, unsaved draft sends it as the
+    request body - it must reach acceleo_agent_client exactly as given, not
+    get dropped in favor of a no-body preview of what's saved."""
+    preview = {"system_prompt": "x", "user_content": "y", "attachments": {}}
+    body = SaveConfigRequest(attachments=[])
+    with patch.object(acceleo_agent_client, "preview_prompt_config", return_value=preview) as mock_preview:
+        result = preview_prompt_config_endpoint("generation", body)
+
+    mock_preview.assert_called_once_with("generation", body.model_dump())
+    assert result == preview
 
 
 def test_add_learned_constraints_endpoint_forwards_constraints():

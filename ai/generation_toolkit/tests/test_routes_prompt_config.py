@@ -12,6 +12,7 @@ import json
 import pytest
 from fastapi import HTTPException
 
+from generation_toolkit.prompt_config.history import SHIPPED_DEFAULT_VERSION
 from generation_toolkit.routes.prompt_config import LearnedConstraintsBody, PromptConfigBody, PromptConfigRouter
 
 
@@ -124,3 +125,67 @@ def test_add_learned_constraints_persists_them(tmp_path):
     )
 
     assert result["learned_constraints"] == ["Fix: use camelCase"]
+
+
+def test_get_config_endpoint_includes_current_learned_constraints(tmp_path):
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["Fix: x"]))
+
+    assert router.get_config_endpoint("generation")["learned_constraints"] == ["Fix: x"]
+
+
+def test_save_config_endpoint_does_not_let_learned_constraints_through_the_body(tmp_path):
+    """PromptConfigBody has no learned_constraints field any more - Save
+    only ever touches attachments. A caller's own request JSON might still
+    carry an old "learned_constraints" key (e.g. a client round-tripping
+    whatever GET handed it), and it must be silently ignored, not written
+    into the versioned config, and never mistaken for a real edit to the
+    separate constraints store."""
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["existing"]))
+
+    body = PromptConfigBody.model_validate({"attachments": [], "learned_constraints": ["ignored"]})
+    saved = router.save_config_endpoint("generation", body)
+
+    # The real, separate store still has exactly what was actually added
+    # through the real endpoint above - untouched by this save.
+    assert saved["learned_constraints"] == ["existing"]
+
+
+def test_restoring_the_shipped_default_preserves_learned_constraints(tmp_path):
+    """The actual bug this whole separate store exists to fix: reverting
+    the prompt's own text/attachments back to the shipped default (now just
+    restore_endpoint called with SHIPPED_DEFAULT_VERSION, not a separate
+    /revert endpoint) must never discard constraints a human already
+    promoted - they're a different, permanent kind of state, not part of
+    what "default" means."""
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    router.save_config_endpoint("generation", PromptConfigBody(attachments=[{"id": "a", "name": "a", "type": "text", "content": "edited"}]))
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["Fix: keep me"]))
+
+    reverted = router.restore_endpoint("generation", SHIPPED_DEFAULT_VERSION)
+
+    assert reverted["learned_constraints"] == ["Fix: keep me"]
+
+
+def test_history_endpoint_includes_the_shipped_default_as_the_oldest_entry(tmp_path):
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+
+    versions = router.history_endpoint("generation")["versions"]
+
+    assert versions == [SHIPPED_DEFAULT_VERSION]
+
+
+def test_restore_endpoint_preserves_learned_constraints(tmp_path):
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    saved = router.save_config_endpoint("generation", PromptConfigBody(attachments=[]))
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["Fix: keep me"]))
+
+    restored = router.restore_endpoint("generation", saved["_version"])
+
+    assert restored["learned_constraints"] == ["Fix: keep me"]

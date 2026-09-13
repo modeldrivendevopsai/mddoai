@@ -92,9 +92,14 @@ source):
   the current run's own PIM/PSM artifacts regardless of target platform, so there's no per-platform
   guidance to separate out.
 - `default.json` — the live, currently-in-effect config, only created once someone actually saves
-  an edit through `PUT /prompt-config/generation` (a `revert`/`restore` is also a save).
-  `GET /prompt-config/generation` falls back to the shipped default when this doesn't exist yet.
+  an edit through `PUT /prompt-config/generation` (restoring a past version, shipped default
+  included, is also a save). `GET /prompt-config/generation` falls back to the shipped default when
+  this doesn't exist yet.
 - `history/default.{version}.json` — an immutable snapshot of every version that's ever been live.
+- `constraints.json`: the real, always-current `learned_constraints` list, kept entirely outside
+  the three files above: restoring any version of the prompt's own text/attachments, the shipped
+  default included, never touches it, so a promoted constraint stays permanent through every one of
+  them (see `generation_toolkit/README.md`'s own `learned_constraints.py` section).
 
 `ai/docker-compose.yml`'s `atl-agent` service bind-mounts `prompts/` read-write, so a save through
 the running dev container lands on the real host git checkout, and `history/` is git-visible too.
@@ -105,9 +110,9 @@ the running dev container lands on the real host git checkout, and `history/` is
 human-confirmed action (`integration_runner`'s own `POST /atl/promote-constraints`, gated on a
 real validated result), never automatic capture of a typed correction.
 
-Every other prompt-config endpoint (`history`, `diff`, `restore/{version}`, `revert`,
-`promote-to-default`, `check-references`, `preview`) is a thin, one-line call into the matching
-`generation_toolkit.prompt_config` function.
+Every other prompt-config endpoint, `history`, `diff`, `restore/{version}` (also how "revert to
+default" works, called with `version=shipped`, not a separate endpoint), `check-references`,
+`preview`, is a thin, one-line call into the matching `generation_toolkit.prompt_config` function.
 
 ## Available files
 

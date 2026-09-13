@@ -82,20 +82,16 @@ def restore_prompt_config_version(name: str, version: str) -> dict:
     return _config_request("POST", f"/prompt-config/{name}/restore/{version}")
 
 
-def revert_prompt_config(name: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/revert")
-
-
-def promote_prompt_config_to_default(name: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/promote-to-default")
-
-
 def check_prompt_config_references(name: str) -> list[dict]:
     return _config_request("GET", f"/prompt-config/{name}/check-references")["broken"]
 
 
-def preview_prompt_config(name: str) -> dict:
-    return _config_request("POST", f"/prompt-config/{name}/preview")
+def preview_prompt_config(name: str, config: dict | None = None) -> dict:
+    """`config`, when given, is a caller's own current, unsaved draft -
+    forwarded as the request body so the preview reflects that draft
+    exactly, not whatever the last Save left on disk. Omitted, this
+    previews the saved config instead, unchanged from before."""
+    return _config_request("POST", f"/prompt-config/{name}/preview", json=config)
 
 
 def add_learned_constraints(name: str, constraints: list[str]) -> dict:

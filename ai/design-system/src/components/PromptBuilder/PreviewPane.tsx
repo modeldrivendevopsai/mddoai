@@ -7,13 +7,15 @@ interface PreviewPaneProps {
   onPreview: () => Promise<PromptPreview>
 }
 
-// Static preview: the exact text a real call would send the LLM, computed
-// server-side from the real render function, without spending a real call.
+// The exact text a real call would send the LLM right now, computed
+// server-side from the real render function against the current draft
+// (index.tsx's own `onPreview` closure hands over the live, possibly
+// unsaved config), without spending a real call or requiring a save first.
 // Fetched on demand (not automatically on every keystroke) since it's a
 // real request each time. `visible` is separate from the fetched `preview`
 // itself: once loaded, a human can hide it again without losing the fetch
 // (no refetch needed just to look again), and can still force a fresh
-// fetch (content only changes after a save) via the same button.
+// fetch (e.g. after editing further) via the same button.
 export function PreviewPane({ onPreview }: PreviewPaneProps) {
   const [preview, setPreview] = useState<PromptPreview | null>(null)
   const [visible, setVisible] = useState(false)

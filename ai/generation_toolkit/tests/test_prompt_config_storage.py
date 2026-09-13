@@ -3,6 +3,7 @@ import json
 import pytest
 
 from generation_toolkit.attachments.files import PathSegmentError
+from generation_toolkit.prompt_config._paths import constraints_path
 from generation_toolkit.prompt_config.storage import PromptConfigValidationError, load_config, save_config
 
 _SAMPLE = {"system_prompt": "You are helpful.", "attachments": [{"id": "a", "name": "A", "type": "text", "content": "x"}]}
@@ -90,3 +91,36 @@ def test_save_config_rejects_a_config_with_an_unknown_context_key(tmp_path):
 
     with pytest.raises(PromptConfigValidationError):
         save_config(tmp_path, "generation", broken, {"pim_artifact": "x"}, tmp_path)
+
+
+def test_save_config_never_writes_learned_constraints_into_the_live_file(tmp_path):
+    saved = save_config(tmp_path, "generation", {**_SAMPLE, "learned_constraints": ["x"]}, {}, tmp_path)
+
+    assert "learned_constraints" not in saved
+    assert "learned_constraints" not in load_config(tmp_path, "generation")
+
+
+def test_save_config_migrates_a_legacy_embedded_value_before_stripping_it(tmp_path):
+    """The exact race this guards against: a save (or, for real, a revert
+    or restore) reaching a config that still carries the older embedded
+    "learned_constraints" shape BEFORE anything has ever read (and thus
+    migrated) it - this call's own strip must not become the reason that
+    value is lost, since nothing else may ever get the chance to migrate it
+    afterwards (learned_constraints.py's own load_constraints only ever
+    reads disk, and this call already overwrote what was there)."""
+    save_config(tmp_path, "generation", {**_SAMPLE, "learned_constraints": ["already there"]}, {}, tmp_path)
+
+    on_disk = json.loads(constraints_path(tmp_path, "generation").read_text(encoding="utf-8"))
+    assert on_disk == {"constraints": ["already there"]}
+
+
+def test_save_config_does_not_overwrite_an_already_migrated_store(tmp_path):
+    """A later save carrying a stale or merely-echoed "learned_constraints"
+    value (e.g. a caller round-tripping an earlier GET response) must never
+    clobber real, already-accumulated constraints with it."""
+    save_config(tmp_path, "generation", {**_SAMPLE, "learned_constraints": ["real"]}, {}, tmp_path)
+
+    save_config(tmp_path, "generation", {**_SAMPLE, "learned_constraints": ["stale round-trip"]}, {}, tmp_path)
+
+    on_disk = json.loads(constraints_path(tmp_path, "generation").read_text(encoding="utf-8"))
+    assert on_disk == {"constraints": ["real"]}

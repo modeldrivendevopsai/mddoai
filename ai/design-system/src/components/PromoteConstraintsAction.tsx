@@ -7,10 +7,11 @@ export interface PromoteConstraintsActionProps {
   // into the editable draft below, never sent as-is.
   initialConstraintsBlock: string
   // Promise<unknown>, not Promise<void>: the real onPromoteConstraints prop
-  // resolves to the updated PromptConfig (see orchestrator-types), which
-  // this component never needs to look at - it just awaits completion -
-  // but a caller's own resolved value type must still be assignable here,
-  // and Promise<X> is never assignable to Promise<void> for a concrete X.
+  // resolves to the updated constraints list (see orchestrator-types' own
+  // LearnedConstraintsUpdate), which this component never needs to look at
+  // - it just awaits completion - but a caller's own resolved value type
+  // must still be assignable here, and Promise<X> is never assignable to
+  // Promise<void> for a concrete X.
   onPromote: (constraints: string[]) => Promise<unknown>
 }
 
@@ -66,7 +67,7 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <p style={labelStyle}>
-        These corrections produced this validated success — edit before confirming, then they join Permanent
+        These corrections produced this validated success. Edit before confirming, then they join Permanent
         constraints below and every future run starts with them already applied.
       </p>
       <textarea

@@ -103,22 +103,16 @@ def test_restore_prompt_config_version():
     assert result["system_prompt"] == "restored"
 
 
-def test_revert_prompt_config():
+def test_restore_prompt_config_version_with_the_shipped_default_is_revert():
+    # "Revert to default" is not a separate client function or endpoint any
+    # more - restoring generation_toolkit.prompt_config.history's own
+    # SHIPPED_DEFAULT_VERSION sentinel through this same restore call IS
+    # reverting to default (see history.py's own docstring).
     with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "shipped"})) as mock_request:
-        psm_agent_client.revert_prompt_config("generation")
+        psm_agent_client.restore_prompt_config_version("generation", "shipped")
 
     mock_request.assert_called_once_with(
-        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/revert",
-        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
-    )
-
-
-def test_promote_prompt_config_to_default():
-    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x"})) as mock_request:
-        psm_agent_client.promote_prompt_config_to_default("generation")
-
-    mock_request.assert_called_once_with(
-        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/promote-to-default",
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/restore/shipped",
         timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
     )
 
@@ -136,7 +130,19 @@ def test_preview_prompt_config():
 
     mock_request.assert_called_once_with(
         "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/preview",
-        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, json=None,
+    )
+    assert result == {"system_prompt": "x", "user_content": "y"}
+
+
+def test_preview_prompt_config_forwards_a_given_draft():
+    draft = {"attachments": [], "learned_constraints": []}
+    with patch("psm_agent_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x", "user_content": "y"})) as mock_request:
+        result = psm_agent_client.preview_prompt_config("generation", draft)
+
+    mock_request.assert_called_once_with(
+        "POST", f"{psm_agent_client.PSM_AGENT_URL}/prompt-config/generation/preview",
+        timeout=psm_agent_client.PSM_CONFIG_TIMEOUT, json=draft,
     )
     assert result == {"system_prompt": "x", "user_content": "y"}
 

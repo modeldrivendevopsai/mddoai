@@ -229,6 +229,17 @@ export interface BrokenReference {
   error: string
 }
 
+// What adding/removing/promoting a learned constraint actually returns -
+// just the real, current list, not a full PromptConfig. Constraints live
+// in their own separate, never-reverted store on the backend (see
+// generation_toolkit.prompt_config.learned_constraints), entirely outside
+// the versioned attachments/text a Save/Revert/Restore touches, so none of
+// these three actions has a "_version" or "attachments" to plausibly hand
+// back any more.
+export interface LearnedConstraintsUpdate {
+  learned_constraints: string[]
+}
+
 // One entry from runs/<run_id>/manifest.json (see
 // integration_runner/stages/_validation.py's own _update_manifest) - every
 // attempt recorded for a run, across every stage, not just psm's.

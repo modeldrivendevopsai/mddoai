@@ -34,16 +34,14 @@ function promptBuilderPropsFor(stage: StageId): PromptBuilderProps {
   const base: PromptBuilderProps = {
     ...attemptsBrowserProps,
     onLoadPromptConfig: (name) => orchestratorService.getPromptConfig(stage, name),
-    onSavePromptConfig: (name, config) => orchestratorService.savePromptConfig(stage, name, config),
-    onPreviewPromptConfig: (name) => orchestratorService.previewPromptConfig(stage, name),
+    onSavePromptConfig: (name, config, options) => orchestratorService.savePromptConfig(stage, name, config, options),
+    onPreviewPromptConfig: (name, config) => orchestratorService.previewPromptConfig(stage, name, config),
     onListAvailableFiles: () => orchestratorService.listAvailableFiles(stage),
     onUploadAttachmentFile: (file) => orchestratorService.uploadAttachmentFile(stage, file),
     onLoadPromptHistory: (name) => orchestratorService.getPromptConfigHistory(stage, name),
     onDiffPromptVersions: (name, versionA, versionB) =>
       orchestratorService.diffPromptConfigVersions(stage, name, versionA, versionB),
     onRestorePromptVersion: (name, version) => orchestratorService.restorePromptConfigVersion(stage, name, version),
-    onRevertPromptConfig: (name) => orchestratorService.revertPromptConfig(stage, name),
-    onPromoteConfigToDefault: (name) => orchestratorService.promoteConfigToDefault(stage, name),
     onCheckPromptReferences: (name) => orchestratorService.checkPromptReferences(stage, name),
     onAddLearnedConstraints: (name, constraints) => orchestratorService.addLearnedConstraints(stage, name, constraints),
     onRemoveLearnedConstraint: (name, constraint) =>

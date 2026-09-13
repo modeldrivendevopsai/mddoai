@@ -10,6 +10,9 @@
     "./tokens.css": "./src/tokens.css",
     "./integration.css": "./src/integration.css"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
@@ -20,7 +23,11 @@
     "react": "^19.2.6"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
-    "typescript": "~6.0.2"
+    "jsdom": "^30.0.1",
+    "react-dom": "^19.2.6",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.9"
   }
 }

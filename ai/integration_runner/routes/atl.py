@@ -28,9 +28,10 @@ _BUSY_DETAIL = "A stage is still running, try again shortly."
 class SaveConfigRequest(BaseModel):
     # No system_prompt field: a config's own first "text" attachment IS
     # the system message (see atl_agent's own PromptConfigBody, the real
-    # schema this pass-through mirrors).
+    # schema this pass-through mirrors). No learned_constraints field
+    # either: those live in their own separate, never-reverted store, not
+    # in what Save/Preview's own body carries.
     attachments: list[dict]
-    learned_constraints: list[str] = []
 
 
 class LearnedConstraintsRequest(BaseModel):
@@ -70,24 +71,14 @@ def restore_prompt_config_endpoint(name: str, version: str):
     return atl_agent_client.restore_prompt_config_version(name, version)
 
 
-@router.post("/prompt-config/{name}/revert")
-def revert_prompt_config_endpoint(name: str):
-    return atl_agent_client.revert_prompt_config(name)
-
-
-@router.post("/prompt-config/{name}/promote-to-default")
-def promote_prompt_config_to_default_endpoint(name: str):
-    return atl_agent_client.promote_prompt_config_to_default(name)
-
-
 @router.get("/prompt-config/{name}/check-references")
 def check_prompt_config_references_endpoint(name: str):
     return {"broken": atl_agent_client.check_prompt_config_references(name)}
 
 
 @router.post("/prompt-config/{name}/preview")
-def preview_prompt_config_endpoint(name: str):
-    return atl_agent_client.preview_prompt_config(name)
+def preview_prompt_config_endpoint(name: str, request: SaveConfigRequest | None = None):
+    return atl_agent_client.preview_prompt_config(name, request.model_dump() if request is not None else None)
 
 
 @router.post("/prompt-config/{name}/learned-constraints")

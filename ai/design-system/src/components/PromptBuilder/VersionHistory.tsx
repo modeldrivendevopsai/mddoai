@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Button } from "../Button"
 import { StatusPill } from "../StatusPill"
+import { SHIPPED_DEFAULT_VERSION } from "./types"
 import type { PromptConfig, PromptDiff } from "./types"
 
 interface VersionHistoryProps {
@@ -11,10 +12,18 @@ interface VersionHistoryProps {
   readOnly?: boolean
 }
 
+function versionLabel(version: string): string {
+  return version === SHIPPED_DEFAULT_VERSION ? "Original shipped prompt" : version
+}
+
 // Every save (generation_toolkit.prompt_config.storage.save_config) keeps
 // an immutable snapshot - this lists them, diffs two selected ones (a real
 // structural diff, computed server-side, not a raw text diff), and
-// restores one back over the live file.
+// restores one back over the live file. The list always includes the
+// git-committed shipped default as its own last entry (see
+// SHIPPED_DEFAULT_VERSION): "reverting to default" is just Restore on that
+// one entry, not a separate button or concept - there's always at least
+// this one entry, even for a config nobody has ever saved yet.
 export function VersionHistory({ onLoadHistory, onDiffVersions, onRestoreVersion, onRestored, readOnly = false }: VersionHistoryProps) {
   const [expanded, setExpanded] = useState(false)
   const [versions, setVersions] = useState<string[] | null>(null)
@@ -63,12 +72,6 @@ export function VersionHistory({ onLoadHistory, onDiffVersions, onRestoreVersion
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {error && <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--danger-500)", margin: 0 }}>{error}</p>}
 
-          {versions && versions.length === 0 && (
-            <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: 0 }}>
-              No saved versions yet.
-            </p>
-          )}
-
           {versions && versions.length > 0 && (
             <>
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -89,16 +92,16 @@ export function VersionHistory({ onLoadHistory, onDiffVersions, onRestoreVersion
                       name="version-a"
                       checked={selectedA === version}
                       onChange={() => setSelectedA(version)}
-                      aria-label={`Select ${version} as diff base`}
+                      aria-label={`Select ${versionLabel(version)} as diff base`}
                     />
                     <input
                       type="radio"
                       name="version-b"
                       checked={selectedB === version}
                       onChange={() => setSelectedB(version)}
-                      aria-label={`Select ${version} as diff target`}
+                      aria-label={`Select ${versionLabel(version)} as diff target`}
                     />
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{version}</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{versionLabel(version)}</span>
                     {!readOnly && (
                       <Button variant="ghost" size="sm" onClick={() => restore(version)}>
                         Restore

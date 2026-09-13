@@ -52,8 +52,6 @@ export function AcceleoStagePanel({
   onLoadPromptHistory,
   onDiffPromptVersions,
   onRestorePromptVersion,
-  onRevertPromptConfig,
-  onPromoteConfigToDefault,
   onCheckPromptReferences,
   onAddLearnedConstraints,
   onRemoveLearnedConstraint,
@@ -86,8 +84,6 @@ export function AcceleoStagePanel({
     onLoadPromptHistory &&
     onDiffPromptVersions &&
     onRestorePromptVersion &&
-    onRevertPromptConfig &&
-    onPromoteConfigToDefault &&
     onCheckPromptReferences &&
     onAddLearnedConstraints &&
     onRemoveLearnedConstraint && (
@@ -96,15 +92,13 @@ export function AcceleoStagePanel({
         readOnly={readOnly}
         callbacks={{
           onLoad: () => onLoadPromptConfig(GENERATION_MANIFEST.name),
-          onSave: (config) => onSavePromptConfig(GENERATION_MANIFEST.name, config as PromptConfig),
-          onPreview: () => onPreviewPromptConfig(GENERATION_MANIFEST.name),
+          onSave: (config, options) => onSavePromptConfig(GENERATION_MANIFEST.name, config as PromptConfig, options),
+          onPreview: (config) => onPreviewPromptConfig(GENERATION_MANIFEST.name, config),
           onListAvailableFiles,
           onUploadFile: onUploadAttachmentFile,
           onLoadHistory: () => onLoadPromptHistory(GENERATION_MANIFEST.name),
           onDiffVersions: (a, b) => onDiffPromptVersions(GENERATION_MANIFEST.name, a, b),
           onRestoreVersion: (version) => onRestorePromptVersion(GENERATION_MANIFEST.name, version),
-          onRevertToDefault: () => onRevertPromptConfig(GENERATION_MANIFEST.name),
-          onPromoteToDefault: () => onPromoteConfigToDefault(GENERATION_MANIFEST.name),
           onCheckReferences: () => onCheckPromptReferences(GENERATION_MANIFEST.name),
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),

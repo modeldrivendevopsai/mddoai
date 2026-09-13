@@ -167,20 +167,12 @@ def restore_psm_prompt_config_version(name: str, version: str) -> dict:
     return _request("POST", f"/psm/prompt-config/{name}/restore/{version}").json()
 
 
-def revert_psm_prompt_config(name: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/revert").json()
-
-
-def promote_psm_prompt_config_to_default(name: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/promote-to-default").json()
-
-
 def check_psm_prompt_config_references(name: str) -> list[dict]:
     return _request("GET", f"/psm/prompt-config/{name}/check-references").json()["broken"]
 
 
-def preview_psm_prompt_config(name: str) -> dict:
-    return _request("POST", f"/psm/prompt-config/{name}/preview").json()
+def preview_psm_prompt_config(name: str, config: dict | None = None) -> dict:
+    return _request("POST", f"/psm/prompt-config/{name}/preview", json=config).json()
 
 
 def add_psm_learned_constraints(name: str, constraints: list[str]) -> dict:
@@ -241,20 +233,12 @@ def restore_atl_prompt_config_version(name: str, version: str) -> dict:
     return _request("POST", f"/atl/prompt-config/{name}/restore/{version}").json()
 
 
-def revert_atl_prompt_config(name: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/revert").json()
-
-
-def promote_atl_prompt_config_to_default(name: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/promote-to-default").json()
-
-
 def check_atl_prompt_config_references(name: str) -> list[dict]:
     return _request("GET", f"/atl/prompt-config/{name}/check-references").json()["broken"]
 
 
-def preview_atl_prompt_config(name: str) -> dict:
-    return _request("POST", f"/atl/prompt-config/{name}/preview").json()
+def preview_atl_prompt_config(name: str, config: dict | None = None) -> dict:
+    return _request("POST", f"/atl/prompt-config/{name}/preview", json=config).json()
 
 
 def add_atl_learned_constraints(name: str, constraints: list[str]) -> dict:
@@ -311,20 +295,12 @@ def restore_acceleo_prompt_config_version(name: str, version: str) -> dict:
     return _request("POST", f"/acceleo/prompt-config/{name}/restore/{version}").json()
 
 
-def revert_acceleo_prompt_config(name: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/revert").json()
-
-
-def promote_acceleo_prompt_config_to_default(name: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/promote-to-default").json()
-
-
 def check_acceleo_prompt_config_references(name: str) -> list[dict]:
     return _request("GET", f"/acceleo/prompt-config/{name}/check-references").json()["broken"]
 
 
-def preview_acceleo_prompt_config(name: str) -> dict:
-    return _request("POST", f"/acceleo/prompt-config/{name}/preview").json()
+def preview_acceleo_prompt_config(name: str, config: dict | None = None) -> dict:
+    return _request("POST", f"/acceleo/prompt-config/{name}/preview", json=config).json()
 
 
 def add_acceleo_learned_constraints(name: str, constraints: list[str]) -> dict:

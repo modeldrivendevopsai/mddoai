@@ -96,44 +96,69 @@ Module-qualified access: `from generation_toolkit.prompt_config import storage, 
 references, rendering, resolution, learned_constraints`.
 
 A config on disk (`config_dir/{name}/default.json`, e.g. `generation/default.json`) has this
-shape: `{"attachments": [...], "learned_constraints": [str, ...], "_version": str}`. There is no
-separate stored `system_prompt` field: the config's own first `"text"` attachment IS the system
-message, derived at resolve time (see `resolution.py` below), not persisted as its own field. A
-human builds and reorders it the same way as any other attachment.
+shape: `{"attachments": [...], "_version": str}`. There is no separate stored `system_prompt`
+field: the config's own first `"text"` attachment IS the system message, derived at resolve time
+(see `resolution.py` below), not persisted as its own field. A human builds and reorders it the
+same way as any other attachment. `learned_constraints` is not part of this file at all: it lives
+in its own separate `config_dir/{name}/constraints.json`, see `learned_constraints.py` below.
 
-- **`storage.py`** — `load_config(config_dir, name) -> dict`: reads the live config, falling back
+- **`storage.py`**: `load_config(config_dir, name) -> dict`: reads the live config, falling back
   to `default.default.json` if it doesn't exist yet. `save_config(config_dir, name, config,
   context_values, files_root) -> dict`: dry-run validates by resolving every attachment against a
   caller-supplied sample `context_values` first (raising `PromptConfigValidationError` naming the
   broken attachment, rather than persisting something broken), stamps a new sortable
   `config["_version"]`, atomically writes the live file, and writes an immutable copy to
   `config_dir/{name}/history/default.{version}.json`.
-- **`history.py`** — `list_history`, `diff_versions` (a real structural diff: per attachment,
-  added/removed/changed; a change to the system-message-role attachment already shows up as its
-  own id in `attachments_changed`, no separate flag needed), `restore_version` (copies a
-  snapshot back over the live file via `save_config` again — a restore is just another save, never
-  destructive), `revert_to_default` (same, against the shipped default). `promote_live_to_default`
-  copies the current live config over the shipped `default.default.json` — a deliberate, explicit
-  action distinct from an ordinary save, since the default file is git-committed and "updating the
-  default" means preparing it to be committed as the new baseline.
-- **`references.py`** — `check_references(config_dir, name, context_values, files_root)`: the same
+- **`history.py`**: `list_history` returns every real saved version id, newest first, with
+  `SHIPPED_DEFAULT_VERSION` (the sentinel `"shipped"`) always appended as the oldest entry. The
+  git-committed `default.default.json` is folded into this same timeline as one more version rather
+  than a separate concept: `restore_version(config_dir, name, version, ...)` (copies a snapshot back
+  over the live file via `save_config` again, a restore is just another save, never destructive)
+  handles `version == SHIPPED_DEFAULT_VERSION` by reading the shipped default instead of a real
+  history file, so "revert to default" is just `restore_version(..., SHIPPED_DEFAULT_VERSION)`, not
+  a separate function or route. There is deliberately no "promote the current live version into the
+  new shipped default" action any more: the shipped file is git-committed source, so updating what
+  it means to be "the default" is a deliberate commit to that file, not an in-app button whose
+  one-way effect was hard to convey and easy to click by accident. `diff_versions` accepts
+  `SHIPPED_DEFAULT_VERSION` on either side too (a real structural diff: per attachment,
+  added/removed/changed; a change to the system-message-role attachment already shows up as its own
+  id in `attachments_changed`, no separate flag needed). None of this ever reads or writes
+  `learned_constraints`: that list lives entirely outside the versioned file these functions operate
+  on (see `learned_constraints.py` below), so a restore of the prompt's own text/attachments,
+  shipped default included, can never discard it.
+- **`references.py`**: `check_references(config_dir, name, context_values, files_root)`: the same
   resolution `save_config`'s dry-run uses, callable on demand against the *currently loaded*
   config, so a caller can detect drift since the last save (a metamodel file got renamed, a
   context key stopped being produced). `load_config` itself never fails this way — this is opt-in.
 - **`rendering.py`** — `render_user_content(config, prompt) -> str`: the stage-owned hook for
   turning a resolved prompt dict into the LLM's actual user message, a customization point
   `run_with_retry`'s own `render_user_content` parameter already supports.
-- **`resolution.py`** — `resolve_for_call(config_dir, name, context_values, files_root) -> (config,
-  parts)` and `render_prompt(...) -> dict`: the "load a config, resolve its attachments" sequence
-  every real caller needs, whether for an actual LLM call (`resolve_for_call`, parts fed to
-  `run_with_retry`) or a static preview/knowledge-mode render with no retry loop (`render_prompt`,
-  calls `prompt_builder.build_prompt` directly).
-- **`learned_constraints.py`** — `add_learned_constraints`/`remove_learned_constraint`: persist a
-  change to a config's own `learned_constraints` list through `storage.save_config` (versioned,
-  revertible, same as any other edit). Distinct from a pipeline run's own ephemeral, per-run
-  constraints list: a learned constraint is permanent, applies to every future run of that name
-  once promoted, and promotion is always a single, explicit, human-confirmed action, never
-  automatic capture of every typed correction.
+- **`resolution.py`**: `resolve_config(config, context_values, files_root) -> (config, parts)` is the
+  real resolution step - deriving the system message from a config's own first `"text"` attachment,
+  then resolving every remaining attachment - applied to a config the caller already has in hand.
+  `resolve_for_call(config_dir, name, context_values, files_root)` is the same thing for the common
+  case of a caller with no config of its own yet: it loads `name`'s saved config, then calls
+  `resolve_config`. A live LLM call always goes through `resolve_for_call` (parts fed to
+  `run_with_retry`); a preview capability resolving a UI's own current, unsaved draft calls
+  `resolve_config` directly instead, so what a human sees previewed is the exact draft on screen, not
+  whatever the last save happened to leave on disk. `render_prompt(...) -> dict` is a static,
+  no-retry render (`resolve_for_call` plus `prompt_builder.build_prompt`) for a caller that wants
+  "what would be sent" from the saved config with no retry loop at all (e.g. a knowledge-mode drift
+  check).
+- **`learned_constraints.py`**: `add_learned_constraints`/`remove_learned_constraint`/
+  `load_constraints`: persist and read a config's own `learned_constraints` list from its own
+  separate `config_dir/{name}/constraints.json`, entirely outside `storage.py`/`history.py`'s
+  versioned file. Restoring any version of the prompt's own text/attachments, the shipped default
+  included, never touches this file, so a permanent constraint stays permanent through every one of
+  them.
+  `load_constraints` migrates once from an older config that still carries `learned_constraints`
+  embedded in the versioned file itself (this module's shape before it got its own store), so
+  adopting this never silently drops a team's already-accumulated constraints. Distinct from a
+  pipeline run's own ephemeral, per-run constraints list: a learned constraint is permanent,
+  applies to every future run of that name once promoted, and promotion is always a single,
+  explicit, human-confirmed action, never automatic capture of every typed correction.
+  `resolution.resolve_for_call` merges the real, current list from this store into the config it
+  hands back, so every real caller sees it without needing to know this file exists.
 
 ## `routes/` — the shared prompt-config/files/uploads HTTP surface
 
@@ -145,9 +170,10 @@ listing, one attachment upload). This package builds each shape once, and every 
 same routing/error-translation logic three times over.
 
 - **`prompt_config.py`** — `PromptConfigRouter(config_dir, files_root, context_for)`: builds the
-  full prompt-config `APIRouter` (get/put, `history`, `diff`, `restore/{version}`,
-  `revert`, `promote-to-default`, `check-references`, `learned-constraints` GET/POST/DELETE,
-  `preview`) as bound methods a caller re-exports under the same names its own tests already import
+  full prompt-config `APIRouter` (get/put, `history`, `diff`, `restore/{version}`, which also
+  handles "revert to default" when called with `history.SHIPPED_DEFAULT_VERSION` as `version`,
+  `check-references`, `learned-constraints` GET/POST/DELETE, `preview`) as bound methods a caller
+  re-exports under the same names its own tests already import
   directly (e.g. `get_config_endpoint = router.get_config_endpoint`). `context_for(name) -> dict[str, str]`
   is the one real per-service variation: which `name`s are known and what sample context each one
   resolves against. `atl_agent`/`acceleo_agent` each have exactly one name; `psm_agent` has two

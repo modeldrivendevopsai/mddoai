@@ -471,7 +471,7 @@ The service starts at `http://localhost:8050`.
 ### `routes/psm.py` — psm-stage-specific
 
 Two different kinds of real HTTP surface: thin pass-throughs to `psm_agent`'s own real
-prompt-config capability (no run awareness — a prompt config is editable any time, independent of
+prompt-config capability (no run awareness: a prompt config is editable any time, independent of
 any one run), and `promote_constraints`, which IS run-aware.
 
 | Endpoint | Notes |
@@ -480,9 +480,7 @@ any one run), and `promote_constraints`, which IS run-aware.
 | `PUT /psm/prompt-config/{name}` | Proxies `PUT /prompt-config/{name}`. |
 | `GET /psm/prompt-config/{name}/history` | Proxies the version-history listing. |
 | `GET /psm/prompt-config/{name}/diff?a=&b=` | Proxies the structural diff between two versions. |
-| `POST /psm/prompt-config/{name}/restore/{version}` | Proxies restoring a past version. |
-| `POST /psm/prompt-config/{name}/revert` | Proxies reverting to the shipped default. |
-| `POST /psm/prompt-config/{name}/promote-to-default` | Proxies promoting the live config over the shipped default. |
+| `POST /psm/prompt-config/{name}/restore/{version}` | Proxies restoring a past version - "revert to default" is this same route called with `version=shipped`, not a separate endpoint. |
 | `GET /psm/prompt-config/{name}/check-references` | Proxies on-demand drift detection against the currently loaded config. |
 | `POST /psm/prompt-config/{name}/preview` | Proxies the exact text a real call would send the LLM, no real call spent. |
 | `POST /psm/prompt-config/{name}/learned-constraints` | Proxies adding permanent constraints. |

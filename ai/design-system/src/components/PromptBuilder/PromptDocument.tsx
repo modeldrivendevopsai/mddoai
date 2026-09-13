@@ -4,6 +4,7 @@ import { Button } from "../Button"
 import { PromoteConstraintsAction } from "../PromoteConstraintsAction"
 import { DocumentBlock } from "./DocumentBlock"
 import { LearnedConstraintsList } from "./LearnedConstraintsList"
+import { DEFAULT_FILE_ATTACHMENT_NAME } from "./types"
 import type { Attachment, AttachmentType, BrokenReference, PromptBuilderPromotion } from "./types"
 
 interface PromptDocumentProps {
@@ -47,11 +48,17 @@ function newLocalId(): string {
   return `attachment_${Date.now()}_${_nextLocalId++}`
 }
 
+const ADD_BUTTON_HELP: Record<AttachmentType, string> = {
+  text: "Prose you write yourself, part of the assembled prompt.",
+  file: "Points at a real file - pick one already uploaded, upload a new one, or drag a file onto this document.",
+  context: "Auto-filled with real data from this pipeline, resolved live whenever you preview or generate (e.g. the architecture model or target platform docs).",
+}
+
 function defaultAttachment(type: AttachmentType): Attachment {
   const id = newLocalId()
   if (type === "text") return { id, name: "New text", type, content: "" }
-  if (type === "file") return { id, name: "New file reference", type, path: "" }
-  return { id, name: "New pipeline value", type, key: "" }
+  if (type === "file") return { id, name: DEFAULT_FILE_ATTACHMENT_NAME, type, path: "" }
+  return { id, name: "New auto-filled data", type, key: "" }
 }
 
 // The real, single "document" a human builds from scratch: every
@@ -217,6 +224,7 @@ export function PromptDocument({
             onDragEnd={clearDrag}
             onHoverEdge={(edge) => setDropIndex(edge === "before" ? index : index + 1)}
             onPreviewAttachment={onPreviewAttachment}
+            onUploadFile={onUploadFile}
             onDrop={(e) => handleDropAt(e, index)}
           />
         )
@@ -231,18 +239,32 @@ export function PromptDocument({
           onDrop={(e) => handleDropAt(e, attachments.length)}
           style={{
             display: "flex",
+            flexDirection: "column",
             gap: "var(--space-2)",
-            flexWrap: "wrap",
             paddingTop: "var(--space-3)",
             marginTop: attachments.length > 0 ? "var(--space-2)" : 0,
             borderTop: attachments.length > 0 ? "1px solid var(--border-subtle)" : "none",
           }}
         >
-          {attachmentTypes.map((type) => (
-            <Button key={type} variant="secondary" size="sm" icon="Plus" onClick={() => add(type)}>
-              Add {type === "text" ? "text" : type === "file" ? "file reference" : "pipeline value"}
-            </Button>
-          ))}
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            {attachmentTypes.map((type) => (
+              <Button key={type} variant="secondary" size="sm" icon="Plus" onClick={() => add(type)} title={ADD_BUTTON_HELP[type]}>
+                Add {type === "text" ? "text" : type === "file" ? "file reference" : "auto-filled data"}
+              </Button>
+            ))}
+          </div>
+          {/* Spelled out once for all three add-buttons, not per-button
+              tooltip only: "auto-filled data" in particular names a backend
+              concept (a "context" attachment, generation_toolkit.prompt_config's
+              own term) that explains nothing on its own to someone who
+              hasn't read that code. */}
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--text-muted)", margin: 0 }}>
+            <strong>Text</strong> is prose you write yourself. <strong>File reference</strong> points at a real file - pick
+            one already known to the backend, upload a new one from the picker below, or drag a file anywhere onto this
+            document. <strong>Auto-filled data</strong> is a slot that's automatically filled in with real data from this
+            pipeline, resolved live whenever you preview or generate (for example the architecture model or the target
+            platform's documentation - whichever this stage offers).
+          </p>
         </div>
       )}
 

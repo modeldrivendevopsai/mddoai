@@ -69,8 +69,6 @@ export function PsmStagePanel({
   onLoadPromptHistory,
   onDiffPromptVersions,
   onRestorePromptVersion,
-  onRevertPromptConfig,
-  onPromoteConfigToDefault,
   onCheckPromptReferences,
   onAddLearnedConstraints,
   onRemoveLearnedConstraint,
@@ -135,8 +133,6 @@ export function PsmStagePanel({
     onLoadPromptHistory &&
     onDiffPromptVersions &&
     onRestorePromptVersion &&
-    onRevertPromptConfig &&
-    onPromoteConfigToDefault &&
     onCheckPromptReferences &&
     onAddLearnedConstraints &&
     onRemoveLearnedConstraint && (
@@ -145,15 +141,13 @@ export function PsmStagePanel({
         readOnly={readOnly}
         callbacks={{
           onLoad: () => onLoadPromptConfig(activeManifest.name),
-          onSave: (config) => onSavePromptConfig(activeManifest.name, config as PromptConfig),
-          onPreview: () => onPreviewPromptConfig(activeManifest.name),
+          onSave: (config, options) => onSavePromptConfig(activeManifest.name, config as PromptConfig, options),
+          onPreview: (config) => onPreviewPromptConfig(activeManifest.name, config),
           onListAvailableFiles,
           onUploadFile: onUploadAttachmentFile,
           onLoadHistory: () => onLoadPromptHistory(activeManifest.name),
           onDiffVersions: (a, b) => onDiffPromptVersions(activeManifest.name, a, b),
           onRestoreVersion: (version) => onRestorePromptVersion(activeManifest.name, version),
-          onRevertToDefault: () => onRevertPromptConfig(activeManifest.name),
-          onPromoteToDefault: () => onPromoteConfigToDefault(activeManifest.name),
           onCheckReferences: () => onCheckPromptReferences(activeManifest.name),
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(activeManifest.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(activeManifest.name, constraint),

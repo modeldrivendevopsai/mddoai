@@ -3,6 +3,7 @@ import type {
   BrokenReference,
   DocsOptions,
   EventsResponse,
+  LearnedConstraintsUpdate,
   ManifestEntry,
   MessageResponse,
   Provider,
@@ -28,16 +29,24 @@ import type {
 // body (e.g. "'psm' is not the current pending stage", or a downstream
 // error's own message on /message's 500). Surface that instead of just the
 // status code, a bare "request failed: 500" told a real user nothing.
+//
+// The thrown Error also carries the real HTTP status as a plain "status"
+// property (not a dedicated exported class - callers that don't care about
+// it keep using `e instanceof Error` exactly as before) so a caller that
+// needs to tell a permanent client error (4xx) apart from a transient one
+// (5xx, or no response at all) can, without parsing the message text - see
+// design-system's own useAutoSave, which only auto-retries a failed save
+// when it isn't a 4xx.
 async function errorFor(label: string, res: Response): Promise<Error> {
+  let message: string
   try {
     const body = await res.json()
-    if (typeof body?.detail === "string") {
-      return new Error(body.detail)
-    }
+    message = typeof body?.detail === "string" ? body.detail : `${label} request failed: ${res.status}`
   } catch {
     // Body wasn't JSON (or had no "detail"), fall through to the generic message.
+    message = `${label} request failed: ${res.status}`
   }
-  return new Error(`${label} request failed: ${res.status}`)
+  return Object.assign(new Error(message), { status: res.status })
 }
 
 export async function startPipeline(
@@ -230,19 +239,33 @@ export async function getPromptConfig(stage: PromptBuilderStage, name: string): 
 export async function savePromptConfig(
   stage: PromptBuilderStage,
   name: string,
-  config: PromptConfig
+  config: PromptConfig,
+  options?: { keepalive?: boolean }
 ): Promise<PromptConfig> {
   const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
+    keepalive: options?.keepalive,
   })
   if (!res.ok) throw await errorFor("Save prompt config", res)
   return res.json()
 }
 
-export async function previewPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptPreview> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/preview`, { method: "POST" })
+export async function previewPromptConfig(
+  stage: PromptBuilderStage,
+  name: string,
+  config: PromptConfig
+): Promise<PromptPreview> {
+  // Sends the caller's own current, unsaved draft as the request body so
+  // the preview reflects that draft exactly, not whatever the last Save
+  // left on disk (see ai/orchestrator's own preview endpoints, all the way
+  // down to generation_toolkit.prompt_config.resolution.resolve_config).
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
   if (!res.ok) throw await errorFor("Prompt preview", res)
   return res.json()
 }
@@ -271,6 +294,10 @@ export async function diffPromptConfigVersions(
   return res.json()
 }
 
+// "Revert to default" is not a separate function or endpoint: the shipped
+// default is just the oldest entry in the same history getPromptConfigHistory
+// returns (see design-system's own SHIPPED_DEFAULT_VERSION), restored
+// through this exact same call with that entry's own version id.
 export async function restorePromptConfigVersion(
   stage: PromptBuilderStage,
   name: string,
@@ -280,20 +307,6 @@ export async function restorePromptConfigVersion(
     method: "POST",
   })
   if (!res.ok) throw await errorFor("Restore prompt version", res)
-  return res.json()
-}
-
-export async function revertPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/revert`, { method: "POST" })
-  if (!res.ok) throw await errorFor("Revert prompt config", res)
-  return res.json()
-}
-
-export async function promoteConfigToDefault(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
-  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/promote-to-default`, {
-    method: "POST",
-  })
-  if (!res.ok) throw await errorFor("Promote config to default", res)
   return res.json()
 }
 
@@ -307,7 +320,7 @@ export async function addLearnedConstraints(
   stage: PromptBuilderStage,
   name: string,
   constraints: string[]
-): Promise<PromptConfig> {
+): Promise<LearnedConstraintsUpdate> {
   const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -321,7 +334,7 @@ export async function removeLearnedConstraint(
   stage: PromptBuilderStage,
   name: string,
   constraint: string
-): Promise<PromptConfig> {
+): Promise<LearnedConstraintsUpdate> {
   const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -333,8 +346,14 @@ export async function removeLearnedConstraint(
 
 // Run-aware (see each stage's own stages/<stage>/actions.py promote_constraints):
 // no name here, the backend infers it from the current run's own latest,
-// real, successfully-validated result for that stage.
-export async function promoteConstraints(stage: PromptBuilderStage, constraints: string[]): Promise<PromptConfig> {
+// real, successfully-validated result for that stage. Returns just the
+// updated constraints list, same as add/remove above - promoting is really
+// just "add", on the backend side (see psm/actions.py's own
+// promote_constraints, which calls add_learned_constraints directly).
+export async function promoteConstraints(
+  stage: PromptBuilderStage,
+  constraints: string[]
+): Promise<LearnedConstraintsUpdate> {
   const res = await fetch(`/orchestrator-api/${stage}/promote-constraints`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

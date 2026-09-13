@@ -84,22 +84,16 @@ def test_restore_psm_prompt_config_version():
     assert result["system_prompt"] == "restored"
 
 
-def test_revert_psm_prompt_config():
+def test_restore_psm_prompt_config_version_with_the_shipped_default_is_revert():
+    # "Revert to default" is not a separate client function or endpoint any
+    # more - restoring generation_toolkit.prompt_config.history's own
+    # SHIPPED_DEFAULT_VERSION sentinel through this same restore call IS
+    # reverting to default (see history.py's own docstring).
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "shipped"})) as mock_request:
-        integration_runner_client.revert_psm_prompt_config("generation")
+        integration_runner_client.restore_psm_prompt_config_version("generation", "shipped")
 
     mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/revert",
-        timeout=10.0,
-    )
-
-
-def test_promote_psm_prompt_config_to_default():
-    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x"})) as mock_request:
-        integration_runner_client.promote_psm_prompt_config_to_default("generation")
-
-    mock_request.assert_called_once_with(
-        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/promote-to-default",
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/restore/shipped",
         timeout=10.0,
     )
 
@@ -117,7 +111,19 @@ def test_preview_psm_prompt_config():
 
     mock_request.assert_called_once_with(
         "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/preview",
-        timeout=10.0,
+        timeout=10.0, json=None,
+    )
+    assert result == {"system_prompt": "x", "user_content": "y"}
+
+
+def test_preview_psm_prompt_config_forwards_a_given_draft():
+    draft = {"attachments": [], "learned_constraints": []}
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"system_prompt": "x", "user_content": "y"})) as mock_request:
+        result = integration_runner_client.preview_psm_prompt_config("generation", draft)
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/preview",
+        timeout=10.0, json=draft,
     )
     assert result == {"system_prompt": "x", "user_content": "y"}
 

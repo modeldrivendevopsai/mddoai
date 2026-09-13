@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react"
-import { Button } from "../Button"
+import { useEffect, useRef, useState } from "react"
 import { JsonView } from "./JsonView"
 import { PreviewPane } from "./PreviewPane"
 import { PromptDocument } from "./PromptDocument"
+import { useAutoSave } from "./useAutoSave"
 import { VersionHistory } from "./VersionHistory"
-import type { BrokenReference, PromptBuilderProps, PromptConfig } from "./types"
+import type { BrokenReference, LearnedConstraintsUpdate, PromptBuilderProps, PromptConfig } from "./types"
 
 export type {
   Attachment,
   AttachmentType,
   BrokenReference,
+  LearnedConstraintsUpdate,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
   PromptBuilderPromotion,
@@ -29,23 +30,33 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   const [config, setConfig] = useState<PromptConfig | null>(null)
   const [availableFiles, setAvailableFiles] = useState<string[] | undefined>(undefined)
   const [broken, setBroken] = useState<BrokenReference[]>([])
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  // Cached from the last onPreview() call (see loadAttachmentPreview
-  // below), keyed by attachment id - reused across every chip's own "Show
-  // real content" click, rather than re-resolving the whole config on
-  // every single click.
-  const [previewAttachments, setPreviewAttachments] = useState<Record<string, string> | null>(null)
+  // A real preview response, tagged with the exact config it was resolved
+  // against - not React state, since nothing here is ever rendered
+  // directly, only read inside loadAttachmentPreview below. Declared
+  // unconditionally up front with every other hook, not after the
+  // loading-state early returns below: a hook called on only some renders
+  // (e.g. only once `config` has finished loading) breaks React's own
+  // "same hooks, same order, every render" rule. Tagging by config, rather
+  // than a separate cache + a config-watching clear effect + a separate
+  // staleness-check ref, is self-healing on its own: a late response for
+  // an old draft can only ever overwrite this with a config that no longer
+  // matches the current render's own `config`, so the very next read
+  // simply misses and re-fetches - it can never be read back as a false
+  // hit for a newer draft.
+  const previewCacheRef = useRef<{ config: PromptConfig; attachments: Record<string, string> } | null>(null)
+  const { saving, saveError, markSaved } = useAutoSave(config, setConfig, callbacks, setBroken)
 
   useEffect(() => {
     let cancelled = false
     setLoadError(null)
-    setPreviewAttachments(null)
+    previewCacheRef.current = null
     callbacks
       .onLoad()
       .then((loaded) => {
-        if (!cancelled) setConfig(loaded)
+        if (cancelled) return
+        markSaved(loaded.attachments)
+        setConfig(loaded)
       })
       .catch((e) => {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : "Could not load prompt.")
@@ -79,41 +90,15 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
     )
   }
 
-  const save = async () => {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const saved = await callbacks.onSave(config)
-      setConfig(saved)
-      setBroken(await callbacks.onCheckReferences())
-      // A save is the only thing that can change what a real call would
-      // resolve (an in-memory, unsaved edit never does, see
-      // loadAttachmentPreview's own comment) - without this, a chip
-      // previewed once before a save would keep showing its pre-save
-      // content forever, since the cache below is otherwise only cleared
-      // by a fresh save.
-      setPreviewAttachments(null)
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Save failed.")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const revert = async () => setConfig(await callbacks.onRevertToDefault())
-  const promoteToDefault = async () => {
-    await callbacks.onPromoteToDefault()
-  }
-
-  // Only merges learned_constraints (+ the new _version that save stamped)
-  // back into local state, never the whole response - the backend's own
-  // add/remove both reload the config fresh from disk first (see
-  // generation_toolkit.prompt_config.learned_constraints), so a naive
-  // setConfig(response) here would silently discard any unsaved edit to
-  // system_prompt or attachments the human made in this same sitting,
-  // before ever clicking Save.
-  const mergeLearnedConstraints = (updated: PromptConfig) =>
-    setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints, _version: updated._version })
+  // Only merges learned_constraints back into local state, never the whole
+  // response - add/remove/promote each return just the updated constraints
+  // list now (see LearnedConstraintsUpdate), not a full config, since
+  // they no longer touch the versioned attachments/text at all. Merging
+  // rather than replacing still matters: a naive setConfig(response) would
+  // silently discard any attachments edit the human made in this same
+  // sitting that hasn't been auto-saved yet.
+  const mergeLearnedConstraints = (updated: LearnedConstraintsUpdate) =>
+    setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints })
   const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints([constraint]))
   const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(constraint))
   // Same merge as add/remove above: a promotion also just changes
@@ -131,17 +116,29 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
       }
     : undefined
 
-  // Backed by the same preview endpoint PreviewPane already calls - the
-  // first chip expanded in a sitting fetches every attachment's real
-  // content in one call, every later chip just reads the cache. May go
-  // stale for one save cycle (the same real limitation PreviewPane's own
-  // "Preview exact prompt text" button already has) - acceptable since
-  // this is a preview, not the source of truth being saved.
+  // Backed by the same preview endpoint PreviewPane already calls, resolved
+  // against the exact current `config` (attachments and edits included) -
+  // the first chip expanded against a given draft fetches every
+  // attachment's real content in one call, every later chip on that SAME
+  // draft just reads the cache (see previewCacheRef's own comment above for
+  // why a plain config-identity tag is enough, with no separate clearing
+  // step or staleness check needed).
   const loadAttachmentPreview = async (id: string): Promise<string | undefined> => {
-    if (previewAttachments) return previewAttachments[id]
-    const preview = await callbacks.onPreview()
-    setPreviewAttachments(preview.attachments)
+    if (previewCacheRef.current?.config === config) return previewCacheRef.current.attachments[id]
+    const preview = await callbacks.onPreview(config)
+    previewCacheRef.current = { config, attachments: preview.attachments }
     return preview.attachments[id]
+  }
+
+  // A restore (Version History's own Restore button, the shipped default
+  // included - see VersionHistory.tsx's own SHIPPED_DEFAULT_VERSION) is
+  // already a real save on the backend - marking it caught up here too,
+  // not just setConfig(restored) alone, stops the auto-save effect above
+  // from treating the resulting config change as a fresh, unsaved edit and
+  // immediately re-saving the exact thing that was just restored.
+  const handleRestored = (restored: PromptConfig) => {
+    markSaved(restored.attachments)
+    setConfig(restored)
   }
 
   return (
@@ -175,28 +172,24 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
         promote={promoteConstraints ? { initialBlock: promote!.initialBlock, onPromote: promoteConstraints } : undefined}
       />
 
-      <PreviewPane onPreview={() => callbacks.onPreview()} />
+      <PreviewPane onPreview={() => callbacks.onPreview(config)} />
       <JsonView config={config} />
       <VersionHistory
         onLoadHistory={() => callbacks.onLoadHistory()}
         onDiffVersions={(versionA, versionB) => callbacks.onDiffVersions(versionA, versionB)}
         onRestoreVersion={(version) => callbacks.onRestoreVersion(version)}
-        onRestored={setConfig}
+        onRestored={handleRestored}
         readOnly={readOnly}
       />
 
+      {/* No manual Save button: an edit auto-saves itself a short pause
+          after you stop typing (see useAutoSave). This is the one place
+          that says so, since nothing else on screen would otherwise tell
+          you your edits are actually being persisted. */}
       {!readOnly && (
-        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          <Button variant="primary" size="sm" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={revert}>
-            Revert to default
-          </Button>
-          <Button variant="ghost" size="sm" onClick={promoteToDefault}>
-            Make this the new default
-          </Button>
-        </div>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--text-muted)", margin: 0 }}>
+          {saving ? "Saving…" : "All changes saved automatically"}
+        </p>
       )}
       {saveError && (
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--danger-500)", margin: 0 }}>

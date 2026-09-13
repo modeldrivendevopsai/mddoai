@@ -14,20 +14,26 @@ from pathlib import Path
 from generation_toolkit.attachments.resolve import resolve_attachments
 from generation_toolkit.prompt_builder import build_prompt
 
-from . import storage
+from . import learned_constraints, storage
 
 
-def resolve_for_call(
-    config_dir: str | Path,
-    name: str,
+def resolve_config(
+    config: dict,
     context_values: dict[str, str],
     files_root: str | Path | list[str | Path],
 ) -> tuple[dict, dict[str, str]]:
-    """Loads name's real config and resolves its attachments against
-    context_values. Returns (config, parts): parts is the ordered dict a
-    caller passes straight to generation_agent.run_with_retry() (it calls
-    build_prompt() itself once per round), or to build_prompt() directly
-    for a one-shot, no-retry render.
+    """The real resolution step resolve_for_call below applies to a config
+    it just loaded from disk, factored out to also accept a config a
+    caller already has in hand (e.g. a UI's own current, unsaved draft) -
+    a "preview my current edits" capability needs the exact same
+    resolution a real call would do, against attachments that were never
+    written to config_dir at all, not a second, parallel implementation
+    that only approximates it.
+
+    Returns (config, parts): parts is the ordered dict a caller passes
+    straight to generation_agent.run_with_retry() (it calls build_prompt()
+    itself once per round), or to build_prompt() directly for a one-shot,
+    no-retry render.
 
     There's no separate "system_prompt" field stored on disk: the config's
     own first attachment, if it's a "text" one, IS the system message - a
@@ -40,8 +46,14 @@ def resolve_for_call(
     derivation happens, not duplicated per caller. `parts` only resolves
     the REMAINING attachments (the ones that become the user message), so
     the system-prompt-role attachment is never double-counted into both
-    messages."""
-    config = storage.load_config(config_dir, name)
+    messages.
+
+    Whatever `config` already carries under "learned_constraints" (if
+    anything) passes through untouched - this function has no config_dir/
+    name of its own to look up the real, current constraints store with
+    (see learned_constraints.load_constraints), so a caller that needs the
+    real ones merged in (resolve_for_call below, or preview_endpoint's own
+    given-a-draft path) is responsible for putting them there first."""
     attachments = config.get("attachments", [])
     system_prompt = ""
     body_attachments = attachments
@@ -50,6 +62,23 @@ def resolve_for_call(
         body_attachments = attachments[1:]
     parts = resolve_attachments(body_attachments, context_values, files_root)
     return {**config, "system_prompt": system_prompt}, parts
+
+
+def resolve_for_call(
+    config_dir: str | Path,
+    name: str,
+    context_values: dict[str, str],
+    files_root: str | Path | list[str | Path],
+) -> tuple[dict, dict[str, str]]:
+    """Loads name's real, saved config, merges in its real, current
+    learned_constraints (from their own separate, never-reverted store -
+    see learned_constraints.with_current_constraints), and resolves the
+    result via resolve_config above - the shape every real generation call
+    (which has no draft of its own, only ever the saved config) actually
+    wants."""
+    config = storage.load_config(config_dir, name)
+    config = learned_constraints.with_current_constraints(config_dir, name, config)
+    return resolve_config(config, context_values, files_root)
 
 
 def render_prompt(

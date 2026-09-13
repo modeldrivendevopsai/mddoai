@@ -1,9 +1,12 @@
-import { useLayoutEffect, useRef, useState } from "react"
-import type { CSSProperties, DragEvent, ReactNode } from "react"
+import { useState } from "react"
+import type { DragEvent } from "react"
 import { Button } from "../Button"
 import { Icon } from "../Icon"
-import { CodeBlock } from "../../CodeBlock"
-import { estimateTokens } from "./tokenEstimate"
+import { AttachmentPreview } from "./AttachmentPreview"
+import { ContextAttachmentFields, ContextChip } from "./ContextAttachment"
+import { fieldLabelStyle, inputStyle } from "./fieldStyles"
+import { FileAttachmentFields, FileChip } from "./FileAttachment"
+import { TextBlock } from "./TextBlock"
 import type { Attachment } from "./types"
 
 interface DocumentBlockProps {
@@ -19,6 +22,12 @@ interface DocumentBlockProps {
   // demand when the block is expanded - undefined means "not fetched (or
   // this attachment doesn't resolve to anything) yet," not "empty."
   onPreviewAttachment?: (id: string) => Promise<string | undefined>
+  // A real backend upload endpoint for a "file" attachment's own picker
+  // below - the only way to attach a real OS file was previously
+  // drag-and-drop onto the document as a whole, with no browse button
+  // anywhere in this picker itself. Optional, same precedent as
+  // onPreviewAttachment: not every caller has a real upload endpoint yet.
+  onUploadFile?: (file: File) => Promise<string>
   // Which edge of this block a drag is currently hovering, so
   // PromptDocument's own insertion point can be shown right where it would
   // land - null when no drag is over this block at all.
@@ -37,19 +46,22 @@ interface DocumentBlockProps {
 }
 
 // Three real visual shapes, one drag/drop mechanism. A "text" attachment
-// is prose a human actually wrote - a heading plus its own explanation,
-// exactly like a real ai-research prompt.md section ("Reference: GitHub
-// Actions PSM metamodel... Use it as a structural reference...") - so it
-// renders like the system prompt itself: a small label, then the content
-// always visible right there, no click needed to read it. "file" and
-// "context" attachments have no prose of their own to show inline (a real
-// file's raw content, or a pipeline value only known at run time), so
-// each renders as a small, non-expanding reference chip - the real
-// ai-research prompts reference a file by name inline too, never paste it
-// into the document. Every shape shares the identical drag/drop mechanics
-// (onDragStart/onHoverEdge/onDrop, computed here since this block owns its
-// own bounding rect) and the up/down buttons, kept for keyboard/no-drag
-// accessibility.
+// is prose a human actually wrote (see TextBlock.tsx), rendered like the
+// system prompt itself: a small label, then the content always visible
+// right there, no click needed to read it. "file" and "context" attachments
+// (see FileAttachment.tsx/ContextAttachment.tsx) have no prose of their own
+// to show inline (a real file's raw content, or auto-filled data only known
+// at run time), so each renders as a small, non-expanding reference chip -
+// the real ai-research prompts reference a file by name inline too, never
+// paste it into the document. Every shape shares the identical drag/drop
+// mechanics (onDragStart/onHoverEdge/onDrop, computed here since this block
+// owns its own bounding rect) and the up/down buttons, kept for
+// keyboard/no-drag accessibility. This file itself owns only that shared
+// chrome plus the type-agnostic "Name" field, "Detach into editable text"
+// button, and the drag insertion line - everything type-specific about a
+// "file" or "context" attachment's own expanded picker lives in its own
+// file, one concern each, the same split every other file in this folder
+// already follows.
 export function DocumentBlock({
   attachment,
   isFirst,
@@ -67,6 +79,7 @@ export function DocumentBlock({
   onDragEnd,
   onHoverEdge,
   onPreviewAttachment,
+  onUploadFile,
   onDrop,
 }: DocumentBlockProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -196,51 +209,17 @@ export function DocumentBlock({
           </label>
 
           {attachment.type === "file" && (
-            <label style={fieldLabelStyle}>
-              Real file
-              {availableFiles ? (
-                <select
-                  className="orch-field"
-                  value={attachment.path ?? ""}
-                  disabled={readOnly}
-                  onChange={(e) => onChange({ ...attachment, path: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="" disabled>
-                    Select a real file
-                  </option>
-                  {availableFiles.map((path) => (
-                    <option key={path} value={path}>
-                      {path}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input className="orch-field" type="text" value={attachment.path ?? ""} disabled style={inputStyle} />
-              )}
-            </label>
+            <FileAttachmentFields
+              attachment={attachment}
+              availableFiles={availableFiles}
+              readOnly={readOnly}
+              onUploadFile={onUploadFile}
+              onChange={onChange}
+            />
           )}
 
           {attachment.type === "context" && (
-            <label style={fieldLabelStyle}>
-              Pipeline value
-              <select
-                className="orch-field"
-                value={attachment.key ?? ""}
-                disabled={readOnly}
-                onChange={(e) => onChange({ ...attachment, key: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="" disabled>
-                  Select a real pipeline value
-                </option>
-                {contextKeyOptions.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ContextAttachmentFields attachment={attachment} contextKeyOptions={contextKeyOptions} readOnly={readOnly} onChange={onChange} />
           )}
 
           {onPreviewAttachment && <AttachmentPreview attachmentId={attachment.id} onPreviewAttachment={onPreviewAttachment} />}
@@ -262,303 +241,6 @@ export function DocumentBlock({
   )
 }
 
-// A "text" attachment is prose - a heading plus its own always-visible
-// content, no accordion, nothing to click to read it. The name field
-// doubles as that heading, edited in place rather than behind a separate
-// "expand to rename" step. isSystemPrompt marks the one real structural
-// rule this document has (see PromptDocument.tsx's own docstring): the
-// FIRST text block is the LLM's system message, everything else becomes
-// the user message - dragging a different text block above it changes
-// which one plays that role, so this is just a live label, not a fixed
-// field.
-function TextBlock({
-  attachment,
-  readOnly,
-  isSystemPrompt,
-  dragHandle,
-  controls,
-  onChange,
-}: {
-  attachment: Attachment
-  readOnly: boolean
-  isSystemPrompt: boolean
-  dragHandle: ReactNode
-  controls: ReactNode
-  onChange: (attachment: Attachment) => void
-}) {
-  const tokenEstimate = estimateTokens(attachment.content ?? "")
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-        {dragHandle}
-        {isSystemPrompt && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--text-2xs)",
-              color: "var(--brand)",
-              background: "var(--brand-faint)",
-              padding: "2px 8px",
-              borderRadius: "var(--radius-pill)",
-              flexShrink: 0,
-            }}
-          >
-            System message
-          </span>
-        )}
-        {/* No placeholder text: text-transform: uppercase below applies to
-            placeholder text too, which turned a real instructional
-            sentence into a shouty, chaotic-looking wall of caps. Truly
-            optional means truly blank when empty, not filled with
-            styled-as-if-real guidance text. */}
-        <input
-          type="text"
-          value={attachment.name}
-          disabled={readOnly}
-          onChange={(e) => onChange({ ...attachment, name: e.target.value })}
-          title="Optional heading - leave blank for plain connecting text"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: "none",
-            background: "transparent",
-            padding: 0,
-            fontFamily: "var(--font-sans)",
-            fontSize: "var(--text-xs)",
-            fontWeight: "var(--weight-semibold)",
-            color: "var(--text-faint)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-          }}
-        />
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-faint)", flexShrink: 0 }}>
-          ~{tokenEstimate} tok
-        </span>
-        {controls}
-      </div>
-      <AutoGrowTextarea
-        value={attachment.content ?? ""}
-        disabled={readOnly}
-        onChange={(value) => onChange({ ...attachment, content: value })}
-        placeholder="Write this section's own text - it appears in the assembled prompt exactly here, in this order."
-        style={{
-          // calc(), not width: 100% - a sibling marginLeft still ADDS to a
-          // 100%-of-parent width, pushing the real right edge past the
-          // parent by exactly that margin (confirmed live - this was the
-          // real cause of this document horizontally overflowing/scrolling).
-          width: "calc(100% - var(--space-6))",
-          boxSizing: "border-box",
-          border: "none",
-          padding: 0,
-          marginLeft: "var(--space-6)",
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--text-sm)",
-          background: "transparent",
-          color: "var(--text-body)",
-        }}
-      />
-    </div>
-  )
-}
-
-// A "file"/"context" chip's own real resolved content, fetched on demand
-// (not automatically for every chip on the page) once its picker is
-// expanded - the same real text build_prompt() folds into the assembled
-// prompt, not a re-derived summary of it.
-function AttachmentPreview({
-  attachmentId,
-  onPreviewAttachment,
-}: {
-  attachmentId: string
-  onPreviewAttachment: (id: string) => Promise<string | undefined>
-}) {
-  const [content, setContent] = useState<string | null>(null)
-  const [visible, setVisible] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    onPreviewAttachment(attachmentId)
-      .then((result) => {
-        setContent(result ?? "(nothing resolved for this attachment)")
-        setVisible(true)
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Preview failed."))
-      .finally(() => setLoading(false))
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      <div style={{ display: "flex", gap: "var(--space-2)" }}>
-        {/* Re-fetches every click, not just the first - the parent's own
-            cache (see index.tsx's loadAttachmentPreview) only clears after
-            a real save, so this is the one way to force a fresh look
-            mid-session, e.g. right after saving a config edit. */}
-        <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
-          {loading ? "Loading…" : visible ? "Refresh real content" : "Show real content"}
-        </Button>
-        {visible && (
-          <Button variant="ghost" size="sm" onClick={() => setVisible(false)}>
-            Hide
-          </Button>
-        )}
-      </div>
-      {error && (
-        <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--danger-500)", margin: 0 }}>
-          {error}
-        </p>
-      )}
-      {visible && content !== null && <CodeBlock code={content} title="real resolved content" lang="text" />}
-    </div>
-  )
-}
-
-// Grows to fit its own content, no internal scrollbar and no manual
-// resize handle - a long text block (a real docs dump, say) should make
-// the whole document taller and let ITS OWN scroll container handle it,
-// never trap the human scrolling inside a small nested box. Height is
-// measured for real (scrollHeight) rather than estimated from a newline
-// count, so a long wrapped line (no "\n" of its own) still grows the box
-// correctly, not just a line actually broken with Enter.
-function AutoGrowTextarea({
-  value,
-  disabled,
-  onChange,
-  placeholder,
-  style,
-}: {
-  value: string
-  disabled?: boolean
-  onChange: (value: string) => void
-  placeholder?: string
-  style: CSSProperties
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = `${el.scrollHeight}px`
-  }, [value])
-
-  return (
-    <textarea
-      ref={ref}
-      className="orch-field"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={2}
-      style={{ ...style, overflow: "hidden", resize: "none" }}
-    />
-  )
-}
-
-// The compact "embed" look a real file reference gets: an icon square,
-// filename, and its real path, in a bordered card that doesn't stretch to
-// the document's full width - the real ai-research prompt.md files
-// reference a file by name inline, never paste its content into the
-// document. Click opens the "which real file" picker below.
-function FileChip({
-  attachment,
-  brokenError,
-  expanded,
-  onToggle,
-}: {
-  attachment: Attachment
-  brokenError?: string
-  expanded: boolean
-  onToggle: () => void
-}) {
-  return (
-    <div onClick={onToggle} style={chipStyle(expanded, brokenError)}>
-      <div style={chipIconStyle}>
-        <Icon name="FileText" size={14} style={{ color: "var(--brand)" }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-        <span style={chipTitleStyle}>{attachment.name || "(untitled)"}</span>
-        <span style={chipSubtitleStyle}>{attachment.path || "No file selected"}</span>
-      </div>
-    </div>
-  )
-}
-
-// Same chip family as FileChip, for a pipeline value: there's no file on
-// disk to name, just which real pipeline output this slot resolves to at
-// generation time (see StagePanelProps' own manifest.contextKeyOptions).
-function ContextChip({
-  attachment,
-  brokenError,
-  expanded,
-  onToggle,
-}: {
-  attachment: Attachment
-  brokenError?: string
-  expanded: boolean
-  onToggle: () => void
-}) {
-  return (
-    <div onClick={onToggle} style={chipStyle(expanded, brokenError)}>
-      <div style={chipIconStyle}>
-        <Icon name="Zap" size={14} style={{ color: "var(--brand)" }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-        <span style={chipTitleStyle}>{attachment.name || "(untitled)"}</span>
-        <span style={chipSubtitleStyle}>Pipeline value</span>
-      </div>
-    </div>
-  )
-}
-
-function chipStyle(expanded: boolean, brokenError?: string): CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "var(--space-2)",
-    maxWidth: 360,
-    border: `1px solid ${brokenError ? "var(--danger-500)" : "var(--border-default)"}`,
-    borderRadius: "var(--radius-md)",
-    padding: "var(--space-2) var(--space-3)",
-    background: expanded ? "var(--surface-sunken)" : "var(--surface-card)",
-    cursor: "pointer",
-  }
-}
-
-const chipIconStyle: CSSProperties = {
-  width: 28,
-  height: 28,
-  flexShrink: 0,
-  borderRadius: "var(--radius-sm)",
-  background: "var(--brand-faint)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}
-
-const chipTitleStyle: CSSProperties = {
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-sm)",
-  fontWeight: "var(--weight-semibold)",
-  color: "var(--text-strong)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-}
-
-const chipSubtitleStyle: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: "var(--text-2xs)",
-  color: "var(--text-muted)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-}
-
 function InsertionLine({ edge }: { edge: "top" | "bottom" }) {
   return (
     <div
@@ -575,25 +257,3 @@ function InsertionLine({ edge }: { edge: "top" | "bottom" }) {
     />
   )
 }
-
-const fieldLabelStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--space-1)",
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-xs)",
-  fontWeight: "var(--weight-semibold)",
-  color: "var(--text-strong)",
-} as const
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  border: "1px solid var(--border-default)",
-  borderRadius: "var(--radius-md)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-sm)",
-  background: "var(--surface-card)",
-  color: "var(--text-body)",
-} as const

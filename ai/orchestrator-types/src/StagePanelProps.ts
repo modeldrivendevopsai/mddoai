@@ -1,6 +1,7 @@
 import type {
   AttemptDetail,
   BrokenReference,
+  LearnedConstraintsUpdate,
   ManifestEntry,
   OrchestratorEvent,
   PromptConfig,
@@ -44,8 +45,14 @@ export interface StagePanelProps {
   // set, each with its own manifest and its own backend prompt module
   // behind it, rather than each stage threading its own separate contract.
   onLoadPromptConfig?: (name: string) => Promise<PromptConfig>
-  onSavePromptConfig?: (name: string, config: PromptConfig) => Promise<PromptConfig>
-  onPreviewPromptConfig?: (name: string) => Promise<PromptPreview>
+  // `options.keepalive`, when true, asks the underlying request to outlive
+  // this page - set only by design-system's own PromptBuilder, for the one
+  // save it fires from an unload/unmount flush, never an ordinary edit.
+  onSavePromptConfig?: (name: string, config: PromptConfig, options?: { keepalive?: boolean }) => Promise<PromptConfig>
+  // `config` is the caller's own current, unsaved draft - resolved exactly
+  // as given, not re-loaded from the last saved version on disk, so a
+  // preview always reflects what's actually on screen right now.
+  onPreviewPromptConfig?: (name: string, config: PromptConfig) => Promise<PromptPreview>
   onListAvailableFiles?: () => Promise<string[]>
   // Real backend upload (routes/uploads.py) - a dropped OS file is saved
   // for real and becomes a real "file" attachment referencing it, not a
@@ -57,16 +64,17 @@ export interface StagePanelProps {
   onResolvePsmMode?: (platformDescription: string) => Promise<{ mode: string; metamodel_path: string | null }>
   onLoadPromptHistory?: (name: string) => Promise<string[]>
   onDiffPromptVersions?: (name: string, versionA: string, versionB: string) => Promise<PromptDiff>
+  // "Revert to default" is not a separate callback: the shipped default is
+  // just the oldest entry in the same history onLoadPromptHistory returns,
+  // restored through this exact same call with that entry's own version id.
   onRestorePromptVersion?: (name: string, version: string) => Promise<PromptConfig>
-  onRevertPromptConfig?: (name: string) => Promise<PromptConfig>
-  onPromoteConfigToDefault?: (name: string) => Promise<PromptConfig>
   onCheckPromptReferences?: (name: string) => Promise<BrokenReference[]>
-  onAddLearnedConstraints?: (name: string, constraints: string[]) => Promise<PromptConfig>
-  onRemoveLearnedConstraint?: (name: string, constraint: string) => Promise<PromptConfig>
+  onAddLearnedConstraints?: (name: string, constraints: string[]) => Promise<LearnedConstraintsUpdate>
+  onRemoveLearnedConstraint?: (name: string, constraint: string) => Promise<LearnedConstraintsUpdate>
   // Run-aware (see stages/psm/actions.py's own promote_constraints): no
   // name here, the backend infers it from the current run's own latest,
   // real, successfully-validated result.
-  onPromoteConstraints?: (constraints: string[]) => Promise<PromptConfig>
+  onPromoteConstraints?: (constraints: string[]) => Promise<LearnedConstraintsUpdate>
 
   // --- Attempts browser (design-system's AttemptsBrowser) --------------
   onLoadManifest?: (runId: string) => Promise<ManifestEntry[]>

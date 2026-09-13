@@ -24,7 +24,7 @@ def test_get_prompt_config_endpoint_proxies_the_real_client():
 
 
 def test_save_prompt_config_endpoint_forwards_the_real_body():
-    body = {"attachments": [], "learned_constraints": []}
+    body = {"attachments": []}
     with patch.object(integration_runner_client, "save_psm_prompt_config", return_value={**body, "_version": "v1"}) as mock_save:
         response = client.put("/psm/prompt-config/generation", json=body)
 
@@ -55,18 +55,14 @@ def test_restore_prompt_config_endpoint():
     assert response.json()["system_prompt"] == "restored"
 
 
-def test_revert_prompt_config_endpoint():
-    with patch.object(integration_runner_client, "revert_psm_prompt_config", return_value={"system_prompt": "shipped"}) as mock_revert:
-        client.post("/psm/prompt-config/generation/revert")
+def test_restore_prompt_config_endpoint_with_the_shipped_default_is_revert():
+    # "Revert to default" is not a separate endpoint any more - restoring
+    # generation_toolkit.prompt_config.history's own SHIPPED_DEFAULT_VERSION
+    # sentinel through this same restore route IS reverting to default.
+    with patch.object(integration_runner_client, "restore_psm_prompt_config_version", return_value={"system_prompt": "shipped"}) as mock_restore:
+        client.post("/psm/prompt-config/generation/restore/shipped")
 
-    mock_revert.assert_called_once_with("generation")
-
-
-def test_promote_prompt_config_to_default_endpoint():
-    with patch.object(integration_runner_client, "promote_psm_prompt_config_to_default", return_value={"system_prompt": "x"}) as mock_promote:
-        client.post("/psm/prompt-config/generation/promote-to-default")
-
-    mock_promote.assert_called_once_with("generation")
+    mock_restore.assert_called_once_with("generation", "shipped")
 
 
 def test_check_references_endpoint():
@@ -80,7 +76,20 @@ def test_preview_endpoint():
     with patch.object(integration_runner_client, "preview_psm_prompt_config", return_value={"system_prompt": "x", "user_content": "y"}) as mock_preview:
         response = client.post("/psm/prompt-config/generation/preview")
 
-    mock_preview.assert_called_once_with("generation")
+    mock_preview.assert_called_once_with("generation", None)
+    assert response.json() == {"system_prompt": "x", "user_content": "y"}
+
+
+def test_preview_endpoint_forwards_a_given_draft():
+    """A caller previewing its own current, unsaved draft (not just the
+    saved config) sends it as the request body - this must reach
+    integration_runner_client exactly as given, not get dropped in favor of
+    a no-body preview of whatever's on disk."""
+    draft = {"attachments": [{"id": "a", "name": "n", "type": "text", "content": "hi"}]}
+    with patch.object(integration_runner_client, "preview_psm_prompt_config", return_value={"system_prompt": "x", "user_content": "y"}) as mock_preview:
+        response = client.post("/psm/prompt-config/generation/preview", json=draft)
+
+    mock_preview.assert_called_once_with("generation", draft)
     assert response.json() == {"system_prompt": "x", "user_content": "y"}
 
 
