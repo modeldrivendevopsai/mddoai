@@ -73,6 +73,19 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   server: {
+    fs: {
+      // design-system is a sibling directory of this project (see
+      // resolve.dedupe's own comment above for the same file:-dependency
+      // layout), not nested under this project's own node_modules - Vite's
+      // default filesystem allow-list only covers this project's own root,
+      // so serving a file that only exists under design-system's own
+      // node_modules (its @fontsource-variable font files, imported by
+      // design-system/src/tokens.css) 403s without this. Resolved by name
+      // relative to this file, not hardcoded to either environment's own
+      // absolute layout (Docker's /design-system vs. a local checkout's
+      // ../design-system), so it works the same in both.
+      allow: [path.resolve(__dirname), path.resolve(__dirname, '..', 'design-system')],
+    },
     watch: {
       // Docker Desktop on Windows doesn't reliably forward native filesystem
       // change events from a bind-mounted host directory into the Linux
