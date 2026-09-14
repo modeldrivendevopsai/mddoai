@@ -8,6 +8,8 @@ import os
 
 import httpx
 
+from clients.agent_service_errors import raise_for_business_error
+
 ACCELEO_AGENT_URL = os.environ.get("ACCELEO_AGENT_URL", "http://localhost:8080")
 ACCELEO_TIMEOUT = float(os.environ.get("ACCELEO_TIMEOUT", "960.0"))
 # Every prompt-config endpoint below is a fast, local filesystem/JSON
@@ -57,8 +59,13 @@ def run_acceleo(
 
 
 def _config_request(method: str, path: str, **kwargs) -> dict:
+    """Raises AgentServiceError (not a raw httpx.HTTPStatusError) for one of
+    acceleo_agent's own reported business errors (a bad prompt-config edit,
+    an unknown saved version), so integration_runner's own pass-through
+    routes can forward the real status/detail instead of a generic 500 -
+    see agent_service_errors.py for why."""
     response = httpx.request(method, f"{ACCELEO_AGENT_URL}{path}", timeout=ACCELEO_CONFIG_TIMEOUT, **kwargs)
-    response.raise_for_status()
+    raise_for_business_error(response)
     return response.json()
 
 
