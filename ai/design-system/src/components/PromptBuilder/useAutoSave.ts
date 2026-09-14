@@ -1,6 +1,21 @@
 import { useEffect, useRef, useState } from "react"
 import type { Attachment, BrokenReference, PromptConfig } from "./types"
 
+// A "file" attachment with no path picked yet, or a "context" attachment
+// with no key picked yet - the exact shape defaultAttachment (see
+// PromptDocument.tsx) gives a brand-new one before a human has actually
+// filled it in. generation_toolkit.attachments.resolve.resolve_attachments
+// rejects either as unresolvable, so saving one is a guaranteed, useless
+// 400 - real for a config a human genuinely finished editing, but routine
+// for the ordinary few seconds between clicking "Add file reference" and
+// actually picking a file. Scheduling below skips a debounced save
+// entirely while this is true, instead of firing a save doomed to fail.
+function hasUnresolvableAttachment(attachments: Attachment[]): boolean {
+  return attachments.some(
+    (a) => (a.type === "file" && !a.path) || (a.type === "context" && !a.key)
+  )
+}
+
 // How long to wait after the last edit before actually saving - long
 // enough that steady typing doesn't fire a save on every short pause,
 // short enough that a real pause reads as "done for now" without feeling
@@ -49,6 +64,13 @@ export function useAutoSave(
 ) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // True while the draft has an attachment that isn't filled in yet (see
+  // hasUnresolvableAttachment) - the scheduling effect below skips saving
+  // entirely in that case, so this exists purely so PromptBuilder can show
+  // a calm "not saved yet, finish this attachment" instead of leaving the
+  // human staring at a stale "Saving…"/"All changes saved" with no
+  // indication anything is actually pending.
+  const [incomplete, setIncomplete] = useState(false)
 
   // The attachments signature (not learned_constraints - see the
   // scheduling effect below for why) as of the last known-good state on
@@ -99,6 +121,12 @@ export function useAutoSave(
   const runSave = (options: { keepalive?: boolean } = {}) => {
     const current = configRef.current
     if (!current) return
+    // Guards this path too, not just the scheduling effect below: a retry,
+    // a queued pending-save, or the unmount/unload flush can all reach
+    // runSave well after it was first scheduled, by which point the draft
+    // it now reads off configRef could have become unresolvable (or, the
+    // reverse, resolvable) in the meantime.
+    if (hasUnresolvableAttachment(current.attachments)) return
     const signature = JSON.stringify(current.attachments)
     if (signature === lastSavedSignatureRef.current) return
     if (savingRef.current) {
@@ -169,9 +197,24 @@ export function useAutoSave(
   // pending save's countdown for no reason.
   useEffect(() => {
     if (!config) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    // A freshly added, not-yet-filled-in attachment (an empty file path or
+    // context key) can never resolve - see hasUnresolvableAttachment -
+    // skip scheduling a save doomed to fail instead of firing one only to
+    // show the human a scary "request failed" for what's really just the
+    // ordinary few seconds before they finish picking a value.
+    if (hasUnresolvableAttachment(config.attachments)) {
+      setIncomplete(true)
+      // A prior failed save's error would otherwise sit there unchanged,
+      // showing both it and the calm "not saved yet" message together -
+      // this state genuinely supersedes it: there's nothing failing right
+      // now, saving just hasn't started because there's nothing valid yet.
+      setSaveError(null)
+      return
+    }
+    setIncomplete(false)
     const signature = JSON.stringify(config.attachments)
     if (signature === lastSavedSignatureRef.current) return
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => runSaveRef.current(), SAVE_DEBOUNCE_MS)
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -222,5 +265,5 @@ export function useAutoSave(
     lastSavedSignatureRef.current = JSON.stringify(attachments)
   }
 
-  return { saving, saveError, markSaved }
+  return { saving, saveError, incomplete, markSaved }
 }

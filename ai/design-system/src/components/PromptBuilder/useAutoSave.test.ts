@@ -145,4 +145,42 @@ describe("useAutoSave", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2))
     expect(onSave.mock.calls[1][0].attachments[0].content).toBe("v3")
   }, 10000)
+
+  it("never saves a freshly added file attachment until a path is actually picked", async () => {
+    const onSave = vi.fn().mockResolvedValue({ ...BASE, _version: "v1" })
+    const withEmptyFile: PromptConfig = {
+      attachments: [...BASE.attachments, { id: "b", name: "New file reference", type: "file", path: "" }],
+    }
+    const { result } = renderHook(() => useHarness(BASE, onSave))
+
+    act(() => result.current.setConfig(() => withEmptyFile))
+    await wait(1700)
+
+    expect(onSave).not.toHaveBeenCalled() // an empty path can never resolve, saving it would just 400
+    expect(result.current.incomplete).toBe(true)
+
+    act(() =>
+      result.current.setConfig((current) => ({
+        attachments: current!.attachments.map((a) => (a.id === "b" ? { ...a, path: "real/file.ecore" } : a)),
+      }))
+    )
+    await wait(1700)
+
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(result.current.incomplete).toBe(false)
+  }, 10000)
+
+  it("never saves a freshly added auto-filled-data attachment until a key is actually picked", async () => {
+    const onSave = vi.fn().mockResolvedValue({ ...BASE, _version: "v1" })
+    const withEmptyContext: PromptConfig = {
+      attachments: [...BASE.attachments, { id: "b", name: "New auto-filled data", type: "context", key: "" }],
+    }
+    const { result } = renderHook(() => useHarness(BASE, onSave))
+
+    act(() => result.current.setConfig(() => withEmptyContext))
+    await wait(1700)
+
+    expect(onSave).not.toHaveBeenCalled()
+    expect(result.current.incomplete).toBe(true)
+  }, 10000)
 })

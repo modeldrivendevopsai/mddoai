@@ -45,7 +45,7 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   // simply misses and re-fetches - it can never be read back as a false
   // hit for a newer draft.
   const previewCacheRef = useRef<{ config: PromptConfig; attachments: Record<string, string> } | null>(null)
-  const { saving, saveError, markSaved } = useAutoSave(config, setConfig, callbacks, setBroken)
+  const { saving, saveError, incomplete, markSaved } = useAutoSave(config, setConfig, callbacks, setBroken)
 
   useEffect(() => {
     let cancelled = false
@@ -183,12 +183,16 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
       />
 
       {/* No manual Save button: an edit auto-saves itself a short pause
-          after you stop typing (see useAutoSave). This is the one place
-          that says so, since nothing else on screen would otherwise tell
-          you your edits are actually being persisted. */}
+          after you stop typing. This is the one place that says so, since
+          nothing else on screen would otherwise tell you your edits are
+          actually being persisted. `incomplete` (a freshly added file/
+          auto-filled-data attachment with nothing picked yet) is its own
+          calm, non-error state, not folded into saveError below: it isn't
+          a failure, saving just hasn't started yet because there's nothing
+          valid to save. */}
       {!readOnly && (
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--text-muted)", margin: 0 }}>
-          {saving ? "Saving…" : "All changes saved automatically"}
+          {saving ? "Saving…" : incomplete ? "Not saved yet, finish the new attachment above" : "All changes saved automatically"}
         </p>
       )}
       {saveError && (
