@@ -30,7 +30,7 @@ def _fake_response(status_code, json_body=None, text=""):
     return resp
 
 
-@pytest.mark.parametrize("status_code", [400, 404, 409])
+@pytest.mark.parametrize("status_code", [400, 404, 409, 422])
 def test_raises_agent_service_error_with_the_real_status_and_detail(status_code):
     response = _fake_response(status_code, json_body={"detail": "a real, specific validation error"})
 

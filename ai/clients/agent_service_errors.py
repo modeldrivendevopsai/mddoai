@@ -13,7 +13,18 @@ no fallback for those, same as every other client in this repo.
 """
 import httpx
 
-_BUSINESS_ERROR_CODES = (400, 404, 409)
+# 422 added alongside the original three for execution_agent_client.py's own
+# use: a well-formed request whose real transformation/generation genuinely
+# failed (bad ATL, a model that isn't a real instance of the given
+# metamodel) is a textbook 422 Unprocessable Entity, not a 400 (the request
+# itself was fine) or a 500 (nothing actually broke). Shared with every
+# other caller of this module too, so a request-validation 422 from one of
+# THEIR routes (FastAPI's own automatic response to a malformed request
+# body) now reads as a business error rather than an uncaught httpx error -
+# correct either way (a schema mismatch is closer to a business error than
+# an infra failure), but a real behavior change worth knowing about if a
+# caller ever depended on seeing that raw httpx error instead.
+_BUSINESS_ERROR_CODES = (400, 404, 409, 422)
 
 
 class AgentServiceError(Exception):
