@@ -72,7 +72,24 @@ services:
       - ACCELEO_AGENT_URL=http://acceleo-agent:8080
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
+      - PIM_METAMODEL_PATH=/pim_metamodel.ecore
+      - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
     volumes:
+      # The project's own real, git-committed PIM metamodel - a single real
+      # file, not a whole meta_models/ tree (narrower than psm-agent's own
+      # META_MODELS_DIR mount below, matching atl-agent's/acceleo-agent's own
+      # single-file REFERENCE_EXAMPLE_PATH convention instead), since this is
+      # the one real file stages/pim/agent.py ever needs. See
+      # ai/CLAUDE.md's folder-boundaries section for why this read is
+      # licensed (real MDE *data*, not Java/Eclipse *code*).
+      - ../meta_models/com.mddoai.metamodel.pim/model/pimMM.ecore:/pim_metamodel.ecore:ro
+      # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's
+      # own PIM concepts), the one real file stages/generation/agent.py
+      # needs as its real input to the real ATL/Acceleo execution it runs
+      # via execution-agent (see the fourth exception in ai/CLAUDE.md's
+      # folder-boundaries section).
+      - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
       # Mounted at the exact path integration_runner/stages/_validation.py's
       # own RUNS_DIR resolves to inside this container (this Dockerfile's own
       # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
@@ -113,6 +130,8 @@ services:
       acceleo-agent:
         condition: service_healthy
       validator-agent:
+        condition: service_healthy
+      execution-agent:
         condition: service_healthy
     expose:
       - "8050"
@@ -535,6 +554,41 @@ services:
         condition: service_completed_successfully
     expose:
       - "8020"
+
+  # Wraps main/'s new real Atl/AcceleoExecutor as an HTTP service: actually
+  # RUNS a real .atl/.mtl transformation against a real model instance,
+  # instead of only compiling it to check for errors (validator-agent's own,
+  # separate concern). A genuinely separate service from validator-agent, not
+  # new /execute/* routes there - see execution_agent/README.md's own "Why a
+  # separate service" section for the real reasoning (validator-agent's
+  # documented scope and ai/CLAUDE.md's own reach-into-main/ exception are
+  # both scoped specifically to *ValidatorCli classes under mddoai.validation,
+  # not mddoai.execution, and the two services' real request/response
+  # contracts genuinely differ, not just the HTTP verb).
+  execution-agent:
+    build:
+      context: ./execution_agent
+    env_file:
+      - path: ./execution_agent/.env
+        required: false
+    volumes:
+      # Read-only, same shared build-output volume validator-agent already
+      # mounts (see its own comment) - no second Gradle build needed. No
+      # pipeline-runs mount, unlike validator-agent: the real output here
+      # (a transformed model instance, or generated CI/CD text) is exactly
+      # what a caller needs back, not a debug-only compiled artifact worth
+      # persisting for its own sake, so it's returned inline over HTTP
+      # instead (see execution_agent/README.md's own "How a request flows").
+      - main-build-output:/main-build:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - EXECUTION_TIMEOUT_SECONDS=60
+      - EXECUTION_LIB_DIR=/main-build/install/com.mddoai/lib
+    depends_on:
+      gradle-builder:
+        condition: service_completed_successfully
+    expose:
+      - "8090"
 
 volumes:
   main-gradle-cache:
