@@ -1,10 +1,9 @@
-import { useState } from "react"
 import type { ReactNode } from "react"
 import { Button, CodeBlock, StageInfoNote } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 
-// Generation's own stage panel — approve/retry when Generation is the live pending stage
+// Generation's own stage panel, approve/retry when Generation is the live pending stage
 // (onApprove/onRetry given), a read-only "back to current" view when it's a
 // past stage being viewed via the Stepper (onBack given instead). Its own
 // file, not a shared component parameterized by StageId: Generation's real
@@ -19,7 +18,6 @@ export function GenerationStagePanel({
   readOnly = false,
   stageDetail = null,
 }: StagePanelProps) {
-  const [correction, setCorrection] = useState("")
   const failed = latestResult?.type === "call_failed"
   const output = failed
     ? String(latestResult?.data?.error ?? "Stage failed.")
@@ -49,7 +47,7 @@ export function GenerationStagePanel({
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),
-          radius-md, 14px/16px padding — see tokens.css's --danger-border
+          radius-md, 14px/16px padding, see tokens.css's --danger-border
           for why that one's a token this port adds on top of the source. */}
       {failed && (
         <div
@@ -69,28 +67,16 @@ export function GenerationStagePanel({
 
       <CodeBlock code={busy ? "Generating…" : hasResult ? output : "No output yet."} title="generation output" lang="generation" />
 
-      <div>
-        {/* Real wireframe text is "Curate the helper prompt for this stage"
-            (frame "c5: ATL check failed"), where the field is pre-filled with
-            the actual prompt that was used, editable in place. We can't
-            faithfully do that: ai/orchestrator doesn't store or expose "the
-            literal prompt used" anywhere, agents build it from context + the
-            constraints list, there's no single retrievable prompt string to
-            pre-fill with. This is the real, honest equivalent: an empty
-            field for a new correction, recorded via the same
-            add-constraint-then-retry mechanism the backend actually has. */}
-        <p style={labelStyle}>Curate the helper prompt for this stage</p>
-        <textarea
-          className="orch-field"
-          value={correction}
-          onChange={(e) => setCorrection(e.target.value)}
-          placeholder="Describe what should change"
-          rows={2}
-          disabled={readOnly}
-          style={textareaStyle}
-        />
-      </div>
-
+      {/* No correction field here, unlike every earlier stage: this stage
+          actually runs the real ATL/Acceleo output against a real model
+          instance now (see stages/generation/agent.py), it doesn't call an
+          LLM of its own a free-text note could steer - there's no prompt
+          left to curate. A wrong result here means the ATL/Acceleo that
+          made it this far (already reviewed and approved at their own
+          stages) needs a real fix at its own source, not a note appended
+          here. "Retry this stage" still re-runs the exact same real
+          execution, useful for a transient failure (e.g. execution-agent
+          briefly unreachable). */}
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
         <Button
           variant="primary"
@@ -100,15 +86,7 @@ export function GenerationStagePanel({
         >
           Approve
         </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={busy || readOnly}
-          onClick={() => {
-            onRetry?.(correction.trim() || undefined)
-            setCorrection("")
-          }}
-        >
+        <Button variant="secondary" size="sm" disabled={busy || readOnly} onClick={() => onRetry?.()}>
           Retry this stage
         </Button>
       </div>
@@ -122,27 +100,6 @@ const headingStyle = {
   fontWeight: "var(--weight-bold)",
   color: "var(--text-strong)",
   margin: 0,
-} as const
-
-const labelStyle = {
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-xs)",
-  fontWeight: "var(--weight-bold)",
-  color: "var(--text-strong)",
-  margin: "0 0 var(--space-1)",
-} as const
-
-const textareaStyle = {
-  width: "100%",
-  resize: "none",
-  boxSizing: "border-box",
-  border: "1px solid var(--border-default)",
-  borderRadius: "var(--radius-md)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-sm)",
-  background: "var(--surface-card)",
-  color: "var(--text-body)",
 } as const
 
 function Panel({ children }: { children: ReactNode }) {
