@@ -4,10 +4,10 @@ the two lookups IntegrationRun/orchestrator read from: STAGE_DESCRIPTIONS
 
 Each stage's folder holds agent.py (the pure, run-agnostic function
 dispatched from stage_agents below) and, only once a stage actually has
-one, actions.py (extra real, run-aware chat tools scoped to that stage —
+one, actions.py (extra real, run-aware chat tools scoped to that stage,
 docs/actions.py is the one that exists today). Adding or replacing a
 stage's agent means writing agent.py in its own folder (matching
-stages/docs/agent.py's own history — it replaced a placeholder the same
+stages/docs/agent.py's own history, it replaced a placeholder the same
 way stages/pim/agent.py etc. will, each on its own schedule) and adding one
 entry to each mapping below. A stage growing its own extra chat tool later
 means adding actions.py as a new sibling file in that same folder, nothing
@@ -16,14 +16,23 @@ stages.stage_agents[stage] and stages.STAGE_DESCRIPTIONS, never a specific
 stage's own module, and routes/ only ever imports the one stage folder it
 needs.
 
-_shared.py holds constraints_note(), which stages/generation/agent.py still
-uses — the last remaining LLM-prompt placeholder agent; pim switched to
-fixed mock content validated for real against validator-agent instead (see
-stages/_validation.py and its own agent.py), still a placeholder since no
-real PIM extraction pipeline exists yet. psm, atl, and acceleo are each a
-thin proxy to their own real, separate service (psm_agent, atl_agent,
-acceleo_agent), generating real output refined against real
+pim returns the project's own real, fixed PIM metamodel, validated for real
+against validator-agent (see stages/_validation.py and its own agent.py),
+still a placeholder in the sense that no real PIM *instance* extraction
+pipeline exists yet to read a run's own SWArch input. psm, atl, and acceleo
+are each a thin proxy to their own real, separate service (psm_agent,
+atl_agent, acceleo_agent), generating real output refined against real
 validator-agent feedback (see each of their own agent.py's own docstring).
+generation actually runs that real ATL/Acceleo output for real (via
+execution_agent) against a real PIM model instance, producing the real
+generated CI/CD configuration, no LLM call of its own, and (being the
+last real caller) its own move off of stages/_shared.py's constraints_note()
+is what made that module fully dead code, since deleted; a stage with a
+real, config-driven prompt (psm, atl, acceleo) instead forwards a
+correction as a plain constraints list straight to its own real service's
+/generate call, which folds it into that service's own real prompt
+alongside any already-learned constraints (see each service's own
+generation.py).
 """
 from dataclasses import dataclass
 
@@ -73,13 +82,13 @@ STAGE_DETAILS: dict[str, StageInfo] = {
         real=True,
     ),
     "pim": StageInfo(
-        description="a PIM (Platform-Independent Model) Ecore description of the platform (mock content, validated for real).",
-        input="ignored today, no real PIM extraction exists yet to read the serialization stage's output",
-        output="a fixed placeholder PIM Ecore metamodel, not derived from any real input",
+        description="MDDOAI's own real, fixed PIM (Platform-Independent Model) Ecore metamodel, validated for real.",
+        input="ignored today, no real PIM instance extraction exists yet to read the serialization stage's output",
+        output="the project's own real, git-committed PIM Ecore metamodel, the same one every downstream stage treats as fixed - not derived from any real input, since no real per-run PIM extraction exists yet",
         real=False,
     ),
     "psm": StageInfo(
-        description="a PSM (Platform-Specific Model) Ecore metamodel for the platform — generates a new one, or checks an existing one for drift, depending on the platform.",
+        description="a PSM (Platform-Specific Model) Ecore metamodel for the platform, generates a new one, or checks an existing one for drift, depending on the platform.",
         input="the serialization stage's labeled documentation",
         output="a new PSM Ecore metamodel for a platform with none yet, or a drift report against an existing one",
         real=True,
@@ -97,9 +106,9 @@ STAGE_DETAILS: dict[str, StageInfo] = {
         real=True,
     ),
     "generation": StageInfo(
-        description="a final summary tying all prior stages together.",
-        input="the psm, atl, and acceleo stages' own real output",
-        output="a text summary of the full generation plan - a real call over real prior-stage output, though the summary prompt itself is still a fixed placeholder and no real CI/CD config is produced yet",
+        description="actually runs this run's own real ATL transformation and Acceleo template to produce the real generated CI/CD configuration.",
+        input="the atl and acceleo stages' own real, validated (compiled) source, the psm stage's own target platform PSM metamodel, and a real sample PIM model instance",
+        output="the real generated CI/CD configuration file(s) this run's own ATL/Acceleo actually produce when run for real, not a summary of them",
         real=True,
     ),
 }

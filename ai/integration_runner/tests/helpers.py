@@ -5,25 +5,69 @@ Deliberately not imported from ai/orchestrator/tests/helpers.py: each
 package's test suite is self-contained, matching ai/pim_agent/ and
 ai/psm_agent/'s established pattern, rather than one package's tests
 reaching into a sibling package's test directory."""
-from unittest.mock import MagicMock
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+from clients import execution_agent_client
 from integration_runner import pipeline
-
-
-def ok_response(content):
-    """A plain chat() response: agent text, no tool calls."""
-    return {"content": content, "model": "test-model", "tool_calls": None}
+from integration_runner.stages.generation import agent as generation_agent
 
 
 def _fast_forward_to_generation(o: "pipeline.IntegrationRun") -> None:
     """Most stage-mechanics tests just need to be past docs (skip straight
     there by setting the index directly rather than mocking a real
-    retrieval fetch), on a stage that still calls ai_layer_client.chat() —
-    generation is the only one left since pim/psm/atl/acceleo switched to
-    fixed mock content + real validator-agent calls (see each of their own
-    agent.py). Named for the stage it lands on, not "generic placeholder",
-    since it's no longer interchangeable with any of the other four."""
+    retrieval fetch). generation is real now too (see
+    stages/generation/agent.py) - a test landing here for its own real
+    execution behavior mocks clients.execution_agent_client's own
+    execute_atl/execute_acceleo (see _mocked_generation_execution below and
+    _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME's own real context requirement);
+    generation no longer reads context["constraints"] at all (there's
+    nothing a real ATL/Acceleo execution could do with a free-text
+    correction), so a test about corrections being threaded into a real
+    agent call uses atl or acceleo instead - see e.g.
+    test_run_stage_incorporates_constraints_added_since_the_last_run."""
     o.current_stage_index = pipeline.STAGES.index("generation")
+
+
+# atl_agent's own prompt forces every generated ATL's output model name into
+# this exact shape (see stages/generation/agent.py's own
+# _OUTPUT_MODEL_NAME_PATTERN) - the minimal real string gen_stage's own
+# parsing needs to not raise, for a test that just needs to get past
+# generation, not exercise its own real parsing (see
+# test_generation_stage.py for that).
+_MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME = "create OUT : GitLabMM from IN : PIM;\n"
+
+
+@contextmanager
+def _mocked_generation_execution(
+    execute_atl_kwargs: dict | None = None, execute_acceleo_kwargs: dict | None = None
+):
+    """Patches execution_agent_client.execute_atl/execute_acceleo together,
+    and stages.generation.agent.PIM_SAMPLE_INSTANCE_PATH to a throwaway
+    real file (gen_stage reads that file directly off disk before ever
+    calling execute_atl, so it needs to genuinely exist even when
+    execute_atl itself is mocked) - gen_stage's own real boundary,
+    replacing ai_layer_client.chat() for every pipeline-mechanics test that
+    just needs to get PAST the generation stage, not test its own real
+    execution logic (see test_generation_stage.py for that). Defaults to a
+    plain successful outcome for each; pass execute_atl_kwargs/
+    execute_acceleo_kwargs (return_value=/side_effect=) to override either
+    - matching unittest.mock.patch's own kwarg shape directly, so a caller
+    that needs side_effect=RuntimeError(...) or a custom blocking function
+    doesn't need a second, bespoke helper."""
+    execute_atl_kwargs = execute_atl_kwargs or {"return_value": "<gitlabMM:Pipeline/>"}
+    execute_acceleo_kwargs = execute_acceleo_kwargs or {"return_value": {".gitlab-ci.yml": "stages: []\n"}}
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_path = Path(tmp) / "input.pimmm"
+        fixture_path.write_text("<pimMM:Pipeline/>", encoding="utf-8")
+        with (
+            patch.object(generation_agent, "PIM_SAMPLE_INSTANCE_PATH", fixture_path),
+            patch.object(execution_agent_client, "execute_atl", **execute_atl_kwargs) as mock_execute_atl,
+            patch.object(execution_agent_client, "execute_acceleo", **execute_acceleo_kwargs) as mock_execute_acceleo,
+        ):
+            yield mock_execute_atl, mock_execute_acceleo
 
 
 def _fast_forward_to(o: "pipeline.IntegrationRun", stage: str) -> None:
@@ -44,11 +88,11 @@ def _validation_result(valid=True, issues=None, duration_ms=5, mode=None):
 
 
 def _psm_generation_result(artifact="<ecore:EPackage/>", valid=True):
-    """A psm_agent_client.run_psm()-shaped result for generation mode — psm
+    """A psm_agent_client.run_psm()-shaped result for generation mode, psm
     is the one mock-validated-looking stage whose real boundary isn't
     validator_agent_client directly (see stages/psm/agent.py's own
     docstring): it calls psm_agent_client.run_psm() instead, so any test
-    that runs psm_stage() for real must mock THIS, not validate_ecore —
+    that runs psm_stage() for real must mock THIS, not validate_ecore,
     mocking validate_ecore alone silently does nothing to intercept it and
     the call falls through to a real (likely unreachable) network request."""
     return {
