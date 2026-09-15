@@ -10,6 +10,7 @@ export type {
   Attachment,
   AttachmentType,
   BrokenReference,
+  ChangedAttachment,
   LearnedConstraintsUpdate,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
@@ -17,6 +18,7 @@ export type {
   PromptBuilderProps,
   PromptConfig,
   PromptDiff,
+  PromptDiffLine,
   PromptPreview,
 } from "./types"
 
@@ -175,10 +177,20 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
       <PreviewPane onPreview={() => callbacks.onPreview(config)} />
       <JsonView config={config} />
       <VersionHistory
+        // Keyed by which config this actually is (manifest.name), not just
+        // remounted whenever `config` itself changes - a real edit autosaving
+        // a new _version must NOT reset this panel's own open/collapsed
+        // state, but a caller switching this same PromptBuilder to an
+        // entirely different config (see e.g. PsmStagePanel's own generation
+        // vs. comparison manifest) is a genuinely different version history,
+        // and starting it fresh (collapsed, no stale diff selection) is
+        // correct there.
+        key={manifest.name}
         onLoadHistory={() => callbacks.onLoadHistory()}
         onDiffVersions={(versionA, versionB) => callbacks.onDiffVersions(versionA, versionB)}
         onRestoreVersion={(version) => callbacks.onRestoreVersion(version)}
         onRestored={handleRestored}
+        currentVersion={config._version}
         readOnly={readOnly}
       />
 
@@ -190,7 +202,11 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
           calm, non-error state, not folded into saveError below: it isn't
           a failure, saving just hasn't started yet because there's nothing
           valid to save. */}
-      {!readOnly && (
+      {/* Only one of this line or the error below ever shows: a failed save
+          already has its own, more specific message right underneath, so
+          reassuring the human "all changes saved automatically" at the same
+          time would just contradict it. */}
+      {!readOnly && !saveError && (
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-2xs)", color: "var(--text-muted)", margin: 0 }}>
           {saving ? "Saving…" : incomplete ? "Not saved yet, finish the new attachment above" : "All changes saved automatically"}
         </p>

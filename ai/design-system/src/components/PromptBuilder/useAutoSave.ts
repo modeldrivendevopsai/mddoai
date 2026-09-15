@@ -159,6 +159,15 @@ export function useAutoSave(
       .catch((e) => {
         if (!mountedRef.current) return
         setSaveError(e instanceof Error ? e.message : "Save failed.")
+        // lastSavedSignatureRef deliberately stays unchanged here (only
+        // .then() above updates it): a genuinely failed save shouldn't be
+        // mistaken for a confirmed one. The real, known gap this leaves is
+        // a request that actually reached and was written by the backend
+        // but whose response this side never got to see as a success (a
+        // dropped connection, a timeout) - the retry below then resends
+        // the exact same, now-redundant content. save_config's own no-op
+        // dedup for byte-identical attachments is what actually keeps that
+        // case from piling up duplicate versions, not anything here.
         if (isRetryable(e)) {
           retryTimerRef.current = setTimeout(() => runSaveRef.current(), SAVE_RETRY_DELAY_MS)
         }
