@@ -1,7 +1,8 @@
-"""runs.py unit tests: process-wide run management — which run is current,
+"""runs.py unit tests: process-wide run management, which run is current,
 the history of every run this process has seen, and every one-line
 operation this service's own main.py exposes over REST. No real API
-calls — ai_layer_client.chat / retrieval_client.httpx are mocked.
+calls, execution_agent_client's execute_atl/execute_acceleo /
+retrieval_client.httpx are mocked.
 
 Tests verify:
   1. Run identity: run_id auto-generation, get_run()/current_run_id()/
@@ -23,9 +24,9 @@ from unittest.mock import patch
 
 import pytest
 
-from clients import ai_layer_client, retrieval_client
+from clients import retrieval_client
 from integration_runner import pipeline, runs
-from helpers import _fake_fetch_response, _fast_forward_to_generation, ok_response
+from helpers import _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME, _fake_fetch_response, _fast_forward_to_generation, _mocked_generation_execution
 
 
 def test_get_run_looks_up_a_known_run_by_id():
@@ -60,7 +61,7 @@ def test_reset_pipeline_keeps_prior_runs_as_history():
         second_reset_id = runs._default.run_id
 
         assert first_reset_id != second_reset_id
-        # Both stay in _runs (in-memory session history, see list_runs()) —
+        # Both stay in _runs (in-memory session history, see list_runs()),
         # only the most recent one is _default, the one live endpoints act on.
         assert first_reset_id in runs._runs
         assert second_reset_id in runs._runs
@@ -138,7 +139,7 @@ def test_start_pipeline_stores_the_chosen_model_for_the_whole_run():
     try:
         # start_pipeline() only resets when the current run already has
         # events (see test_start_pipeline_resets_when_current_run_already_has_events
-        # below) — reset explicitly first so this test always runs against
+        # below), reset explicitly first so this test always runs against
         # its own fresh, isolated run rather than possibly reusing (and
         # mutating) `original` in place if it happened to already be empty.
         runs.reset_pipeline()
@@ -218,7 +219,7 @@ def test_start_pipeline_reuses_a_resumed_empty_run_in_place():
     # asserted: reset_pipeline() creates a blank run, ANOTHER reset_pipeline()
     # replaces it as current (leaving the first one as empty history, e.g.
     # abandoned before the start form was ever submitted), resume_run()
-    # brings the first one back — filling in the start form and clicking
+    # brings the first one back, filling in the start form and clicking
     # Start from there should continue that resumed run, not discard it for
     # yet another new one the instant Start is clicked.
     original = runs._default
@@ -243,7 +244,7 @@ def test_start_pipeline_reuses_a_resumed_empty_run_in_place():
 
 
 def test_start_pipeline_resets_when_current_run_already_has_events():
-    # Restart calls start_pipeline() again for the SAME platform — the
+    # Restart calls start_pipeline() again for the SAME platform, the
     # current run at that point already has real progress (events), so it
     # must still get a genuinely fresh run, never reused in place.
     original = runs._default
@@ -394,7 +395,7 @@ def test_list_runs_stays_consistent_under_a_concurrent_reset():
 
 def test_current_returns_the_live_default_run():
     # current() is the one thing this registry module exposes for operating
-    # on the current run — everything else (run_stage, review,
+    # on the current run, everything else (run_stage, review,
     # add_constraint, ...) is a real method on the IntegrationRun instance
     # it returns (see test_pipeline.py), not duplicated here as its own
     # proxy function.
@@ -405,11 +406,11 @@ def test_current_returns_the_live_default_run():
         assert runs.current() is fresh
 
         _fast_forward_to_generation(runs.current())
-        with patch.object(ai_layer_client, "chat", return_value=ok_response("Final summary")):
-            runs.current().run_stage({"platform_description": "desc"})
+        with _mocked_generation_execution():
+            runs.current().run_stage({"platform_description": "desc", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
 
         # A mutation through runs.current() is visible on the same real
         # object reset_pipeline()/resume_run() would also act on.
-        assert runs._default.last_output == "Final summary"
+        assert runs._default.last_output == "stages: []\n"
     finally:
         runs._default = original

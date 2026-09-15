@@ -12,7 +12,7 @@ def test_system_prompt_lists_every_stage_in_order_with_its_description():
 
     assert "through 7 fixed stages" in prompt
     assert "1. docs: fetches the platform's real documentation" in prompt
-    assert "7. generation: a final summary tying all prior stages together." in prompt
+    assert "7. generation: actually runs the real ATL transformation and Acceleo template to produce the real generated CI/CD configuration." in prompt
 
 
 def test_system_prompt_has_a_current_stage_placeholder_to_fill_in():
