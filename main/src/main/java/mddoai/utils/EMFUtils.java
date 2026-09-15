@@ -158,7 +158,10 @@ public class EMFUtils {
 
 
     public static Resource createResource(EObject model, String filePath, ResourceSet resourceSet) {
-        URI uri = URI.createURI(filePath);
+        // Same reasoning as deserializeModel's own uri construction above -
+        // createURI(filePath) alone mis-parses a Windows absolute path.
+        File file = new File(filePath);
+        URI uri = file.isAbsolute() ? URI.createFileURI(file.getAbsolutePath()) : URI.createURI(filePath);
         Resource completeResource = resourceSet.createResource(uri);
 
         List<EObject> collection = new ArrayList<>();
@@ -205,7 +208,20 @@ public class EMFUtils {
             throw new IOException("Cannot write to directory: " + (parentDir != null ? parentDir.getAbsolutePath() : "null"));
         }
     	
-        Resource resource = resourceSet.createResource(org.eclipse.emf.common.util.URI.createURI(filePath));
+        // createURI(filePath) alone mis-parses a Windows absolute path (e.g.
+        // "C:\...\input.xmi") - it reads the drive letter as a URI scheme
+        // ("unknown protocol: c") instead of a path, since a bare path string
+        // gives EMF no signal it's a filesystem path rather than an opaque
+        // URI. Every caller before this one only ever passed a relative path
+        // (e.g. AbstractTransformer's own "intermediate/<name>.xmi"), so this
+        // never surfaced - createFileURI is what EMFUtils.loadEPackage()
+        // already uses for exactly this reason, applied here only for an
+        // absolute path so a relative one keeps resolving exactly as it
+        // always has.
+        URI uri = file.isAbsolute()
+                ? URI.createFileURI(file.getAbsolutePath())
+                : URI.createURI(filePath);
+        Resource resource = resourceSet.createResource(uri);
 
         resource.load(null);
 

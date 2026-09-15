@@ -169,5 +169,28 @@ public class EMFUtilsTest {
         assertThrows(IOException.class, () -> handler.createInputStream(blocked, null));
         assertThrows(IOException.class, () -> handler.createOutputStream(blocked, null));
     }
+
+    // createResource()/deserializeModel() both mis-parsed an absolute
+    // Windows path (e.g. "C:\...\input.xmi") before reading the drive
+    // letter as a URI scheme instead of a path - see each method's own
+    // comment. @TempDir gives an absolute path on this platform, so a
+    // round trip through it is the direct regression test for that fix;
+    // every other test above uses a relative path and would not have
+    // caught it.
+
+    @Test
+    void createResourceThenDeserializeModel_roundTripsThroughAnAbsoluteFilePath(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+        Path modelFile = tempDir.resolve("model.xmi");
+        org.eclipse.emf.ecore.EClass model = org.eclipse.emf.ecore.EcoreFactory.eINSTANCE.createEClass();
+        model.setName("Widget");
+
+        Resource written = EMFUtils.createResource(model, modelFile.toString(), resourceSet);
+        written.save(null);
+
+        Object loaded = EMFUtils.deserializeModel(modelFile.toString(), new ResourceSetImpl());
+
+        assertTrue(loaded instanceof org.eclipse.emf.ecore.EClass);
+        assertEquals("Widget", ((org.eclipse.emf.ecore.EClass) loaded).getName());
+    }
 }
 
