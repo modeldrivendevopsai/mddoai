@@ -274,5 +274,34 @@ export function useAutoSave(
     lastSavedSignatureRef.current = JSON.stringify(attachments)
   }
 
-  return { saving, saveError, incomplete, markSaved }
+  // Clears any pending debounce/retry timer and this hook's own visible
+  // state - called by a caller that's about to load a genuinely different
+  // config into this same mounted component (see PromptBuilder's own load
+  // effect), so a save timer left over from the PREVIOUS config can never
+  // fire once this render's `callbacks` already point at the new one.
+  // Deliberately leaves lastSavedSignatureRef alone: the caller's own
+  // markSaved call, right after that new config finishes loading, is what
+  // sets it correctly - clearing it here first would just make the
+  // in-between render (old config still on screen, signature already
+  // gone) look like an unsaved edit for no reason. Doesn't reach into
+  // savingRef: a save already in flight when this fires can't be
+  // cancelled from here (no request-cancellation plumbing exists for
+  // onSave), so its own .then/.catch still lands - a narrow, accepted gap,
+  // the same kind runSave's own retry comment above already documents.
+  const reset = () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current)
+      retryTimerRef.current = null
+    }
+    pendingSaveRef.current = null
+    setSaving(false)
+    setSaveError(null)
+    setIncomplete(false)
+  }
+
+  return { saving, saveError, incomplete, markSaved, reset }
 }

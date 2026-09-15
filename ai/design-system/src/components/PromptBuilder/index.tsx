@@ -47,12 +47,26 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   // simply misses and re-fetches - it can never be read back as a false
   // hit for a newer draft.
   const previewCacheRef = useRef<{ config: PromptConfig; attachments: Record<string, string> } | null>(null)
-  const { saving, saveError, incomplete, markSaved } = useAutoSave(config, setConfig, callbacks, setBroken)
+  const { saving, saveError, incomplete, markSaved, reset } = useAutoSave(config, setConfig, callbacks, setBroken)
 
+  // Depends on manifest.name, not just "[]" (mount-only) or `callbacks`
+  // itself: a caller can keep this same PromptBuilder mounted while
+  // switching it to an entirely different named config as circumstances
+  // change (e.g. a stage panel that only learns which of two prompts a
+  // given attempt actually used once that attempt's own real result comes
+  // back, with no reason to remount the whole panel just for that). `config`
+  // must reload for real when that happens, not keep showing the previous
+  // manifest's content under the new one's label. `callbacks` itself isn't
+  // a safe dependency here - every caller recreates that object on every
+  // render regardless of whether the manifest actually changed, which would
+  // reload on every keystroke elsewhere on the page - manifest.name is the
+  // real, stable identity of "which config is this", the same one every
+  // caller already keys its own callback closures on.
   useEffect(() => {
     let cancelled = false
     setLoadError(null)
     previewCacheRef.current = null
+    reset()
     callbacks
       .onLoad()
       .then((loaded) => {
@@ -73,7 +87,7 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [manifest.name])
 
   useEffect(() => {
     if (!callbacks.onListAvailableFiles) return
