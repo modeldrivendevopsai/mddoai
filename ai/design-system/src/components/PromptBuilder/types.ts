@@ -45,13 +45,30 @@ export interface PromptConfig {
   _version?: string
 }
 
+// One real line, from a real line-by-line diff (computed server-side) of
+// whichever field actually holds an attachment's meaningful text - never a
+// raw diff-markup string a UI would have to re-parse.
+export interface PromptDiffLine {
+  op: "added" | "removed" | "unchanged"
+  text: string
+}
+
+export interface ChangedAttachment {
+  id: string
+  before: Attachment
+  after: Attachment
+  content_diff: PromptDiffLine[]
+}
+
 export interface PromptDiff {
+  // The real, full attachment, not just its id, so a UI can show exactly
+  // what was added or removed, not only that something was.
+  attachments_added: Attachment[]
+  attachments_removed: Attachment[]
   // No system_prompt_changed flag: a change to the system-message-role
-  // attachment already shows up as its own id in attachments_changed,
-  // the same as any other edited attachment.
-  attachments_added: string[]
-  attachments_removed: string[]
-  attachments_changed: string[]
+  // attachment already shows up as its own entry here, the same as any
+  // other edited attachment.
+  attachments_changed: ChangedAttachment[]
 }
 
 export interface PromptPreview {

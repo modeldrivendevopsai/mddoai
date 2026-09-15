@@ -24,12 +24,14 @@ export type {
   Attachment,
   AttachmentType,
   BrokenReference,
+  ChangedAttachment,
   PromptBuilderCallbacks,
   PromptBuilderManifest,
   PromptBuilderPromotion,
   PromptBuilderProps,
   PromptConfig,
   PromptDiff,
+  PromptDiffLine,
   PromptPreview,
 } from './components/PromptBuilder';
 export { AttemptsBrowser } from './components/AttemptsBrowser';

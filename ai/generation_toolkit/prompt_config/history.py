@@ -16,6 +16,7 @@ real workflow the ai-research prompts themselves already used, not a
 button whose one-way effect ("no history of its own to undo it") was hard
 to convey in the UI and easy to click by accident.
 """
+import difflib
 import json
 from pathlib import Path
 
@@ -68,16 +69,55 @@ def _load_snapshot(config_dir: str | Path, name: str, version: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _attachment_text(attachment: dict) -> str:
+    """The one field whose value is meaningful to line-diff for this
+    attachment, whichever field that is for its own type - "content" for
+    text, "path" for file, "key" for context. Empty string default (never
+    None) so a completely absent field, or a changed type, still line-diffs
+    as real text against the other side instead of crashing splitlines()."""
+    return attachment.get("content") or attachment.get("path") or attachment.get("key") or ""
+
+
+def _line_diff(before: str, after: str) -> list[dict]:
+    """A real line-by-line diff between two text blocks, one entry per line
+    tagged "added"/"removed"/"unchanged" - difflib is the standard
+    library's own real, maintained line-diff algorithm, no new dependency
+    and no reason to hand-roll one. Returned as structured per-line data,
+    not a rendered string, so a UI can color each line itself rather than
+    parsing diff markup back out of text."""
+    lines = []
+    for line in difflib.ndiff(before.splitlines(), after.splitlines()):
+        if line.startswith("+ "):
+            lines.append({"op": "added", "text": line[2:]})
+        elif line.startswith("- "):
+            lines.append({"op": "removed", "text": line[2:]})
+        elif line.startswith("  "):
+            lines.append({"op": "unchanged", "text": line[2:]})
+        # A "? " line is difflib's own intraline hint marker (which
+        # character moved where within a changed line) - dropped, not a
+        # real line of either side for a UI to render as its own row.
+    return lines
+
+
 def diff_versions(config_dir: str | Path, name: str, version_a: str, version_b: str) -> dict:
     """A real structural diff between two saved versions (either may be
     SHIPPED_DEFAULT_VERSION): per attachment, added / removed / changed,
-    comparing the two JSON documents field by field, not a raw text diff,
-    so a reordered-but-unchanged attachment list doesn't read as
-    "everything changed". No separate system-prompt flag: the system
-    message is a config's own first "text" attachment (see resolution.py),
-    so a change to it already shows up as that attachment's own id in
-    attachments_changed, the same as any other edited attachment - it
-    needs no special case here."""
+    comparing the two JSON documents field by field, not a raw text diff of
+    the whole file, so a reordered-but-unchanged attachment list doesn't
+    read as "everything changed". No separate system-prompt flag: the
+    system message is a config's own first "text" attachment (see
+    resolution.py), so a change to it already shows up as that attachment's
+    own id in attachments_changed, the same as any other edited attachment -
+    it needs no special case here.
+
+    attachments_added/attachments_removed carry each attachment's own real,
+    full content (not just its id), so a UI can show what was actually
+    added or removed, not just that something was. attachments_changed
+    carries the real before/after attachment plus a real line-by-line
+    content_diff (see _line_diff) of whichever field actually holds this
+    attachment's meaningful text - a UI showing only a changed/unchanged
+    count, with no way to see which lines actually moved, is exactly the
+    gap this closes."""
     a = _load_snapshot(config_dir, name, version_a)
     b = _load_snapshot(config_dir, name, version_b)
 
@@ -85,10 +125,17 @@ def diff_versions(config_dir: str | Path, name: str, version_a: str, version_b: 
     attachments_b = {att["id"]: att for att in b.get("attachments", [])}
 
     return {
-        "attachments_added": [aid for aid in attachments_b if aid not in attachments_a],
-        "attachments_removed": [aid for aid in attachments_a if aid not in attachments_b],
+        "attachments_added": [attachments_b[aid] for aid in attachments_b if aid not in attachments_a],
+        "attachments_removed": [attachments_a[aid] for aid in attachments_a if aid not in attachments_b],
         "attachments_changed": [
-            aid for aid in attachments_a if aid in attachments_b and attachments_a[aid] != attachments_b[aid]
+            {
+                "id": aid,
+                "before": attachments_a[aid],
+                "after": attachments_b[aid],
+                "content_diff": _line_diff(_attachment_text(attachments_a[aid]), _attachment_text(attachments_b[aid])),
+            }
+            for aid in attachments_a
+            if aid in attachments_b and attachments_a[aid] != attachments_b[aid]
         ],
     }
 
@@ -102,9 +149,16 @@ def restore_version(
 ) -> dict:
     """Copies a saved version (or, for SHIPPED_DEFAULT_VERSION, the shipped
     default) back over the live file, itself going through
-    storage.save_config again, so restoring creates its own new version
-    too. A restore is never destructive, it's just another save - "reverting
-    to default" is exactly this, called with version=SHIPPED_DEFAULT_VERSION,
-    not a separate function."""
+    storage.save_config again, so restoring a version whose attachments
+    actually differ from what's currently live creates its own new version.
+    A restore is never destructive, it's just another save - "reverting to
+    default" is exactly this, called with version=SHIPPED_DEFAULT_VERSION,
+    not a separate function.
+
+    Restoring the version that's already live is a no-op instead, the same
+    no-op save_config already applies to any save with byte-identical
+    attachments (see its own docstring) - there's genuinely nothing to
+    restore to when you're already there. The UI never offers Restore on
+    the row it's already marked "Current" for exactly this reason."""
     snapshot = _load_snapshot(config_dir, name, version)
     return storage.save_config(config_dir, name, snapshot, context_values, files_root)
