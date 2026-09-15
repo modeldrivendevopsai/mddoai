@@ -3,7 +3,9 @@ import json
 import pytest
 
 from generation_toolkit.attachments.files import PathSegmentError
+from generation_toolkit.prompt_config import storage
 from generation_toolkit.prompt_config._paths import constraints_path
+from generation_toolkit.prompt_config.history import SHIPPED_DEFAULT_VERSION, list_history
 from generation_toolkit.prompt_config.storage import PromptConfigValidationError, load_config, save_config
 
 _SAMPLE = {"system_prompt": "You are helpful.", "attachments": [{"id": "a", "name": "A", "type": "text", "content": "x"}]}
@@ -69,6 +71,55 @@ def test_save_config_keeps_an_immutable_history_copy(tmp_path):
 
     history_file = tmp_path / "generation" / "history" / f"default.{saved['_version']}.json"
     assert history_file.is_file()
+
+
+def test_save_config_is_a_no_op_when_attachments_are_unchanged(tmp_path):
+    # The real backstop against version-history bloat: an autosaving UI can
+    # end up calling save_config with the exact same attachments more than
+    # once (a retry after a perceived timeout that actually landed, a
+    # debounce firing again for a draft that settled back to its last-saved
+    # shape, two tabs open on the same config) - "nothing to commit" must
+    # behave like it does in any other real version-control system, not
+    # silently mint an identical new version each time.
+    first = save_config(tmp_path, "generation", _SAMPLE, {}, tmp_path)
+
+    second = save_config(tmp_path, "generation", _SAMPLE, {}, tmp_path)
+
+    assert second["_version"] == first["_version"]
+    history_dir = tmp_path / "generation" / "history"
+    assert len(list(history_dir.iterdir())) == 1
+
+
+def test_save_config_still_versions_a_genuine_change_to_attachments(tmp_path):
+    first = save_config(tmp_path, "generation", _SAMPLE, {}, tmp_path)
+
+    changed = {**_SAMPLE, "attachments": [{**_SAMPLE["attachments"][0], "content": "y"}]}
+    second = save_config(tmp_path, "generation", changed, {}, tmp_path)
+
+    assert second["_version"] != first["_version"]
+    history_dir = tmp_path / "generation" / "history"
+    assert len(list(history_dir.iterdir())) == 2
+
+
+def test_save_config_prunes_the_oldest_versions_beyond_the_cap(tmp_path, monkeypatch):
+    # A real cap of MAX_HISTORY_VERSIONS (200) would need 200 real saves to
+    # exercise here - patching it down to a small number tests the exact
+    # same pruning logic without the wasted real work.
+    monkeypatch.setattr(storage, "MAX_HISTORY_VERSIONS", 3)
+    (tmp_path / "generation").mkdir()
+    (tmp_path / "generation" / "default.default.json").write_text(json.dumps(_SAMPLE), encoding="utf-8")
+
+    versions = []
+    for i in range(5):
+        content = {**_SAMPLE, "attachments": [{**_SAMPLE["attachments"][0], "content": str(i)}]}
+        versions.append(save_config(tmp_path, "generation", content, {}, tmp_path)["_version"])
+
+    remaining = list_history(tmp_path, "generation")
+    # The 3 most recent real saves, plus the shipped default - never
+    # pruned, it's a separate, always-available file, not a history entry.
+    assert set(remaining) == {*versions[-3:], SHIPPED_DEFAULT_VERSION}
+    for pruned_version in versions[:-3]:
+        assert not (tmp_path / "generation" / "history" / f"default.{pruned_version}.json").exists()
 
 
 def test_save_config_rejects_a_config_with_a_broken_file_attachment(tmp_path):

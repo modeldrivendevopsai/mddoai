@@ -49,6 +49,34 @@ from . import _paths
 # not a cross-process problem this module actually has.
 _write_lock = threading.Lock()
 
+# How many of a name's own real saved versions to keep (the shipped
+# default doesn't count towards this, it's a separate, always-available
+# file, not a history entry) before the oldest ones start getting pruned.
+# An engineering guess, not a measured limit: this module's own no-op
+# dedup above already keeps a steady editing session from ever minting a
+# version for unchanged content, so what's left is real, distinct edits
+# only - real usage produces at most a few dozen of those per config even
+# across a long, active day of work. 200 is a genuine safety net against
+# truly unbounded growth (a config nobody has touched in months
+# accumulating years of real edits), not a limit real day-to-day
+# prompt-editing work should ever actually reach.
+MAX_HISTORY_VERSIONS = 200
+
+
+def _prune_old_versions(config_dir: str | Path, name: str) -> None:
+    """Deletes the oldest saved versions beyond MAX_HISTORY_VERSIONS.
+    Called once per real save below, never on the no-op dedup path above
+    (nothing new was created there to ever need pruning for). A local
+    import: history.py already imports this module at module level (to
+    load a snapshot to diff/restore), so importing it back here at module
+    level would be circular - list_history has no reason to depend on this
+    module, the reverse just isn't true."""
+    from . import history
+
+    versions = [v for v in history.list_history(config_dir, name) if v != history.SHIPPED_DEFAULT_VERSION]
+    for stale_version in versions[MAX_HISTORY_VERSIONS:]:
+        _paths.history_path(config_dir, name, stale_version).unlink(missing_ok=True)
+
 
 class PromptConfigValidationError(ValueError):
     """A config failed its own dry-run resolution, an attachment's file
@@ -86,7 +114,26 @@ def save_config(
     run. context_values/files_root are a realistic sample the caller
     already has on hand (its own latest real values), not synthetic
     placeholders, so this dry-run is a genuine check, not just a shape
-    check."""
+    check.
+
+    A no-op when `config["attachments"]` is byte-identical to the current
+    live file's own "attachments" - returns the existing live config
+    unchanged instead of minting a new version for content nobody actually
+    changed. This is the real backstop against version-history bloat: an
+    autosaving UI can (a retry after a client-side timeout that actually
+    landed, a debounce firing again for a draft that settled back to its
+    last-saved shape, two browser tabs open on the same config) end up
+    calling this with the exact same attachments more than once, and
+    "nothing to commit" should behave the same way here as it does for any
+    other real version-control system, not silently pile up identical
+    entries. Compares "attachments" only, never "learned_constraints" -
+    stripped below regardless, and versioned entirely separately (see this
+    module's own docstring).
+
+    A real save also prunes this name's own oldest history entries beyond
+    MAX_HISTORY_VERSIONS, so history stays real (no duplicates, thanks to
+    the dedup above) and bounded (no unlimited growth either), rather than
+    trading one problem for the other."""
     try:
         resolve_attachments(config.get("attachments", []), context_values, files_root)
     except Exception as e:
@@ -104,18 +151,24 @@ def save_config(
     # writing it back out - see this module's own docstring for why.
     config = {key: value for key, value in config.items() if key != "learned_constraints"}
 
-    # A plain microsecond timestamp alone can collide: two saves issued
-    # back to back (a script, a retry, two test calls with no sleep
-    # between them) can land in the same microsecond on a fast machine or
-    # a coarse system clock, which would silently overwrite one save's
-    # history file with the other's. The random suffix guarantees a
-    # unique id regardless of timing, while the timestamp prefix keeps
-    # plain lexicographic sort equal to chronological sort (see
-    # history.list_history).
-    version = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')}-{secrets.token_hex(3)}"
-    stamped = {**config, "_version": version}
-
     with _write_lock:
-        _paths.atomic_write_json(_paths.config_path(config_dir, name), stamped)
+        live_path = _paths.config_path(config_dir, name)
+        if live_path.is_file():
+            live = json.loads(live_path.read_text(encoding="utf-8"))
+            if live.get("attachments") == config.get("attachments"):
+                return live
+
+        # A plain microsecond timestamp alone can collide: two saves issued
+        # back to back (a script, a retry, two test calls with no sleep
+        # between them) can land in the same microsecond on a fast machine
+        # or a coarse system clock, which would silently overwrite one
+        # save's history file with the other's. The random suffix
+        # guarantees a unique id regardless of timing, while the timestamp
+        # prefix keeps plain lexicographic sort equal to chronological
+        # order (see history.list_history).
+        version = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')}-{secrets.token_hex(3)}"
+        stamped = {**config, "_version": version}
+        _paths.atomic_write_json(live_path, stamped)
         _paths.atomic_write_json(_paths.history_path(config_dir, name, version), stamped)
+        _prune_old_versions(config_dir, name)
     return stamped

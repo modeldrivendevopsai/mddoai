@@ -84,7 +84,11 @@ def test_save_config_rejects_a_broken_attachment_with_400(isolated_prompt_config
 def test_history_lists_every_saved_version(isolated_prompt_config_dir):
     _seed_default(isolated_prompt_config_dir)
     save_config_endpoint("generation", _MINIMAL_BODY)
-    save_config_endpoint("generation", _MINIMAL_BODY)
+    # A genuinely different second save, not _MINIMAL_BODY again -
+    # save_config is a real no-op for byte-identical attachments (see its
+    # own docstring), so saving the exact same body twice would only ever
+    # produce one real version, not two.
+    save_config_endpoint("generation", PromptConfigBody(attachments=[_system_prompt("changed")]))
 
     result = history_endpoint("generation")
 
