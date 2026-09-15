@@ -1,12 +1,15 @@
-"""integration_runner/stages/pim/agent.py unit tests: pim is the one
-remaining stage that switched from LLM prose to fixed mock DSL content,
-validated for real against validator-agent and persisted to disk win or
-lose (see stages/_validation.py). No real validator-agent HTTP calls here -
-validator_agent_client's validate_ecore is mocked at that boundary; see
-test_mock_validated_stages_real_validator.py for the real end-to-end
+"""integration_runner/stages/pim/agent.py unit tests: pim reads the
+project's own real, fixed PIM metamodel off disk (see PIM_METAMODEL_PATH)
+and validates it for real against validator-agent, persisted to disk win
+or lose (see stages/_validation.py). No real validator-agent HTTP calls
+here - validator_agent_client's validate_ecore is mocked at that boundary;
+see test_mock_validated_stages_real_validator.py for the real end-to-end
 exception. RUNS_DIR is redirected to a throwaway tmp_path for every test in
 this whole suite by conftest.py's own autouse fixture, so persist_attempt()
 runs for real here without touching this repo's actual runs/ directory.
+PIM_METAMODEL_PATH is likewise redirected to a throwaway fixture file per
+test (see _real_content below), so these tests never depend on this repo's
+real meta_models/ tree either.
 
 atl and acceleo used to share this same shape (fixed mock content, validated
 directly against validator_agent_client) - now each is a thin proxy to its
@@ -16,9 +19,10 @@ shape instead. psm was never in this file either, for the same reason -
 see test_psm_stage.py's own docstring.
 
 Tests verify:
-  1. It calls validator_agent_client.validate_ecore with its own fixed mock
-     content and filename, in reflective mode.
-  2. On a passing result, it returns the mock content and leaves a real
+  1. It calls validator_agent_client.validate_ecore with the real metamodel
+     content read off PIM_METAMODEL_PATH, and its own fixed filename, in
+     reflective mode.
+  2. On a passing result, it returns that content and leaves a real
      attempt_1/ on disk (content + result.json).
   3. On a failing result, it raises with the real issue detail AND still
      leaves a real attempt_1/ on disk - a failed attempt is exactly the
@@ -38,8 +42,23 @@ from integration_runner.stages import _validation
 from integration_runner.stages.pim import agent as pim_agent
 from helpers import _validation_result
 
+_REAL_CONTENT = "<ecore:EPackage/>"
 
-def test_pim_calls_validate_ecore_with_its_own_mock_content(monkeypatch):
+
+@pytest.fixture(autouse=True)
+def _pim_metamodel_fixture(tmp_path, monkeypatch):
+    """Points PIM_METAMODEL_PATH at a small, throwaway fixture file for
+    every test in this module - what's actually inside it never matters
+    here (validate_ecore itself is mocked in every test below), only that
+    pim_stage reads *some* real file off disk rather than an in-memory
+    constant, and that these tests never touch this repo's real
+    meta_models/ tree."""
+    fixture_path = tmp_path / "pimMM.ecore"
+    fixture_path.write_text(_REAL_CONTENT, encoding="utf-8")
+    monkeypatch.setattr(pim_agent, "PIM_METAMODEL_PATH", fixture_path)
+
+
+def test_pim_calls_validate_ecore_with_the_real_metamodel_content(monkeypatch):
     calls = []
     monkeypatch.setattr(
         validator_agent_client, "validate_ecore",
@@ -50,7 +69,7 @@ def test_pim_calls_validate_ecore_with_its_own_mock_content(monkeypatch):
 
     assert len(calls) == 1
     args, kwargs = calls[0]
-    assert args[0] == pim_agent._MOCK_CONTENT
+    assert args[0] == _REAL_CONTENT
     assert args[1] == pim_agent._FILENAME
 
 
@@ -68,12 +87,12 @@ def test_pim_validates_against_ecore_with_reflective_mode(monkeypatch):
     assert calls[0].get("mode", "reflective") == "reflective"
 
 
-def test_pim_returns_its_mock_content_on_a_passing_result(monkeypatch):
+def test_pim_returns_the_real_metamodel_content_on_a_passing_result(monkeypatch):
     monkeypatch.setattr(validator_agent_client, "validate_ecore", lambda *a, **k: _validation_result(valid=True))
 
     result = pim_agent.pim_stage({"run_id": "run-1"})
 
-    assert result == pim_agent._MOCK_CONTENT
+    assert result == _REAL_CONTENT
 
 
 def test_pim_persists_a_passing_attempt_to_disk(monkeypatch):
@@ -83,7 +102,7 @@ def test_pim_persists_a_passing_attempt_to_disk(monkeypatch):
     pim_agent.pim_stage({"run_id": "run-1"})
 
     attempt_dir = _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
-    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == pim_agent._MOCK_CONTENT
+    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == _REAL_CONTENT
     assert json.loads((attempt_dir / "result.json").read_text(encoding="utf-8")) == passing
 
 
@@ -97,10 +116,10 @@ def test_pim_raises_with_real_issue_detail_on_a_failing_result_and_still_persist
         pim_agent.pim_stage({"run_id": "run-1"})
 
     assert "deliberately broken for this test" in str(exc_info.value)
-    # A failed attempt is exactly the record this exists to keep — it must
+    # A failed attempt is exactly the record this exists to keep, it must
     # still be on disk even though the call above raised.
     attempt_dir = _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
-    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == pim_agent._MOCK_CONTENT
+    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == _REAL_CONTENT
     persisted = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
     assert persisted["valid"] is False
 
