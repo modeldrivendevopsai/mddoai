@@ -485,19 +485,36 @@ helper def : getWhenForJob(job : PIM!Job) : String =
     else OclUndefined
     endif;
 
+-- "and" is not short-circuit in ATL: a plain
+-- "s.oclIsTypeOf(PIM!Command) and s.program..." still evaluates .program
+-- even when s isn't a Command (e.g. a real Cache step in the same job's
+-- steps collection), crashing with "Feature program does not exist on
+-- Cache". Nested if/else is the real, working guard.
 helper def : isGradleProject(pipeline : PIM!Pipeline) : Boolean =
     pipeline.jobStreams->exists(j |
-        j.oclIsTypeOf(PIM!ScriptJob) and
-        j.steps->exists(s |
-            s.oclIsTypeOf(PIM!Command) and
-            s.program.toGitLabString().indexOf('gradle') >= 0));
+        if j.oclIsTypeOf(PIM!ScriptJob) then
+            j.steps->exists(s |
+                if s.oclIsTypeOf(PIM!Command) then
+                    s.program.toGitLabString().indexOf('gradle') >= 0
+                else
+                    false
+                endif)
+        else
+            false
+        endif);
 
 helper def : isDockerProject(pipeline : PIM!Pipeline) : Boolean =
     pipeline.jobStreams->exists(j |
-        j.oclIsTypeOf(PIM!ScriptJob) and
-        j.steps->exists(s |
-            s.oclIsTypeOf(PIM!Command) and
-            s.program.toGitLabString().indexOf('docker') >= 0));
+        if j.oclIsTypeOf(PIM!ScriptJob) then
+            j.steps->exists(s |
+                if s.oclIsTypeOf(PIM!Command) then
+                    s.program.toGitLabString().indexOf('docker') >= 0
+                else
+                    false
+                endif)
+        else
+            false
+        endif);
 
 helper def : getStageForJob(job : PIM!Job, pipeline : PIM!Pipeline) : String =
     if thisModule.isGradleProject(pipeline) then
