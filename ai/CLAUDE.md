@@ -105,18 +105,41 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
   comments in `ai/docker-compose.yml`).
 - **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
-  pre-existing MDE-engine data (a metamodel, a master-example transformation or code-generation
-  template) it doesn't own gets a read-only Docker bind mount of that specific data, not a copy
-  into its own image, so a metamodel or reference-example change doesn't need a service rebuild.
-  `psm_agent` mounts the whole `meta_models/` tree this way (`META_MODELS_DIR`). `atl_agent` and
-  `acceleo_agent` each mount a single real file instead of a whole directory, narrower still: one
-  real, working reference transformation/template this project already has, attached as their
-  default prompt's syntax example (`REFERENCE_EXAMPLE_PATH` in each service's own
-  `prompt_paths.py`; see `ai/docker-compose.yml` for the real mounts). This is a read of real MDE
-  *data*, never Java/Eclipse *code* — that boundary is the second exception above, `validator_agent`'s
-  own, and stays separate from this one. This exception does not extend to any `ui-*` package,
+  pre-existing MDE-engine data (a metamodel, a real model instance, a master-example transformation
+  or code-generation template) it doesn't own gets a read-only Docker bind mount of that specific
+  data, not a copy into its own image, so a metamodel or reference-example change doesn't need a
+  service rebuild. `psm_agent` mounts the whole `meta_models/` tree this way (`META_MODELS_DIR`).
+  `atl_agent` and `acceleo_agent` each mount a single real file instead of a whole directory,
+  narrower still: one real, working reference transformation/template this project already has,
+  attached as their default prompt's syntax example (`REFERENCE_EXAMPLE_PATH` in each service's own
+  `prompt_paths.py`; see `ai/docker-compose.yml` for the real mounts). `integration_runner` mounts
+  two single real files the same narrow way: `PIM_METAMODEL_PATH` (the project's own real, fixed
+  PIM metamodel, which `stages/pim/agent.py` returns as that stage's real, no longer mock, output)
+  and a real sample PIM model instance, `main/`'s own real Java test fixture (`stages/generation/
+  agent.py`'s own real input to the real ATL/Acceleo execution it runs, see the fourth exception
+  below for the execution side of that same stage, a temporary stand-in until a real
+  SWArch-driven PIM extraction replaces it). This is a read of real MDE *data*, never Java/Eclipse
+  *code*, a distinction that separates it from the first exception above (`validator_agent`'s own)
+  and the fourth exception below (`execution_agent`'s own). This exception does not extend
+  to any `ui-*` package, `design-system`, or `ai-layer`, and does not license any other future `ai/`
+  service to reach into `main/`, `meta_models/`, or `code_generation/` without the same explicit
+  justification.
+- **Fourth exception, deliberate and narrow, mirroring the first**: `execution_agent/` wraps
+  headless model/code executors (`main/src/main/java/mddoai/execution/`, one subpackage per DSL
+  type) as HTTP routes, actually *running* a real ATL transformation or Acceleo template against a
+  real model instance, not just compiling it to check for errors (`validator_agent`'s own, separate
+  concern, see the first exception above). A genuinely separate service from `validator_agent`, not
+  new routes there: `validator_agent`'s own documented scope is specifically about validator-type
+  proliferation (`/validate/<type>`), and its licensed reach into `main/` is scoped, by name and
+  path, to `*ValidatorCli.java` under `mddoai.validation`; neither extends to execution. Its Python
+  code lives in `ai/execution_agent/`; it also owns every
+  `main/src/main/java/mddoai/execution/**/*ExecutorCli.java` class (recursive, any depth under
+  `execution/`), a thin entrypoint that `execution_agent` invokes as a subprocess
+  (`java -cp .../lib/* ...*ExecutorCli <args>`), reading structured JSON off stdout; it never links
+  against or imports Java code directly. Everything else under `mddoai.execution` is owned by the
+  Java/Eclipse work, not by `execution_agent`. This exception does not extend to any `ui-*` package,
   `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
-  `main/`, `meta_models/`, or `code_generation/` without the same explicit justification.
+  `main/` without the same explicit justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

@@ -9,8 +9,8 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 
 ## Repo Structure
 
-- `main/`, `meta_models/`, `code_generation/`, `designs/`, `feature/`, `update_site/` — the Java/Eclipse MDE engine and its transformation artifacts.
-- `ai/` — the AI product: multiple services (chat UI, backend API, and supporting agents) built on top of the transformation chain. Mostly separate from the Java/Eclipse engine, with one narrow, explicitly documented exception. See `ai/CLAUDE.md` for the documented folder boundaries and the exception's exact scope.
+- `main/`, `meta_models/`, `code_generation/`, `designs/`, `feature/`, `update_site/` — the Java/Eclipse MDE engine and its transformation artifacts. `meta_models/` holds real metamodels (`.ecore`); real model *instances* conforming to one of those metamodels (e.g. a real `.pimmm` PIM instance) live under `main/`'s own test resources as a real test fixture, read-only, by the AI product too wherever a real instance, not just a metamodel, is a genuine (if temporary, pending a real extraction pipeline) runtime input.
+- `ai/` — the AI product: multiple services (chat UI, backend API, and supporting agents) built on top of the transformation chain. Mostly separate from the Java/Eclipse engine, with a few narrow, explicitly documented exceptions. See `ai/CLAUDE.md` for the documented folder boundaries and each exception's exact scope.
 - `mddoai-design-system/` — the on-brand component library and Claude Design skill (`/mddoai-design`). Read `mddoai-design-system/project/SKILL.md` before doing UI work.
 - `docs/` — misc project docs.
 - `pipeline_tests/`, `install_necessary_packages/`, `viewpointrepresentations/` — supporting material for the MDE engine; match a new file's placement to the existing sibling closest to its purpose.
