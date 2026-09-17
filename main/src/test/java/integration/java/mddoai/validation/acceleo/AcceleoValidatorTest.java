@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import main.java.mddoai.validation.ValidationIssue;
@@ -26,6 +27,18 @@ public class AcceleoValidatorTest {
     private static final String ECORE_FIXTURES = "./src/test/resources/testCases/validation/ecore/";
     private static final String REAL_MTL = "../code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/"
             + "com/mddoai/codegeneration/gitlab/acceleo/main/generate.mtl";
+    private static final String REAL_GITLAB_ATL_PATH = "./src/main/resources/transformations/pim2psm/pim2gitlabmodel.atl";
+    private static final String REAL_GITLAB_ECORE_PATH = "../meta_models/com.mddoai.metamodel.gitlab/model/gitlabMM.ecore";
+    private static final String PIM_SAMPLE_INSTANCE_PATH = "./src/test/resources/testCases/execution/gitlab/input.pimmm";
+    private static final String PIM_SAMPLE_INSTANCE_PATH_PROPERTY = "ATL_SMOKE_TEST_PIM_INSTANCE_PATH";
+
+    @AfterEach
+    public void clearPimSampleInstanceProperty() {
+        // Same testability escape hatch AtlValidator's own
+        // pimSampleInstancePath() provides - see AtlValidatorTest's own
+        // identical @AfterEach for why this is needed and must be cleared.
+        System.clearProperty(PIM_SAMPLE_INSTANCE_PATH_PROPERTY);
+    }
 
     @Test
     public void realShippedGenerateMtlCompilesClean() {
@@ -162,6 +175,81 @@ public class AcceleoValidatorTest {
         assertTrue(result.issues().stream().anyMatch(i -> i.severity() == ValidationIssue.Severity.ERROR
                         && i.message().toLowerCase().contains("terminated")),
                 "expected an ERROR-severity issue about an unterminated block, got: " + result.issues());
+    }
+
+    @Test
+    public void realMtlThatActuallyGeneratesPassesTheExecutionSmokeTestToo() throws Exception {
+        // The real, hand-authored generate.mtl, given a real target
+        // metamodel and this run's own already-generated ATL (also the
+        // real, hand-authored one here) to actually run, chained end to
+        // end: the real ATL produces a real PSM instance, then the real
+        // Acceleo template actually generates real output from it - proves
+        // the happy path of the new three-arg overload.
+        System.setProperty(PIM_SAMPLE_INSTANCE_PATH_PROPERTY, PIM_SAMPLE_INSTANCE_PATH);
+
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(
+                REAL_MTL, REAL_GITLAB_ECORE_PATH, REAL_GITLAB_ATL_PATH);
+        ValidationResult result = compileResult.result();
+
+        assertTrue(result.valid(), "expected the real template to actually generate clean, got: " + result.issues());
+    }
+
+    @Test
+    public void aTemplateThatGeneratesNonYamlContentIsReportedInvalidNotSilentlyValid() throws Exception {
+        // A template can compile clean and actually generate real,
+        // non-empty output (both of which AcceleoExecutor's own contract
+        // already guarantees - see its own execute() comment) while still
+        // producing content that is not real, parseable YAML - confirmed
+        // for real: a genuine generation's own [for] loop emitted list
+        // items at a shallower indent than their parent key. This fixture
+        // reproduces the same class of defect with a plain tab character
+        // (invalid YAML indentation) rather than the original's own
+        // template-specific mistake, since the failure mode under test
+        // here is the parse check itself, not any one platform's content.
+        System.setProperty(PIM_SAMPLE_INSTANCE_PATH_PROPERTY, PIM_SAMPLE_INSTANCE_PATH);
+
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(
+                FIXTURES + "invalidYaml.mtl", REAL_GITLAB_ECORE_PATH, REAL_GITLAB_ATL_PATH);
+        ValidationResult result = compileResult.result();
+
+        assertFalse(result.valid(), "expected the real invalid YAML to be caught, got a clean pass");
+        assertTrue(result.issues().stream().anyMatch(i -> i.severity() == ValidationIssue.Severity.ERROR
+                        && i.message().toLowerCase().contains("yaml")),
+                "expected a real YAML-parse ERROR issue, got: " + result.issues());
+    }
+
+    @Test
+    public void aRealUpstreamAtlFailureIsSurfacedThroughTheAcceleoExecutionSmokeTestToo() throws Exception {
+        // The chain runs the given ATL first to produce a real PSM
+        // instance to generate from - a real, genuinely broken upstream
+        // ATL (the same abstract-classifier fixture AtlValidatorTest's own
+        // atlThatCompilesButInstantiatesAnAbstractClassifierIsReportedInvalid
+        // proves fails at execution) must be caught here too, not silently
+        // ignored just because this overload's own primary concern is the
+        // .mtl file.
+        System.setProperty(PIM_SAMPLE_INSTANCE_PATH_PROPERTY, PIM_SAMPLE_INSTANCE_PATH);
+        String brokenAtlPath = "./src/test/resources/testCases/execution/generic-cicd/pim2genericcicd-abstract-trigger.atl";
+        String targetEcorePath = "./src/test/resources/testCases/execution/generic-cicd/genericCICDMM.ecore";
+
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(
+                FIXTURES + "customPlatform.mtl", targetEcorePath, brokenAtlPath);
+        ValidationResult result = compileResult.result();
+
+        assertFalse(result.valid(), "expected the real upstream ATL failure to be caught, got a clean pass");
+        assertTrue(result.issues().stream().anyMatch(i -> i.severity() == ValidationIssue.Severity.ERROR),
+                "expected a real ERROR-severity issue, got: " + result.issues());
+    }
+
+    @Test
+    public void executionSmokeTestIsSkippedWithoutAConfiguredPimSampleInstance() throws Exception {
+        // No PIM_SAMPLE_INSTANCE_PATH property (nor the real env var)
+        // configured: giving an atlFilePath must not change behavior from
+        // the plain two-arg overload - falls back to compile-only.
+        AcceleoCompileResult compileResult = AcceleoValidator.validate(REAL_MTL, REAL_GITLAB_ECORE_PATH, REAL_GITLAB_ATL_PATH);
+
+        assertTrue(compileResult.result().valid(),
+                "expected compile-only fallback when no PIM sample instance is configured, got: "
+                        + compileResult.result().issues());
     }
 
     private static boolean containsFileNamed(File dir, String suffix) {

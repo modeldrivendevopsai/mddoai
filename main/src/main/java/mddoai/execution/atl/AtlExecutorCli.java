@@ -68,7 +68,21 @@ public final class AtlExecutorCli {
             return 0;
         } catch (Exception e) {
             err.println("AtlExecutorCli: unexpected error: " + e);
-            e.printStackTrace(err);
+            // Not e.printStackTrace(err) directly: an ATL VMException's own
+            // override of that method pretty-prints its real ATL stack
+            // frames, which can itself throw (a real, confirmed NPE from
+            // EMFModelAdapter.getNameOf() when a frame references an
+            // invalid classifier) - diagnostic logging must never be able
+            // to crash the process harder than the failure it's reporting.
+            // AtlExecutor's own execute() already converts the real ATL
+            // runtime-failure case (ATLExecutionException) into a clean
+            // IOException the catch above handles, so reaching here at all
+            // means something genuinely unexpected happened.
+            try {
+                e.printStackTrace(err);
+            } catch (RuntimeException loggingFailure) {
+                err.println("AtlExecutorCli: (also failed to print the real stack trace: " + loggingFailure + ")");
+            }
             return 1;
         }
     }

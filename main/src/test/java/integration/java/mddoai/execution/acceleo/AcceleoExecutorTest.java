@@ -37,6 +37,12 @@ public class AcceleoExecutorTest {
             "../code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/com/mddoai/codegeneration/gitlab/acceleo/main/generate.mtl";
     private static final String GITLAB_ECORE_PATH = "../meta_models/com.mddoai.metamodel.gitlab/model/gitlabMM.ecore";
     private static final String PIM_SAMPLE_INSTANCE_PATH = "./src/test/resources/testCases/execution/gitlab/input.pimmm";
+    private static final String DYNAMIC_MINIMAL_ECORE_PATH =
+            "./src/test/resources/testCases/execution/dynamic-minimal/minimalMM.ecore";
+    private static final String DYNAMIC_MINIMAL_MTL_PATH =
+            "./src/test/resources/testCases/execution/dynamic-minimal/generate.mtl";
+    private static final String DYNAMIC_MINIMAL_INSTANCE_PATH =
+            "./src/test/resources/testCases/execution/dynamic-minimal/input.xmi";
 
     private static String realGitlabPsmInstance() throws IOException {
         String atlSource = Files.readString(Path.of(ATL_SOURCE_PATH), StandardCharsets.UTF_8);
@@ -84,10 +90,38 @@ public class AcceleoExecutorTest {
                 () -> AcceleoExecutor.execute(mtlSource, notAGitlabModel, gitlabEcore));
     }
 
+    // Regression test for a real bug (see AcceleoExecutor.loadModule's own
+    // comment for the full mechanism): the GitLab fixture above never
+    // exercised this, because gitlabMM is a genmodel-based, compiled Java
+    // metamodel, not a dynamically-loaded one - a real LLM-generated target
+    // platform's metamodel (like this fixture) is always the latter. Uses a
+    // deliberately tiny, hand-authored metamodel/template/instance triple,
+    // not a ported reference, since this test is about the execution
+    // mechanism itself, not about any one platform's real content.
     @Test
-    public void brokenMtlSourceFailsWithARealCompileDiagnostic() {
+    public void realGenerateMtlProducesRealOutputForAGenuinelyDynamicNonGenmodelMetamodel() throws IOException {
+        String mtlSource = Files.readString(Path.of(DYNAMIC_MINIMAL_MTL_PATH), StandardCharsets.UTF_8);
+        String ecore = Files.readString(Path.of(DYNAMIC_MINIMAL_ECORE_PATH), StandardCharsets.UTF_8);
+        String instance = Files.readString(Path.of(DYNAMIC_MINIMAL_INSTANCE_PATH), StandardCharsets.UTF_8);
+
+        Map<String, String> generated = AcceleoExecutor.execute(mtlSource, instance, ecore);
+
+        assertTrue(generated.size() >= 1, "expected at least one real generated file, got: " + generated.keySet());
+        String content = String.join("\n", generated.values());
+        assertTrue(content.contains("hello-world"), "expected the real model's own label in the generated output, got: " + content);
+    }
+
+    @Test
+    public void brokenMtlSourceFailsWithARealCompileDiagnostic() throws IOException {
+        // A real, valid target ecore is required here, not an empty string:
+        // loadTargetPackage() now runs (and validates) before compileToEmtl()
+        // (see execute()'s own comment for why), so an empty/invalid ecore
+        // would be rejected as a bad target metamodel before this test's own
+        // broken .mtl source ever reached the real compile step it means to
+        // check - aTargetMetamodelThatIsNotARealEPackageIsRejected already
+        // covers that earlier failure mode.
+        String gitlabEcore = Files.readString(Path.of(GITLAB_ECORE_PATH), StandardCharsets.UTF_8);
         String psmInstance = "";
-        String gitlabEcore = "";
         String brokenMtl = "this is not real Acceleo source";
 
         IOException e = assertThrows(IOException.class,

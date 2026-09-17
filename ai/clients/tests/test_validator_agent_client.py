@@ -98,6 +98,22 @@ def test_validate_atl_forwards_stage_and_attempt_for_compiled_output_placement()
     assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_2"
 
 
+def test_validate_atl_forwards_the_target_metamodel_when_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_atl(
+            "module M; ...", "sample.atl", metamodel_ecore="<ecore:EPackage/>",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["metamodel_ecore"] == "<ecore:EPackage/>"
+
+
+def test_validate_atl_omits_the_target_metamodel_when_not_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_atl("module M; ...", "sample.atl")
+
+    assert "metamodel_ecore" not in mock_post.call_args.kwargs["json"]
+
+
 def test_validate_acceleo_posts_filename_and_content():
     result = _fake_result()
     with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:
@@ -135,6 +151,22 @@ def test_validate_acceleo_omits_the_target_metamodel_when_not_given():
         validator_agent_client.validate_acceleo("[module m('x')]", "sample.mtl")
 
     assert "metamodel_ecore" not in mock_post.call_args.kwargs["json"]
+
+
+def test_validate_acceleo_forwards_atl_source_when_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_acceleo(
+            "[module m('x')]", "sample.mtl", metamodel_ecore="<ecore:EPackage/>", atl_source="module M; ...",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["atl_source"] == "module M; ..."
+
+
+def test_validate_acceleo_omits_atl_source_when_not_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_acceleo("[module m('x')]", "sample.mtl")
+
+    assert "atl_source" not in mock_post.call_args.kwargs["json"]
 
 
 def test_validate_ecore_returns_a_failing_result_as_plain_data_not_an_error():

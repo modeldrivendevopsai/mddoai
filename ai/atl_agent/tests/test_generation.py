@@ -61,7 +61,9 @@ def test_validation_result_is_the_real_validator_agent_response():
          patch.object(validator_agent_client, "validate_atl", return_value=valid_result()) as mock_validate:
         result = generate("<pim/>", "<psm/>", run_id="run-123")
 
-    mock_validate.assert_called_once_with("module m; ...", "generated.atl", run_id="run-123", stage=None, attempt=None)
+    mock_validate.assert_called_once_with(
+        "module m; ...", "generated.atl", run_id="run-123", stage=None, attempt=None, metamodel_ecore="<psm/>"
+    )
     assert result["validation"] == valid_result()
 
 
@@ -71,8 +73,36 @@ def test_forwards_stage_and_attempt_for_compiled_output_nesting():
         generate("<pim/>", "<psm/>", run_id="run-123", stage="atl", attempt="attempt_1")
 
     mock_validate.assert_called_once_with(
-        "module m; ...", "generated.atl", run_id="run-123", stage="atl", attempt="attempt_1"
+        "module m; ...", "generated.atl", run_id="run-123", stage="atl", attempt="attempt_1", metamodel_ecore="<psm/>"
     )
+
+
+def test_forwards_the_real_psm_artifact_as_the_target_metamodel_to_validate():
+    # The whole point of this fix: without the target platform's own real
+    # PSM ecore, validator-agent can never actually RUN the generated ATL
+    # against a real model instance, only compile it - a real runtime-only
+    # failure (e.g. instantiating an abstract classifier) would then only
+    # ever surface later, at the pipeline's own final execution stage, with
+    # no retries left (see AtlValidator.java's own execution smoke test).
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("module m; ...")), \
+         patch.object(validator_agent_client, "validate_atl", return_value=valid_result()) as mock_validate:
+        generate("<pim/>", "<real-psm-ecore/>")
+
+    assert mock_validate.call_args.kwargs["metamodel_ecore"] == "<real-psm-ecore/>"
+
+
+def test_mock_mode_does_not_forward_a_metamodel_since_it_always_targets_a_fixed_fake():
+    # mock=True's own fixed _MOCK_ARTIFACT always targets a fictional "PSM"
+    # package, never this run's own real psm_artifact (see generation.py's
+    # own _MOCK_ARTIFACT) - forwarding a real, unrelated target metamodel
+    # alongside it would make the real execution smoke test run the mock
+    # ATL against the wrong metamodel entirely.
+    with patch.object(ai_layer_client, "chat") as mock_chat, \
+         patch.object(validator_agent_client, "validate_atl", return_value=valid_result()) as mock_validate:
+        generate("<pim/>", "<real-psm-ecore/>", mock=True)
+
+    mock_chat.assert_not_called()
+    assert mock_validate.call_args.kwargs.get("metamodel_ecore") is None
 
 
 def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
@@ -84,6 +114,14 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
     assert mock_chat.call_count == 2
     assert result["rounds"] == 2
     assert "Fix: dangling reference" in result["prompt"]["constraints"]
+    # round_constraints is what lets integration_runner's own atl_stage
+    # persist this real, per-run fix as a real constraint, so the NEXT
+    # external retry builds on it instead of rediscovering it from scratch
+    # (see pipeline.py's own _persist_round_constraints()). A membership
+    # check, not exact equality: it also carries this config's own real,
+    # already-promoted learned_constraints (a separate, permanent concept),
+    # which real prompt configs already have some of.
+    assert "Fix: dangling reference" in result["round_constraints"]
 
 
 def test_prior_constraints_carried_into_first_round():
@@ -103,6 +141,14 @@ def test_forwards_model_to_chat():
     assert mock_chat.call_args.kwargs.get("model") == "gemini-flash"
 
 
+def test_generation_uses_zero_temperature():
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("module m; ...")) as mock_chat, \
+         patch.object(validator_agent_client, "validate_atl", return_value=valid_result()):
+        generate("<pim/>", "<psm/>")
+
+    assert mock_chat.call_args.kwargs.get("temperature") == 0
+
+
 def test_mock_skips_the_real_llm_call_but_still_validates_and_resolves_config():
     with patch.object(ai_layer_client, "chat") as mock_chat, \
          patch.object(validator_agent_client, "validate_atl", return_value=valid_result()) as mock_validate:
@@ -114,3 +160,7 @@ def test_mock_skips_the_real_llm_call_but_still_validates_and_resolves_config():
     assert result["rounds"] == 1
     # Real config still resolved: prompt still carries the real master example.
     assert result["prompt"]["atl_example"] == Path(REFERENCE_EXAMPLE_PATH).read_text()
+    # Present even in mock mode (a real list, not missing) - its exact
+    # content here is just the config's own real, already-promoted
+    # learned_constraints, a separate concern this test isn't about.
+    assert isinstance(result["round_constraints"], list)

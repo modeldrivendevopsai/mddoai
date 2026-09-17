@@ -1,16 +1,23 @@
 package main.java.mddoai.validation.acceleo;
 
+import main.java.mddoai.execution.acceleo.AcceleoExecutor;
+import main.java.mddoai.execution.atl.AtlExecutor;
 import main.java.mddoai.utils.EMFUtils;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
 import org.eclipse.acceleo.parser.compiler.AcceleoCompilerHelper;
 import org.eclipse.emf.ecore.EPackage;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +50,22 @@ public final class AcceleoValidator {
     private static final String OUTPUT_ROOT =
             System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
 
+    // Same real, fixed PIM model instance AtlValidator's own execution smoke
+    // test reads (see its own comment for why one shared instance covers
+    // any future platform, and its own pimSampleInstancePath() for why this
+    // checks a system property before the env var) - needed here too since
+    // a real PSM model instance to actually run the .mtl template against
+    // doesn't exist on its own; it only comes from actually running this
+    // same run's already-generated ATL against this same fixed PIM instance
+    // first.
+    private static final String PIM_SAMPLE_INSTANCE_PATH_ENV = "ATL_SMOKE_TEST_PIM_INSTANCE_PATH";
+
     private AcceleoValidator() {
+    }
+
+    private static String pimSampleInstancePath() {
+        String property = System.getProperty(PIM_SAMPLE_INSTANCE_PATH_ENV);
+        return property != null ? property : System.getenv(PIM_SAMPLE_INSTANCE_PATH_ENV);
     }
 
     public static AcceleoCompileResult validate(String mtlFilePath) {
@@ -118,6 +140,112 @@ public final class AcceleoValidator {
             }
         }
         return validate(mtlFilePath);
+    }
+
+    // Additive overload: on top of everything validate(String, String)
+    // already does (compiling, plus dynamically registering the target
+    // metamodel), also actually RUNS the compiled module against a real PSM
+    // model instance, once a real atlFilePath is given too - the same class
+    // of gap AtlValidator's own execution smoke test closes on the ATL side
+    // (see its own comment), applied here: a .mtl template can compile
+    // cleanly and still fail the moment it actually generates real output
+    // (e.g. a template feature that only resolves against a real model
+    // instance's real structure). There's no real PSM model instance to run
+    // the template against on its own - it only exists once this run's own
+    // already-generated atlFilePath is actually executed against the same
+    // fixed PIM sample AtlValidator uses, so this overload does exactly
+    // that first. A null/blank atlFilePath, or an environment with no
+    // PIM_SAMPLE_INSTANCE_PATH mounted, behaves exactly like
+    // validate(String, String) alone.
+    public static AcceleoCompileResult validate(String mtlFilePath, String targetEcoreFilePath, String atlFilePath) {
+        AcceleoCompileResult compileResult = validate(mtlFilePath, targetEcoreFilePath);
+        if (!compileResult.result().valid()) {
+            return compileResult;
+        }
+        if (targetEcoreFilePath == null || targetEcoreFilePath.isBlank()) {
+            return compileResult;
+        }
+        if (atlFilePath == null || atlFilePath.isBlank()) {
+            return compileResult;
+        }
+        String pimSamplePath = pimSampleInstancePath();
+        if (pimSamplePath == null || pimSamplePath.isBlank()) {
+            return compileResult;
+        }
+        try {
+            String mtlSource = Files.readString(Path.of(mtlFilePath), StandardCharsets.UTF_8);
+            String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
+            String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
+            String pimInstance = Files.readString(Path.of(pimSamplePath), StandardCharsets.UTF_8);
+            String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
+            String psmInstance = AtlExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
+            Map<String, String> generatedFiles = AcceleoExecutor.execute(mtlSource, psmInstance, targetEcore);
+
+            // Every real platform this project targets produces YAML CI/CD
+            // config - AcceleoExecutor.execute() already guarantees real,
+            // non-empty file content (see its own comment), but never checks
+            // that content is actually well-formed for the format it claims
+            // to be. Confirmed for real: a genuinely "valid" template (real
+            // compile, real non-empty execution) produced content that
+            // failed to parse as YAML at all (a template's own [for] loop
+            // emitting list items at a shallower indent than their parent
+            // key) - this closes exactly that gap, feeding a real parser
+            // diagnostic back into the same regenerate loop every other
+            // issue here already flows through.
+            List<ValidationIssue> yamlIssues = validateGeneratedYaml(generatedFiles, mtlFilePath);
+            if (!yamlIssues.isEmpty()) {
+                return new AcceleoCompileResult(ValidationResult.of(yamlIssues), compileResult.generatedOutputPath());
+            }
+
+            persistGeneratedFiles(generatedFiles, compileResult.generatedOutputPath());
+            return compileResult;
+        } catch (Exception e) {
+            return new AcceleoCompileResult(ValidationResult.of(List.of(new ValidationIssue(
+                    ValidationIssue.Severity.ERROR,
+                    "Acceleo compiled but failed to actually generate output from a real PSM model instance: "
+                            + e.getMessage(),
+                    mtlFilePath))), compileResult.generatedOutputPath());
+        }
+    }
+
+    private static List<ValidationIssue> validateGeneratedYaml(Map<String, String> generatedFiles, String sourceFile) {
+        List<ValidationIssue> issues = new ArrayList<>();
+        Yaml yaml = new Yaml();
+        for (Map.Entry<String, String> entry : generatedFiles.entrySet()) {
+            try {
+                yaml.load(entry.getValue());
+            } catch (YAMLException e) {
+                issues.add(new ValidationIssue(ValidationIssue.Severity.ERROR,
+                        "Generated file '" + entry.getKey() + "' is not valid YAML: " + e.getMessage(),
+                        sourceFile));
+            }
+        }
+        return issues;
+    }
+
+    // Kept alongside the compiled .emtl module a real, kept-output smoke
+    // test already writes to disk (see compileInIsolatedWorkDir()), under
+    // its own "generated" subfolder - a human debugging why an attempt
+    // passed or failed needs the real file(s) the smoke test actually
+    // produced, not just whether it passed. No-op when generatedOutputPath
+    // is null (nothing was kept - see compileInIsolatedWorkDir()'s own
+    // hasAnyFile() check), matching every other real-output path here that
+    // tolerates a smoke test never having run.
+    private static void persistGeneratedFiles(Map<String, String> generatedFiles, String generatedOutputPath) {
+        if (generatedOutputPath == null) {
+            return;
+        }
+        File generatedDir = new File(generatedOutputPath, "generated");
+        for (Map.Entry<String, String> entry : generatedFiles.entrySet()) {
+            try {
+                File target = new File(generatedDir, entry.getKey());
+                Files.createDirectories(target.getParentFile().toPath());
+                Files.writeString(target.toPath(), entry.getValue(), StandardCharsets.UTF_8);
+            } catch (java.io.IOException ignored) {
+                // Best-effort: a failure to persist a debug copy must never
+                // fail a smoke test that otherwise passed.
+            }
+        }
     }
 
     // A null from loadEPackage() only says the file didn't parse to a

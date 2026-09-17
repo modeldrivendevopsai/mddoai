@@ -37,6 +37,22 @@ import java.util.Map;
  * project needs (see {@code main.java.mddoai.generators.wrappers}) - a
  * freshly LLM-generated module, compiled here at runtime, never has one of
  * those, since no Eclipse project or genmodel was ever created for it.
+ *
+ * <p>Precondition, not currently enforced by this class itself: only one
+ * {@link #execute} call per target metamodel nsURI may run per JVM process
+ * lifetime. {@link #loadTargetPackage} registers the loaded metamodel into
+ * the static, process-wide {@link EPackage.Registry#INSTANCE}, and
+ * {@link #loadModule} reparents that same metamodel's own EMF
+ * {@link Resource} into a fresh resource set to keep EClass identity
+ * consistent between compile time and generation time (see that method's
+ * own comment) - reparenting is a real EMF mutation that detaches a
+ * Resource from whatever resource set currently holds it, so a second,
+ * concurrent or overlapping {@link #execute} call for the same nsURI in the
+ * same process would silently corrupt the first call's own in-flight state.
+ * Every real caller today invokes this from a fresh, single-purpose OS
+ * process per call, so the static registry always starts empty and this
+ * never happens in practice - re-verify this holds before ever moving to a
+ * pooled or long-lived JVM for performance.
  */
 public final class AcceleoExecutor {
 
@@ -70,10 +86,27 @@ public final class AcceleoExecutor {
 
         File workDir = Files.createTempDirectory("acceleo-execute-").toFile();
         try {
-            File emtlDir = compileToEmtl(mtlSource, workDir);
+            // Real bug this once was: compiling before the target metamodel
+            // was registered meant AcceleoCompilerHelper could never resolve
+            // any type the template actually declares (every real class the
+            // target platform's own metamodel defines - "The metamodel
+            // couldn't be resolved", cascading into "Unrecognized variable"/
+            // "Invalid Type" for every single reference to it) - confirmed
+            // for real: a genuinely valid, already-validator-approved
+            // template failed here even though AcceleoValidator's own
+            // compile check on the exact same content passed clean, because
+            // that check happens to register the target metamodel as a side
+            // effect of its own two-arg overload before this method ever
+            // runs. loadTargetPackage() (which also calls EMFUtils.init())
+            // must run before compileToEmtl(), not after, so a real,
+            // standalone call to this method (the real generation stage's
+            // own real call path, with no prior validate() call to
+            // accidentally register it first) resolves the target
+            // metamodel too.
             EPackage psmPackage = loadTargetPackage(targetEcore, workDir);
+            File emtlDir = compileToEmtl(mtlSource, workDir);
             EObject psmModel = loadPsmModel(psmModelXmi, psmPackage, workDir);
-            Module module = loadModule(emtlDir);
+            Module module = loadModule(emtlDir, psmPackage);
 
             File targetFolder = new File(workDir, "generated");
             if (!targetFolder.mkdirs()) {
@@ -146,9 +179,38 @@ public final class AcceleoExecutor {
         return outputDir;
     }
 
-    private static Module loadModule(File emtlDir) throws IOException {
+    // Real bug this once was, confirmed by direct reproduction: a compiled
+    // .emtl's own cross-reference to its target metamodel resolves through
+    // the FILE it was compiled against (workDir/target.ecore), not through
+    // EPackage.Registry.INSTANCE - so loading the .emtl into a bare, empty
+    // AcceleoResourceSetImpl silently reloads that same .ecore file a SECOND
+    // time from disk, producing a structurally-identical but
+    // object-different EClass for the template's own parameter type.
+    // AcceleoService.doGenerate's own template dispatch (confirmed by
+    // decompiling the real vendored engine jar) matches the model argument
+    // against that parameter type via EClassifier.isInstance(), which walks
+    // precomputed supertype identity, not structural shape - so a
+    // real, valid model whose EClass comes from psmPackage (the ONE
+    // dynamic EPackage this whole execute() call already loaded and
+    // registered) silently fails that check against the .emtl's own
+    // independently-reloaded EClass, and doGenerate finishes normally with
+    // zero real output and no exception. Pre-registering psmPackage's own
+    // Resource (the exact file it was loaded from) into this resource set
+    // before loading the .emtl makes the .emtl's cross-reference resolve to
+    // that SAME already-loaded Resource's contents instead of triggering a
+    // second load, which keeps the EClass identity consistent end to end -
+    // confirmed fixed by a direct before/after reproduction against a real,
+    // non-genmodel target metamodel. A genmodel-based platform (e.g. this
+    // project's own hand-authored GitLab reference) never hit this: its
+    // EPackage is a static Java singleton with no eResource() to begin with
+    // (eResource() is null below, so nothing changes for it).
+    private static Module loadModule(File emtlDir, EPackage psmPackage) throws IOException {
         File emtlFile = findEmtlFile(emtlDir);
         AcceleoResourceSetImpl resourceSet = new AcceleoResourceSetImpl();
+        Resource metamodelResource = psmPackage.eResource();
+        if (metamodelResource != null) {
+            resourceSet.getResources().add(metamodelResource);
+        }
         Resource resource = resourceSet.getResource(URI.createFileURI(emtlFile.getAbsolutePath()), true);
         if (resource.getContents().isEmpty() || !(resource.getContents().get(0) instanceof Module)) {
             throw new IOException("Compiled Acceleo output is not a real Module: " + emtlFile);
@@ -208,9 +270,29 @@ public final class AcceleoExecutor {
         // at all, producing no output with no real error. Same reasoning
         // AcceleoValidator.validate(String,String) already documents and
         // applies to module resolution; applied here to model loading instead.
+        //
+        // Real bug this once was: when nothing was already registered for
+        // this nsURI, this method returned dynamicPackage for its own
+        // caller's local use without ever registering it globally too - so
+        // AcceleoCompilerHelper (called next, in execute() above) could
+        // never resolve a single type the template actually declares
+        // ("The metamodel couldn't be resolved", cascading into
+        // "Unrecognized variable"/"Invalid Type" for every real reference
+        // to it), confirmed for real against an already-validator-approved
+        // template that only happened to compile earlier because a prior,
+        // separate validate() call had registered it first as a side
+        // effect. Must register here too, matching
+        // AcceleoValidator.validate(String, String)'s own identical
+        // registration exactly, not just look for one already done.
         String nsURI = dynamicPackage.getNsURI();
         EPackage alreadyRegistered = nsURI != null ? EPackage.Registry.INSTANCE.getEPackage(nsURI) : null;
-        return alreadyRegistered != null ? alreadyRegistered : dynamicPackage;
+        if (alreadyRegistered != null) {
+            return alreadyRegistered;
+        }
+        if (nsURI != null) {
+            EPackage.Registry.INSTANCE.put(nsURI, dynamicPackage);
+        }
+        return dynamicPackage;
     }
 
     private static EObject loadPsmModel(String psmModelXmi, EPackage psmPackage, File workDir) throws IOException {

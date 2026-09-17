@@ -72,6 +72,35 @@ public class AtlExecutorTest {
     }
 
     @Test
+    public void aRealAtlRuntimeFailureIsReportedCleanlyNotThrownRaw() throws IOException {
+        // A real, genuine LLM-generated ATL that compiled clean (validator-
+        // agent's own check passed it) but crashed EMFVM at real execution
+        // time with org.eclipse.m2m.atl.engine.emfvm.VMException: "The
+        // class 'Trigger' is not a valid classifier" - PIM!Trigger is
+        // abstract (see pimMM.ecore), and this rule set tries to
+        // instantiate it directly. Before AtlExecutor's own fix, this raw
+        // ATLExecutionException propagated uncaught out of transform(),
+        // and printing it via AtlExecutorCli's own catch-all crashed AGAIN
+        // with a real NPE (VMException's own printStackTrace() override
+        // chokes on the same invalid classifier) - confirmed for real
+        // against a live Docker run, not a hypothetical.
+        String atlSource = Files.readString(
+                Path.of("./src/test/resources/testCases/execution/generic-cicd/pim2genericcicd-abstract-trigger.atl"),
+                StandardCharsets.UTF_8);
+        String pimInstance = Files.readString(Path.of(PIM_SAMPLE_INSTANCE_PATH), StandardCharsets.UTF_8);
+        String targetEcore = Files.readString(
+                Path.of("./src/test/resources/testCases/execution/generic-cicd/genericCICDMM.ecore"),
+                StandardCharsets.UTF_8);
+
+        IOException e = assertThrows(IOException.class,
+                () -> AtlExecutor.execute(atlSource, pimInstance, targetEcore, "GenericCICDMM"));
+        assertTrue(e.getMessage().contains("ATL runtime failure"),
+                "expected a real, clean runtime-failure message, got: " + e.getMessage());
+        assertTrue(e.getMessage().contains("Trigger"),
+                "expected the real ATL engine's own diagnostic to survive, got: " + e.getMessage());
+    }
+
+    @Test
     public void brokenAtlSourceFailsWithARealCompileDiagnostic() {
         String pimInstance = "";
         String gitlabEcore = "";

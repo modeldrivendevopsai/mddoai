@@ -25,7 +25,7 @@ def test_run_acceleo_posts_the_real_payload_shape():
     mock_post.assert_called_once_with(
         f"{acceleo_agent_client.ACCELEO_AGENT_URL}/generate",
         json={
-            "psm_artifact": "<psm/>", "platform_docs": "docs",
+            "psm_artifact": "<psm/>", "platform_docs": "docs", "atl_artifact": None,
             "constraints": None, "model": None, "run_id": None, "stage": None, "attempt": None,
             "mock": False,
         },
@@ -40,6 +40,13 @@ def test_run_acceleo_forwards_stage_and_attempt_for_compiled_output_nesting():
 
     assert mock_post.call_args.kwargs["json"]["stage"] == "acceleo"
     assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_1"
+
+
+def test_run_acceleo_forwards_this_runs_own_already_generated_atl():
+    with patch("acceleo_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        acceleo_agent_client.run_acceleo("<psm/>", "docs", atl_artifact="module M; ...")
+
+    assert mock_post.call_args.kwargs["json"]["atl_artifact"] == "module M; ..."
 
 
 def test_run_acceleo_forwards_mock():

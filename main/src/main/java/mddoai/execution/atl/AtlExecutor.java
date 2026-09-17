@@ -21,6 +21,8 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -43,7 +45,40 @@ import java.util.stream.Collectors;
  */
 public final class AtlExecutor {
 
+    // atl_agent's own generation prompt forces every generated ATL's output
+    // model name into this exact shape: "create OUT : <ModelName> from IN :
+    // PIM;", with a matching "-- @nsURI <ModelName>=<platform>MM=..." header
+    // line just above it (mirrored independently in ai/integration_runner's
+    // own Python stage/generation/agent.py, which needs the same name for
+    // its own, separate call into execution_agent - that duplication is
+    // across a language boundary, not something either side can import from
+    // the other). Comments are stripped first so a header line merely
+    // mentioning this convention is never mistaken for the real declaration.
+    private static final Pattern OUTPUT_MODEL_NAME_PATTERN =
+            Pattern.compile("create\\s+OUT\\s*:\\s*(\\w+)\\s+from");
+    private static final Pattern ATL_LINE_COMMENT_PATTERN = Pattern.compile("--.*$", Pattern.MULTILINE);
+
     private AtlExecutor() {
+    }
+
+    /**
+     * Parses the real output model name out of {@code atlSource} itself
+     * (see {@link #OUTPUT_MODEL_NAME_PATTERN}'s own comment for the exact
+     * convention), so a caller that only has the ATL source, not a
+     * separately-computed name, can still call {@link #execute} - used by
+     * {@link main.java.mddoai.validation.atl.AtlValidator}'s own real
+     * execution smoke test. Throws IllegalArgumentException, matching this
+     * class's own "bad input" contract, when the source doesn't declare one.
+     */
+    public static String parseOutputModelName(String atlSource) {
+        String codeOnly = ATL_LINE_COMMENT_PATTERN.matcher(atlSource).replaceAll("");
+        Matcher matcher = OUTPUT_MODEL_NAME_PATTERN.matcher(codeOnly);
+        if (!matcher.find()) {
+            throw new IllegalArgumentException(
+                    "Could not find a real output model name in the generated ATL source "
+                            + "(expected \"create OUT : <Name> from IN : PIM;\")");
+        }
+        return matcher.group(1);
     }
 
     /**
@@ -72,7 +107,22 @@ public final class AtlExecutor {
             ResourceSet resourceSet = new ResourceSetImpl();
             FromPIMAbstractTransformer<EObject, EPackage> transformer = new FromPIMAbstractTransformer<>(
                     resourceSet, targetPackage, asmFile.getAbsolutePath(), outputModelName);
-            EObject outputModel = transformer.transform(pimModel);
+            EObject outputModel;
+            try {
+                outputModel = transformer.transform(pimModel);
+            } catch (org.eclipse.m2m.atl.common.ATLExecutionException e) {
+                // A real ATL runtime failure (e.g. "The class 'X' is not a
+                // valid classifier") - genuinely different from a compile
+                // error above, but just as real and describable, so it gets
+                // the same IOException treatment this method already
+                // documents. getMessage() is safe here even though
+                // VMException's own printStackTrace() isn't (confirmed via
+                // javap against the real vendored jar: it overrides only
+                // the two printStackTrace overloads, whose own pretty-print
+                // path can NPE on an invalid classifier - see
+                // AtlExecutorCli's own catch-all for why that matters too).
+                throw new IOException("ATL runtime failure: " + e.getMessage(), e);
+            }
             if (outputModel == null) {
                 throw new IOException("ATL transformation produced no output model");
             }

@@ -30,6 +30,14 @@ import prompt_paths
 
 CONFIG_NAME = "generation"
 
+# 0, not a lower-but-nonzero value: ATL is a fixed, unambiguous grammar,
+# never a place where creative phrasing helps - a real generation this
+# project produced repeatedly invented syntactically-plausible-but-wrong
+# constructs (a bare ternary missing `if`/`endif`, `=` where a `to` block
+# needs `<-`) that a lower temperature reduces the odds of, without helping
+# with a genuine knowledge gap the model would get wrong at any setting.
+GENERATION_TEMPERATURE = 0
+
 _FILES_ROOT = [prompt_paths.REFERENCE_EXAMPLE_PATH.parent, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 
 # mock=True's fixed stand-in output: a minimal, already-proven-valid ATL
@@ -53,8 +61,16 @@ rule MockPipelineBlock2MockPipeline {
 """
 
 
-def _validate(artifact: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None) -> dict:
-    return validator_agent_client.validate_atl(artifact, "generated.atl", run_id=run_id, stage=stage, attempt=attempt)
+def _validate(
+    artifact: str,
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+    metamodel_ecore: str | None = None,
+) -> dict:
+    return validator_agent_client.validate_atl(
+        artifact, "generated.atl", run_id=run_id, stage=stage, attempt=attempt, metamodel_ecore=metamodel_ecore
+    )
 
 
 def generate(
@@ -68,11 +84,19 @@ def generate(
     mock: bool = False,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict,
-    "rounds": int, "prompt_version": str} - the same shape
-    psm_agent.generation.generate() returns, for the same reason:
-    `prompt_version` names exactly which saved config produced this
+    "rounds": int, "prompt_version": str, "round_constraints": list[str]} -
+    the same shape psm_agent.generation.generate() returns, for the same
+    reason: `prompt_version` names exactly which saved config produced this
     output, the real link an attempt's own persisted record and a later
     "restore the config that produced this" UI action both need.
+    `round_constraints` is run_with_retry()'s own per-run concept (see its
+    own docstring), deliberately distinct from this function's own
+    `config.get("learned_constraints", ...)` above, a permanent, cross-run
+    concept a human explicitly promotes - the caller (integration_runner's
+    own atl_stage) is expected to persist round_constraints as real,
+    per-run constraints so the next real retry builds on everything this
+    call already spent real LLM rounds discovering, instead of starting
+    over blank.
 
     mock=True (the per-run "Mock" override, same opt-in as psm_agent's own)
     still resolves the real config/attachments and still runs the real
@@ -87,6 +111,14 @@ def generate(
     combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
 
     if mock:
+        # No metamodel_ecore here: _MOCK_ARTIFACT always targets a fixed,
+        # fictional "PSM" package name, never this run's own real
+        # psm_artifact - forwarding a real, unrelated target metamodel
+        # alongside it would make the real execution smoke test run the
+        # mock ATL against the wrong metamodel entirely (mirrors
+        # acceleo_agent's own mock branch never forwarding metamodel_ecore,
+        # for the identical reason - see its test_mock_mode_does_not_forward_
+        # a_metamodel_since_it_always_targets_gitlab).
         prompt = build_prompt(parts, combined_constraints)
         validation = _validate(_MOCK_ARTIFACT, run_id, stage, attempt)
         return {
@@ -95,15 +127,17 @@ def generate(
             "validation": validation,
             "rounds": 1,
             "prompt_version": config.get("_version"),
+            "round_constraints": combined_constraints,
         }
 
     result = run_with_retry(
         config["system_prompt"],
         parts,
         constraints=combined_constraints,
-        validate_fn=lambda artifact: _validate(artifact, run_id, stage, attempt),
+        validate_fn=lambda artifact: _validate(artifact, run_id, stage, attempt, metamodel_ecore=psm_artifact),
         render_user_content=lambda prompt: rendering.render_user_content(config, prompt),
         model=model,
+        temperature=GENERATION_TEMPERATURE,
     )
     return {
         "artifact": result["output"],
@@ -111,4 +145,5 @@ def generate(
         "validation": result["validation"],
         "rounds": result["rounds"],
         "prompt_version": config.get("_version"),
+        "round_constraints": result["round_constraints"],
     }

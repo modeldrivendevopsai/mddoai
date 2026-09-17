@@ -1,0 +1,9 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/dynamicminimal')]
+
+[template public generateElement(root : Root)]
+[comment @main/]
+[file ('out.txt', false, 'UTF-8')]
+Generated: [root.label/]
+[/file]
+[/template]

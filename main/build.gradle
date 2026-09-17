@@ -23,7 +23,13 @@ repositories {
 dependencies {
     implementation group: 'commons-io', name: 'commons-io', version: '2.14.0'
     implementation 'commons-cli:commons-cli:1.4'
-    
+
+    // https://mvnrepository.com/artifact/org.yaml/snakeyaml - every real
+    // platform this project targets produces YAML CI/CD config, so the
+    // Acceleo execution smoke test can check that what it actually
+    // generated is real, parseable YAML, not just non-empty file content.
+    implementation group: 'org.yaml', name: 'snakeyaml', version: '2.7'
+
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime

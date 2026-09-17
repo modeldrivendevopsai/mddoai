@@ -38,8 +38,9 @@ public final class AcceleoValidatorCli {
     // (test.java.unit.java.mddoai...) don't share a package with
     // main.java.mddoai..., so package-private would be untestable.
     public static int run(String[] args, PrintStream out, PrintStream err) {
-        if (args.length != 1 && args.length != 2) {
-            err.println("usage: AcceleoValidatorCli <path-to-mtl-file> [path-to-target-ecore-file]");
+        if (args.length < 1 || args.length > 3) {
+            err.println("usage: AcceleoValidatorCli <path-to-mtl-file> [path-to-target-ecore-file] "
+                    + "[path-to-atl-file]");
             return 2;
         }
         String path = args[0];
@@ -48,12 +49,23 @@ public final class AcceleoValidatorCli {
         // AcceleoValidator.validate(String, String)'s own comment) - needed
         // for any platform without a genmodel/compiled Java package of its
         // own baked into this build (i.e. every platform except the ones
-        // EMFUtils.init() hardcodes).
-        String targetEcorePath = args.length == 2 ? args[1] : null;
+        // EMFUtils.init() hardcodes). The optional third arg: this run's own
+        // already-generated ATL, which - given alongside the second arg -
+        // also actually runs the compiled module against a real PSM model
+        // instance (see AcceleoValidator.validate(String, String, String)'s
+        // own comment for why this needs the ATL too, not just the target
+        // metamodel).
+        String targetEcorePath = args.length >= 2 ? args[1] : null;
+        String atlPath = args.length == 3 ? args[2] : null;
         try {
-            AcceleoCompileResult result = targetEcorePath == null
-                    ? AcceleoValidator.validate(path)
-                    : AcceleoValidator.validate(path, targetEcorePath);
+            AcceleoCompileResult result;
+            if (atlPath != null) {
+                result = AcceleoValidator.validate(path, targetEcorePath, atlPath);
+            } else if (targetEcorePath != null) {
+                result = AcceleoValidator.validate(path, targetEcorePath);
+            } else {
+                result = AcceleoValidator.validate(path);
+            }
             out.println(toJson(result));
             return 0;
         } catch (Exception e) {

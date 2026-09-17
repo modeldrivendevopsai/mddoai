@@ -1,0 +1,35 @@
+module BrokenLazyRuleTargetsRawCollection;
+create OUT : GitLabMM from IN : PIM;
+
+rule Main {
+	from
+		s : PIM!Pipeline
+	to
+		t : GitLabMM!Pipeline (
+			jobs <- Sequence{}
+		)
+}
+
+-- A lazy rule whose target is a raw Sequence(...) rather than a real
+-- metamodel class is not valid ATL, but ATLCompiler.atl (the standalone
+-- compiler, itself written in ATL) crashes internally with a VMException
+-- from its own codegen instead of reporting a clean diagnostic - confirmed
+-- for real against a genuine LLM-generated .atl source whose real
+-- execution later failed despite AtlValidator once reporting it valid.
+lazy rule createVariables {
+	from
+		assignments : Sequence(PIM!Assignment)
+	to
+		result : Sequence(GitLabMM!Variable) (
+			value <- assignments->collect(a | thisModule.createVariable(a))
+		)
+}
+
+lazy rule createVariable {
+	from
+		a : PIM!Assignment
+	to
+		v : GitLabMM!Variable (
+			name <- a.key.name
+		)
+}

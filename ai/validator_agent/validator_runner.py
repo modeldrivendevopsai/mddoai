@@ -175,13 +175,32 @@ def run_ecore_validator(
 
 
 def run_atl_validator(
-    content: str, filename: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None
+    content: str,
+    filename: str,
+    run_id: str | None = None,
+    stage: str | None = None,
+    attempt: str | None = None,
+    metamodel_ecore: str | None = None,
 ) -> AtlValidationResult:
+    """metamodel_ecore, when given, is the target platform's own real PSM
+    .ecore content - AtlValidatorCli's own optional second arg. Beyond
+    dynamically registering it (mirroring run_acceleo_validator's own
+    metamodel_ecore), a real target metamodel also lets AtlValidator actually
+    RUN the compiled transformation against a real, fixed PIM model instance
+    (mounted into this container - see AtlValidator.java's own
+    ATL_SMOKE_TEST_PIM_INSTANCE_PATH), catching a real runtime-only failure
+    (e.g. instantiating an abstract classifier) that compiling alone can
+    never see. Without it, only compile-time checking runs, exactly as
+    before."""
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "transformation.atl")
         target.write_text(content, encoding="utf-8")
 
         argv = ["java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, str(target)]
+        if metamodel_ecore is not None:
+            ecore_target = Path(tmp) / "target_metamodel.ecore"
+            ecore_target.write_text(metamodel_ecore, encoding="utf-8")
+            argv.append(str(ecore_target))
         result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
 
         result["duration_ms"] = duration_ms
@@ -197,6 +216,7 @@ def run_acceleo_validator(
     stage: str | None = None,
     attempt: str | None = None,
     metamodel_ecore: str | None = None,
+    atl_source: str | None = None,
 ) -> AcceleoValidationResult:
     """metamodel_ecore, when given, is the target platform's own real PSM
     .ecore content - AcceleoValidatorCli's own optional second arg, which
@@ -207,7 +227,17 @@ def run_acceleo_validator(
     metamodels EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab) can
     ever resolve - every other platform's own real generated template would
     otherwise always fail with "the metamodel couldn't be resolved",
-    regardless of how correct it actually is."""
+    regardless of how correct it actually is.
+
+    atl_source, when given alongside metamodel_ecore, is this run's own
+    already-generated ATL - AcceleoValidatorCli's own optional third arg.
+    With it, AcceleoValidator also actually RUNS the compiled module against
+    a real PSM model instance (produced by actually running atl_source
+    against the same fixed PIM sample AtlValidator uses), catching a real
+    runtime-only Acceleo failure that compiling alone can never see, the
+    same class of gap metamodel_ecore alone already closes for AtlValidator.
+    Ignored without metamodel_ecore too, since there's no target metamodel
+    to run either executor against."""
     with tempfile.TemporaryDirectory() as tmp:
         target = Path(tmp) / (Path(filename).name or "generate.mtl")
         target.write_text(content, encoding="utf-8")
@@ -217,6 +247,10 @@ def run_acceleo_validator(
             ecore_target = Path(tmp) / "target_metamodel.ecore"
             ecore_target.write_text(metamodel_ecore, encoding="utf-8")
             argv.append(str(ecore_target))
+            if atl_source is not None:
+                atl_target = Path(tmp) / "transformation.atl"
+                atl_target.write_text(atl_source, encoding="utf-8")
+                argv.append(str(atl_target))
         result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
 
         result["duration_ms"] = duration_ms
