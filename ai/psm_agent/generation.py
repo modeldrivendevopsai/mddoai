@@ -104,11 +104,15 @@ def generate(
     mock: bool = False,
 ) -> dict:
     """Returns {"artifact": str, "prompt": dict, "validation": dict,
-    "rounds": int, "prompt_version": str}. `prompt_version` names exactly
-    which saved config produced this output, the real link an attempt's
-    own persisted record (see integration_runner/stages/_validation.py's
-    persist_attempt) and a later "restore the config that produced this"
-    UI action both need.
+    "rounds": int, "prompt_version": str, "round_constraints": list[str]}.
+    `prompt_version` names exactly which saved config produced this
+    output, the real link an attempt's own persisted record (see
+    integration_runner/stages/_validation.py's persist_attempt) and a
+    later "restore the config that produced this" UI action both need.
+    `round_constraints` is run_with_retry()'s own per-run concept (see its
+    own docstring), deliberately distinct from this function's own
+    `config.get("learned_constraints", ...)` below, a permanent, cross-run
+    concept a human explicitly promotes.
 
     mock=True (the per-run "Mock" override, same opt-in as docs_stage's own
     context["mock"]) still resolves the real config/attachments and still
@@ -131,6 +135,7 @@ def generate(
             "validation": validation,
             "rounds": 1,
             "prompt_version": config.get("_version"),
+            "round_constraints": combined_constraints,
         }
 
     psm_docs = platform_docs
@@ -166,4 +171,5 @@ def generate(
         "validation": result["validation"],
         "rounds": result["rounds"],
         "prompt_version": config.get("_version"),
+        "round_constraints": result["round_constraints"],
     }

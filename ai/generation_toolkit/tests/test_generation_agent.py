@@ -24,7 +24,13 @@ def test_single_shot_when_no_validate_fn_given():
         result = run_with_retry("system prompt", {"a": "content"})
 
     assert mock_chat.call_count == 1
-    assert result == {"output": "output text", "prompt": {"a": "content", "constraints": ""}, "validation": None, "rounds": 1}
+    assert result == {
+        "output": "output text",
+        "prompt": {"a": "content", "constraints": ""},
+        "validation": None,
+        "rounds": 1,
+        "round_constraints": [],
+    }
 
 
 def test_stops_immediately_when_valid_on_first_round():
@@ -46,6 +52,35 @@ def test_regenerates_once_then_succeeds_and_adds_one_constraint():
     assert mock_chat.call_count == 2
     assert result["rounds"] == 2
     assert "Fix: missing thing" in result["prompt"]["constraints"]
+
+
+def test_round_constraints_includes_the_original_plus_every_real_fix_found():
+    # The whole point of returning this: a caller (integration_runner's own
+    # stage agents) persists it as real constraints so the NEXT external
+    # retry doesn't have to rediscover the same real mistakes from a blank
+    # slate - confirmed for real against a stuck run that needed 5 external
+    # retries, each silently re-spending its own internal budget, before
+    # this field existed.
+    validations = [invalid_result("missing thing"), invalid_result("another problem"), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry(
+            "system prompt", {"a": "x"}, constraints=["already known"], validate_fn=lambda _: validations.pop(0)
+        )
+
+    assert result["round_constraints"] == [
+        "already known",
+        "Fix: missing thing",
+        "Fix: another problem",
+    ]
+
+
+def test_round_constraints_stays_just_the_original_when_valid_on_first_round():
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry(
+            "system prompt", {"a": "x"}, constraints=["already known"], validate_fn=lambda _: valid_result()
+        )
+
+    assert result["round_constraints"] == ["already known"]
 
 
 def test_stops_at_max_rounds_when_never_valid():
@@ -160,6 +195,20 @@ def test_forwards_model_to_chat():
         run_with_retry("system prompt", {"a": "x"}, model="gemini-flash")
 
     assert mock_chat.call_args.kwargs["model"] == "gemini-flash"
+
+
+def test_forwards_temperature_to_chat():
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")) as mock_chat:
+        run_with_retry("system prompt", {"a": "x"}, temperature=0)
+
+    assert mock_chat.call_args.kwargs["temperature"] == 0
+
+
+def test_omits_temperature_to_chat_when_not_given():
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")) as mock_chat:
+        run_with_retry("system prompt", {"a": "x"})
+
+    assert mock_chat.call_args.kwargs["temperature"] is None
 
 
 def test_prior_constraints_carried_into_first_round():

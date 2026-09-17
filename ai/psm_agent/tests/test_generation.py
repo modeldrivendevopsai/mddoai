@@ -116,6 +116,14 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
     assert mock_chat.call_count == 2
     assert result["rounds"] == 2
     assert "Fix: missing RetryPolicy" in result["prompt"]["constraints"]
+    # round_constraints is what lets integration_runner's own psm_stage
+    # persist this real, per-run fix as a real constraint, so the NEXT
+    # external retry builds on it instead of rediscovering it from scratch
+    # (see pipeline.py's own _persist_round_constraints()). A membership
+    # check, not exact equality: it also carries this config's own real,
+    # already-promoted learned_constraints (a separate, permanent concept),
+    # which real prompt configs already have some of.
+    assert "Fix: missing RetryPolicy" in result["round_constraints"]
 
 
 def test_prior_constraints_carried_into_first_round():
@@ -193,6 +201,10 @@ def test_mock_skips_the_real_llm_call_and_grounding_but_still_validates():
     # Real config resolution still happened - same real master example and
     # real learned constraints a non-mock call would resolve.
     assert result["prompt"]["psm_example"] == Path(DEFAULT_PSM_MASTER_EXAMPLE_PATH).read_text()
+    # Present even in mock mode (a real list, not missing) - its exact
+    # content here is just the config's own real, already-promoted
+    # learned_constraints, a separate concern this test isn't about.
+    assert isinstance(result["round_constraints"], list)
     assert "valid Java identifier" in result["prompt"]["constraints"]
     assert "ecore:EPackage" in result["artifact"]
 

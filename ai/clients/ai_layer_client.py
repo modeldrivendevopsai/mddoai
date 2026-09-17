@@ -15,13 +15,19 @@ LLM_CHAT_TIMEOUT = float(os.environ.get("LLM_CHAT_TIMEOUT", "900.0"))
 
 
 def _chat_payload(
-    messages: list[dict], model: str | None, tools: list[dict] | None, tool_choice: str | None
+    messages: list[dict],
+    model: str | None,
+    tools: list[dict] | None,
+    tool_choice: str | None,
+    temperature: float | None = None,
 ) -> dict:
     payload = {"messages": messages, "model": model}
     if tools is not None:
         payload["tools"] = tools
     if tool_choice is not None:
         payload["tool_choice"] = tool_choice
+    if temperature is not None:
+        payload["temperature"] = temperature
     return payload
 
 
@@ -30,13 +36,15 @@ def chat(
     model: str | None = None,
     tools: list[dict] | None = None,
     tool_choice: str | None = None,
+    temperature: float | None = None,
     timeout: float = LLM_CHAT_TIMEOUT,
 ) -> dict:
     """POST to ai-layer's /chat endpoint, returns its parsed JSON response
     directly: {"model": ..., "content": str | None, "tool_calls": [{"function":
     {"name": ..., "arguments": "..."}}] | None}. content is None when the
-    model responded with only tool calls."""
-    payload = _chat_payload(messages, model, tools, tool_choice)
+    model responded with only tool calls. `temperature` is omitted (letting
+    the provider's own default apply) when not given."""
+    payload = _chat_payload(messages, model, tools, tool_choice, temperature)
     response = httpx.post(f"{AI_LAYER_URL}/chat", json=payload, timeout=timeout)
     response.raise_for_status()
     return response.json()

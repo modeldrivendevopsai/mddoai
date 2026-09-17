@@ -162,6 +162,17 @@ def test_chat_omits_tools_and_tool_choice_kwargs_when_not_provided():
     mock_chat.assert_called_once_with([{"role": "user", "content": "hi"}], model=None)
 
 
+def test_chat_passes_temperature_through_to_router_chat():
+    with patch.object(main, "chat", return_value=ok_response("gemini/gemini-2.5-flash")) as mock_chat:
+        response = client.post(
+            "/chat",
+            json={"messages": [{"role": "user", "content": "hi"}], "temperature": 0},
+        )
+
+    assert response.status_code == 200
+    mock_chat.assert_called_once_with([{"role": "user", "content": "hi"}], model=None, temperature=0)
+
+
 def test_chat_serializes_tool_calls_in_response():
     response_with_tool_call = MagicMock()
     response_with_tool_call.model = "gemini/gemini-2.5-flash"
