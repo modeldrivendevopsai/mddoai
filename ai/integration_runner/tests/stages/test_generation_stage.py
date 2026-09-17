@@ -5,7 +5,10 @@ no LLM call of its own any more. No real HTTP call -
 clients/execution_agent_client.execute_atl/execute_acceleo are mocked.
 PIM_SAMPLE_INSTANCE_PATH is redirected to a throwaway fixture file per test
 (see _pim_sample_fixture below), so these tests never depend on this
-repo's real main/ test-resources tree.
+repo's real main/ test-resources tree. RUNS_DIR is redirected to a tmp_path
+by integration_runner/tests/conftest.py's own autouse fixture, so real
+persistence tests below read back real files under tmp_path, never this
+repo's own runs/ tree.
 
 Tests verify:
   1. gen_stage calls execute_atl with the real atl_output/psm_output
@@ -19,7 +22,13 @@ Tests verify:
      with each file's own name.
   4. A real, missing output model name in the given ATL source raises a
      clear error before ever calling execute_atl.
+  5. A real, successful run persists the intermediate PSM instance, every
+     real generated file, and the joined primary artifact to disk.
+  6. A real execution failure persists a real failure record before
+     re-raising, rather than leaving no trace of what actually happened.
 """
+import json
+
 import pytest
 
 from clients import execution_agent_client
@@ -45,11 +54,13 @@ def test_gen_stage_runs_the_real_atl_then_the_real_acceleo(monkeypatch):
     monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
     monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
 
-    result = gen_stage({
+    output, extra = gen_stage({
         "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>",
     })
 
-    assert result == "stages: []\n"
+    assert output == "stages: []\n"
+    assert extra["psm_instance"] == "<gitlabMM:Pipeline/>"
+    assert extra["generated_files"] == {".gitlab-ci.yml": "stages: []\n"}
 
 
 def test_gen_stage_calls_execute_atl_with_the_real_context_and_pim_sample(monkeypatch):
@@ -92,10 +103,11 @@ def test_gen_stage_joins_more_than_one_generated_file_with_their_own_names(monke
         lambda *a, **k: {"a.yml": "a: 1\n", "b.yml": "b: 2\n"},
     )
 
-    result = gen_stage({"atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>"})
+    output, extra = gen_stage({"atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>"})
 
-    assert "# a.yml" in result and "a: 1" in result
-    assert "# b.yml" in result and "b: 2" in result
+    assert "# a.yml" in output and "a: 1" in output
+    assert "# b.yml" in output and "b: 2" in output
+    assert extra["generated_files"] == {"a.yml": "a: 1\n", "b.yml": "b: 2\n"}
 
 
 def test_gen_stage_raises_a_clear_error_when_the_atl_source_has_no_real_output_model_name():
@@ -128,3 +140,101 @@ def test_gen_stage_raises_when_the_only_output_model_name_is_commented_out():
     atl_source = "-- create OUT : GitLabMM from IN : PIM;\nmodule pim2gitlabmodel;\n"
     with pytest.raises(ValueError, match="output model name"):
         gen_stage({"atl_output": atl_source, "acceleo_output": "[module x]", "psm_output": "<ecore/>"})
+
+
+def test_gen_stage_persists_the_psm_instance_every_generated_file_and_the_primary_artifact(monkeypatch, tmp_path):
+    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
+    monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
+
+    gen_stage({
+        "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+    })
+
+    attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
+    assert (attempt_dir / "psm_instance.xmi").read_text(encoding="utf-8") == "<gitlabMM:Pipeline real-output/>"
+    assert (attempt_dir / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: []\n"
+    assert (attempt_dir / "output.yaml").read_text(encoding="utf-8") == "stages: []\n"
+    result = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
+    assert result["valid"] is True
+    manifest = json.loads((tmp_path / "runs" / "run-1" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest[-1] == {"run_id": "run-1", "stage": "generation", "attempt_n": 1, "valid": True,
+                             "timestamp": manifest[-1]["timestamp"]}
+
+
+def test_gen_stage_persists_a_generated_file_nested_in_its_own_subdirectory(monkeypatch, tmp_path):
+    # A real platform's own generated file name can carry a subdirectory
+    # (e.g. Woodpecker's real ".woodpecker/pipeline.yaml" convention) -
+    # confirmed for real: writing straight to attempt_dir/name failed with
+    # "No such file or directory" since nothing had created
+    # attempt_dir/.woodpecker/ yet.
+    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(
+        execution_agent_client, "execute_acceleo",
+        lambda *a, **k: {".woodpecker/pipeline.yaml": "steps: []\n"},
+    )
+
+    gen_stage({
+        "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+    })
+
+    attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
+    assert (attempt_dir / ".woodpecker" / "pipeline.yaml").read_text(encoding="utf-8") == "steps: []\n"
+
+
+def test_gen_stage_rejects_a_generated_file_name_that_escapes_the_attempt_directory(monkeypatch):
+    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(
+        execution_agent_client, "execute_acceleo",
+        lambda *a, **k: {"../../escape.yaml": "stages: []\n"},
+    )
+
+    with pytest.raises(ValueError, match="escapes the attempt directory"):
+        gen_stage({
+            "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+        })
+
+
+def test_gen_stage_persists_a_real_atl_failure_labeled_by_phase(monkeypatch, tmp_path):
+    # A bare "execution-agent unreachable" tells a human nothing about
+    # which real phase broke - the message itself must say ATL, since
+    # pipeline.py's own call_failed event carries nothing else (see
+    # gen_stage()'s own comment).
+    monkeypatch.setattr(
+        execution_agent_client, "execute_atl",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("execution-agent unreachable")),
+    )
+
+    with pytest.raises(RuntimeError, match="ATL execution failed: execution-agent unreachable"):
+        gen_stage({
+            "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+        })
+
+    attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
+    assert (attempt_dir / "error.txt").read_text(encoding="utf-8") == "ATL execution failed: execution-agent unreachable"
+    result = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
+    assert result["valid"] is False
+    assert "ATL execution failed" in result["issues"][0]["message"]
+
+
+def test_gen_stage_persists_a_real_acceleo_failure_labeled_by_phase_and_keeps_the_psm_instance(monkeypatch, tmp_path):
+    # Acceleo failing after ATL already succeeded is a real, distinct case:
+    # the message must say Acceleo (not ATL), and the real psm_instance ATL
+    # already produced - genuinely not the problem - must survive on disk
+    # for a human debugging why Acceleo failed, not be silently discarded.
+    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
+    monkeypatch.setattr(
+        execution_agent_client, "execute_acceleo",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("template crashed")),
+    )
+
+    with pytest.raises(RuntimeError, match="Acceleo execution failed \\(ATL succeeded\\): template crashed"):
+        gen_stage({
+            "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+        })
+
+    attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
+    assert (attempt_dir / "psm_instance.xmi").read_text(encoding="utf-8") == "<gitlabMM:Pipeline real-output/>"
+    assert (attempt_dir / "error.txt").read_text(encoding="utf-8") == "Acceleo execution failed (ATL succeeded): template crashed"
+    result = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
+    assert result["valid"] is False
+    assert "Acceleo execution failed" in result["issues"][0]["message"]

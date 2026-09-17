@@ -95,7 +95,10 @@ def test_run_stage_calls_current_stage_agent_and_reports_its_output():
 
     assert mock_execute_atl.call_count == 1
     assert mock_execute_acceleo.call_count == 1
-    assert result == {"stage": "generation", "output": "stages: []\n"}
+    assert result == {
+        "stage": "generation", "output": "stages: []\n",
+        "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+    }
 
 
 def test_run_stage_threads_the_chosen_model_into_the_agent_s_context():
@@ -149,6 +152,46 @@ def test_run_stage_incorporates_constraints_added_since_the_last_run():
         o.run_stage({"platform_description": "A GitLab CI platform"})
 
     assert mock_run_atl.call_args.kwargs["constraints"] == ["Mention the rollback step explicitly"]
+
+
+def test_run_stage_persists_round_constraints_as_real_constraints():
+    # generation_toolkit.generation_agent.run_with_retry's own real
+    # generate-validate-retry loop can spend real LLM rounds discovering
+    # fixes for a persistently-invalid generation - see its own
+    # round_constraints return value. Confirmed for real: a stuck run
+    # needed 5 external retries, each re-discovering the same real
+    # mistakes from scratch, before this was wired up.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "atl")
+    result_with_learning = {**_atl_generation_result(valid=False), "round_constraints": ["Fix: dangling reference"]}
+    with patch.object(atl_agent_client, "run_atl", return_value=result_with_learning):
+        o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    assert o.constraints["atl"] == ["Fix: dangling reference"]
+
+
+def test_run_stage_does_not_duplicate_a_round_constraint_already_recorded():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "atl")
+    o.add_constraint("atl", "Fix: dangling reference")
+    result_with_learning = {
+        **_atl_generation_result(valid=False),
+        "round_constraints": ["Fix: dangling reference", "Fix: a second problem"],
+    }
+    with patch.object(atl_agent_client, "run_atl", return_value=result_with_learning):
+        o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    assert o.constraints["atl"] == ["Fix: dangling reference", "Fix: a second problem"]
+
+
+def test_run_stage_does_not_leak_round_constraints_into_the_returned_event_data():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "atl")
+    result_with_learning = {**_atl_generation_result(), "round_constraints": ["Fix: something"]}
+    with patch.object(atl_agent_client, "run_atl", return_value=result_with_learning):
+        result = o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    assert "round_constraints" not in result
 
 
 def test_rerun_replays_the_last_context_and_picks_up_new_constraints():
@@ -310,6 +353,53 @@ def test_a_pending_manual_start_stage_can_be_started_via_rerun():
     assert o.current_stage == "psm"
 
 
+def test_a_pending_manual_start_stage_started_via_stage_run_keeps_its_real_context():
+    # Real regression: /stage/run (start_stage_run(), the run_stage tool's
+    # own real target) used to set self.last_context to exactly whatever
+    # the caller passed as context, discarding everything review() had
+    # just assembled into it - confirmed for real against a live run whose
+    # own atl_output reached the generation stage as an empty string after
+    # going through exactly this path with context={}, the same {} the
+    # orchestrator's own run_stage tool sends whenever there's nothing
+    # extra to add (its own schema: "rarely needs anything supplied
+    # manually"). start_stage_run() must layer the given context onto
+    # self.last_context instead, mirroring rerun()'s own established merge.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()) as mock_run_psm:
+        o.review("pim", approved=True)
+        o.start_stage_run({})
+        o._last_thread.join(timeout=5)
+
+    assert mock_run_psm.call_count == 1
+    # The real point: platform_description and pim_output, both already in
+    # last_context before this call, must have survived it.
+    assert o.last_context["platform_description"] == "A brand new platform"
+    assert o.last_context["pim_output"] == "PIM: jobs/stages/triggers"
+
+
+def test_start_stage_run_still_lets_a_given_key_override_last_context():
+    # The merge goes last_context first, then the given context - an
+    # explicit override (the tool's own "extra or overriding input") must
+    # still win, not be silently shadowed by the newly-added merge.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()):
+        o.review("pim", approved=True)
+        o.start_stage_run({"platform_description": "An overridden platform"})
+        o._last_thread.join(timeout=5)
+
+    assert o.last_context["platform_description"] == "An overridden platform"
+
+
 def test_pending_manual_start_stage_accepts_a_mock_override_on_rerun():
     # psm is the second stage in _STAGE_OVERRIDE_KEYS (after docs) -
     # a rerun override reaches psm_agent_client.run_psm's own mock kwarg via
@@ -353,7 +443,10 @@ def test_review_approved_accumulates_outputs_through_generation():
 
     assert result == {"status": "started", "stage": "generation"}
     completed = [e for e in o.events if e["type"] == "call_completed"][-1]
-    assert completed["data"] == {"stage": "generation", "output": "stages: []\n"}
+    assert completed["data"] == {
+        "stage": "generation", "output": "stages: []\n",
+        "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+    }
     # The real point of this test: atl's and acceleo's own real, approved
     # output actually reached generation's own real execution call, not
     # just advanced the pointer.
@@ -721,7 +814,10 @@ def test_run_stage_async_records_call_completed_on_success():
     assert "call_completed" in types
     assert "call_failed" not in types
     completed = next(e for e in o.events if e["type"] == "call_completed")
-    assert completed["data"] == {"stage": "generation", "output": "stages: []\n"}
+    assert completed["data"] == {
+        "stage": "generation", "output": "stages: []\n",
+        "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+    }
 
 
 def test_run_stage_async_records_call_failed_on_agent_error():
@@ -735,7 +831,7 @@ def test_run_stage_async_records_call_failed_on_agent_error():
     assert "call_failed" in types
     assert "call_completed" not in types
     failed = next(e for e in o.events if e["type"] == "call_failed")
-    assert failed["data"] == {"error": "all providers exhausted"}
+    assert failed["data"] == {"error": "ATL execution failed: all providers exhausted"}
     assert o.busy is False
 
 
@@ -779,13 +875,21 @@ def test_run_stage_merges_a_tuple_return_into_call_completed_data():
     assert o.last_output == "<new-ecore/>"
 
 
-def test_run_stage_treats_a_plain_str_return_exactly_as_before():
-    o = pipeline.IntegrationRun()
-    _fast_forward_to_generation(o)
-    with _mocked_generation_execution():
-        result = o.run_stage({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+def test_run_stage_treats_a_plain_str_return_exactly_as_before(tmp_path):
+    # pim, not generation: generation now also returns (output, extra) (see
+    # stages/generation/agent.py's own psm_instance/generated_files extra),
+    # so it no longer demonstrates run_stage()'s own plain-string handling -
+    # pim is still a real, unmodified plain-string stage agent.
+    fixture_path = tmp_path / "pimMM.ecore"
+    fixture_path.write_text("<ecore:EPackage/>", encoding="utf-8")
 
-    assert result == {"stage": "generation", "output": "stages: []\n"}
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    with patch.object(pim_agent, "PIM_METAMODEL_PATH", fixture_path):
+        with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result()):
+            result = o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    assert result == {"stage": "pim", "output": "<ecore:EPackage/>"}
     assert "mode" not in result
 
 
