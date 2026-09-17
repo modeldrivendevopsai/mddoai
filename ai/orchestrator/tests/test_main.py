@@ -486,6 +486,66 @@ def test_resume_endpoint_returns_409_while_busy():
     assert ir_runs.current_run_id() != old_run_id
 
 
+# --- POST /fork ----------------------------------------------------------------
+
+
+def test_fork_endpoint_starts_a_new_run_seeded_from_an_earlier_stage():
+    start_pipeline(platform_description="A GitLab CI platform")
+    # docs -> serialization -> pim -> psm (paused, manual-start, not yet
+    # run), same real advancement _advance_to_psm() does, without also
+    # starting psm's own first attempt - forking psm should hand it a
+    # clean, not-yet-run seed, matching what a human would actually fork
+    # into.
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
+        approve("docs")
+    approve("serialization")
+    approve("pim")
+    source_run_id = ir_runs.current_run_id()
+    source_context = dict(ir_runs.current().last_context)
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "psm"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["stage"] == "psm"
+    assert body["run_id"] != source_run_id
+    assert ir_runs.current_run_id() == body["run_id"]  # the new run is now current
+    assert ir_runs.current().last_context == source_context  # nothing to drop for "psm" itself here
+    assert ir_runs.current().busy is False  # paused, not auto-started
+    # source_run itself is untouched, still there, still current-stage psm
+    source_run = ir_runs.get_run(source_run_id)
+    assert source_run is not None
+    assert source_run.current_stage == "psm"
+
+
+def test_fork_endpoint_returns_404_for_an_unknown_source_run():
+    response = client.post("/fork", json={"source_run_id": "no-such-run", "from_stage": "atl"})
+
+    assert response.status_code == 404
+
+
+def test_fork_endpoint_returns_400_for_a_stage_the_source_run_never_reached():
+    start_pipeline(platform_description="A GitLab CI platform")
+    source_run_id = ir_runs.current_run_id()  # still at docs, nothing downstream produced yet
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "atl"})
+
+    assert response.status_code == 400
+
+
+def test_fork_endpoint_returns_409_while_busy():
+    start_pipeline(platform_description="A GitLab CI platform")
+    approve("docs")
+    approve("serialization")
+    source_run_id = ir_runs.current_run_id()
+    start_pipeline(platform_description="A different, current platform")
+    ir_runs.current().busy = True
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "psm"})
+
+    assert response.status_code == 409
+
+
 # --- GET /providers ----------------------------------------------------------------
 
 

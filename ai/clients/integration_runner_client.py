@@ -90,6 +90,15 @@ def resume_run(run_id: str) -> dict:
     return _request("POST", f"/resume/{run_id}").json()
 
 
+def fork_run(source_run_id: str, from_stage: str) -> dict:
+    """Starts a genuinely new run seeded with source_run_id's own real
+    output up to (not including) from_stage, then pauses there pending
+    review - the real target for "the problem was actually in an earlier
+    stage, let me fix that one instead of redoing the whole pipeline"."""
+    payload = {"source_run_id": source_run_id, "from_stage": from_stage}
+    return _request("POST", "/fork", json=payload).json()
+
+
 def review(stage_id: str, approved: bool, correction: str | None = None) -> dict:
     payload = {"approved": approved, "correction": correction}
     return _request("POST", f"/review/{stage_id}", json=payload).json()

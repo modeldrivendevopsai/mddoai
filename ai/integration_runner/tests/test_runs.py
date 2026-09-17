@@ -18,6 +18,11 @@ Tests verify:
   4. Module-level wrapper functions (run_stage, rerun_stage, review,
      advance_stage, add_constraint) delegate to the current _default
      IntegrationRun instance correctly.
+  5. fork_run() seeds a genuinely new run from an earlier stage's real
+     output on a past run, without mutating that past run at all, never
+     auto-starts the target stage, and refuses an unknown source run, an
+     unreal stage name, or a source run that never actually produced the
+     required earlier output.
 """
 import threading
 from unittest.mock import patch
@@ -344,6 +349,212 @@ def test_resume_run_refuses_when_the_current_run_is_busy():
         assert runs._default.run_id == busy_run_id  # not swapped out
     finally:
         runs._default.busy = False
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_seeds_a_new_run_from_an_earlier_stages_real_output():
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run = runs._default
+        source_run.current_stage_index = pipeline.STAGES.index("generation")
+        source_run.last_context = {
+            "platform_description": "TeamCity",
+            "docs_output": "real docs",
+            "serialization_output": "real serialization",
+            "pim_output": "real pim",
+            "psm_output": "real psm",
+            "atl_output": "real atl, the one with the real bug",
+            "acceleo_output": "real acceleo",
+        }
+        source_run_id = source_run.run_id
+
+        result = runs.fork_run(source_run_id, "atl")
+
+        assert result["stage"] == "atl"
+        new_run = runs._default
+        assert new_run.run_id != source_run_id
+        assert new_run.current_stage == "atl"
+        assert new_run.last_context == {
+            "platform_description": "TeamCity",
+            "docs_output": "real docs",
+            "serialization_output": "real serialization",
+            "pim_output": "real pim",
+            "psm_output": "real psm",
+        }
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_never_auto_starts_the_target_stage_even_outside_manual_start():
+    # "pim" isn't in _REQUIRES_MANUAL_START, but a fork always pauses
+    # regardless: the human just made a real judgment call about where to
+    # restart from, they should get the same chance every manual-start
+    # stage already gets to add a real constraint before it fires, not a
+    # race against an immediately-spawned thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run = runs._default
+        source_run.current_stage_index = pipeline.STAGES.index("psm")
+        source_run.last_context = {
+            "platform_description": "TeamCity",
+            "docs_output": "real docs",
+            "serialization_output": "real serialization",
+        }
+        source_run_id = source_run.run_id
+
+        runs.fork_run(source_run_id, "pim")
+
+        assert runs._default.busy is False
+        assert not any(e["type"] == "call_started" for e in runs._default.events)  # never actually ran
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_records_a_forked_from_event_naming_the_source_run():
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run_id = runs._default.run_id
+        runs._default.last_context = {"platform_description": "TeamCity", "docs_output": "real docs"}
+
+        runs.fork_run(source_run_id, "serialization")
+
+        [event] = runs._default.events
+        assert event["type"] == "forked_from"
+        assert event["stage"] == "serialization"
+        assert event["data"]["source_run_id"] == source_run_id
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_leaves_the_source_run_completely_untouched():
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run = runs._default
+        source_run.current_stage_index = pipeline.STAGES.index("generation")
+        source_run.last_context = {
+            "platform_description": "TeamCity",
+            "docs_output": "real docs",
+            "serialization_output": "real serialization",
+            "pim_output": "real pim",
+            "psm_output": "real psm",
+            "atl_output": "real atl",
+        }
+        source_run.record_event("call_failed", "generation", {"error": "real execution error"})
+        source_run_id = source_run.run_id
+        events_before = list(source_run.events)
+
+        runs.fork_run(source_run_id, "acceleo")
+
+        still_there = runs.get_run(source_run_id)
+        assert still_there is source_run
+        assert still_there.current_stage == "generation"  # unchanged
+        assert still_there.events == events_before  # nothing appended to the source run itself
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_raises_for_an_unknown_source_run():
+    original = runs._default
+    try:
+        with pytest.raises(ValueError, match="No run"):
+            runs.fork_run("no-such-run-id", "atl")
+    finally:
+        runs._default = original
+
+
+def test_fork_run_raises_for_a_stage_that_is_not_real():
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run_id = runs._default.run_id
+
+        with pytest.raises(ValueError, match="isn't a real stage"):
+            runs.fork_run(source_run_id, "not-a-real-stage")
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_raises_when_the_source_run_never_reached_a_required_earlier_stage():
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run = runs._default
+        source_run.last_context = {"platform_description": "TeamCity"}  # never even finished docs
+        source_run_id = source_run.run_id
+
+        with pytest.raises(ValueError, match="pim_output"):
+            runs.fork_run(source_run_id, "atl")
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_refuses_when_the_current_run_is_busy():
+    # Same race as reset_pipeline()'s/resume_run()'s own busy check: the run
+    # being replaced (not the source run being forked from) must not be
+    # swapped out from under its own in-flight thread.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run_id = runs._default.run_id
+        runs._default.last_context = {"platform_description": "TeamCity", "docs_output": "real docs"}
+        runs.reset_pipeline()
+        busy_run_id = runs._default.run_id
+        runs._default.busy = True
+
+        with pytest.raises(pipeline.BusyError):
+            runs.fork_run(source_run_id, "serialization")
+
+        assert runs._default.run_id == busy_run_id  # not swapped out
+    finally:
+        runs._default.busy = False
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+def test_fork_run_succeeds_even_while_the_source_run_itself_is_busy():
+    # A source run genuinely still executing its OWN current stage doesn't
+    # block forking an EARLIER stage's already-final output out of it: the
+    # keys _seed_context_from() reads are only ever for stages strictly
+    # before the source run's own current one, already fixed before that
+    # run's in-flight attempt began, so a concurrent write to the source
+    # run's own current-stage fields can't race the read. Only the run
+    # being REPLACED (the current run) needs the busy guard, covered above.
+    original = runs._default
+    try:
+        runs.reset_pipeline()
+        source_run = runs._default
+        source_run.last_context = {"platform_description": "TeamCity", "docs_output": "real docs"}
+        source_run_id = source_run.run_id
+        runs.reset_pipeline()  # a separate, not-busy run is current now
+        source_run.busy = True  # only after it's no longer current - its own stage is still running
+
+        result = runs.fork_run(source_run_id, "serialization")
+
+        assert result["stage"] == "serialization"
+        assert runs._default.run_id != source_run_id
+    finally:
+        # source_run itself (left busy=True above) is discarded here along
+        # with every other run _runs.clear() drops, not reused by any later
+        # test, so its stray busy flag needs no explicit reset.
         runs._default = original
         runs._runs.clear()
         runs._runs[original.run_id] = original

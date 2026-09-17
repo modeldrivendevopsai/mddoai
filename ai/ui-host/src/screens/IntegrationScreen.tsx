@@ -141,6 +141,7 @@ export default function IntegrationScreen() {
     changeModel,
     reset,
     resume,
+    fork,
   } = useIntegration(runId)
 
   // "Add a new platform"/"New pipeline" in the sidebar link here with
@@ -203,6 +204,27 @@ export default function IntegrationScreen() {
 
   const handleResume = () => void resume()
 
+  // fork() itself can't update the URL (it doesn't own it, this component
+  // does), and a bare refetch after forking would still ask for THIS
+  // hook's own fixed runId - the pre-fork, now-non-current run - not the
+  // new one fork() just created. Navigating to the new run's own id is
+  // what actually makes useIntegration's runId-keyed effect pick it up
+  // (see useIntegration.ts's own fork() docstring for the full reasoning).
+  // No-ops on a failed fork (fork() itself already recorded the real error
+  // via the shared error banner; nothing to navigate to).
+  const handleForkFrom = async (fromStage: StageId) => {
+    const newRunId = await fork(fromStage)
+    if (!newRunId) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("run", newRunId)
+        return next
+      },
+      { replace: true }
+    )
+  }
+
   // Picks which of the six independent stage panels to render, and in which
   // mode (active vs. viewed-read-only) — see @/features/integration/stages/
   // registry.ts. Kept here, not pushed into a shared component, since it's
@@ -244,6 +266,10 @@ export default function IntegrationScreen() {
           runId={viewedRunId}
           onApprove={() => approve(currentStage)}
           onRetry={(correction) => retry(currentStage, correction)}
+          // Only the generation stage's own panel today: forking is how it
+          // recovers from a real execution failure that actually traces
+          // back to an earlier stage's output.
+          onForkFrom={currentStage === "generation" ? (fromStage) => void handleForkFrom(fromStage) : undefined}
           readOnly={!isCurrent}
           {...promptBuilderPropsFor(currentStage)}
         />

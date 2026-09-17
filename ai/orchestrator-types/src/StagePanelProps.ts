@@ -8,6 +8,7 @@ import type {
   PromptDiff,
   PromptPreview,
   StageDetail,
+  StageId,
 } from "./orchestrator"
 
 // Shared prop contract every per-stage panel (PsmStagePanel, AtlStagePanel,
@@ -30,6 +31,14 @@ export interface StagePanelProps {
   // Present only when this stage is the live pending one.
   onApprove?: () => void
   onRetry?: (correction?: string) => void
+  // Starts a genuinely new run seeded with this run's own real output up
+  // to (not including) fromStage, then pauses there pending review - the
+  // real target for "the problem was actually in an earlier stage, let me
+  // fix that one instead of redoing the whole pipeline." Only ever wired
+  // for the generation stage's own panel today (see IntegrationScreen.tsx),
+  // the one stage whose real failure can legitimately trace back to any
+  // earlier stage's output, not just its own.
+  onForkFrom?: (fromStage: StageId) => void
   // Present only when viewing this stage historically (past, non-current).
   onBack?: () => void
   readOnly?: boolean

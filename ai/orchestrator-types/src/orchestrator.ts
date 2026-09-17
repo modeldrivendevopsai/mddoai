@@ -114,6 +114,15 @@ export interface ResumeResponse {
   current_stage: StageId | null
 }
 
+// fork_run()'s own response shape: a genuinely new run_id, already current,
+// paused at stage pending review - never auto-started, even for a stage
+// outside _REQUIRES_MANUAL_START (see runs.py's own fork_run() docstring
+// for why).
+export interface ForkResponse {
+  run_id: string
+  stage: StageId
+}
+
 export interface RerunStatusResponse {
   status: "rerun"
   stage: StageId
