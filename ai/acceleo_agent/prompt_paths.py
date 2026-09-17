@@ -2,8 +2,8 @@
 attachment's uploaded copies) lives on disk - mirrors atl_agent's own
 prompt_paths.py, one real difference: REFERENCE_EXAMPLE_PATH points at the
 real master-example Acceleo template instead of an ATL transformation - see
-ai/CLAUDE.md's folder-boundaries section for why a single real file, not a
-directory, is mounted here.
+that constant's own comment for why this is a real file this service owns
+directly, needing no Docker bind mount.
 
 Sibling to this service's own source, matching integration_runner's
 RUNS_DIR / psm_agent's own PROMPT_CONFIG_DIR pattern for "a real,
@@ -24,24 +24,44 @@ ATTACHMENT_UPLOADS_DIR = Path(
     os.environ.get("ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR", str(Path(__file__).resolve().parent / "attachments"))
 )
 
-# The one real, pre-existing repo file this service reads: this project's
-# own real, working GitLab Acceleo code-generation template - the master
-# example this stage's own default prompt attaches, the same role
-# psm_agent's own master-example .ecore file plays for it. Defaults to the
-# real relative repo path (same "real default for local/non-Docker dev"
-# reasoning as comparison.py's own META_MODELS_DIR); the real
-# docker-compose entry bind-mounts the same real file, read-only, at a
-# container-local path and overrides this to point at it - a single file,
-# not a whole directory mount, since this is the one real file this
-# service ever needs, not a browsable tree.
+# The master example this stage's own default prompt attaches, the same
+# role psm_agent's own master-example .ecore file plays for it: a real,
+# working Acceleo template, ported from this project's own validated
+# ai-research experiments (gha_generate.mtl - ACICDTrip's real, working
+# GitHub Actions code-generation template), the same reference the paper's
+# own "Step 3 (Acceleo)" results were produced against, matching the
+# master-example convention already used for real, unchanged, across every
+# platform in that experiment - reused directly here rather than this
+# project's own hand-authored GitLab template, so this stage's default
+# prompt teaches the same real Acceleo/OCL idioms the validated research
+# actually relied on. In particular, its own real generateTrigger/
+# __generateExpression/generateLiteral templates dispatch on many
+# expression/type kinds via bracketed [if]/[elseif]/[/if] (needing only one
+# closing bracket for the whole chain), not a raw OCL if/then/else/endif
+# query expression (which needs one endif per branch, easy to miscount past
+# a handful) - confirmed for real this is exactly the idiom a generation
+# reaches for once it has a real worked example of it, having previously
+# never produced anything but the harder-to-get-right query form. Adapted
+# from the original in one respect: its own 7 invoke() calls into an
+# external Java service class from that other project (never available in
+# this build) are rewritten here as real, equivalent OCL/EMF-enum-literal
+# logic instead, so the reference itself is genuinely compilable in this
+# project, not merely copied - confirmed for real via AcceleoValidator
+# against this project's own real, already-tracked GitHub Actions PSM
+# metamodel (meta_models/com.mddoai.metamodel.github/model/githubMM.ecore,
+# the same one psm_agent already treats as a known platform's fixed
+# metamodel) rather than vendoring a second copy of it here.
+#
+# A real file this service owns directly (reference_example/generate.mtl),
+# not an external mount: unlike psm_agent's meta_models/ (real MDE-engine
+# data this AI service doesn't own) or the pre-existing GitLab template
+# this used to point at, this file exists solely as this stage's own
+# prompt-engineering asset, so it lives, and ships, with this service like
+# any other of its own source files - no separate Docker bind mount needed.
 REFERENCE_EXAMPLE_PATH = Path(
     os.environ.get(
         "ACCELEO_AGENT_REFERENCE_EXAMPLE_PATH",
-        str(
-            Path(__file__).resolve().parents[2]
-            / "code_generation" / "com.mddoai.codegeneration.gitlab.acceleo"
-            / "src" / "com" / "mddoai" / "codegeneration" / "gitlab" / "acceleo" / "main" / "generate.mtl"
-        ),
+        str(Path(__file__).resolve().parent / "reference_example" / "generate.mtl"),
     )
 )
 

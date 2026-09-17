@@ -3,9 +3,9 @@
 # dependencies: generation.py calls clients/validator_agent_client.py and
 # generation_toolkit/generation_agent.py, neither is a service-boundary
 # import from orchestrator). Plain Python for now, same reasoning as
-# pim_agent/Dockerfile: today's real capability doesn't touch Java directly,
-# it only reads one real .atl file through a read-only bind mount (see
-# ai/docker-compose.yml and prompt_paths.py's own REFERENCE_EXAMPLE_PATH).
+# pim_agent/Dockerfile: today's real capability doesn't touch Java directly.
+# Its own real master-example .atl file ships inside this same COPY, under
+# reference_example/ (see prompt_paths.py's own REFERENCE_EXAMPLE_PATH).
 FROM python:3.12-slim
 WORKDIR /app
 COPY atl_agent/requirements.txt ./atl_agent/requirements.txt

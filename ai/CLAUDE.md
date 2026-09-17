@@ -105,22 +105,28 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
   comments in `ai/docker-compose.yml`).
 - **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
-  pre-existing MDE-engine data (a metamodel, a real model instance, a master-example transformation
-  or code-generation template) it doesn't own gets a read-only Docker bind mount of that specific
-  data, not a copy into its own image, so a metamodel or reference-example change doesn't need a
-  service rebuild. `psm_agent` mounts the whole `meta_models/` tree this way (`META_MODELS_DIR`).
-  `atl_agent` and `acceleo_agent` each mount a single real file instead of a whole directory,
-  narrower still: one real, working reference transformation/template this project already has,
-  attached as their default prompt's syntax example (`REFERENCE_EXAMPLE_PATH` in each service's own
-  `prompt_paths.py`; see `ai/docker-compose.yml` for the real mounts). `integration_runner` mounts
+  pre-existing MDE-engine data (a metamodel, a real model instance) it doesn't own gets a read-only
+  Docker bind mount of that specific data, not a copy into its own image, so a metamodel change
+  doesn't need a service rebuild. `psm_agent` mounts the whole `meta_models/` tree this way
+  (`META_MODELS_DIR`). `atl_agent`'s and `acceleo_agent`'s own master-example transformation/template
+  (`REFERENCE_EXAMPLE_PATH` in each service's own `prompt_paths.py`) is a real file each service owns
+  directly under its own `reference_example/`, not MDE-engine data reached into from outside `ai/` -
+  both were ported from this project's own validated `ai-research` branch experiments (the same
+  master-example convention the paper's own results were produced against), so they need no bind
+  mount at all, unlike this exception's other examples. `integration_runner` mounts
   two single real files the same narrow way: `PIM_METAMODEL_PATH` (the project's own real, fixed
   PIM metamodel, which `stages/pim/agent.py` returns as that stage's real, no longer mock, output)
   and a real sample PIM model instance, `main/`'s own real Java test fixture (`stages/generation/
   agent.py`'s own real input to the real ATL/Acceleo execution it runs, see the fourth exception
   below for the execution side of that same stage, a temporary stand-in until a real
-  SWArch-driven PIM extraction replaces it). This is a read of real MDE *data*, never Java/Eclipse
-  *code*, a distinction that separates it from the first exception above (`validator_agent`'s own)
-  and the fourth exception below (`execution_agent`'s own). This exception does not extend
+  SWArch-driven PIM extraction replaces it). `validator_agent` mounts that same sample PIM instance
+  too, for the same reason one level earlier in the pipeline: `AtlValidator`/`AcceleoValidator`'s own
+  real execution smoke test (given a real target metamodel) actually runs the candidate ATL/Acceleo
+  against it, catching a real runtime-only failure a compile-only check can never see, during
+  atl_stage's/acceleo_stage's own retry loop instead of only later, with no retries left. This is a
+  read of real MDE *data*, never Java/Eclipse *code*, a distinction that separates it from the first
+  exception above (`validator_agent`'s own reach into `mddoai.validation`) and the fourth exception
+  below (`execution_agent`'s own). This exception does not extend
   to any `ui-*` package, `design-system`, or `ai-layer`, and does not license any other future `ai/`
   service to reach into `main/`, `meta_models/`, or `code_generation/` without the same explicit
   justification.
