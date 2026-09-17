@@ -227,11 +227,17 @@ def test_gen_stage_persists_a_real_acceleo_failure_labeled_by_phase_and_keeps_th
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("template crashed")),
     )
 
-    with pytest.raises(RuntimeError, match="Acceleo execution failed \\(ATL succeeded\\): template crashed"):
+    with pytest.raises(RuntimeError, match="Acceleo execution failed \\(ATL succeeded\\): template crashed") as exc_info:
         gen_stage({
             "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
         })
 
+    # The real psm_instance also rides along on the raised exception's own
+    # "extra" attribute - pipeline.py's own run_stage_async worker threads
+    # this into the real call_failed event's data, so a human looking at
+    # the failed run in the chat-ui (not digging through the attempt
+    # directory on disk) can still see the real, valid model ATL produced.
+    assert exc_info.value.extra == {"psm_instance": "<gitlabMM:Pipeline real-output/>"}
     attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
     assert (attempt_dir / "psm_instance.xmi").read_text(encoding="utf-8") == "<gitlabMM:Pipeline real-output/>"
     assert (attempt_dir / "error.txt").read_text(encoding="utf-8") == "Acceleo execution failed (ATL succeeded): template crashed"

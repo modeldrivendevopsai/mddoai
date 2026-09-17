@@ -75,10 +75,18 @@ function GenerationInputs({ events }: { events: OrchestratorEvent[] }) {
 // the joined output text alone. Without this, a human debugging a
 // correct-looking joined output has no way to see the real per-file
 // boundaries or the real model ATL execution actually derived along the way.
+//
+// Also read on a real call_failed: when Acceleo fails after ATL already
+// succeeded, gen_stage() attaches the real psm_instance ATL produced to
+// the raised exception's own "extra" data (see pipeline.py's own
+// run_stage_async worker and this stage's own agent.py) precisely so a
+// human looking at the failure here - not digging through the real
+// attempt directory on disk - can still see the real, valid model that
+// proves the bug is in Acceleo's own template, not further back.
 function latestGenerationOutputs(
   latestResult: OrchestratorEvent | null,
 ): { psmInstance: string | null; generatedFiles: Record<string, string> | null } | null {
-  if (!latestResult || latestResult.type !== "call_completed") return null
+  if (!latestResult || (latestResult.type !== "call_completed" && latestResult.type !== "call_failed")) return null
   const data = latestResult.data ?? {}
   const psmInstance = typeof data.psm_instance === "string" ? data.psm_instance : null
   const generatedFiles =
@@ -104,6 +112,13 @@ function GenerationOutputs({ latestResult }: { latestResult: OrchestratorEvent |
   const summaryParts: string[] = []
   if (outputs.psmInstance !== null) summaryParts.push("the intermediate model")
   if (showFileBreakdown) summaryParts.push(`${fileEntries.length} generated files`)
+  // "produced" reads wrong on a real failure (ATL succeeded but Acceleo
+  // then crashed - see agent.py's own RuntimeError.extra) - the model
+  // shown here is real and valid, but the stage as a whole did not finish.
+  const heading =
+    latestResult?.type === "call_failed"
+      ? `What generation produced before failing (${summaryParts.join(" and ")})`
+      : `What generation actually produced (${summaryParts.join(" and ")})`
   return (
     <details>
       <summary
@@ -115,7 +130,7 @@ function GenerationOutputs({ latestResult }: { latestResult: OrchestratorEvent |
           color: "var(--text-strong)",
         }}
       >
-        What generation actually produced ({summaryParts.join(" and ")})
+        {heading}
       </summary>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
         {outputs.psmInstance !== null && (

@@ -167,7 +167,18 @@ def gen_stage(context: dict) -> str:
                 (attempt_dir / "psm_instance.xmi").write_text(psm_instance, encoding="utf-8")
             message = f"Acceleo execution failed (ATL succeeded): {e}"
             _persist_failure(run_id, attempt_dir, message)
-            raise RuntimeError(message) from e
+            # psm_instance also rides along on the raised exception itself
+            # (pipeline.py's own run_stage_async worker threads a raised
+            # exception's "extra" dict into the real call_failed event's
+            # own data, alongside "error") - not just persisted to disk,
+            # since a human looking at the failed run in the chat-ui, not
+            # digging through the real attempt directory on disk, still
+            # needs to see the real, valid model ATL already produced
+            # before deciding whether the real bug is in Acceleo's own
+            # template or further back.
+            failure = RuntimeError(message)
+            failure.extra = {"psm_instance": psm_instance}
+            raise failure from e
 
         if len(generated_files) == 1:
             output = next(iter(generated_files.values()))

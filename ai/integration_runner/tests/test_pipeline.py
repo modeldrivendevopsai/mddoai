@@ -835,6 +835,25 @@ def test_run_stage_async_records_call_failed_on_agent_error():
     assert o.busy is False
 
 
+def test_run_stage_async_records_a_failed_call_s_own_extra_data():
+    # A raised exception's own real "extra" attribute (see
+    # stages/generation/agent.py's own RuntimeError.extra) rides along
+    # into call_failed's data - generation attaches the real psm_instance
+    # ATL already produced when Acceleo then fails, so a human looking at
+    # the failed run can still see it, not just the bare error string.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    with _mocked_generation_execution(execute_acceleo_kwargs={"side_effect": RuntimeError("template crashed")}):
+        o.run_stage_async({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+        o._last_thread.join(timeout=5)
+
+    failed = next(e for e in o.events if e["type"] == "call_failed")
+    assert failed["data"] == {
+        "error": "Acceleo execution failed (ATL succeeded): template crashed",
+        "psm_instance": "<gitlabMM:Pipeline/>",
+    }
+
+
 def test_run_stage_async_records_call_failed_on_validation_failure():
     # Same real reporting path, exercised through a mock-validated stage's
     # own failure instead of an LLM error. pim is the one remaining stage
