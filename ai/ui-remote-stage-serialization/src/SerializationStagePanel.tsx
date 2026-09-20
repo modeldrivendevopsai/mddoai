@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button, CodeBlock } from "design-system"
+import { Button, CodeBlock, StageInfoNote } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 
@@ -15,7 +15,15 @@ import type { StagePanelProps } from "orchestrator-types"
 // CodeBlock, same as every other stage — none of the other five panels
 // parse markdown either, introducing that just here would break the "all
 // panels render near-identically" consistency ui-host/CLAUDE.md calls out.
-export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
+export function SerializationStagePanel({
+  busy,
+  latestResult,
+  onApprove,
+  onRetry,
+  onBack,
+  readOnly = false,
+  stageDetail = null,
+}: StagePanelProps) {
   const [correction, setCorrection] = useState("")
   const failed = latestResult?.type === "call_failed"
   const output = failed
@@ -28,9 +36,10 @@ export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={headingStyle}>Serialization stage output</h2>
           <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back to current
+            ← Back to latest stage
           </Button>
         </div>
+        <StageInfoNote detail={stageDetail} />
         <CodeBlock code={output} title="serialization output (read-only)" lang="markdown" />
       </Panel>
     )
@@ -41,6 +50,7 @@ export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry
   return (
     <Panel>
       <h2 style={headingStyle}>Serialization stage output</h2>
+      <StageInfoNote detail={stageDetail} />
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),
@@ -65,16 +75,17 @@ export function SerializationStagePanel({ busy, latestResult, onApprove, onRetry
       <CodeBlock code={busy ? "Generating…" : hasResult ? output : "No output yet."} title="serialization output" lang="markdown" />
 
       <div>
-        {/* Real wireframe text is "Curate the helper prompt for this stage"
-            (frame "c5: ATL check failed"), where the field is pre-filled with
-            the actual prompt that was used, editable in place. We can't
+        {/* The wireframe this was drawn from pre-fills this field with the
+            actual prompt that was used, editable in place. We can't
             faithfully do that: ai/orchestrator doesn't store or expose "the
             literal prompt used" anywhere, agents build it from context + the
             constraints list, there's no single retrievable prompt string to
             pre-fill with. This is the real, honest equivalent: an empty
             field for a new correction, recorded via the same
-            add-constraint-then-retry mechanism the backend actually has. */}
-        <p style={labelStyle}>Curate the helper prompt for this stage</p>
+            add-constraint-then-retry mechanism the backend actually has -
+            labeled to match what it actually is, not the wireframe's own
+            pre-fill-and-edit framing. */}
+        <p style={labelStyle}>Add a correction</p>
         <textarea
           className="orch-field"
           value={correction}
@@ -154,6 +165,7 @@ function Panel({ children }: { children: ReactNode }) {
         borderRadius: "var(--radius-md)",
         boxSizing: "border-box",
         minHeight: 0,
+        overflow: "auto",
       }}
     >
       {children}

@@ -25,15 +25,38 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from generation_toolkit.prompt_builder import build_prompt
+from generation_toolkit.prompt_config import rendering
+from generation_toolkit.prompt_config import resolution as prompt_resolution
+
 from clients import ai_layer_client
 
+import prompt_paths
+
 logger = logging.getLogger(__name__)
+
+# This mode's own name under prompt_paths.PROMPT_CONFIG_DIR (see
+# generation.py's own "generation").
+COMPARISON_CONFIG_NAME = "comparison"
 
 # Public: reused by generation.py/psm_flow.py too, both of which also need
 # to resolve real .ecore paths under meta_models/, not just this module.
 META_MODELS_DIR = os.environ.get(
     "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
 )
+
+
+def files_root() -> list[str]:
+    """Every real root a "file" attachment can resolve against: the
+    read-only, pre-existing repo metamodels, and a human's own uploaded
+    files (see routes/uploads.py). Public and called fresh each time
+    (never cached into a plain constant), reused by generation.py's own
+    generate() and psm_flow.py's own knowledge-mode render, so a "file"
+    attachment a human uploaded and attached through the prompt-config
+    editor (which already validates references against both roots, see
+    routes/prompt_config.py) actually resolves on a real call too, not
+    only during editing."""
+    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
 DEFAULT_PSM_METAMODEL_PATH = str(
     Path(META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
 )
@@ -47,25 +70,6 @@ DEFAULT_PSM_METAMODEL_PATH = str(
 DEFAULT_PSM_MASTER_EXAMPLE_PATH = str(
     Path(META_MODELS_DIR) / "com.mddoai.metamodel.github" / "model" / "githubMM.ecore"
 )
-
-_SYSTEM_PROMPT = """You are the MDDOAI PSM (Platform-Specific Model) knowledge agent. You are \
-given serialized platform documentation and a PSM metamodel definition (raw Ecore XML). \
-Compare them and identify:
-  - "missing": a concept, property, or relationship the documentation describes that the \
-metamodel has no representation for.
-  - "outdated": a concept the metamodel does represent, but in a way that no longer matches \
-what the documentation describes (renamed field, changed type, changed relationship, etc).
-
-Respond with ONLY a JSON array, no prose, no markdown code fences. Each element must be an \
-object with exactly these keys:
-  "kind": "missing" or "outdated"
-  "target": the metamodel element or concept this concerns (a class, property, or concept name)
-  "description": a detailed explanation of the gap or discrepancy
-  "source_excerpt": the relevant snippet from the serialized docs supporting this finding, or \
-null if none applies
-
-If there are no gaps, return an empty JSON array: []"""
-
 
 @dataclass
 class Suggestion:
@@ -193,18 +197,20 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
     given; pass githubMM.ecore's path explicitly to compare against a different platform's
     PSM (bitbucketMM.ecore's path too, once that metamodel exists). `model` defaults to
     ai-layer's own automatic routing when not given, same as every other real chat() call
-    in this repo.
+    in this repo. The system prompt and its input parts are no longer hardcoded here: see
+    ai/psm_agent/prompts/comparison/ for the real, git-committed, editable config.
     """
     metamodel_path = psm_metamodel_path or DEFAULT_PSM_METAMODEL_PATH
     metamodel_content = Path(metamodel_path).read_text()
 
-    user_content = (
-        f"PSM metamodel ({metamodel_path}):\n{metamodel_content}\n\n"
-        f"Serialized platform documentation:\n{serialized_docs}"
+    context_values = {"psm_metamodel": metamodel_content, "serialized_docs": serialized_docs}
+    config, parts = prompt_resolution.resolve_for_call(
+        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, context_values, files_root()
     )
+    prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
+        {"role": "system", "content": config["system_prompt"]},
+        {"role": "user", "content": rendering.render_user_content(config, prompt)},
     ]
     response = ai_layer_client.chat(messages, model=model)
     content = response["content"] or ""

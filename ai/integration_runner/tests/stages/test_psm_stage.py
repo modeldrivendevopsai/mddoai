@@ -7,10 +7,10 @@ is mocked.
 Tests verify:
   1. psm_stage returns a (str, dict) tuple: the artifact, plus every other
      key from psm_agent's response.
-  2. Input precedence: pim_output first, falling back to docs_output, then
-     platform_description — preserving the placeholder agent's own
-     already-tested precedence (see this repo's own CLAUDE.md: replacing a
-     placeholder keeps its established behavior, doesn't quietly regress it).
+  2. docs precedence: serialization_output first (the serialization stage's
+     own labeled restructuring of the raw crawl), falling back to
+     docs_output (the raw crawl), then platform_description. Independent
+     of pim_output, a separate parameter with no fallback chain of its own.
   3. constraints and model are forwarded from context.
   4. Given a run_id, psm_stage reserves its own attempt directory first and
      forwards its own stage name plus that attempt's name to run_psm(), the
@@ -32,7 +32,7 @@ def _generation_response(artifact="<new-ecore/>"):
     return {
         "mode": "generation",
         "artifact": artifact,
-        "prompt": {"pim_ecore": "x", "psm_docs": "y", "psm_example": "z", "constraints": ""},
+        "prompt": {"psm_docs": "y", "psm_example": "z", "constraints": ""},
         "validation": {"valid": True},
         "rounds": 1,
     }
@@ -44,7 +44,7 @@ def test_returns_artifact_and_extra_data_as_a_tuple():
 
     assert output == "<new-ecore/>"
     assert extra["mode"] == "generation"
-    assert extra["prompt"] == {"pim_ecore": "x", "psm_docs": "y", "psm_example": "z", "constraints": ""}
+    assert extra["prompt"] == {"psm_docs": "y", "psm_example": "z", "constraints": ""}
     assert extra["validation"] == {"valid": True}
     assert extra["rounds"] == 1
     assert "artifact" not in extra
@@ -63,7 +63,19 @@ def test_prefers_pim_output_over_docs_output():
     assert args[1] == "PIM: jobs/stages/triggers"  # pim_artifact positional arg
 
 
-def test_falls_back_to_docs_output_without_pim_output():
+def test_prefers_serialization_output_over_docs_output():
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({
+            "serialization_output": "labeled docs",
+            "docs_output": "raw docs",
+            "platform_description": "TeamCity",
+        })
+
+    args, kwargs = mock_run.call_args
+    assert args[2] == "labeled docs"  # docs positional arg
+
+
+def test_falls_back_to_docs_output_without_serialization_output():
     with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
         psm_stage({"docs_output": "raw docs", "platform_description": "TeamCity"})
 
@@ -117,6 +129,23 @@ def test_reserves_and_forwards_its_own_stage_and_attempt_name(tmp_path):
     # The reservation really happened on disk, not just a string the mock
     # received - the same real attempt_dir persist_attempt() then reuses.
     assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
+
+
+def test_forwards_mock_override_from_context():
+    # The same per-run "Mock" override docs_stage's own context["mock"]
+    # already reads (RerunOverrides.mock/StartRequest.mock) - defaults to
+    # False when absent, same as every other real run.
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "mock": True})
+
+    assert mock_run.call_args.kwargs.get("mock") is True
+
+
+def test_defaults_mock_to_false_when_absent():
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
+        psm_stage({"platform_description": "TeamCity", "pim_output": "pim"})
+
+    assert mock_run.call_args.kwargs.get("mock") is False
 
 
 def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):

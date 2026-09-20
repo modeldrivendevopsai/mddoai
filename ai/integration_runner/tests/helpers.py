@@ -54,9 +54,39 @@ def _psm_generation_result(artifact="<ecore:EPackage/>", valid=True):
     return {
         "mode": "generation",
         "artifact": artifact,
-        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
         "validation": _validation_result(valid=valid),
         "rounds": 1,
+    }
+
+
+def _atl_generation_result(artifact="module m; ...", valid=True):
+    """An atl_agent_client.run_atl()-shaped result - atl's own real
+    boundary isn't validator_agent_client directly (see
+    stages/atl/agent.py's own docstring): it calls atl_agent_client.run_atl()
+    instead, so any test that runs atl_stage() for real must mock THIS, not
+    validate_atl - mocking validate_atl alone silently does nothing to
+    intercept it and the call falls through to a real (likely unreachable)
+    network request."""
+    return {
+        "artifact": artifact,
+        "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
+        "validation": _validation_result(valid=valid),
+        "rounds": 1,
+        "prompt_version": None,
+    }
+
+
+def _acceleo_generation_result(artifact="[module generate('x')] ...", valid=True):
+    """An acceleo_agent_client.run_acceleo()-shaped result - same reasoning
+    as _atl_generation_result above, acceleo's own real boundary is
+    acceleo_agent_client.run_acceleo(), not validator_agent_client directly."""
+    return {
+        "artifact": artifact,
+        "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
+        "validation": _validation_result(valid=valid),
+        "rounds": 1,
+        "prompt_version": None,
     }
 
 

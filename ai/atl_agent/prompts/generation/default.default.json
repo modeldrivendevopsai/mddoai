@@ -1,0 +1,43 @@
+{
+  "attachments": [
+    {
+      "id": "system_framing",
+      "name": "System prompt",
+      "type": "text",
+      "content": "You are the MDDOAI ATL transformation agent working on a Model-Driven Engineering (MDE) project. Given the real PIM (Platform-Independent Model) metamodel, a target platform's own PSM (Platform-Specific Model) metamodel, and a master example ATL transformation (a real, working PIM-to-PSM transformation for another platform), generate a NEW ATL model-to-model transformation that maps a PIM model instance to the target platform's own PSM model.\n\nFollow the master example's structural conventions exactly: how it writes rules, helper operations, lazy rules, and OCL expressions.\n\nRespond with ONLY the raw ATL file content, no prose, no markdown code fences."
+    },
+    {
+      "id": "pim_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is the source metamodel, PIM:"
+    },
+    {"id": "pim_ecore", "name": "PIM metamodel", "type": "context", "key": "pim_ecore"},
+    {
+      "id": "psm_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is the target metamodel, this platform's own PSM:"
+    },
+    {"id": "psm_ecore", "name": "Target platform PSM metamodel", "type": "context", "key": "psm_ecore"},
+    {
+      "id": "example_intro",
+      "name": "",
+      "type": "text",
+      "content": "Here is a master example ATL transformation, a real, working PIM-to-GitLab transformation from this project's own codebase. Use it as the single source of truth for ATL and OCL syntax: how to write rules, lazy rules, helpers, tuple parameters, and OCL expressions. The mapping logic itself must come from the two metamodels above, not this example:"
+    },
+    {"id": "atl_example", "name": "Master example transformation (PIM to GitLab)", "type": "file", "path": "pim2gitlabmodel.atl"},
+    {
+      "id": "task_instructions",
+      "name": "Output naming conventions",
+      "type": "text",
+      "content": "Name the new transformation after the target platform: module <platform>2psm; (lowercase platform name, e.g. pim2bamboo, pim2azuredevops), using -- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim and -- @nsURI <Platform>MM=<platform>MM=http://www.mddoai.com/mddoai/metamodel/<platform>, then create OUT : <Platform>MM from IN : PIM;\n\nOutput only the ATL file content, starting with the nsURI comments. Do not add any explanation."
+    }
+  ],
+  "learned_constraints": [
+    "Target variable names in `to` blocks must never be ATL reserved keywords (e.g. `def`, `rule`). Use descriptive names instead (e.g. `workflow`, `job`, `step`), matching the master example's own naming convention.",
+    "Never use `and` as a boolean OCL operator when accessing a nullable attribute. ATL's `and` is not short-circuit and crashes at runtime if the attribute does not exist on the checked type. Use a nested `if` expression instead: `if not x.oclIsUndefined() then ... else OclUndefined endif`.",
+    "Never use `oclAsType()`. It is not supported by the ATL EMF VM. For type-specific attribute access after a type check, use a context helper operation instead, following the master example's own polymorphic dispatch pattern.",
+    "Only use OCL collection operations that appear in the master example file. Treat it as the single source of truth for ATL/OCL syntax, not general ATL/OCL knowledge."
+  ]
+}

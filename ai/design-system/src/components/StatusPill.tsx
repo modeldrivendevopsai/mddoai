@@ -12,11 +12,15 @@ export type StatusPillVariant = 'success' | 'warning' | 'danger' | 'info';
 interface StatusPillProps {
   variant?: StatusPillVariant;
   children: ReactNode;
+  // Native tooltip passthrough - for a pill whose short label doesn't fit
+  // the full real detail (e.g. a real file path), not specific to any one
+  // consumer.
+  title?: string;
 }
 
-export function StatusPill({ variant = 'info', children }: StatusPillProps) {
+export function StatusPill({ variant = 'info', children, title }: StatusPillProps) {
   return (
-    <span className={`mdd-status-pill mdd-status-pill--${variant}`}>
+    <span className={`mdd-status-pill mdd-status-pill--${variant}`} title={title}>
       <span className="mdd-status-pill__dot" />
       {children}
     </span>

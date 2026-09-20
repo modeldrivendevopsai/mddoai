@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
-import { Button, CodeBlock } from "design-system"
+import { Button, CodeBlock, StageInfoNote } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 
@@ -10,7 +10,15 @@ import type { StagePanelProps } from "orchestrator-types"
 // file, not a shared component parameterized by StageId: Generation's real
 // backend output and prompt are free to diverge from the other five stages'
 // own, independently, without touching them.
-export function GenerationStagePanel({ busy, latestResult, onApprove, onRetry, onBack, readOnly = false }: StagePanelProps) {
+export function GenerationStagePanel({
+  busy,
+  latestResult,
+  onApprove,
+  onRetry,
+  onBack,
+  readOnly = false,
+  stageDetail = null,
+}: StagePanelProps) {
   const [correction, setCorrection] = useState("")
   const failed = latestResult?.type === "call_failed"
   const output = failed
@@ -26,6 +34,7 @@ export function GenerationStagePanel({ busy, latestResult, onApprove, onRetry, o
             ← Back to current
           </Button>
         </div>
+        <StageInfoNote detail={stageDetail} />
         <CodeBlock code={output} title="generation output (read-only)" lang="generation" />
       </Panel>
     )
@@ -36,6 +45,7 @@ export function GenerationStagePanel({ busy, latestResult, onApprove, onRetry, o
   return (
     <Panel>
       <h2 style={headingStyle}>Generation stage output</h2>
+      <StageInfoNote detail={stageDetail} />
 
       {/* Matches Callout.jsx's real "danger" tone exactly: bg danger-100,
           border --danger-border (not the fully-saturated danger-500),

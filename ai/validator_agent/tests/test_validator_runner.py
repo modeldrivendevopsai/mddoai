@@ -349,6 +349,37 @@ def test_acceleo_generated_source_path_is_translated_from_camel_case_java_key():
     assert "generatedOutputPath" not in result
 
 
+def test_acceleo_appends_the_target_metamodel_path_when_given():
+    # Without this, AcceleoValidator can only ever resolve the metamodels
+    # main/'s own EMFUtils.init() hardcodes (PIM, SWArch, GitLab) - every
+    # other platform's real generated template always fails with "the
+    # metamodel couldn't be resolved", regardless of how correct it is.
+    valid_json = json.dumps({"valid": True, "issues": []})
+    captured = {}
+
+    def capture_and_respond(argv, **kwargs):
+        captured["argv"] = argv
+        captured["ecore_content"] = Path(argv[5]).read_text(encoding="utf-8")
+        return fake_completed_process(stdout=valid_json)
+
+    with patch("validator_runner.subprocess.run", side_effect=capture_and_respond):
+        run_acceleo_validator(
+            "[module generate('http://example.com/mm')]", "generate.mtl", metamodel_ecore="<ecore:EPackage/>"
+        )
+
+    assert len(captured["argv"]) == 6
+    assert captured["argv"][5].endswith(".ecore")
+    assert captured["ecore_content"] == "<ecore:EPackage/>"
+
+
+def test_acceleo_omits_the_metamodel_arg_when_not_given():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+        run_acceleo_validator("[module generate('http://example.com/mm')]", "generate.mtl")
+
+    assert len(mock_run.call_args.args[0]) == 5
+
+
 def test_acceleo_scopes_java_output_directory_to_run_id():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch.dict("validator_runner.os.environ", {"VALIDATOR_OUTPUT_DIR": "/validator-output"}), \

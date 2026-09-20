@@ -25,6 +25,21 @@ public class EcoreValidatorReflectiveTest {
         assertTrue(result.issues().isEmpty());
     }
 
+    // Real bug this once was: this method is the entry point for real
+    // caller-submitted .ecore content (/validate/ecore's own default
+    // reflective mode) and parsed it with zero XXE hardening - a DOCTYPE
+    // with an external entity would otherwise be parsed like any other
+    // ecore construct. Same real vulnerability class as
+    // main.java.mddoai.utils.EMFUtils.loadEPackage()'s own regression
+    // tests (EMFUtilsTest), exercised here through this method's own real
+    // entry point instead.
+    @Test
+    public void doctypeDeclarationIsRejectedNotParsed() {
+        ValidationResult result = EcoreValidator.validateReflectively(FIXTURES + "malicious-doctype.ecore");
+
+        assertFalse(result.valid(), "a .ecore file with a DOCTYPE declaration must be rejected, not parsed");
+    }
+
     @Test
     public void danglingReferenceIsReportedByName() {
         ValidationResult result = EcoreValidator.validateReflectively(FIXTURES + "broken-dangling-reference.ecore");

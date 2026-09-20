@@ -24,6 +24,24 @@ _FAKE_STAGE_METADATA = {
         "acceleo": "the Acceleo code-generation template for that ATL.",
         "generation": "a final summary tying all prior stages together.",
     },
+    # A representative fake, not a full copy of every real field - only
+    # "pim" and "docs" are exercised (one placeholder stage, one real one),
+    # enough to prove GET /stages forwards this field at all without this
+    # fixture needing to track every real stage's exact wording.
+    "details": {
+        "docs": {
+            "description": "fetches the platform's real documentation (a real call to retrieval).",
+            "input": "a seed URL for the platform's own documentation",
+            "output": "the crawled documentation, as raw markdown",
+            "real": True,
+        },
+        "pim": {
+            "description": "a PIM (Platform-Independent Model) description of the platform.",
+            "input": "ignored today",
+            "output": "a fixed placeholder PIM Ecore metamodel",
+            "real": False,
+        },
+    },
 }
 
 # Every new raw pipeline event chat_log notices gets narrated automatically

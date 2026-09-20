@@ -121,6 +121,22 @@ def test_validate_acceleo_forwards_stage_and_attempt_for_compiled_output_placeme
     assert mock_post.call_args.kwargs["json"]["attempt"] == "attempt_2"
 
 
+def test_validate_acceleo_forwards_the_target_metamodel_when_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_acceleo(
+            "[module m('x')]", "sample.mtl", metamodel_ecore="<ecore:EPackage/>",
+        )
+
+    assert mock_post.call_args.kwargs["json"]["metamodel_ecore"] == "<ecore:EPackage/>"
+
+
+def test_validate_acceleo_omits_the_target_metamodel_when_not_given():
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(_fake_result())) as mock_post:
+        validator_agent_client.validate_acceleo("[module m('x')]", "sample.mtl")
+
+    assert "metamodel_ecore" not in mock_post.call_args.kwargs["json"]
+
+
 def test_validate_ecore_returns_a_failing_result_as_plain_data_not_an_error():
     # win or lose is real data here, not something to raise over — only an
     # infra failure (see the next test) raises.

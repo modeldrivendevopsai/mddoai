@@ -5,8 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -85,6 +91,83 @@ public class EMFUtilsTest {
 
         assertTrue(resourceSet.getPackageRegistry().containsKey(pkg1.getNsURI()));
         assertTrue(resourceSet.getPackageRegistry().containsKey(pkg2.getNsURI()));
+    }
+
+    // loadEPackage() is the one place this codebase parses a .ecore file
+    // that may not be trusted (a platform's own PSM ecore, forwarded here
+    // from an HTTP request body all the way from ai/acceleo_agent's own
+    // POST /generate) - these two cases are the real security regression
+    // tests for that: a DOCTYPE must be rejected outright (XXE), and a
+    // cross-document network reference must never actually connect (SSRF),
+    // while a normal, self-contained .ecore still loads correctly.
+
+    @Test
+    void loadEPackage_rejectsADoctypeDeclaration(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+        Path ecoreFile = tempDir.resolve("malicious.ecore");
+        Files.writeString(ecoreFile, """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE ecore:EPackage [
+                    <!ENTITY xxe SYSTEM "file:///etc/passwd">
+                ]>
+                <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI"
+                    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="evil"
+                    nsURI="http://example.com/evil" nsPrefix="evil">
+                  <eClassifiers xsi:type="ecore:EClass" name="&xxe;"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+                </ecore:EPackage>
+                """);
+
+        EPackage result = EMFUtils.loadEPackage(ecoreFile.toString());
+
+        assertNull(result, "a .ecore file with a DOCTYPE declaration must be rejected, not parsed");
+    }
+
+    @Test
+    void loadEPackage_stillLoadsAWellFormedEcoreWithNoDoctype(@org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+        Path ecoreFile = tempDir.resolve("clean.ecore");
+        Files.writeString(ecoreFile, """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI"
+                    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="clean"
+                    nsURI="http://example.com/clean" nsPrefix="clean">
+                  <eClassifiers xsi:type="ecore:EClass" name="Widget"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+                </ecore:EPackage>
+                """);
+
+        EPackage result = EMFUtils.loadEPackage(ecoreFile.toString());
+
+        assertNotNull(result, "a normal, DOCTYPE-free .ecore file must still load");
+        assertEquals("http://example.com/clean", result.getNsURI());
+    }
+
+    @Test
+    void networkBlockingURIHandler_claimsHttpAndHttpsSchemes() {
+        EMFUtils.NetworkBlockingURIHandler handler = new EMFUtils.NetworkBlockingURIHandler();
+
+        assertTrue(handler.canHandle(URI.createURI("http://attacker.example/evil.ecore")));
+        assertTrue(handler.canHandle(URI.createURI("https://attacker.example/evil.ecore")));
+        assertTrue(handler.canHandle(URI.createURI("ftp://attacker.example/evil.ecore")));
+    }
+
+    @Test
+    void networkBlockingURIHandler_leavesFileAndPlatformSchemesAlone() {
+        EMFUtils.NetworkBlockingURIHandler handler = new EMFUtils.NetworkBlockingURIHandler();
+
+        assertFalse(handler.canHandle(URI.createFileURI("/some/local/path.ecore")));
+        assertFalse(handler.canHandle(URI.createURI("platform:/resource/some/path.ecore")));
+    }
+
+    @Test
+    void networkBlockingURIHandler_refusesToOpenAConnectionForABlockedScheme() {
+        EMFUtils.NetworkBlockingURIHandler handler = new EMFUtils.NetworkBlockingURIHandler();
+        URI blocked = URI.createURI("http://attacker.example/evil.ecore#//Foo");
+
+        // The real security property: this must throw before any real
+        // java.net connection is attempted, not merely report the URI as
+        // unreachable after trying it.
+        assertThrows(IOException.class, () -> handler.createInputStream(blocked, null));
+        assertThrows(IOException.class, () -> handler.createOutputStream(blocked, null));
     }
 }
 

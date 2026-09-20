@@ -168,7 +168,14 @@ def _update_manifest(run_id: str, stage: str, attempt_n: int, valid: bool) -> No
 
 
 def persist_attempt(
-    run_id: str, stage: str, filename: str, content: str, result: dict, attempt_dir: Path | None = None
+    run_id: str,
+    stage: str,
+    filename: str,
+    content: str,
+    result: dict,
+    attempt_dir: Path | None = None,
+    prompt: dict | None = None,
+    prompt_version: str | None = None,
 ) -> Path:
     """Writes this attempt's real artifact and validator-agent result to
     disk, synchronously, before the caller decides pass/fail — a failed
@@ -188,10 +195,21 @@ def persist_attempt(
     under, which only exists once reserve_attempt_dir() has actually run.
     When omitted (the default), this reserves its own attempt directory
     exactly as it always has, and every existing caller that doesn't pass
-    this keeps working unchanged."""
+    this keeps working unchanged.
+
+    prompt/prompt_version, when given, are also written to
+    attempt_dir/prompt.json - the exact resolved parts (and the saved
+    prompt-config version that produced them) this attempt's own real LLM
+    call actually used, mirroring the real ai-research branch's own round
+    layout (prompt.md alongside output.ecore/notes.md). Every stage with a
+    real, config-driven prompt (psm, atl, acceleo) passes these; pim omits
+    them, since it has no real prompt yet."""
     if attempt_dir is None:
         attempt_dir = reserve_attempt_dir(run_id, stage)
     (attempt_dir / filename).write_text(content, encoding="utf-8")
+    if prompt is not None:
+        prompt_record = {"prompt": prompt, "prompt_version": prompt_version}
+        (attempt_dir / "prompt.json").write_text(json.dumps(prompt_record, indent=2), encoding="utf-8")
     # result.json last, and written atomically (same os.replace() the
     # manifest already uses): its presence is what reserved_attempt() reads
     # to tell a real, recorded attempt from a directory a failed call

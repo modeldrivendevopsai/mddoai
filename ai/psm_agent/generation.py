@@ -1,7 +1,7 @@
 """PSM Generation Agent: onboards a NEW platform with no existing PSM
-metamodel yet. Given the real per-run PIM artifact and target platform docs,
-generates a new .ecore, refined against real validator-agent feedback rather
-than accepted on the first attempt.
+metamodel yet. Given the target platform's own docs, generates a new
+.ecore, refined against real validator-agent feedback rather than accepted
+on the first attempt.
 
 Matches the paper's (Karlovs-Karlovskis) validated "Step 1 (Metamodel)"
 approach: master-example metamodel + target docs -> LLM generates a new
@@ -10,18 +10,35 @@ refined one constraint per round on failure. Grounding (the AC's "calls ...
 for grounding before generating") uses pim_agent's existing ground()
 mechanism - no separate RAG agent exists yet (Phase 1, not this pass).
 
+`pim_artifact` is taken as a parameter and still feeds each grounding
+query below (_grounding_context), but is deliberately NOT included as
+prompt content: MDDOAI's own pim stage is still a placeholder that ignores
+its real input entirely and always returns the same fixed content, so its
+output carries no real signal yet, and the paper's own validated prompts
+never attached a PIM artifact either. Re-add it as a real prompt attachment
+(see ai/psm_agent/prompts/) once a real PIM stage exists, not before.
+
 The actual generate-validate-retry loop is generation_toolkit's own
 run_with_retry() (shared, stage-agnostic) - this module's job is PSM-specific:
 which files to read, how to fold in grounding, and how validator-agent's
 result maps to a "valid"/pass-fail check and a root-cause constraint.
+
+The system prompt and the parts fed into it are no longer hardcoded here:
+they come from a real, UI-editable prompt config
+(generation_toolkit.prompt_config). See ai/psm_agent/prompts/ for the
+real, git-committed starting content.
 """
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+
+from generation_toolkit.generation_agent import run_with_retry
+from generation_toolkit.prompt_builder import build_prompt
+from generation_toolkit.prompt_config import rendering
+from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import pim_agent_client, validator_agent_client
-from generation_toolkit.generation_agent import run_with_retry
 
-from comparison import DEFAULT_PSM_MASTER_EXAMPLE_PATH
+from comparison import files_root
+import prompt_paths
 
 # The 9 PIM concept categories pim_agent already knows about (concepts()'s
 # own keys) - grounding one query per category, mirroring
@@ -30,16 +47,21 @@ from comparison import DEFAULT_PSM_MASTER_EXAMPLE_PATH
 # whichever single concept the text happens to read closest to.
 _GROUNDING_TOP_K = 1
 
-_SYSTEM_PROMPT = """You are the MDDOAI PSM (Platform-Specific Model) generation agent. Given \
-a real PIM (Platform-Independent Model) artifact, a target platform's documentation, and a \
-master example metamodel (another platform's real, working PSM metamodel, as raw Ecore XML), \
-generate a NEW Ecore metamodel for the target platform.
-
-Follow the master example's structural conventions (its package/class/attribute/reference \
-shape) but express the TARGET platform's own concepts, drawn from its documentation and the \
-PIM artifact, not the master example's platform-specific details.
-
-Respond with ONLY the raw Ecore XML for the new metamodel, no prose, no markdown code fences."""
+# mock=True's fixed stand-in output: the same minimal, already-proven-valid
+# shape the pim stage's own placeholder mock content uses (matching
+# validator_agent/tests/fixtures/valid.ecore, which that service's own
+# real test suite already asserts passes reflective validation), so a
+# mocked round-trip still exercises the real validator-agent call and the
+# real attempt-persistence path, just never the real (slow, billed) LLM call.
+# Named distinctly so it's never mistaken for a real generated metamodel.
+_MOCK_ARTIFACT = """<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="mockPsm" nsURI="http://mddoai.com/mock/psm" nsPrefix="mockPsm">
+  <eClassifiers xsi:type="ecore:EClass" name="MockPipelineBlock">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+</ecore:EPackage>
+"""
 
 
 def _grounding_context(pim_artifact: str) -> list[dict]:
@@ -60,17 +82,6 @@ def _grounding_context(pim_artifact: str) -> list[dict]:
     return grounding
 
 
-def _render_user_content(prompt: dict) -> str:
-    content = (
-        f"PIM artifact:\n{prompt['pim_ecore']}\n\n"
-        f"Target platform documentation:\n{prompt['psm_docs']}\n\n"
-        f"Master example metamodel:\n{prompt['psm_example']}"
-    )
-    if prompt["constraints"]:
-        content += f"\n\nApply these corrections from prior rounds:\n{prompt['constraints']}"
-    return content
-
-
 def _validate(artifact: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None) -> dict:
     # Every regeneration round calls this once (run_with_retry's own
     # validate_fn) - stage/attempt stay the same across all of them, so
@@ -85,32 +96,74 @@ def _validate(artifact: str, run_id: str | None = None, stage: str | None = None
 def generate(
     pim_artifact: str,
     platform_docs: str,
-    psm_example_path: str | None = None,
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
     stage: str | None = None,
     attempt: str | None = None,
+    mock: bool = False,
 ) -> dict:
-    """Returns {"artifact": str, "prompt": dict, "validation": dict, "rounds": int}."""
-    example_path = psm_example_path or DEFAULT_PSM_MASTER_EXAMPLE_PATH
+    """Returns {"artifact": str, "prompt": dict, "validation": dict,
+    "rounds": int, "prompt_version": str}. `prompt_version` names exactly
+    which saved config produced this output, the real link an attempt's
+    own persisted record (see integration_runner/stages/_validation.py's
+    persist_attempt) and a later "restore the config that produced this"
+    UI action both need.
+
+    mock=True (the per-run "Mock" override, same opt-in as docs_stage's own
+    context["mock"]) still resolves the real config/attachments and still
+    runs the real validator-agent call against a fixed, already-valid
+    artifact, so the prompt-builder mechanism and the real attempt-
+    persistence path are both exercised for real - it only skips the two
+    slow, billed steps (grounding's pim_agent calls and the real LLM call),
+    for fast local iteration on a config without spending either."""
+    if mock:
+        context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
+        config, parts = prompt_resolution.resolve_for_call(
+            prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
+        )
+        combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
+        prompt = build_prompt(parts, combined_constraints)
+        validation = _validate(_MOCK_ARTIFACT, run_id, stage, attempt)
+        return {
+            "artifact": _MOCK_ARTIFACT,
+            "prompt": prompt,
+            "validation": validation,
+            "rounds": 1,
+            "prompt_version": config.get("_version"),
+        }
+
     psm_docs = platform_docs
     grounding = _grounding_context(pim_artifact)
     if grounding:
         grounding_lines = "\n".join(f"- {g['title']}: {g['content'].splitlines()[0]}" for g in grounding)
         psm_docs = f"{platform_docs}\n\nRelevant PIM concept grounding:\n{grounding_lines}"
 
-    parts = {
-        "pim_ecore": pim_artifact,
-        "psm_docs": psm_docs,
-        "psm_example": Path(example_path).read_text(),
-    }
+    context_values = {"pim_ecore": pim_artifact, "psm_docs": psm_docs}
+    config, parts = prompt_resolution.resolve_for_call(
+        prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
+    )
+
+    # A promoted, permanent constraint (see
+    # generation_toolkit.prompt_config.learned_constraints) applies to
+    # every future run; this run's own live corrections
+    # (integration_runner's IntegrationRun.constraints, an entirely
+    # separate, per-run, ephemeral mechanism) still apply on top, for this
+    # call only.
+    combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
+
     result = run_with_retry(
-        _SYSTEM_PROMPT,
+        config["system_prompt"],
         parts,
-        constraints=constraints,
+        constraints=combined_constraints,
         validate_fn=lambda artifact: _validate(artifact, run_id, stage, attempt),
-        render_user_content=_render_user_content,
+        render_user_content=lambda prompt: rendering.render_user_content(config, prompt),
         model=model,
     )
-    return {"artifact": result["output"], "prompt": result["prompt"], "validation": result["validation"], "rounds": result["rounds"]}
+    return {
+        "artifact": result["output"],
+        "prompt": result["prompt"],
+        "validation": result["validation"],
+        "rounds": result["rounds"],
+        "prompt_version": config.get("_version"),
+    }

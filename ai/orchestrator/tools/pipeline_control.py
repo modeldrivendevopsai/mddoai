@@ -13,11 +13,16 @@ from clients import integration_runner_client
 
 
 def _docs_overrides(hint, exclude_urls, max_pages, max_depth, force_refresh, mock=None) -> dict:
-    """Assembles integration_runner's real docs-stage override shape
-    (RerunOverrides/the docs_options part of StartRequest) from individual
-    tool arguments, dropping anything the LLM didn't actually supply.
-    Shared by _rerun_stage_tool and _start_pipeline_tool below since both
-    wrap a REST endpoint accepting the identical override fields."""
+    """Assembles integration_runner's real RerunOverrides/StartRequest
+    override shape from individual tool arguments, dropping anything the
+    LLM didn't actually supply. Named for docs, whose real /fetch parameters
+    are most of these fields, but `mock` isn't docs-exclusive - psm
+    recognizes it too (see integration_runner's own _STAGE_OVERRIDE_KEYS),
+    so the same flat schema still works there: whichever fields the current
+    stage doesn't recognize simply never get supplied for it, the LLM's own
+    schema description (mock aside) already steers it that way. Shared by
+    _rerun_stage_tool and _start_pipeline_tool below since both wrap a REST
+    endpoint accepting the identical override fields."""
     overrides = {
         "hint": hint, "exclude_urls": exclude_urls, "max_pages": max_pages,
         "max_depth": max_depth, "force_refresh": force_refresh, "mock": mock,
@@ -38,14 +43,14 @@ def _rerun_stage_tool(
     /rerun/{stage_id} endpoint needs a stage_id in its path for its own
     staleness check, the same real check a direct REST caller's stage_id
     would be validated against), then forwards only the override fields the
-    LLM actually supplied. These are real, structured docs stage overrides
-    (see integration_runner's own RerunOverrides) — the REST endpoint has
-    always accepted them, this tool's own schema just exposes them now so a
+    LLM actually supplied. These are real, structured overrides (see
+    integration_runner's own RerunOverrides) — the REST endpoint has always
+    accepted them, this tool's own schema just exposes them now so a
     chat-triggered rerun has the same real steering ability a direct
     REST/manual caller already had. integration_runner's own rerun()
-    rejects them with a real ValueError (surfaced here as this call's own
-    error result) on any stage but docs, since only docs has a structured
-    override shape today."""
+    rejects any it doesn't recognize for the current stage with a real
+    ValueError (surfaced here as this call's own error result) - see its
+    own _STAGE_OVERRIDE_KEYS for which stage accepts which fields today."""
     current_stage = integration_runner_client.get_status()["current_stage"]
     overrides = _docs_overrides(hint, exclude_urls, max_pages, max_depth, force_refresh, mock)
     return integration_runner_client.rerun_stage(current_stage, overrides)
@@ -112,13 +117,14 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                 "run and folding in any constraints recorded via add_constraint since then. Use "
                 "this when the user wants the current stage redone right now, e.g. 'redo the "
                 "ATL stage', or immediately after calling add_constraint to apply a correction "
-                "the user just gave. On the docs stage specifically, the optional parameters "
-                "below steer a brand-new crawl (a different hint, excluding known-bad pages, a "
-                "narrower/wider crawl) — this REPLACES the docs stage's current output with a "
-                "fresh crawl, it does not add to what's already there. To add one specific known "
-                "page without redoing the whole crawl, use add_page_to_docs instead. These "
-                "parameters only mean anything on the docs stage; using them on any other stage "
-                "is rejected."
+                "the user just gave. On the docs stage specifically, hint/exclude_urls/max_pages/"
+                "max_depth/force_refresh steer a brand-new crawl (a different hint, excluding "
+                "known-bad pages, a narrower/wider crawl) — this REPLACES the docs stage's "
+                "current output with a fresh crawl, it does not add to what's already there. To "
+                "add one specific known page without redoing the whole crawl, use "
+                "add_page_to_docs instead. Those five parameters only mean anything on the docs "
+                "stage; using them on any other stage is rejected. mock (see below) is different: "
+                "it also means something on the psm, atl, and acceleo stages."
             ),
             parameters={
                 "type": "object",
@@ -141,9 +147,12 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                     "mock": {
                         "type": "boolean",
                         "description": (
-                            "Docs stage only: skip the real crawl entirely and use canned "
-                            "placeholder output instead. Only set this when the human explicitly "
-                            "asks for a mock/test/fake rerun."
+                            "Skip the real, slow step and use a fixed placeholder instead: on the "
+                            "docs stage, skip the real crawl entirely for canned placeholder "
+                            "output; on the psm, atl, and acceleo stages, skip the real LLM call "
+                            "for a fixed, already-valid placeholder artifact (the real prompt "
+                            "config and the real validator-agent check still run). Only set this "
+                            "when the human explicitly asks for a mock/test/fake rerun."
                         ),
                     },
                 },

@@ -54,7 +54,7 @@ shared across projects or specific to one.
 
 
 def test_real_generation_produces_platform_specific_structure():
-    result = generate(_SYNTHETIC_PIM_ARTIFACT, _GITLAB_DOCS, model=None)
+    result = generate("GitLab", _SYNTHETIC_PIM_ARTIFACT, _GITLAB_DOCS, model=None)
 
     assert result["artifact"].strip()
     assert "rounds" in result and result["rounds"] >= 1

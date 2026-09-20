@@ -56,7 +56,16 @@ from fastapi.testclient import TestClient
 import chat_log
 import integration_runner.main
 import main
-from clients import ai_layer_client, integration_runner_client, psm_agent_client, retrieval_client, serialization_agent_client, validator_agent_client
+from clients import (
+    acceleo_agent_client,
+    ai_layer_client,
+    atl_agent_client,
+    integration_runner_client,
+    psm_agent_client,
+    retrieval_client,
+    serialization_agent_client,
+    validator_agent_client,
+)
 from integration_runner import runs as ir_runs
 from integration_runner.pipeline import IntegrationRun
 
@@ -108,12 +117,12 @@ def _fake_httpx_response(content=None, model="gemini/gemini-2.5-flash", tool_cal
 
 
 def _fake_validate_response(valid=True, issues=None):
-    # pim/psm/atl/acceleo now call validator_agent_client for real content
-    # instead of ai_layer_client (see integration_runner/stages/pim/agent.py
-    # etc.) — approve() below needs this the same way it needs
-    # _fake_httpx_response for ai_layer_client, or approving pim/psm/atl
-    # makes a genuinely unmocked network call to a real validator-agent
-    # that may not be running on the test machine.
+    # pim is the one remaining stage that calls validator_agent_client for
+    # its own real content directly (see integration_runner/stages/pim/agent.py) -
+    # approve() below needs this the same way it needs _fake_httpx_response
+    # for ai_layer_client, or approving pim makes a genuinely unmocked
+    # network call to a real validator-agent that may not be running on the
+    # test machine.
     resp = MagicMock()
     resp.raise_for_status.return_value = None
     resp.json.return_value = {"valid": valid, "issues": issues or [], "duration_ms": 1}
@@ -121,21 +130,51 @@ def _fake_validate_response(valid=True, issues=None):
 
 
 def _fake_psm_response(artifact="Generic stage output", valid=True):
-    # psm is the one stage that's genuinely real, not mock-validated like
-    # pim/atl/acceleo (see integration_runner/stages/psm/agent.py): it calls
-    # psm_agent_client.run_psm(), a different real boundary than either
-    # ai_layer_client or validator_agent_client — approve() needs this
-    # mocked too, or approving pim (which starts psm's real run) makes a
-    # genuinely unmocked network call to a real psm-agent that may not be
+    # psm/atl/acceleo are each genuinely real now, not mock-validated like
+    # pim (see integration_runner/stages/psm/agent.py etc.): each calls its
+    # own real *_agent_client, a different real boundary than either
+    # ai_layer_client or validator_agent_client directly — approve() needs
+    # this mocked too, or approving pim (which starts psm's real run) makes
+    # a genuinely unmocked network call to a real psm-agent that may not be
     # running on the test machine.
     resp = MagicMock()
     resp.raise_for_status.return_value = None
     resp.json.return_value = {
         "mode": "generation",
         "artifact": artifact,
-        "prompt": {"pim_ecore": "", "psm_docs": "", "psm_example": "", "constraints": ""},
+        "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
         "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "generated_source_path": None},
         "rounds": 1,
+    }
+    return resp
+
+
+def _fake_atl_response(artifact="Generic stage output", valid=True):
+    # Same real boundary reasoning as _fake_psm_response above -
+    # atl_agent_client.run_atl(), not validator_agent_client directly.
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = {
+        "artifact": artifact,
+        "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "rounds": 1,
+        "prompt_version": None,
+    }
+    return resp
+
+
+def _fake_acceleo_response(artifact="Generic stage output", valid=True):
+    # Same real boundary reasoning as _fake_psm_response above -
+    # acceleo_agent_client.run_acceleo(), not validator_agent_client directly.
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = {
+        "artifact": artifact,
+        "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "rounds": 1,
+        "prompt_version": None,
     }
     return resp
 
@@ -172,29 +211,54 @@ def start_pipeline(platform_description="A GitLab CI platform", seed_url="https:
 def approve(stage_id, agent_response_text="Generic stage output"):
     # Whichever stage this approval starts running next might be an
     # LLM-prompt one (ai_layer_client), a mock-validated one
-    # (validator_agent_client), or psm specifically (psm_agent_client) — all
-    # three mocked here since the caller doesn't know or care which, same
+    # (validator_agent_client), or one of the real, separate services
+    # (psm_agent_client, atl_agent_client, acceleo_agent_client) — all five
+    # mocked here since the caller doesn't know or care which, same
     # reasoning as _fake_httpx_response's own "Generic stage output" default.
+    # psm/atl/acceleo are each in _REQUIRES_MANUAL_START though, so approving
+    # INTO one of them never actually triggers its own client - only
+    # approving them once already started (after an explicit /rerun) does.
     with patch.object(ai_layer_client, "httpx") as mock_chat_httpx, \
             patch.object(validator_agent_client, "httpx") as mock_validate_httpx, \
-            patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
+            patch.object(psm_agent_client, "httpx") as mock_psm_httpx, \
+            patch.object(atl_agent_client, "httpx") as mock_atl_httpx, \
+            patch.object(acceleo_agent_client, "httpx") as mock_acceleo_httpx:
         mock_chat_httpx.post.return_value = _fake_httpx_response(agent_response_text)
         mock_validate_httpx.post.return_value = _fake_validate_response()
         mock_psm_httpx.post.return_value = _fake_psm_response(agent_response_text)
+        mock_atl_httpx.post.return_value = _fake_atl_response(agent_response_text)
+        mock_acceleo_httpx.post.return_value = _fake_acceleo_response(agent_response_text)
         response = client.post(f"/review/{stage_id}", json={"approved": True})
+        ir_runs.wait_for_idle()
+    return response
+
+
+def _rerun_manual_start_stage(stage_id, client_module, fake_response, agent_response_text):
+    """psm/atl/acceleo are each in _REQUIRES_MANUAL_START: arriving there
+    advances the pipeline but does not auto-run it, so a real /rerun call
+    (with that stage's own real *_agent_client boundary mocked) is what
+    actually starts its first real attempt - the same explicit step
+    _advance_to_psm() already does for psm, extracted here since atl and
+    acceleo both need the identical shape now too."""
+    with patch.object(client_module, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = fake_response(agent_response_text)
+        response = client.post(f"/rerun/{stage_id}")
         ir_runs.wait_for_idle()
     return response
 
 
 def _advance_to_psm():
     """Starts the pipeline (lands on docs) and approves docs then
-    serialization then pim, landing on psm. Every endpoint test that isn't
-    specifically about the docs/serialization/pim stages builds on this
-    instead of hand-rolling the docs fetch and the serialization/pim
-    approvals. No output parameter (unlike a plain approve() call): psm's
-    own real output is fixed mock content now, not something a caller gets
-    to choose (see integration_runner/stages/psm/agent.py) — same is true
-    of pim, whose approval is what actually starts psm's real run below.
+    serialization then pim, landing on psm, then explicitly starts psm's
+    own real run — unlike every earlier stage, arriving at psm does NOT
+    auto-run it (see pipeline.py's own _REQUIRES_MANUAL_START: psm has a
+    real, editable prompt config, so a human/caller gets a real pause to
+    review or edit it before its first real attempt, the approval into psm
+    only advances the pipeline and returns "advanced_pending"). Every
+    endpoint test that isn't specifically about the docs/serialization/pim
+    stages, or about that pause itself, builds on this instead of
+    hand-rolling the docs fetch, the serialization/pim approvals, and psm's
+    own manual start.
 
     Approving docs starts serialization's real run, which calls
     serialization_agent_client.serialize() (a separate service) — needs its
@@ -204,7 +268,30 @@ def _advance_to_psm():
     with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
         approve("docs")
     approve("serialization")
-    return approve("pim")
+    approve("pim")
+    with patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
+        mock_psm_httpx.post.return_value = _fake_psm_response("psm output")
+        response = client.post("/rerun/psm")
+        ir_runs.wait_for_idle()
+    return response
+
+
+def _advance_to_atl():
+    """Extends _advance_to_psm() one stage further: approves psm's own
+    completed result, landing on atl (also in _REQUIRES_MANUAL_START), then
+    explicitly starts atl's own real run via _rerun_manual_start_stage()."""
+    _advance_to_psm()
+    approve("psm", "ATL rules")
+    return _rerun_manual_start_stage("atl", atl_agent_client, _fake_atl_response, "atl output")
+
+
+def _advance_to_acceleo():
+    """Extends _advance_to_atl() one stage further: approves atl's own
+    completed result, landing on acceleo (also in _REQUIRES_MANUAL_START),
+    then explicitly starts acceleo's own real run."""
+    _advance_to_atl()
+    approve("atl", "Acceleo template")
+    return _rerun_manual_start_stage("acceleo", acceleo_agent_client, _fake_acceleo_response, "acceleo output")
 
 
 # --- POST /start ----------------------------------------------------------------
@@ -410,6 +497,24 @@ def test_providers_endpoint_proxies_ai_layer():
     assert response.json() == payload
 
 
+# --- GET /stages ---------------------------------------------------------------------
+
+
+def test_stages_endpoint_proxies_stage_metadata_unchanged():
+    # stage_metadata() itself is faked process-wide by conftest.py's own
+    # autouse fake_stage_metadata fixture (every other test in this file
+    # that triggers chat/tool-schema building already relies on that same
+    # fake, not a live integration_runner) - this is a proxy unit test:
+    # does GET /stages forward whatever get_stage_metadata() returns,
+    # unchanged, "details" field included. integration_runner's own
+    # STAGE_DETAILS content is verified for real in its own test suite
+    # (integration_runner/tests/stages/test_stages_registry.py).
+    response = client.get("/stages")
+
+    assert response.status_code == 200
+    assert response.json() == integration_runner_client.get_stage_metadata()
+
+
 # --- POST /model -------------------------------------------------------------------
 
 
@@ -431,14 +536,14 @@ def test_model_endpoint_back_to_auto_with_null():
 
 
 def test_model_endpoint_change_is_picked_up_by_the_next_real_stage_run():
-    # generation, not psm: the only remaining stage whose own real call
-    # (ai_layer_client.chat) actually reads context["model"] — psm/atl/
-    # acceleo call validator_agent_client instead now, which has no concept
-    # of a chosen model at all (see integration_runner/stages/psm/agent.py
-    # etc.).
-    _advance_to_psm()
-    approve("psm", "ATL rules")
-    approve("atl", "Acceleo template")
+    # generation, not psm/atl/acceleo: the only remaining stage whose own
+    # real call (ai_layer_client.chat) actually reads context["model"] as a
+    # plain prompt-building concern the same way generation's own
+    # placeholder agent does - psm/atl/acceleo each forward it through
+    # their own real *_agent_client instead (see
+    # integration_runner/stages/psm/agent.py etc.), a real HTTP request
+    # body field, not asserted here.
+    _advance_to_acceleo()
     approve("acceleo", "Final summary v1")
     client.post("/model", json={"model": "cerebras-120b"})
 
@@ -546,10 +651,27 @@ def test_review_endpoint_approving_schedules_next_stage_and_returns_202():
     assert ir_runs.current().last_completed_stage == "serialization"
 
 
+def test_review_endpoint_approving_into_psm_does_not_auto_run_it():
+    # psm has a real, editable prompt config (see pipeline.py's own
+    # _REQUIRES_MANUAL_START) - approving pim advances the pipeline onto
+    # psm but does not fire its real call, unlike every stage before it.
+    start_pipeline()
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
+        approve("docs")
+    approve("serialization")
+
+    with patch.object(psm_agent_client, "httpx") as mock_psm_httpx:
+        response = client.post("/review/pim", json={"approved": True})
+        ir_runs.wait_for_idle()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "advanced_pending", "stage": "psm"}
+    assert ir_runs.current().current_stage == "psm"
+    assert mock_psm_httpx.post.call_count == 0
+
+
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():
-    _advance_to_psm()
-    approve("psm", "ATL rules")
-    approve("atl", "Acceleo template")
+    _advance_to_acceleo()
 
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         mock_httpx.post.return_value = _fake_httpx_response("Final summary")
@@ -643,14 +765,17 @@ def test_rerun_endpoint_accepts_overrides_for_docs_stage():
     assert fetch_calls[0].kwargs["json"]["url"] == "https://example.com/correct-docs"
 
 
-def test_rerun_endpoint_rejects_overrides_for_non_docs_stage():
+def test_rerun_endpoint_rejects_a_docs_only_override_key_for_psm():
+    # psm recognizes its own real override ("mock"), but not a different
+    # stage's shape - an override key valid elsewhere still gets rejected
+    # here, not silently ignored.
     _advance_to_psm()
 
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/rerun/psm", json={"overrides": {"hint": "doesn't apply to psm"}})
 
     assert response.status_code == 400
-    assert "docs" in response.json()["detail"]
+    assert "hint" in response.json()["detail"]
     mock_httpx.post.assert_not_called()
 
 

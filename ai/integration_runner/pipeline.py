@@ -38,6 +38,32 @@ from integration_runner.event_log import EventLog
 # the stage's next run.
 STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"]
 
+# Stages with a real, UI-editable prompt config (generation_toolkit.prompt_config)
+# a human should get to review, and possibly edit, before that stage's real
+# first attempt ever fires - see review()'s own docstring for why arriving
+# at one of these does not auto-run it. Named and commented, not derived
+# automatically; extend this one entry at a time as generation gets a real
+# implementation of its own too, don't build a generic "does this stage
+# have a prompt" detection mechanism ahead of a real case needing it.
+_REQUIRES_MANUAL_START = {"psm", "atl", "acceleo"}
+
+# Which real rerun override keys each stage's own agent actually reads from
+# context - see rerun()'s own comment for why this stays a named,
+# manually-extended mapping rather than generic pass-through validation (an
+# override key valid for one stage but meaningless to another should still
+# be rejected, not silently ignored). docs: wraps retrieval's real /fetch
+# parameters. psm/atl/acceleo: mock only (each stage's own agent.py reads
+# context.get("mock"), see each real service's own generate() docstring),
+# skipping the real, slow, billed LLM call for fast local iteration on a
+# prompt config, while still running the real validator-agent call. A stage
+# absent from this mapping accepts none.
+_STAGE_OVERRIDE_KEYS: dict[str, set[str]] = {
+    "docs": {"seed_url", "hint", "exclude_urls", "max_pages", "max_depth", "force_refresh", "mock"},
+    "psm": {"mock"},
+    "atl": {"mock"},
+    "acceleo": {"mock"},
+}
+
 
 class BusyError(RuntimeError):
     """claim_busy() raises this when the run is already executing a stage.
@@ -139,24 +165,32 @@ class IntegrationRun:
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
-        plus any given overrides (only meaningful for the docs stage) and
-        picking up constraints recorded since the last run. Used by both
-        /rerun and the rerun_stage tool, the only difference between a human
-        clicking Retry and an LLM deciding to call rerun_stage is who (if
-        anyone) supplies overrides."""
+        plus any given overrides (only meaningful for stages in
+        _STAGE_OVERRIDE_KEYS) and picking up constraints recorded since the
+        last run. Used by both /rerun and the rerun_stage tool, the only
+        difference between a human clicking Retry/Generate and an LLM
+        deciding to call rerun_stage is who (if anyone) supplies overrides."""
         overrides = overrides or {}
-        # "only docs" is true today, not permanently: docs is the only stage
-        # wrapping a real API (retrieval's /fetch) with real typed
-        # parameters to override. pim/atl/acceleo/generation are still
+        # See _STAGE_OVERRIDE_KEYS's own comment for which stages recognize
+        # which override keys today. pim/atl/acceleo/generation are still
         # placeholder chat() prompts with no override shape of their own
-        # yet; psm is real but takes no rerun overrides beyond the generic
-        # constraints mechanism either (see stages/). Whoever makes the next
-        # stage real needs
-        # to design ITS real override shape from ITS real API, the same way
-        # docs's was, then extend this guard, don't just delete it.
-        if overrides and self.current_stage != "docs":
+        # yet, so they accept none. An override key valid for one stage but
+        # not the current one is rejected too, not silently ignored - e.g. a
+        # docs-shaped override sent while psm is current. Whoever makes the
+        # next stage real needs to design ITS real override shape from ITS
+        # real API, the same way docs's and psm's were, then add it to that
+        # mapping, don't just delete this guard.
+        allowed_keys = _STAGE_OVERRIDE_KEYS.get(self.current_stage, set())
+        if overrides and not allowed_keys:
             raise ValueError(
-                f"'{self.current_stage}' has no structured parameters to override, only 'docs' does."
+                f"'{self.current_stage}' has no structured parameters to override, only "
+                f"{' and '.join(sorted(_STAGE_OVERRIDE_KEYS))} do."
+            )
+        unknown_keys = set(overrides) - allowed_keys
+        if unknown_keys:
+            raise ValueError(
+                f"'{self.current_stage}' doesn't recognize override(s) {sorted(unknown_keys)}, "
+                f"it only accepts {sorted(allowed_keys)}."
             )
         context = {**self.last_context, **overrides}
         self.run_stage_async(context)
@@ -235,9 +269,15 @@ class IntegrationRun:
 
     def review(self, stage_id: str, approved: bool, correction: str | None = None) -> dict:
         """Records a review decision and, if it advances the pipeline, starts
-        the next stage running in the background right away. Used by both
-        /review and the stage_result tool, the only difference between a
-        human clicking Approve/Reject and an LLM deciding to call
+        the next stage running in the background right away - UNLESS that
+        next stage is in _REQUIRES_MANUAL_START, in which case this stores
+        its real, already-computed context (so a later rerun()/Retry click
+        has the right context to run with) but deliberately does not start
+        it: a stage with a real, editable prompt gets a real pause here, so
+        a human can review or edit that prompt before its very first real
+        attempt ever fires, not only after seeing a first result. Used by
+        both /review and the stage_result tool, the only difference between
+        a human clicking Approve/Reject and an LLM deciding to call
         stage_result is who's asking.
 
         claim_busy() runs first, before record_review() touches anything, for
@@ -250,8 +290,9 @@ class IntegrationRun:
         other mutating path, not something a rejection or a final approval is
         exempt from just because neither one starts a stage on its own. The
         claim is released here for a review that doesn't start a stage (a
-        rejection, or completing the run); for one that does, the background
-        worker releases it when the stage finishes.
+        rejection, completing the run, or a manual-start pause); for one that
+        spawns a background thread, that worker releases it when the stage
+        finishes.
 
         Known, deliberately unhandled: once record_review() succeeds (the
         approval and advance are now real, recorded history), a
@@ -268,6 +309,9 @@ class IntegrationRun:
         try:
             result = self.record_review(stage_id, approved, correction)
             if result["status"] == "advanced":
+                if result["stage"] in _REQUIRES_MANUAL_START:
+                    self.last_context = result["context"]
+                    return {"status": "advanced_pending", "stage": result["stage"]}
                 self._spawn_stage_thread(result["context"])
                 started = True
                 return {"status": "started", "stage": result["stage"]}

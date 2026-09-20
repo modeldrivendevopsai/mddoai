@@ -7,14 +7,14 @@ mocked.
 Generic pipeline-mechanics tests (does run_stage() call the right agent and
 report its output, does review() advance and start the next stage, does a
 correction get threaded in, ...) run against "generation", the one
-remaining LLM-placeholder stage (pim/atl/acceleo now return fixed mock
-content + a real validator-agent call instead, see each of their own
-agent.py; psm is real too, a thin proxy to psm_agent — see
-stages/psm/agent.py's own docstring) — _fast_forward_to_generation() in
-helpers.py. Tests that specifically need a non-terminal transition
-(review() advancing to a NEXT stage, not completing the run) use
-pim/atl/acceleo directly, with validator_agent_client mocked, or psm
-directly, with psm_agent_client mocked instead.
+remaining LLM-placeholder stage (pim still returns fixed mock content + a
+real validator-agent call, see its own agent.py; psm/atl/acceleo are each
+real, a thin proxy to their own real service - see each of their own
+agent.py's own docstring) — _fast_forward_to_generation() in helpers.py.
+Tests that specifically need a non-terminal transition (review() advancing
+to a NEXT stage, not completing the run) use pim directly, with
+validator_agent_client mocked, or psm/atl/acceleo directly, with each of
+their own real *_agent_client mocked instead.
 
 record_event() only ever appends a raw fact and returns, it has no
 narration/reactor concept at all (that moved to orchestrator/chat_log.py
@@ -55,12 +55,18 @@ from unittest.mock import patch
 
 import pytest
 
-from clients import ai_layer_client, psm_agent_client, validator_agent_client
+from clients import acceleo_agent_client, ai_layer_client, atl_agent_client, psm_agent_client, validator_agent_client
 from integration_runner import pipeline
-from integration_runner.stages.atl import agent as atl_agent
-from integration_runner.stages.acceleo import agent as acceleo_agent
 from integration_runner.stages.pim import agent as pim_agent
-from helpers import _fast_forward_to, _fast_forward_to_generation, _psm_generation_result, _validation_result, ok_response
+from helpers import (
+    _acceleo_generation_result,
+    _atl_generation_result,
+    _fast_forward_to,
+    _fast_forward_to_generation,
+    _psm_generation_result,
+    _validation_result,
+    ok_response,
+)
 
 
 def test_stages_order():
@@ -153,11 +159,26 @@ def test_rerun_replays_the_last_context_and_picks_up_new_constraints():
     assert "Mention the rollback step explicitly" in sent_content
 
 
-def test_rerun_rejects_overrides_on_a_non_docs_stage():
+def test_rerun_rejects_overrides_on_a_stage_with_no_recognized_overrides():
     o = pipeline.IntegrationRun()
     _fast_forward_to_generation(o)
-    with pytest.raises(ValueError, match="only 'docs' does"):
+    with pytest.raises(ValueError, match="only acceleo and atl and docs and psm do"):
         o.rerun({"hint": "not applicable here"})
+
+
+def test_rerun_rejects_a_key_the_current_stage_doesnt_recognize():
+    # psm recognizes "mock" but not a different stage's own shape - an
+    # override key valid elsewhere is rejected here too, not silently
+    # dropped or silently accepted.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+    o.review("pim", approved=True)
+
+    with pytest.raises(ValueError, match=r"doesn't recognize override\(s\) \['hint'\], it only accepts \['mock'\]"):
+        o.rerun({"hint": "not applicable to psm"})
 
 
 def test_advance_stage_moves_through_stages_and_returns_none_at_end():
@@ -196,40 +217,118 @@ def test_add_constraint_records_a_real_constraint_added_event():
 
 
 def test_review_approved_starts_next_stage_and_threads_its_output_forward():
-    # atl -> acceleo: both mock-validated stages using validator_agent_client
-    # directly (see each of their own agent.py), so "the right input" means
-    # the right CONTEXT KEY/VALUE threaded forward, not "acceleo's own
-    # output reflects atl's content" — acceleo's mock output is fixed
-    # regardless of input, same as atl's is. Not psm -> atl: psm's own real
-    # boundary is psm_agent_client, not validator_agent_client directly (see
-    # stages/psm/agent.py's own docstring), so it doesn't fit this generic
-    # mock-validated-stage-transition shape.
+    # atl -> acceleo: both real, thin-proxy stages using their own real
+    # *_agent_client boundary (see each of their own agent.py). acceleo is
+    # in _REQUIRES_MANUAL_START (a real, editable prompt config), so
+    # approving atl advances but does NOT auto-run it - the real point of
+    # this test (atl's approved output threaded into acceleo's own context
+    # under the right key) still holds, checked via last_context instead of
+    # a completed event. rerun() is the real "Generate" trigger, same
+    # pattern psm's own test_a_pending_manual_start_stage_can_be_started_via_rerun
+    # already establishes.
+    atl_result = _atl_generation_result(artifact="module pim2gitlab; ...")
+    acceleo_result = _acceleo_generation_result()
     o = pipeline.IntegrationRun()
     _fast_forward_to(o, "atl")
-    with patch.object(validator_agent_client, "validate_atl", return_value=_validation_result()):
+    with patch.object(atl_agent_client, "run_atl", return_value=atl_result):
         o.run_stage({"platform_description": "A GitLab CI platform"})
 
-    with patch.object(validator_agent_client, "validate_acceleo", return_value=_validation_result()) as mock_validate_acceleo:
-        result = o.review("atl", approved=True)
-        o._last_thread.join(timeout=5)
+    result = o.review("atl", approved=True)
 
-    assert result == {"status": "started", "stage": "acceleo"}
+    assert result == {"status": "advanced_pending", "stage": "acceleo"}
     assert o.current_stage == "acceleo"
-    completed = next(e for e in o.events if e["type"] == "call_completed")
-    assert completed["data"] == {"stage": "acceleo", "output": acceleo_agent._MOCK_CONTENT}
-    assert mock_validate_acceleo.call_count == 1
+    assert o._last_thread is None
     # The real point of this test: atl's approved output threaded into
     # acceleo's own context under the right key.
-    assert o.last_context["atl_output"] == atl_agent._MOCK_CONTENT
+    assert o.last_context["atl_output"] == atl_result["artifact"]
+
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=acceleo_result) as mock_run_acceleo:
+        o.rerun()
+        o._last_thread.join(timeout=5)
+
+    completed = next(e for e in o.events if e["type"] == "call_completed")
+    assert completed["data"]["stage"] == "acceleo"
+    assert completed["data"]["output"] == acceleo_result["artifact"]
+    assert mock_run_acceleo.call_count == 1
+
+
+def test_review_approved_into_psm_does_not_auto_run_it():
+    # psm is in _REQUIRES_MANUAL_START (it has a real, editable prompt
+    # config): arriving there advances the pipeline but does not fire
+    # psm_agent_client.run_psm() - a human gets to review/edit the prompt
+    # first, the real point of this test.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm") as mock_run_psm:
+        result = o.review("pim", approved=True)
+
+    assert result == {"status": "advanced_pending", "stage": "psm"}
+    assert o.current_stage == "psm"
+    assert mock_run_psm.call_count == 0
+    assert o._last_thread is None
+    assert o.busy is False
+    # The next stage's real, already-computed context is stored, not
+    # thrown away - a later rerun()/Retry click needs this to actually run
+    # psm for the first time with the right input.
+    assert o.last_context["pim_output"] == "PIM: jobs/stages/triggers"
+
+
+def test_a_pending_manual_start_stage_can_be_started_via_rerun():
+    # The existing rerun() mechanism ("run the current stage using
+    # last_context plus overrides") is deliberately reused as the real
+    # "Generate" trigger for a pending manual-start stage - no new backend
+    # action needed, the panel's existing Retry/Generate button already
+    # wires to this.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()) as mock_run_psm:
+        o.review("pim", approved=True)
+        o.rerun()
+        o._last_thread.join(timeout=5)
+
+    assert mock_run_psm.call_count == 1
+    assert o.current_stage == "psm"
+
+
+def test_pending_manual_start_stage_accepts_a_mock_override_on_rerun():
+    # psm is the second stage in _STAGE_OVERRIDE_KEYS (after docs) -
+    # a rerun override reaches psm_agent_client.run_psm's own mock kwarg via
+    # stages/psm/agent.py's context.get("mock"), the real "test the prompt
+    # builder without a real, slow, billed LLM call" path.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    o.last_completed_stage = "pim"
+    o.last_output = "PIM: jobs/stages/triggers"
+    o.last_context = {"platform_description": "A brand new platform"}
+
+    with patch.object(psm_agent_client, "run_psm", return_value=_psm_generation_result()) as mock_run_psm:
+        o.review("pim", approved=True)
+        o.rerun({"mock": True})
+        o._last_thread.join(timeout=5)
+
+    assert mock_run_psm.call_args.kwargs.get("mock") is True
 
 
 def test_review_approved_accumulates_outputs_through_generation():
+    atl_result = _atl_generation_result(artifact="module pim2gitlab; ...")
+    acceleo_result = _acceleo_generation_result(artifact="[module generate('gitlab')] ...")
     o = pipeline.IntegrationRun()
     _fast_forward_to(o, "atl")
-    with patch.object(validator_agent_client, "validate_atl", return_value=_validation_result()):
+    with patch.object(atl_agent_client, "run_atl", return_value=atl_result):
         o.run_stage({"platform_description": "A GitLab CI platform"})
-    with patch.object(validator_agent_client, "validate_acceleo", return_value=_validation_result()):
-        o.review("atl", approved=True)
+    # acceleo is in _REQUIRES_MANUAL_START, so approving atl only advances -
+    # rerun() is the real trigger, same as the test above.
+    o.review("atl", approved=True)
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=acceleo_result):
+        o.rerun()
         o._last_thread.join(timeout=5)
 
     with patch.object(ai_layer_client, "chat", return_value=ok_response("Final summary")) as mock_chat:
@@ -241,26 +340,25 @@ def test_review_approved_accumulates_outputs_through_generation():
     assert completed["data"] == {"stage": "generation", "output": "Final summary"}
     assert mock_chat.call_count == 1
     user_content = mock_chat.call_args.args[0][1]["content"]
-    assert atl_agent._MOCK_CONTENT in user_content
-    assert acceleo_agent._MOCK_CONTENT in user_content
+    assert atl_result["artifact"] in user_content
+    assert acceleo_result["artifact"] in user_content
 
 
 def test_review_on_a_busy_run_refuses_without_advancing_or_recording():
     # review() claims busy before record_review() touches anything, so a
     # racing stage start can't leave the pipeline advanced-but-not-running.
     o = pipeline.IntegrationRun()
-    _fast_forward_to(o, "atl")
-    with patch.object(validator_agent_client, "validate_atl", return_value=_validation_result()):
-        o.run_stage({"platform_description": "A GitLab CI platform"})
+    _fast_forward_to_generation(o)
+    o.last_completed_stage = "generation"  # a real run_stage() would have set this
     o.claim_busy()  # stands in for a stage run already in flight
 
     try:
         with pytest.raises(pipeline.BusyError):
-            o.review("atl", approved=True)
+            o.review("generation", approved=True)
     finally:
         o.release_busy()
 
-    assert o.current_stage == "atl"  # not advanced
+    assert o.current_stage == "generation"  # not advanced
     assert not any(e["type"] == "review_approved" for e in o.events)  # not recorded
 
 
@@ -617,10 +715,12 @@ def test_run_stage_async_records_call_failed_on_agent_error():
 
 def test_run_stage_async_records_call_failed_on_validation_failure():
     # Same real reporting path, exercised through a mock-validated stage's
-    # own failure instead of an LLM error.
+    # own failure instead of an LLM error. pim is the one remaining stage
+    # that still raises via raise_if_invalid() on a failing validation -
+    # psm/atl/acceleo deliberately don't (see the section below).
     o = pipeline.IntegrationRun()
-    _fast_forward_to(o, "acceleo")
-    with patch.object(validator_agent_client, "validate_acceleo", return_value=_validation_result(valid=False, issues=[
+    _fast_forward_to(o, "pim")
+    with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result(valid=False, issues=[
         {"severity": "error", "message": "unresolved import", "source": None}
     ])):
         o.run_stage_async({"platform_description": "A GitLab CI platform"})
@@ -635,8 +735,8 @@ def test_run_stage_async_records_call_failed_on_validation_failure():
     assert o.busy is False
 
 
-# --- psm_stage's own (str, dict) tuple handling and its deliberate --------------
-# --- non-raising exhausted-retries behavior (contrast with pim/atl/acceleo's ----
+# --- psm/atl/acceleo's own (str, dict) tuple handling and their deliberate -----
+# --- non-raising exhausted-retries behavior (contrast with pim's own -----------
 # --- raise_if_invalid() above) --------------------------------------------------
 
 
@@ -664,7 +764,7 @@ def test_run_stage_treats_a_plain_str_return_exactly_as_before():
 
 
 def test_run_stage_async_records_call_completed_not_call_failed_when_psm_generation_exhausts_retries():
-    # The one deliberate behavioral difference from pim/atl/acceleo's own
+    # The one deliberate behavioral difference from pim's own
     # raise_if_invalid(): psm's Generation Agent already retried internally
     # (psm_agent/generation.py) before returning, so an exhausted-retries
     # failure still completes normally with the real validation/round detail
@@ -682,4 +782,40 @@ def test_run_stage_async_records_call_completed_not_call_failed_when_psm_generat
     assert "call_failed" not in types
     completed = next(e for e in o.events if e["type"] == "call_completed")
     assert completed["data"]["output"] == "<still-broken/>"
+    assert completed["data"]["validation"]["valid"] is False
+
+
+def test_run_stage_async_records_call_completed_not_call_failed_when_atl_generation_exhausts_retries():
+    # Same real, deliberate behavior as psm's own test above - atl_agent's
+    # own generate() already retried internally before returning.
+    o = pipeline.IntegrationRun()
+    o.current_stage_index = pipeline.STAGES.index("atl")
+    failed_result = _atl_generation_result(artifact="still-broken", valid=False)
+    with patch.object(atl_agent_client, "run_atl", return_value=failed_result):
+        o.run_stage_async({"platform_description": "TeamCity"})
+        o._last_thread.join(timeout=5)
+
+    types = [e["type"] for e in o.events]
+    assert "call_completed" in types
+    assert "call_failed" not in types
+    completed = next(e for e in o.events if e["type"] == "call_completed")
+    assert completed["data"]["output"] == "still-broken"
+    assert completed["data"]["validation"]["valid"] is False
+
+
+def test_run_stage_async_records_call_completed_not_call_failed_when_acceleo_generation_exhausts_retries():
+    # Same real, deliberate behavior as psm's own test above - acceleo_agent's
+    # own generate() already retried internally before returning.
+    o = pipeline.IntegrationRun()
+    o.current_stage_index = pipeline.STAGES.index("acceleo")
+    failed_result = _acceleo_generation_result(artifact="still-broken", valid=False)
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=failed_result):
+        o.run_stage_async({"platform_description": "TeamCity"})
+        o._last_thread.join(timeout=5)
+
+    types = [e["type"] for e in o.events]
+    assert "call_completed" in types
+    assert "call_failed" not in types
+    completed = next(e for e in o.events if e["type"] == "call_completed")
+    assert completed["data"]["output"] == "still-broken"
     assert completed["data"]["validation"]["valid"] is False

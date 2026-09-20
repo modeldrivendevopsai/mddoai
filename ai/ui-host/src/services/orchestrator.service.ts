@@ -1,14 +1,22 @@
 import type {
+  AttemptDetail,
+  BrokenReference,
   DocsOptions,
   EventsResponse,
+  LearnedConstraintsUpdate,
+  ManifestEntry,
   MessageResponse,
   Provider,
+  PromptConfig,
+  PromptDiff,
+  PromptPreview,
   RerunOverrides,
   ResetResponse,
   ResumeResponse,
   ReviewResponse,
   RunSummary,
   StageId,
+  StageMetadataResponse,
   StartedResponse,
 } from "orchestrator-types"
 
@@ -21,16 +29,24 @@ import type {
 // body (e.g. "'psm' is not the current pending stage", or a downstream
 // error's own message on /message's 500). Surface that instead of just the
 // status code, a bare "request failed: 500" told a real user nothing.
+//
+// The thrown Error also carries the real HTTP status as a plain "status"
+// property (not a dedicated exported class - callers that don't care about
+// it keep using `e instanceof Error` exactly as before) so a caller that
+// needs to tell a permanent client error (4xx) apart from a transient one
+// (5xx, or no response at all) can, without parsing the message text - see
+// design-system's own useAutoSave, which only auto-retries a failed save
+// when it isn't a 4xx.
 async function errorFor(label: string, res: Response): Promise<Error> {
+  let message: string
   try {
     const body = await res.json()
-    if (typeof body?.detail === "string") {
-      return new Error(body.detail)
-    }
+    message = typeof body?.detail === "string" ? body.detail : `${label} request failed: ${res.status}`
   } catch {
     // Body wasn't JSON (or had no "detail"), fall through to the generic message.
+    message = `${label} request failed: ${res.status}`
   }
-  return new Error(`${label} request failed: ${res.status}`)
+  return Object.assign(new Error(message), { status: res.status })
 }
 
 export async function startPipeline(
@@ -93,6 +109,19 @@ export async function getProviders(): Promise<Provider[]> {
 
   if (!res.ok) {
     throw await errorFor("Providers", res)
+  }
+
+  return res.json()
+}
+
+// Static pipeline metadata (stage list, plus each stage's real
+// input/output/real shape) - safe to fetch once per mount and never
+// re-poll, same reasoning as getProviders() above.
+export async function getStageMetadata(): Promise<StageMetadataResponse> {
+  const res = await fetch("/orchestrator-api/stages")
+
+  if (!res.ok) {
+    throw await errorFor("Stages", res)
   }
 
   return res.json()
@@ -189,5 +218,181 @@ export async function setModel(model?: string): Promise<{ model: string | null }
     throw await errorFor("Model", res)
   }
 
+  return res.json()
+}
+
+// --- Modular prompt builder + attempts browser (see ai/orchestrator's own
+// routes/prompt_config.py, routes/attempts.py, both thin proxies down to
+// integration_runner then that stage's own real agent) - psm, atl, and
+// acceleo all expose this same real endpoint shape, so one stage-
+// parameterized function set backs all three rather than hand-duplicating
+// ~15 near-identical wrapper functions per stage. -----------------------
+
+export type PromptBuilderStage = "psm" | "atl" | "acceleo"
+
+export async function getPromptConfig(stage: PromptBuilderStage, name: string): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}`)
+  if (!res.ok) throw await errorFor("Prompt config", res)
+  return res.json()
+}
+
+export async function savePromptConfig(
+  stage: PromptBuilderStage,
+  name: string,
+  config: PromptConfig,
+  options?: { keepalive?: boolean }
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+    keepalive: options?.keepalive,
+  })
+  if (!res.ok) throw await errorFor("Save prompt config", res)
+  return res.json()
+}
+
+export async function previewPromptConfig(
+  stage: PromptBuilderStage,
+  name: string,
+  config: PromptConfig
+): Promise<PromptPreview> {
+  // Sends the caller's own current, unsaved draft as the request body so
+  // the preview reflects that draft exactly, not whatever the last Save
+  // left on disk (see ai/orchestrator's own preview endpoints, all the way
+  // down to generation_toolkit.prompt_config.resolution.resolve_config).
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
+  if (!res.ok) throw await errorFor("Prompt preview", res)
+  return res.json()
+}
+
+export async function listAvailableFiles(stage: PromptBuilderStage): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/available-files`)
+  if (!res.ok) throw await errorFor("Available files", res)
+  return (await res.json()).files
+}
+
+export async function getPromptConfigHistory(stage: PromptBuilderStage, name: string): Promise<string[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/history`)
+  if (!res.ok) throw await errorFor("Prompt history", res)
+  return (await res.json()).versions
+}
+
+export async function diffPromptConfigVersions(
+  stage: PromptBuilderStage,
+  name: string,
+  versionA: string,
+  versionB: string
+): Promise<PromptDiff> {
+  const params = new URLSearchParams({ a: versionA, b: versionB })
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/diff?${params}`)
+  if (!res.ok) throw await errorFor("Prompt diff", res)
+  return res.json()
+}
+
+// "Revert to default" is not a separate function or endpoint: the shipped
+// default is just the oldest entry in the same history getPromptConfigHistory
+// returns (see design-system's own SHIPPED_DEFAULT_VERSION), restored
+// through this exact same call with that entry's own version id.
+export async function restorePromptConfigVersion(
+  stage: PromptBuilderStage,
+  name: string,
+  version: string
+): Promise<PromptConfig> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/restore/${version}`, {
+    method: "POST",
+  })
+  if (!res.ok) throw await errorFor("Restore prompt version", res)
+  return res.json()
+}
+
+export async function checkPromptReferences(stage: PromptBuilderStage, name: string): Promise<BrokenReference[]> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/check-references`)
+  if (!res.ok) throw await errorFor("Check prompt references", res)
+  return (await res.json()).broken
+}
+
+export async function addLearnedConstraints(
+  stage: PromptBuilderStage,
+  name: string,
+  constraints: string[]
+): Promise<LearnedConstraintsUpdate> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Add learned constraints", res)
+  return res.json()
+}
+
+export async function removeLearnedConstraint(
+  stage: PromptBuilderStage,
+  name: string,
+  constraint: string
+): Promise<LearnedConstraintsUpdate> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraint }),
+  })
+  if (!res.ok) throw await errorFor("Remove learned constraint", res)
+  return res.json()
+}
+
+// Run-aware (see each stage's own stages/<stage>/actions.py promote_constraints):
+// no name here, the backend infers it from the current run's own latest,
+// real, successfully-validated result for that stage. Returns just the
+// updated constraints list, same as add/remove above - promoting is really
+// just "add", on the backend side (see psm/actions.py's own
+// promote_constraints, which calls add_learned_constraints directly).
+export async function promoteConstraints(
+  stage: PromptBuilderStage,
+  constraints: string[]
+): Promise<LearnedConstraintsUpdate> {
+  const res = await fetch(`/orchestrator-api/${stage}/promote-constraints`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Promote constraints", res)
+  return res.json()
+}
+
+// Real file upload (routes/uploads.py, three real hops down) - FormData,
+// not JSON: the browser sets the real multipart Content-Type + boundary
+// itself, setting one manually here would omit the boundary and break it.
+export async function uploadAttachmentFile(stage: PromptBuilderStage, file: File): Promise<string> {
+  const body = new FormData()
+  body.append("file", file)
+  const res = await fetch(`/orchestrator-api/${stage}/attachment-uploads`, { method: "POST", body })
+  if (!res.ok) throw await errorFor("Upload attachment file", res)
+  return (await res.json()).path
+}
+
+// psm_flow.run()'s own real routing decision (generation vs. knowledge
+// mode), exposed read-only - see psm_agent/main.py's own resolve-mode
+// endpoint docstring for exactly what this does and doesn't spend. psm-only,
+// not stage-parameterized: only psm has this concept.
+export async function resolvePsmMode(platformDescription: string): Promise<{ mode: string; metamodel_path: string | null }> {
+  const params = new URLSearchParams({ platform_description: platformDescription })
+  const res = await fetch(`/orchestrator-api/psm/resolve-mode?${params}`)
+  if (!res.ok) throw await errorFor("Resolve psm mode", res)
+  return res.json()
+}
+
+export async function getRunManifest(runId: string): Promise<ManifestEntry[]> {
+  const res = await fetch(`/orchestrator-api/runs/${runId}/manifest`)
+  if (!res.ok) throw await errorFor("Run manifest", res)
+  return (await res.json()).attempts
+}
+
+export async function getAttempt(runId: string, stage: string, attempt: string): Promise<AttemptDetail> {
+  const res = await fetch(`/orchestrator-api/runs/${runId}/${stage}/${attempt}`)
+  if (!res.ok) throw await errorFor("Attempt", res)
   return res.json()
 }
