@@ -81,7 +81,7 @@ def test_extract_fragments_parses_valid_json_response():
         '[{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]'
     )
     with patch.object(ai_layer_client, "chat", return_value=ok_response(fragments_json)):
-        result = serialization._extract_fragments("some raw docs text", None, _CONCEPTS)
+        result = serialization._extract_fragments("some raw docs text", None)
 
     assert result == [{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]
 
@@ -98,14 +98,14 @@ def test_extract_fragments_parses_json_wrapped_in_a_markdown_code_fence():
         '```'
     )
     with patch.object(ai_layer_client, "chat", return_value=ok_response(fenced)):
-        result = serialization._extract_fragments("some raw docs text", None, _CONCEPTS)
+        result = serialization._extract_fragments("some raw docs text", None)
 
     assert result == [{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]
 
 
 def test_extract_fragments_falls_back_to_one_fragment_on_malformed_json():
     with patch.object(ai_layer_client, "chat", return_value=ok_response("not valid json at all")):
-        result = serialization._extract_fragments("some raw docs text", None, _CONCEPTS)
+        result = serialization._extract_fragments("some raw docs text", None)
 
     assert len(result) == 1
     assert result[0]["raw_text"] == "some raw docs text"
@@ -113,7 +113,7 @@ def test_extract_fragments_falls_back_to_one_fragment_on_malformed_json():
 
 def test_extract_fragments_falls_back_when_json_is_not_a_list():
     with patch.object(ai_layer_client, "chat", return_value=ok_response('{"not": "a list"}')):
-        result = serialization._extract_fragments("some raw docs text", None, _CONCEPTS)
+        result = serialization._extract_fragments("some raw docs text", None)
 
     assert len(result) == 1
     assert result[0]["raw_text"] == "some raw docs text"

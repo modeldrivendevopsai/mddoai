@@ -1,10 +1,9 @@
 """PSM Generation Agent tests: this module's own responsibility is PSM-specific
-wiring (which files to read, how grounding folds into the prompt, how
-validator-agent maps to a pass/fail check, and now, how the real, editable
-prompt config from generation_toolkit.prompt_config gets loaded and
-resolved) - the generic regenerate-loop mechanics (max rounds, constraint
-accumulation, code-fence stripping) are generation_toolkit's own concern,
-tested in its own test suite, not re-tested here. Real LLM/grounding/
+wiring (which files to read, how validator-agent maps to a pass/fail check,
+and how the real, editable prompt config from generation_toolkit.prompt_config
+gets loaded and resolved) - the generic regenerate-loop mechanics (max rounds,
+constraint accumulation, code-fence stripping) are generation_toolkit's own
+concern, tested in its own test suite, not re-tested here. Real LLM/
 validation calls are all mocked via patch.object(..., ...), the same
 convention test_comparison.py uses; only the master example file (real
 githubMM.ecore) and the real, git-committed generation/default.default.json
@@ -14,7 +13,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from clients import ai_layer_client, pim_agent_client, validator_agent_client
+from clients import ai_layer_client, validator_agent_client
 from comparison import DEFAULT_PSM_MASTER_EXAMPLE_PATH
 from generation import generate
 
@@ -38,9 +37,7 @@ def invalid_result(message="dangling reference"):
 
 
 def test_uses_psm_generation_system_prompt():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         generate("<pim/>", "docs")
 
@@ -50,36 +47,21 @@ def test_uses_psm_generation_system_prompt():
 
 
 def test_prompt_assembles_docs_and_real_master_example():
-    # pim_artifact is still accepted as a parameter (it still feeds grounding,
-    # see test_grounding_is_folded_into_psm_docs below), but is deliberately
-    # not part of the prompt itself - see generate()'s own docstring for why.
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+    # pim_artifact is still accepted as a parameter but is deliberately not
+    # part of the prompt itself - see generate()'s own docstring for why.
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         result = generate("<pim-artifact/>", "target docs text")
 
     prompt = result["prompt"]
     assert "pim_ecore" not in prompt
-    assert "target docs text" in prompt["psm_docs"]
+    assert prompt["psm_docs"] == "target docs text"
     # Real githubMM.ecore content, not a mock.
     assert prompt["psm_example"] == Path(DEFAULT_PSM_MASTER_EXAMPLE_PATH).read_text()
 
 
-def test_grounding_is_folded_into_psm_docs():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[{"category": "metamodel", "title": "Job", "content": "A unit of work."}]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
-         patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
-        result = generate("<pim/>", "docs")
-
-    assert "Job: A unit of work." in result["prompt"]["psm_docs"]
-
-
 def test_validation_result_is_the_real_validator_agent_response():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
         result = generate("<pim/>", "docs", run_id="run-123")
 
@@ -94,9 +76,7 @@ def test_forwards_stage_and_attempt_for_compiled_output_nesting():
     # belong to one attempt of the psm stage, each round just gets its own
     # uniquely-named subfolder underneath it (see generation.py's own
     # _validate() docstring).
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
         generate("<pim/>", "docs", run_id="run-123", stage="psm", attempt="attempt_1")
 
@@ -106,9 +86,7 @@ def test_forwards_stage_and_attempt_for_compiled_output_nesting():
 
 
 def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore",
                        side_effect=[invalid_result("missing RetryPolicy"), valid_result()]):
         result = generate("<pim/>", "docs")
@@ -127,9 +105,7 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
 
 
 def test_prior_constraints_carried_into_first_round():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         generate("<pim/>", "docs", constraints=["Use camelCase names"])
 
@@ -138,9 +114,7 @@ def test_prior_constraints_carried_into_first_round():
 
 
 def test_forwards_model_to_chat():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         generate("<pim/>", "docs", model="gemini-flash")
 
@@ -148,9 +122,7 @@ def test_forwards_model_to_chat():
 
 
 def test_returns_a_real_prompt_version_or_none():
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         result = generate("<pim/>", "docs")
 
@@ -171,9 +143,7 @@ def test_shipped_learned_constraints_are_applied_even_with_no_run_level_constrai
     # ships with real, already-proven constraints (ported from the real
     # ai-research experiments) - they should apply to every run, not just a
     # run that also supplies its own live corrections.
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")) as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         generate("<pim/>", "docs")
 
@@ -181,19 +151,15 @@ def test_shipped_learned_constraints_are_applied_even_with_no_run_level_constrai
     assert "valid Java identifier" in user_content
 
 
-def test_mock_skips_the_real_llm_call_and_grounding_but_still_validates():
+def test_mock_skips_the_real_llm_call_but_still_validates():
     # mock=True's whole point: fast, free local iteration on the prompt
-    # config itself, so the two slow/billed calls (grounding, the real LLM
-    # call) must never happen, while the real config resolution and the
-    # real validator-agent call both still do.
-    with patch.object(pim_agent_client, "concepts") as mock_concepts, \
-         patch.object(pim_agent_client, "ground") as mock_ground, \
-         patch.object(ai_layer_client, "chat") as mock_chat, \
+    # config itself, so the slow/billed real LLM call must never happen,
+    # while the real config resolution and the real validator-agent call
+    # both still do.
+    with patch.object(ai_layer_client, "chat") as mock_chat, \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()) as mock_validate:
         result = generate("<pim-artifact/>", "target docs text", mock=True)
 
-    mock_concepts.assert_not_called()
-    mock_ground.assert_not_called()
     mock_chat.assert_not_called()
     mock_validate.assert_called_once()
     assert result["validation"] == valid_result()
@@ -233,9 +199,7 @@ def test_generate_resolves_a_file_attachment_the_human_uploaded(
     directory.mkdir(parents=True)
     (directory / "default.default.json").write_text(json.dumps(config), encoding="utf-8")
 
-    with patch.object(pim_agent_client, "concepts", return_value={"Job": ["Job"]}), \
-         patch.object(pim_agent_client, "ground", return_value=[]), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("<ecore:EPackage/>")), \
          patch.object(validator_agent_client, "validate_ecore", return_value=valid_result()):
         result = generate("<pim-artifact/>", "target docs text")
 

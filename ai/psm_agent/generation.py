@@ -6,12 +6,9 @@ on the first attempt.
 Matches the paper's (Karlovs-Karlovskis) validated "Step 1 (Metamodel)"
 approach: master-example metamodel + target docs -> LLM generates a new
 .ecore -> checked against the real "loads in Eclipse EMF" pass criterion,
-refined one constraint per round on failure. Grounding (the AC's "calls ...
-for grounding before generating") uses pim_agent's existing ground()
-mechanism - no separate RAG agent exists yet (Phase 1, not this pass).
+refined one constraint per round on failure.
 
-`pim_artifact` is taken as a parameter and still feeds each grounding
-query below (_grounding_context), but is deliberately NOT included as
+`pim_artifact` is taken as a parameter but deliberately NOT included as
 prompt content: MDDOAI's own pim stage is still a placeholder that ignores
 its real input entirely and always returns the same fixed content, so its
 output carries no real signal yet, and the paper's own validated prompts
@@ -20,32 +17,24 @@ never attached a PIM artifact either. Re-add it as a real prompt attachment
 
 The actual generate-validate-retry loop is generation_toolkit's own
 run_with_retry() (shared, stage-agnostic) - this module's job is PSM-specific:
-which files to read, how to fold in grounding, and how validator-agent's
-result maps to a "valid"/pass-fail check and a root-cause constraint.
+which files to read, and how validator-agent's result maps to a
+"valid"/pass-fail check and a root-cause constraint.
 
 The system prompt and the parts fed into it are no longer hardcoded here:
 they come from a real, UI-editable prompt config
 (generation_toolkit.prompt_config). See ai/psm_agent/prompts/ for the
 real, git-committed starting content.
 """
-from concurrent.futures import ThreadPoolExecutor
 
 from generation_toolkit.generation_agent import run_with_retry
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
-from clients import pim_agent_client, validator_agent_client
+from clients import validator_agent_client
 
 from comparison import files_root
 import prompt_paths
-
-# The 9 PIM concept categories pim_agent already knows about (concepts()'s
-# own keys) - grounding one query per category, mirroring
-# serialization_agent's own _concept_context(), rather than a single grounding
-# call against the whole platform_docs blob, which would only ever surface
-# whichever single concept the text happens to read closest to.
-_GROUNDING_TOP_K = 1
 
 # mock=True's fixed stand-in output: the same minimal, already-proven-valid
 # shape the pim stage's own placeholder mock content uses (matching
@@ -62,24 +51,6 @@ _MOCK_ARTIFACT = """<?xml version="1.0" encoding="UTF-8"?>
   </eClassifiers>
 </ecore:EPackage>
 """
-
-
-def _grounding_context(pim_artifact: str) -> list[dict]:
-    concepts = pim_agent_client.concepts()
-    # One ground() call per concept category, run concurrently: sequential
-    # HTTP round-trips here would add up to ~9x pim_agent's own per-call
-    # latency before the real LLM call even starts. A thread pool is enough
-    # (each call is pure I/O wait, no shared state between them) without
-    # pulling this otherwise-synchronous module onto asyncio.
-    with ThreadPoolExecutor(max_workers=len(concepts) or 1) as pool:
-        results = pool.map(
-            lambda concept: pim_agent_client.ground(f"{concept} {pim_artifact[:200]}", top_k=_GROUNDING_TOP_K),
-            concepts,
-        )
-    grounding = []
-    for matches in results:
-        grounding.extend(matches)
-    return grounding
 
 
 def _validate(artifact: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None) -> dict:
@@ -118,9 +89,8 @@ def generate(
     context["mock"]) still resolves the real config/attachments and still
     runs the real validator-agent call against a fixed, already-valid
     artifact, so the prompt-builder mechanism and the real attempt-
-    persistence path are both exercised for real - it only skips the two
-    slow, billed steps (grounding's pim_agent calls and the real LLM call),
-    for fast local iteration on a config without spending either."""
+    persistence path are both exercised for real - it only skips the real
+    LLM call, for fast local iteration on a config without spending it."""
     if mock:
         context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
         config, parts = prompt_resolution.resolve_for_call(
@@ -138,13 +108,7 @@ def generate(
             "round_constraints": combined_constraints,
         }
 
-    psm_docs = platform_docs
-    grounding = _grounding_context(pim_artifact)
-    if grounding:
-        grounding_lines = "\n".join(f"- {g['title']}: {g['content'].splitlines()[0]}" for g in grounding)
-        psm_docs = f"{platform_docs}\n\nRelevant PIM concept grounding:\n{grounding_lines}"
-
-    context_values = {"pim_ecore": pim_artifact, "psm_docs": psm_docs}
+    context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
     config, parts = prompt_resolution.resolve_for_call(
         prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
     )
