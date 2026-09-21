@@ -1,0 +1,49 @@
+```yaml
+image: docker:latest
+
+stages:
+  - build
+  - unitTest
+  - healthCheck
+  - push
+
+variables:
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  FULL_IMAGE: $IMAGE_NAME:$IMAGE_TAG
+
+build:
+  stage: build
+  script:
+    - docker build -t $FULL_IMAGE .
+    - docker save $FULL_IMAGE -o image.tar
+  artifacts:
+    paths:
+      - image.tar
+    expire_in: 1 hour
+
+unitTest:
+  stage: unitTest
+  image: python:3.12-slim
+  needs:
+    - build
+  script:
+    - python3 test/run_unit_tests.py
+
+healthCheck:
+  stage: healthCheck
+  image: curlimages/curl:latest
+  needs:
+    - build
+  script:
+    - ./scripts/health_check.sh
+
+push:
+  stage: push
+  needs:
+    - healthCheck
+  script:
+    - docker load -i image.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker push $FULL_IMAGE
+```

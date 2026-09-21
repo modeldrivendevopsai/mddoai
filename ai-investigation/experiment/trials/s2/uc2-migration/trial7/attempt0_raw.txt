@@ -1,0 +1,104 @@
+```yaml
+---
+version: 2
+plan:
+  project-key: CHATBOT
+  key: FCB
+  name: framework-chatbot
+
+variables:
+  image.name: framework-chatbot
+  image.tag: latest
+  registry.url: registry.example.com
+
+stages:
+  - Build Stage:
+      manual: false
+      final: false
+      jobs:
+        - Build
+
+  - Test Stage:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+        - Health Check
+
+  - Push Stage:
+      manual: false
+      final: false
+      jobs:
+        - Push Image
+
+Build:
+  key: BLD
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker build -t ${bamboo.image.name}:${bamboo.image.tag} .
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UT
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HC
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker run -d --name health_check_container ${bamboo.image.name}:${bamboo.image.tag}
+            sleep 5
+            ./scripts/health_check.sh
+            docker rm -f health_check_container
+  requirements:
+    - os.linux
+
+Push Image:
+  key: PUSH
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            echo "${bamboo.registry.password}" | docker login ${bamboo.registry.url} -u "${bamboo.registry.username}" --password-stdin
+            docker tag ${bamboo.image.name}:${bamboo.image.tag} ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+            docker push ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+  requirements:
+    - os.linux
+
+repositories:
+  - framework-chatbot:
+      type: git
+      url: https://example.com/framework-chatbot.git
+      branch: main
+
+triggers:
+  - polling:
+      period: 180
+
+branches:
+  create: manually
+  delete: never
+  integration:
+    enabled: false
+
+notifications: []
+```

@@ -1,0 +1,84 @@
+---
+version: 2
+plan:
+  project-key: CHATBOT
+  key: PIPE
+  name: Chatbot App Pipeline
+
+variables:
+  IMAGE_NAME: chatbot-app
+  IMAGE_TAG: latest
+  REGISTRY_URL: registry.example.com
+  REGISTRY_USER: ci-user
+  REGISTRY_PASSWORD: ci-password
+
+stages:
+  - Build Stage:
+      jobs:
+        - Build Image
+  - Verify Stage:
+      jobs:
+        - Unit Test
+        - Health Check
+  - Publish Stage:
+      jobs:
+        - Push Image
+
+jobs:
+  - Build Image:
+      key: BUILD
+      image: docker:24-dind
+      requirements:
+        - os.linux
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/sh
+                docker build -t ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+
+  - Unit Test:
+      key: UNITTEST
+      image: python:3.11
+      requirements:
+        - os.linux
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/sh
+                python3 test/run_unit_tests.py
+
+  - Health Check:
+      key: HEALTHCHECK
+      image: docker:24-dind
+      requirements:
+        - os.linux
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/sh
+                docker run -d --name health_check_container ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+                sleep 5
+                ./scripts/health_check.sh
+                docker stop health_check_container
+                docker rm health_check_container
+
+  - Push Image:
+      key: PUSH
+      image: docker:24-dind
+      requirements:
+        - os.linux
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/sh
+                echo "${bamboo.REGISTRY_PASSWORD}" | docker login -u "${bamboo.REGISTRY_USER}" --password-stdin ${bamboo.REGISTRY_URL}
+                docker tag ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} ${bamboo.REGISTRY_URL}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+                docker push ${bamboo.REGISTRY_URL}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}

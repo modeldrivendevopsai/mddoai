@@ -1,0 +1,89 @@
+---
+version: 2
+plan:
+  project-key: CHATBOT
+  key: PIPE
+  name: Chatbot App Pipeline
+
+variables:
+  image.name: chatbot-app
+  image.tag: latest
+  registry.url: registry.example.com
+
+stages:
+  - Build:
+      manual: false
+      final: false
+      jobs:
+        - Build Image
+  - Test:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+        - Health Check
+  - Deploy:
+      manual: false
+      final: false
+      jobs:
+        - Push Image
+
+Build Image:
+  key: BUILD
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker build -t ${bamboo.image.name}:${bamboo.image.tag} .
+  docker:
+    image: docker:24-dind
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UNITTEST
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - python3 test/run_unit_tests.py
+  docker:
+    image: python:3.11
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HEALTHCHECK
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker run -d --name health_check_container ${bamboo.image.name}:${bamboo.image.tag}
+            sleep 5
+            ./scripts/health_check.sh
+            docker stop health_check_container
+            docker rm health_check_container
+  docker:
+    image: docker:24-dind
+  requirements:
+    - os.linux
+
+Push Image:
+  key: PUSH
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            echo "${bamboo.registry.password}" | docker login -u "${bamboo.registry.user}" --password-stdin ${bamboo.registry.url}
+            docker tag ${bamboo.image.name}:${bamboo.image.tag} ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+            docker push ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+  docker:
+    image: docker:24-dind
+  requirements:
+    - os.linux

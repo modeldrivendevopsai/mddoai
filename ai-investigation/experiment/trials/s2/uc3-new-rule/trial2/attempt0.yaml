@@ -1,0 +1,56 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOTAPP
+  name: chatbot-app
+
+variables:
+  DOCKER_IMAGE: registry.example.com/framework-chatbot
+  DOCKER_TAG: ${DOCKER_IMAGE}:${bamboo.buildNumber}
+
+stages:
+  - Default Stage:
+      jobs:
+        - docker_build
+        - unit_tests
+        - health_check
+        - secret_scan
+        - registry_push
+
+docker_build:
+  key: DOCKERBUILD
+  tasks:
+    - script: docker build -t ${DOCKER_TAG} .
+
+unit_tests:
+  key: UNITTESTS
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+health_check:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - script: |
+        docker run -d -p 8080:8080 --name chatbot_hc ${DOCKER_TAG}
+        sleep 5
+        curl --fail http://localhost:8080/health
+        docker rm -f chatbot_hc
+
+secret_scan:
+  key: SECRETSCAN
+  requirements:
+    - os.linux
+  tasks:
+    - script: gitleaks detect --source=. --no-git --redact -v
+
+registry_push:
+  key: REGISTRYPUSH
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${REGISTRY_USER} -p ${REGISTRY_TOKEN} registry.example.com
+    - script: docker push ${DOCKER_TAG}

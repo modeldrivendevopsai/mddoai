@@ -1,0 +1,58 @@
+stages:
+  - build
+  - test
+  - health_check
+  - push
+
+variables:
+  IMAGE_TAG: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  IMAGE_LATEST: "$CI_REGISTRY_IMAGE:latest"
+
+default:
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  before_script:
+    - docker info
+
+build_image:
+  stage: build
+  script:
+    - docker build -t "$IMAGE_TAG" .
+    - docker save "$IMAGE_TAG" -o image.tar
+  artifacts:
+    paths:
+      - image.tar
+    expire_in: 1 hour
+
+unit_test:
+  stage: test
+  needs:
+    - build_image
+  script:
+    - docker load -i image.tar
+    - docker run --rm "$IMAGE_TAG" python test/run_unit_tests.py
+
+health_check:
+  stage: health_check
+  needs:
+    - unit_test
+  script:
+    - docker load -i image.tar
+    - docker run -d --name chatbot_health "$IMAGE_TAG"
+    - docker exec chatbot_health ./scripts/health_check.sh
+  after_script:
+    - docker rm -f chatbot_health || true
+
+push_image:
+  stage: push
+  needs:
+    - health_check
+  script:
+    - docker load -i image.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker tag "$IMAGE_TAG" "$IMAGE_LATEST"
+    - docker push "$IMAGE_TAG"
+    - docker push "$IMAGE_LATEST"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

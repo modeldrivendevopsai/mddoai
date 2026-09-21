@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="bambooMM" nsURI="http://www.mddoai.com/mddoai/metamodel/bamboo"
+    nsPrefix="bambooMM">
+
+  <!-- ═══════════════════════════════════════════════════
+       TOP-LEVEL: Plan
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Plan">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="projectKey" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="serverName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="stages" lowerBound="1" upperBound="-1" eType="#//Stage" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="jobs" upperBound="-1" eType="#//Job" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggers" upperBound="-1" eType="#//Trigger" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="repositories" upperBound="-1" eType="#//Repository" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="variables" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="notifications" upperBound="-1" eType="#//Notification" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="labels" upperBound="-1" eType="#//Label" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branches" eType="#//BranchManagement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="dependencies" eType="#//Dependencies" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="docker" eType="#//DockerConfig" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branchOverrides" upperBound="-1" eType="#//BranchOverride" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="other" eType="#//OtherConfig" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permissions" upperBound="-1" eType="#//PlanPermissionEntry" containment="true"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       STAGE
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Stage">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="manual" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="finalStage" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="jobRefs" lowerBound="1" upperBound="-1" eType="#//Job"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       JOB
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Job">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tasks" upperBound="-1" eType="#//Task" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="finalTasks" upperBound="-1" eType="#//Task" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifacts" upperBound="-1" eType="#//Artifact" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifactSubscriptions" upperBound="-1" eType="#//ArtifactSubscription" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="requirements" upperBound="-1" eType="#//Requirement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="variables" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="docker" eType="#//DockerConfig" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="other" eType="#//OtherConfig" containment="true"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       TASKS (abstract + concrete)
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Task" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="conditions" upperBound="-1" eType="#//TaskCondition" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ScriptTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="interpreter" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="scripts" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="file" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="argument" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="environment" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="workingDir" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="CleanTask" eSuperTypes="#//Task"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="CheckoutTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="repository" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="path" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="forceCleanBuild" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="defaultRepository" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="MavenTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="executable" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="jdk" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="goal" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="tests" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="environment" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="workingDir" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="projectFile" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="useReturnCode" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="InjectVariablesTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="file" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="scope" eType="#//VARIABLE_SCOPE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="namespace" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="TestParserTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//TEST_PARSER_TYPE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="testResults" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="ignoreTime" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ArtifactDownloadTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sourcePlan" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="destination" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="artifacts" upperBound="-1" eType="#//ArtifactDownloadItem" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ArtifactDownloadItem">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="destination" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="AnyTask" eSuperTypes="#//Task">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pluginKey" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="configuration" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="TaskCondition">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="variableName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="variableValue" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       TRIGGERS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Trigger" abstract="true"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="PollingTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="period" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cronExpression" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositories" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="conditions" upperBound="-1" eType="#//TriggerCondition" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="CronTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="expression" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="RemoteTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="ip" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="AfterDeploymentTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="deploymentProject" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="environment" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BuildSuccessTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="branch" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="StageSuccessTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="stage" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="branch" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="EnvironmentSuccessTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="environment" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ScheduledDeploymentTrigger" eSuperTypes="#//Trigger">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cronExpression" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="artifactBranch" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="TriggerCondition" abstract="true"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="GreenPlanCondition" eSuperTypes="#//TriggerCondition">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="planKeys" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="AllOtherCondition" eSuperTypes="#//TriggerCondition">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="properties" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       REPOSITORIES
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Repository" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="LinkedRepository" eSuperTypes="#//Repository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="scope" eType="#//REPOSITORY_SCOPE"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="GitRepository" eSuperTypes="#//Repository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="url" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="branch" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="username" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="password" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sshKey" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sshKeyPassphrase" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sharedCredentials" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sharedCredentialsScope" eType="#//REPOSITORY_SCOPE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="lfs" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="useShallowClones" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="submodules" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fetchAll" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cacheOnAgents" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="verboseLogs" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="commandTimeoutMinutes" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="changeDetection" eType="#//ChangeDetection" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BitbucketCloudRepository" eSuperTypes="#//GitRepository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="slug" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BitbucketServerRepository" eSuperTypes="#//Repository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="server" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="project" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="slug" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cloneUrl" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="publicKey" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="privateKey" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="branch" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="lfs" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="useShallowClones" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="submodules" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="commandTimeoutMinutes" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fetchAll" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="GithubRepository" eSuperTypes="#//GitRepository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="repository" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="user" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="AnyVcsRepository" eSuperTypes="#//Repository">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pluginKey" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="serverConfig" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branchConfig" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ChangeDetection">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="quietPeriod" eType="#//QuietPeriod" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="excludeChangesetPattern" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fileFilterType" eType="#//FILE_FILTER_TYPE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fileFilterPattern" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="QuietPeriod">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="quietPeriodSeconds" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="maxRetries" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       ARTIFACTS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Artifact">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="location" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pattern" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="required" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="shared" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="httpCompressionOn" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ArtifactSubscription">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="artifact" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="destination" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       REQUIREMENTS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Requirement">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="capability" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="matchValue" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       VARIABLES
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="VariableAssignment" instanceClassName="java.util.Map$Entry">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       LABELS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Label">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       NOTIFICATIONS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Notification">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="recipients" lowerBound="1" upperBound="-1" eType="#//NotificationRecipient" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="events" lowerBound="1" upperBound="-1" eType="#//NotificationEvent" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="NotificationRecipient" abstract="true"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="UserRecipient" eSuperTypes="#//NotificationRecipient">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="users" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="GroupRecipient" eSuperTypes="#//NotificationRecipient">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="groups" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="EmailRecipient" eSuperTypes="#//NotificationRecipient">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="emails" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="RoleRecipient" eSuperTypes="#//NotificationRecipient">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="role" lowerBound="1" eType="#//NOTIFICATION_ROLE"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="WebhookRecipient" eSuperTypes="#//NotificationRecipient">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="url" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="NotificationEvent">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//NOTIFICATION_EVENT_TYPE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="failures" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="firstOnly" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       BRANCH MANAGEMENT
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="BranchManagement">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="create" eType="#//BRANCH_CREATE_STRATEGY"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="createPattern" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="acceptFork" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="delete" eType="#//BranchDelete" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="integration" eType="#//BranchIntegration" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="linkToJira" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BranchDelete">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="afterDeletedDays" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="afterInactiveDays" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BranchIntegration">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="mergeFrom" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="mergeTo" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="pushOnSuccess" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BranchOverride">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="branchPattern" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="stages" upperBound="-1" eType="#//Stage" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="jobs" upperBound="-1" eType="#//Job" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggers" upperBound="-1" eType="#//Trigger" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="notifications" upperBound="-1" eType="#//Notification" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="variables" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="labels" upperBound="-1" eType="#//Label" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="docker" eType="#//DockerConfig" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="branchConfig" eType="#//BranchSpecificConfig" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="BranchSpecificConfig">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="integration" eType="#//BranchIntegration" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="disableExpiry" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       DEPENDENCIES
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Dependencies">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="requireAllStagesPassing" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enabledForBranches" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="blockStrategy" eType="#//BLOCK_STRATEGY"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="plans" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       DOCKER CONFIG
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="DockerConfig">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="image" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="volumes" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="useDefaultVolumes" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="dockerRunArguments" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       OTHER / MISC CONFIG
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="OtherConfig">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="concurrentBuildPlugin" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EIntegerObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="cleanWorkingDir" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="allOtherApps" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       DEPLOYMENT PROJECT
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="DeploymentProject">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sourcePlan" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="serverName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="releaseNaming" eType="#//ReleaseNaming" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="environments" lowerBound="1" upperBound="-1" eType="#//Environment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="permissions" upperBound="-1" eType="#//DeploymentPermissionEntry" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="defaultEnvironmentPermissions" upperBound="-1" eType="#//EnvironmentPermissionEntry" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="environmentPermissions" upperBound="-1" eType="#//NamedEnvironmentPermission" containment="true"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="ReleaseNaming">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="nextVersionName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="appliesToBranches" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="autoIncrement" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBooleanObject"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="autoIncrementVariables" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENVIRONMENT
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="Environment">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" iD="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tasks" upperBound="-1" eType="#//Task" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="finalTasks" upperBound="-1" eType="#//Task" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="variables" upperBound="-1" eType="#//VariableAssignment" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="triggers" upperBound="-1" eType="#//Trigger" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="notifications" upperBound="-1" eType="#//Notification" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="docker" eType="#//DockerConfig" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="requirements" upperBound="-1" eType="#//Requirement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="releaseApprovalPrerequisite" eType="#//RELEASE_APPROVAL"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       PERMISSIONS
+       ═══════════════════════════════════════════════════ -->
+  <eClassifiers xsi:type="ecore:EClass" name="PermissionEntry" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="users" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="groups" upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="roles" upperBound="-1" eType="#//PERMISSION_ROLE"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="permissions" upperBound="-1" eType="#//PERMISSION_TYPE"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EClass" name="PlanPermissionEntry" eSuperTypes="#//PermissionEntry"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="DeploymentPermissionEntry" eSuperTypes="#//PermissionEntry"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="EnvironmentPermissionEntry" eSuperTypes="#//PermissionEntry"/>
+
+  <eClassifiers xsi:type="ecore:EClass" name="NamedEnvironmentPermission">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="environmentName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="#//EnvironmentPermissionEntry" containment="true"/>
+  </eClassifiers>
+
+  <!-- ═══════════════════════════════════════════════════
+       ENUMERATIONS
+       ═══════════════════════════════════════════════════ -->
+
+  <eClassifiers xsi:type="ecore:EEnum" name="VARIABLE_SCOPE">
+    <eLiterals name="local" literal="LOCAL"/>
+    <eLiterals name="result" value="1" literal="RESULT"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="TEST_PARSER_TYPE">
+    <eLiterals name="junit" literal="junit"/>
+    <eLiterals name="testng" value="1" literal="testng"/>
+    <eLiterals name="mocha" value="2" literal="mocha"/>
+    <eLiterals name="nunit" value="3" literal="nunit"/>
+    <eLiterals name="mstest" value="4" literal="mstest"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="REPOSITORY_SCOPE">
+    <eLiterals name="global" literal="global"/>
+    <eLiterals name="project" value="1" literal="project"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="FILE_FILTER_TYPE">
+    <eLiterals name="includeOnly" literal="include_only"/>
+    <eLiterals name="excludeOnly" value="1" literal="exclude_only"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="BRANCH_CREATE_STRATEGY">
+    <eLiterals name="forNewBranch" literal="for-new-branch"/>
+    <eLiterals name="forPullRequest" value="1" literal="for-pull-request"/>
+    <eLiterals name="manually" value="2" literal="manually"/>
+    <eLiterals name="never" value="3" literal="never"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="BLOCK_STRATEGY">
+    <eLiterals name="dontBlock" literal="dont_block"/>
+    <eLiterals name="blockIfParentInProgress" value="1" literal="block_if_parent_in_progress"/>
+    <eLiterals name="blockIfParentHasUnbuiltChanges" value="2" literal="block_if_parent_has_unbuilt_changes"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="NOTIFICATION_EVENT_TYPE">
+    <eLiterals name="planFailed" literal="plan-failed"/>
+    <eLiterals name="planCompleted" value="1" literal="plan-completed"/>
+    <eLiterals name="planStatusChanged" value="2" literal="plan-status-changed"/>
+    <eLiterals name="planCommentAdded" value="3" literal="plan-comment-added"/>
+    <eLiterals name="planResponsibilityChanged" value="4" literal="plan-responsibility-changed"/>
+    <eLiterals name="jobError" value="5" literal="job-error"/>
+    <eLiterals name="jobCompleted" value="6" literal="job-completed"/>
+    <eLiterals name="jobStatusChanged" value="7" literal="job-status-changed"/>
+    <eLiterals name="jobFailed" value="8" literal="job-failed"/>
+    <eLiterals name="jobFirstFailed" value="9" literal="job-first-failed"/>
+    <eLiterals name="jobHung" value="10" literal="job-hung"/>
+    <eLiterals name="jobQueueTimeout" value="11" literal="job-queue-timeout"/>
+    <eLiterals name="jobQueuedWithoutCapableAgents" value="12" literal="job-queued-without-capable-agents"/>
+    <eLiterals name="deploymentFailed" value="13" literal="deployment-failed"/>
+    <eLiterals name="deploymentFinished" value="14" literal="deployment-finished"/>
+    <eLiterals name="deploymentStartedAndFinished" value="15" literal="deployment-started-and-finished"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="NOTIFICATION_ROLE">
+    <eLiterals name="responsible" literal="responsible"/>
+    <eLiterals name="watchers" value="1" literal="watchers"/>
+    <eLiterals name="committers" value="2" literal="committers"/>
+    <eLiterals name="loggedIn" value="3" literal="logged-in"/>
+    <eLiterals name="anonymous" value="4" literal="anonymous"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="PERMISSION_ROLE">
+    <eLiterals name="loggedIn" literal="logged-in"/>
+    <eLiterals name="anonymous" value="1" literal="anonymous"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="PERMISSION_TYPE">
+    <eLiterals name="view" literal="view"/>
+    <eLiterals name="edit" value="1" literal="edit"/>
+    <eLiterals name="build" value="2" literal="build"/>
+    <eLiterals name="clone" value="3" literal="clone"/>
+    <eLiterals name="admin" value="4" literal="admin"/>
+    <eLiterals name="deploy" value="5" literal="deploy"/>
+    <eLiterals name="viewConfiguration" value="6" literal="view-configuration"/>
+    <eLiterals name="createRepository" value="7" literal="create-repository"/>
+  </eClassifiers>
+
+  <eClassifiers xsi:type="ecore:EEnum" name="RELEASE_APPROVAL">
+    <eLiterals name="notBroken" literal="not-broken"/>
+    <eLiterals name="approved" value="1" literal="approved"/>
+    <eLiterals name="none" value="2" literal="none"/>
+  </eClassifiers>
+
+</ecore:EPackage>

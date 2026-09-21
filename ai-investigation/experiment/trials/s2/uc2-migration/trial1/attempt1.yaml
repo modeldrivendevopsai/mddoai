@@ -1,0 +1,68 @@
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCBP
+  name: framework-chatbot - Chatbot App Pipeline
+
+variables:
+  IMAGE_NAME: chatbot-app
+  IMAGE_TAG: latest
+  REGISTRY_URL: registry.example.com
+
+docker:
+  image: docker:20.10-dind
+  volumes:
+    /var/run/docker.sock: /var/run/docker.sock
+
+stages:
+  - Build Stage:
+      jobs:
+        - Build Docker Image:
+            key: BUILD
+            tasks:
+              - script:
+                  interpreter: SHELL
+                  scripts:
+                    - docker build -t ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+            requirements:
+              - os.linux
+
+  - Test Stage:
+      jobs:
+        - Unit Test:
+            key: UNITTEST
+            tasks:
+              - script:
+                  interpreter: SHELL
+                  scripts:
+                    - python3 test/run_unit_tests.py
+            requirements:
+              - os.linux
+
+        - Health Check:
+            key: HEALTHCHECK
+            tasks:
+              - script:
+                  interpreter: SHELL
+                  scripts:
+                    - docker run -d --name health_check_container ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+                    - ./scripts/health_check.sh
+                    - docker stop health_check_container
+                    - docker rm health_check_container
+            requirements:
+              - os.linux
+
+  - Deploy Stage:
+      jobs:
+        - Push Image:
+            key: PUSH
+            tasks:
+              - script:
+                  interpreter: SHELL
+                  scripts:
+                    - echo "${bamboo.REGISTRY_PASSWORD}" | docker login -u "${bamboo.REGISTRY_USER}" --password-stdin ${bamboo.REGISTRY_URL}
+                    - docker tag ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} ${bamboo.REGISTRY_URL}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+                    - docker push ${bamboo.REGISTRY_URL}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+            requirements:
+              - os.linux

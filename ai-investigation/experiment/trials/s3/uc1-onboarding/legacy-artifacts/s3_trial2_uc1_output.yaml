@@ -1,0 +1,45 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+  
+
+default:
+  
+
+build:
+    stage: build
+    script:
+      - docker build -t ${IMAGE_TAG} .
+  
+unitTest:
+    stage: build
+    image:
+        name: python:3.12-slim
+      
+    script:
+      - python3 test/run_unit_tests.py
+    cache:
+      
+  
+healthCheck:
+    stage: build
+    image:
+        name: curlimages/curl:latest
+      
+    script:
+      - ./scripts/health_check.sh
+    cache:
+      
+  
+push:
+    stage: build
+    script:
+      - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+      - docker push ${IMAGE_TAG}
+  

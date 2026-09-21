@@ -1,0 +1,104 @@
+---
+version: 2
+plan:
+  project-key: CHATBOT
+  key: PIPE
+  name: framework-chatbot - Build, Test, Push
+
+variables:
+  IMAGE_NAME: chatbot-app
+  IMAGE_TAG: latest
+  DOCKER_REGISTRY: registry.example.com
+
+stages:
+  - Build Stage:
+      manual: false
+      final: false
+      jobs:
+        - Build
+  - Test Stage:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+        - Health Check
+  - Push Stage:
+      manual: false
+      final: false
+      jobs:
+        - Push
+
+Build:
+  key: BUILD
+  tasks:
+    - checkout:
+        force-clean-build: true
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker build -t ${bamboo.DOCKER_REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  artifacts:
+    - name: docker-image-info
+      pattern: "**/*"
+      shared: true
+
+Unit Test:
+  key: UNITTEST
+  requirements:
+    - os.linux
+  tasks:
+    - checkout:
+        force-clean-build: true
+    - script:
+        interpreter: SHELL
+        scripts:
+          - python3 test/run_unit_tests.py
+
+Health Check:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - checkout:
+        force-clean-build: true
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker run -d --name chatbot-healthcheck ${bamboo.DOCKER_REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+          - ./scripts/health_check.sh
+          - docker stop chatbot-healthcheck
+          - docker rm chatbot-healthcheck
+
+Push:
+  key: PUSH
+  tasks:
+    - checkout:
+        force-clean-build: true
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker login ${bamboo.DOCKER_REGISTRY} -u ${bamboo.DOCKER_USER} -p ${bamboo.DOCKER_PASSWORD}
+          - docker push ${bamboo.DOCKER_REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+
+repositories:
+  - framework-chatbot:
+      type: git
+      url: https://github.com/example/framework-chatbot.git
+      branch: main
+
+triggers:
+  - polling:
+      period: 180
+
+branches:
+  create: manually
+  delete: never
+  link-to-jira: true
+
+notifications:
+  - events:
+      - plan-status-changed
+    recipients:
+      - webhook:
+          name: chatbot-notifications
+          url: https://example.com/webhook

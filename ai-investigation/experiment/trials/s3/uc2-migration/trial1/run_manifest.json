@@ -1,0 +1,37 @@
+[
+  {
+    "run_id": "7477a88eecab4ef59bae4555c54f4c7a",
+    "stage": "pim",
+    "attempt_n": 1,
+    "valid": true,
+    "timestamp": "2026-09-20T12:11:01.592649+00:00"
+  },
+  {
+    "run_id": "7477a88eecab4ef59bae4555c54f4c7a",
+    "stage": "psm",
+    "attempt_n": 1,
+    "valid": true,
+    "timestamp": "2026-09-20T12:11:45.480824+00:00"
+  },
+  {
+    "run_id": "7477a88eecab4ef59bae4555c54f4c7a",
+    "stage": "atl",
+    "attempt_n": 1,
+    "valid": true,
+    "timestamp": "2026-09-20T12:19:14.808950+00:00"
+  },
+  {
+    "run_id": "7477a88eecab4ef59bae4555c54f4c7a",
+    "stage": "acceleo",
+    "attempt_n": 1,
+    "valid": true,
+    "timestamp": "2026-09-20T12:21:28.870023+00:00"
+  },
+  {
+    "run_id": "7477a88eecab4ef59bae4555c54f4c7a",
+    "stage": "generation",
+    "attempt_n": 1,
+    "valid": true,
+    "timestamp": "2026-09-20T12:21:39.320555+00:00"
+  }
+]

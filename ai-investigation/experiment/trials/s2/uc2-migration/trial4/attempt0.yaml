@@ -1,0 +1,102 @@
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCB-PLAN
+  name: framework-chatbot - Docker Build & Deploy
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+
+stages:
+  - Build:
+      jobs:
+        - Docker Build
+  - Test:
+      jobs:
+        - Unit Test
+        - Health Check
+  - Deploy:
+      jobs:
+        - Push Image
+
+Docker Build:
+  key: BUILD
+  tasks:
+    - checkout:
+        force-clean-build: true
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker build -t ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UTEST
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HCHECK
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker run -d --name health_check_container ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+          - sleep 5
+          - ./scripts/health_check.sh
+          - docker stop health_check_container
+          - docker rm health_check_container
+  requirements:
+    - os.linux
+
+Push Image:
+  key: PUSH
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker login ${bamboo.REGISTRY} -u ${bamboo.DOCKER_USER} -p ${bamboo.DOCKER_PASSWORD}
+          - docker tag ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+          - docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux
+
+repositories:
+  - framework-chatbot:
+      type: git
+      url: https://github.com/example/framework-chatbot.git
+      branch: main
+
+triggers:
+  - polling:
+      period: 180
+
+branches:
+  create: for-new-branch
+  delete:
+    after-deleted-days: 7
+    after-inactive-days: 30
+  link-to-jira: true
+
+notifications:
+  - events:
+      - plan-status-changed
+    recipients:
+      - webhook:
+          name: Notify Team
+          url: https://example.com/webhook

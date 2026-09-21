@@ -1,0 +1,53 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOT
+  name: chatbot-app
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: ${IMAGE_NAME}:${bamboo.buildNumber}
+  REGISTRY: registry.example.com
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - secretScan
+        - push
+
+build:
+  key: BUILD
+  tasks:
+    - script: docker build -t ${REGISTRY}/${IMAGE_TAG} .
+
+unitTest:
+  key: UNITTEST
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+healthCheck:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - script: ./scripts/health_check.sh
+
+secretScan:
+  key: SECRETSCAN
+  requirements:
+    - os.linux
+  tasks:
+    - script: gitleaks detect --source . --no-git --exit-code 1 -v
+
+push:
+  key: PUSH
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD} ${REGISTRY}
+    - script: docker push ${REGISTRY}/${IMAGE_TAG}

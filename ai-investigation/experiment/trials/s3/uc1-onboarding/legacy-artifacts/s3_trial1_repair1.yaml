@@ -1,0 +1,55 @@
+stages:
+  - stage_healthCheck
+  - stage_build
+  - stage_unitTest
+  - stage_push
+
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+
+default:
+  image:
+    name: ubuntu:latest
+  
+
+
+build:
+  stage: stage_build
+  script:
+    - docker build -t ${IMAGE_TAG} .
+  
+
+
+unitTest:
+  stage: stage_unitTest
+  script:
+    - python3 test/run_unit_tests.py
+  
+  image:
+    name: ubuntu:latest
+  
+
+
+healthCheck:
+  stage: stage_healthCheck
+  script:
+    - ./scripts/health_check.sh
+  
+  image:
+    name: ubuntu:latest
+  
+  needs:
+    - job: build
+
+
+push:
+  stage: stage_push
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+    - docker push ${IMAGE_TAG}
+  
+  needs:
+    - job: healthCheck
+
+

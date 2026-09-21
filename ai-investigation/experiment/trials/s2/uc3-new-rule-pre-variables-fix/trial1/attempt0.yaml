@@ -1,0 +1,41 @@
+stages:
+  - build
+  - test
+  - health-check
+  - secret-scan
+  - push
+
+build:
+  stage: build
+  script:
+    - docker build -t chatbot-app:$CI_COMMIT_SHA .
+
+test:
+  stage: test
+  needs:
+    - build
+  script:
+    - python test/run_unit_tests.py
+
+health_check:
+  stage: health-check
+  needs:
+    - test
+  script:
+    - ./scripts/health_check.sh
+
+secret_scan:
+  stage: secret-scan
+  needs:
+    - health_check
+  image: zricethezav/gitleaks:latest
+  script:
+    - gitleaks detect --source . --no-git -v --exit-code 1
+
+push:
+  stage: push
+  needs:
+    - secret_scan
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker push chatbot-app:$CI_COMMIT_SHA

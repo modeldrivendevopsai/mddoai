@@ -1,0 +1,105 @@
+stages:
+  - build
+  - test
+  - healthcheck
+  - push
+
+variables:
+  IMAGE_NAME: "$CI_REGISTRY_IMAGE/chatbot"
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+  DOCKER_TLS_CERTDIR: "/certs"
+  HEALTHCHECK_PORT: "8080"
+
+default:
+  image: docker:24.0.5
+
+build:
+  stage: build
+  tags:
+    - docker
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build -t "$IMAGE_NAME:$IMAGE_TAG" .
+    - docker push "$IMAGE_NAME:$IMAGE_TAG"
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+unit_test:
+  stage: test
+  tags:
+    - docker
+  services:
+    - docker:24.0.5-dind
+  needs:
+    - job: build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+  script:
+    - docker run --rm -v "$CI_PROJECT_DIR/test-results:/app/test-results"
+      "$IMAGE_NAME:$IMAGE_TAG" npm test -- --ci --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+    reports:
+      junit: test-results/junit.xml
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+healthcheck:
+  stage: healthcheck
+  tags:
+    - docker
+  services:
+    - docker:24.0.5-dind
+  needs:
+    - job: build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+  script:
+    - docker run -d --name chatbot_healthcheck -p "$HEALTHCHECK_PORT:$HEALTHCHECK_PORT" "$IMAGE_NAME:$IMAGE_TAG"
+    - |
+      attempt=1
+      max_attempts=10
+      until docker exec chatbot_healthcheck wget -qO- "http://localhost:$HEALTHCHECK_PORT/health"; do
+        if [ "$attempt" -ge "$max_attempts" ]; then
+          echo "Health check failed after $max_attempts attempts"
+          exit 1
+        fi
+        attempt=$((attempt + 1))
+        sleep 3
+      done
+      echo "Chatbot container is healthy"
+  after_script:
+    - docker rm -f chatbot_healthcheck || true
+  retry:
+    max: 1
+    when: script_failure
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+push:
+  stage: push
+  tags:
+    - docker
+  services:
+    - docker:24.0.5-dind
+  needs:
+    - job: unit_test
+    - job: healthcheck
+  resource_group: chatbot_registry_push
+  environment:
+    name: production
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+  script:
+    - docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:latest"
+    - docker push "$IMAGE_NAME:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

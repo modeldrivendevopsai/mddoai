@@ -1,0 +1,67 @@
+version: 2
+plan:
+  project-key: CHATBOT_APP
+  key: CHATBOT_APP
+  name: chatbot-app
+
+variables:
+  IMAGE_NAME: ${bamboo.CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_VERSION}-${bamboo.CI_COMMIT_REF_SLUG}
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - secretScan
+        - push
+
+build:
+  key: BUILD
+  tasks:
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - docker build -t ${bamboo.IMAGE_TAG} .
+
+unitTest:
+  key: UNITTEST
+  requirements:
+    - os.linux
+  tasks:
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - python3 test/run_unit_tests.py
+
+healthCheck:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - ./scripts/health_check.sh
+
+secretScan:
+  key: SECRETSCAN
+  description: Fails the build when leaked secrets are found in the repository.
+  tasks:
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - gitleaks detect --source . --no-git -v
+
+push:
+  key: PUSH
+  tasks:
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - docker login -u ${bamboo.CI_REGISTRY_USER} -p ${bamboo.CI_JOB_TOKEN} ${bamboo.CI_REGISTRY}
+    - type: script
+      interpreter: SHELL
+      scripts:
+        - docker push ${bamboo.IMAGE_TAG}

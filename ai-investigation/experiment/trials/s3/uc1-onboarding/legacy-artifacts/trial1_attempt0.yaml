@@ -1,0 +1,79 @@
+stages:
+  - build
+  - unitTest
+  - healthCheck
+  - push
+
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+
+
+default:
+  image:
+  name: docker:latest
+
+  interruptible: false
+
+
+build:
+  stage: build
+  script:
+  - docker build -t ${IMAGE_TAG} .
+
+  allow_failure: false
+  interruptible: false
+  retry:
+  max: 0
+
+
+
+unitTest:
+  stage: unitTest
+  script:
+  - python3 test/run_unit_tests.py
+
+  tags:
+  - linux
+
+  image:
+  name: python:3.12-slim
+
+  allow_failure: false
+  interruptible: false
+  retry:
+  max: 0
+
+
+
+healthCheck:
+  stage: healthCheck
+  script:
+  - ./scripts/health_check.sh
+
+  tags:
+  - linux
+
+  image:
+  name: curlimages/curl:latest
+
+  allow_failure: false
+  interruptible: false
+  retry:
+  max: 0
+
+
+
+push:
+  stage: push
+  script:
+  - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+  - docker push ${IMAGE_TAG}
+
+  allow_failure: false
+  interruptible: false
+  retry:
+  max: 0
+
+
+

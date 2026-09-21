@@ -1,0 +1,54 @@
+version: 2
+plan:
+  project-key: CHATBOT_APP
+  key: CHATBOT_APP
+  name: chatbot-app
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - push
+
+build:
+  key: BUILD
+  tasks:
+    - script: docker build -t ${IMAGE_TAG} .
+
+
+
+unitTest:
+  key: UNITTEST
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+
+  requirements:
+    - os.linux
+
+
+healthCheck:
+  key: HEALTHCHECK
+  tasks:
+    - script: ./scripts/health_check.sh
+
+
+  requirements:
+    - os.linux
+
+
+push:
+  key: PUSH
+  tasks:
+    - script: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+
+
+    - script: docker push ${IMAGE_TAG}
+
+
+

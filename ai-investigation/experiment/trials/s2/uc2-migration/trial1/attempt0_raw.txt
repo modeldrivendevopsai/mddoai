@@ -1,0 +1,82 @@
+```yaml
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCBP
+  name: framework-chatbot - Chatbot App Pipeline
+
+variables:
+  image.name: chatbot-app
+  image.tag: latest
+
+stages:
+  - Build:
+      jobs:
+        - Build Docker Image
+  - Test:
+      jobs:
+        - Unit Test
+        - Health Check
+  - Deploy:
+      jobs:
+        - Push Image
+
+jobs:
+  - job:
+      key: BUILD
+      name: Build Docker Image
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/bash
+                docker build -t ${bamboo.image.name}:${bamboo.image.tag} .
+      requirements:
+        - os.linux
+
+  - job:
+      key: UNITTEST
+      name: Unit Test
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/bash
+                python3 test/run_unit_tests.py
+      requirements:
+        - os.linux
+
+  - job:
+      key: HEALTHCHECK
+      name: Health Check
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/bash
+                docker run -d --name health_check_container ${bamboo.image.name}:${bamboo.image.tag}
+                ./scripts/health_check.sh
+                docker stop health_check_container
+                docker rm health_check_container
+      requirements:
+        - os.linux
+
+  - job:
+      key: PUSH
+      name: Push Image
+      tasks:
+        - script:
+            interpreter: SHELL
+            scripts:
+              - |
+                #!/bin/bash
+                echo "${bamboo.registry.password}" | docker login -u "${bamboo.registry.user}" --password-stdin ${bamboo.registry.url}
+                docker tag ${bamboo.image.name}:${bamboo.image.tag} ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+                docker push ${bamboo.registry.url}/${bamboo.image.name}:${bamboo.image.tag}
+      requirements:
+        - os.linux
+```

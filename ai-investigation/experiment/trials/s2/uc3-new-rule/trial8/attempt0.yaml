@@ -1,0 +1,58 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOT
+  name: chatbot-app
+
+variables:
+  IMAGE_URL: framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_URL}:${bamboo.buildNumber}
+
+stages:
+  - Build And Test:
+      jobs:
+        - build
+        - unitTest
+  - Verify:
+      jobs:
+        - healthCheck
+  - SecurityGate:
+      jobs:
+        - secretScan
+  - Deploy:
+      jobs:
+        - push
+
+build:
+  key: BUILD
+  tasks:
+    - script: docker build -t ${IMAGE_TAG} .
+
+unitTest:
+  key: UNITTEST
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+healthCheck:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - script: ./scripts/health_check.sh
+
+secretScan:
+  key: SECRETSCAN
+  requirements:
+    - os.linux
+  tasks:
+    - script: trufflehog git file://. --since-commit HEAD~1 --fail
+
+push:
+  key: PUSH
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD} ${REGISTRY_HOST}
+    - script: docker push ${IMAGE_TAG}

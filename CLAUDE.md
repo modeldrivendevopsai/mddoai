@@ -14,6 +14,7 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - `mddoai-design-system/` — the on-brand component library and Claude Design skill (`/mddoai-design`). Read `mddoai-design-system/project/SKILL.md` before doing UI work.
 - `docs/` — misc project docs.
 - `pipeline_tests/`, `install_necessary_packages/`, `viewpointrepresentations/` — supporting material for the MDE engine; match a new file's placement to the existing sibling closest to its purpose.
+- `ai-investigation/` — empirical studies comparing how the AI product generates CI/CD artifacts across platforms and approaches: frozen task inputs, prompts and round-by-round notes, reference outputs, and per-trial result logs. Research data about the AI product, not the AI product's own runtime code, kept separate from `ai/` for that reason.
 - `logo/` and top-level project docs — general project branding and documentation, shared across the MDE engine and the AI product.
 - If a directory doesn't appear anywhere in this list, that's a gap in this section to flag and fix, not a signal that a file placed there is automatically wrong.
 

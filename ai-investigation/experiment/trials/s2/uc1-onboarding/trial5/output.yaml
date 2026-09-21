@@ -1,0 +1,48 @@
+stages:
+  - build
+  - test
+  - health_check
+  - push
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+default:
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+build:
+  stage: build
+  script:
+    - docker build -t "$IMAGE_NAME:$IMAGE_TAG" .
+    - docker push "$IMAGE_NAME:$IMAGE_TAG"
+
+unit_test:
+  stage: test
+  script:
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+    - docker run --rm "$IMAGE_NAME:$IMAGE_TAG" python test/run_unit_tests.py
+
+health_check:
+  stage: health_check
+  script:
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+    - docker run -d --name chatbot_health_check "$IMAGE_NAME:$IMAGE_TAG"
+    - docker exec chatbot_health_check ./scripts/health_check.sh
+  after_script:
+    - docker rm -f chatbot_health_check || true
+
+push_latest:
+  stage: push
+  script:
+    - docker pull "$IMAGE_NAME:$IMAGE_TAG"
+    - docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:latest"
+    - docker push "$IMAGE_NAME:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

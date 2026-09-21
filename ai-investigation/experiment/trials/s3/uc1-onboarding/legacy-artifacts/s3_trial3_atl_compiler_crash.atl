@@ -1,0 +1,540 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GitlabMM=gitlabMM=http://www.mddoai.com/mddoai/metamodel/gitlab
+
+module pim2gitlab;
+
+create OUT : GitlabMM from IN : PIM;
+
+rule Pipeline2Pipeline {
+	from
+		pimPipeline : PIM!Pipeline
+	to
+		gitlabPipeline : GitlabMM!Pipeline(
+			stages <- thisModule.extractStages(pimPipeline.jobStreams),
+			jobs <- pimPipeline.jobStreams,
+			variables <- 
+				if pimPipeline.environmentVariables->notEmpty() then
+					thisModule.Assignments2Variables(pimPipeline.environmentVariables)
+				else
+					OclUndefined
+				endif,
+			workflow <- 
+				if pimPipeline.triggers->notEmpty() then
+					thisModule.Triggers2Workflow(pimPipeline.triggers)
+				else
+					OclUndefined
+				endif,
+			default <- 
+				if not pimPipeline.agent.oclIsUndefined() or not pimPipeline.shell.oclIsUndefined() or not pimPipeline.workingDirectory.oclIsUndefined() then
+					thisModule.PipelineBlock2Default(pimPipeline.agent, pimPipeline.shell, pimPipeline.workingDirectory)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+abstract rule Job2Job {
+	from
+		pimJob : PIM!Job
+	to
+		gitlabJob : GitlabMM!Job(
+			name <- pimJob.id,
+			stage <- pimJob.id,
+			tags <- 
+				if pimJob.agent.oclIsTypeOf(PIM!CustomAgent) then
+					thisModule.CustomAgent2Tags(pimJob.agent)
+				else
+					OclUndefined
+				endif,
+			image <- 
+				if not pimJob.agent.oclIsUndefined() then
+					thisModule.Agent2Image(pimJob.agent)
+				else
+					OclUndefined
+				endif,
+			allowFailure <- 
+				if not pimJob.allowFailure.oclIsUndefined() then
+					pimJob.allowFailure
+				else
+					OclUndefined
+				endif,
+			timeout <- 
+				if not pimJob.timeoutMinutes.oclIsUndefined() then
+					thisModule.Integer2TimeoutString(pimJob.timeoutMinutes)
+				else
+					OclUndefined
+				endif,
+			environmentVariables <- 
+				if pimJob.environmentVariables->notEmpty() then
+					thisModule.Assignments2Variables(pimJob.environmentVariables)
+				else
+					OclUndefined
+				endif,
+			services <- pimJob.services->collect(service | thisModule.DockerContainer2Service(service)),
+			retry <- 
+				if not pimJob.maxAttempts.oclIsUndefined() then
+					thisModule.Integer2Retry(pimJob.maxAttempts)
+				else
+					OclUndefined
+				endif,
+			rules <- 
+				if not pimJob.ifCondition.oclIsUndefined() then
+					Sequence{thisModule.Expression2GitlabRule(pimJob.ifCondition)}
+				else
+					Sequence{}
+				endif,
+			parallel <- 
+				if not pimJob.matrix.oclIsUndefined() then
+					thisModule.Matrix2Parallel(pimJob.matrix)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule ScriptJob2ScriptJob extends Job2Job {
+	from
+		pimJob : PIM!ScriptJob
+	to
+		gitlabJob : GitlabMM!Job(
+			script <- thisModule.Steps2Script(pimJob.steps)
+		)
+}
+
+rule PipelineCallJob2PipelineCallJob extends Job2Job {
+	from
+		pimJob : PIM!PipelineCallJob
+	to
+		gitlabJob : GitlabMM!Job(
+			script <- thisModule.PipelinePath2Script(pimJob.pipelinePath)
+		)
+}
+
+lazy rule Steps2Script {
+	from
+		steps : Sequence(PIM!Step)
+	to
+		script : GitlabMM!Script(
+			commands <- steps->collect(step | thisModule.Step2Command(step))->flatten()
+		)
+}
+
+lazy rule Step2Command {
+	from
+		step : PIM!Step
+	to
+		command : GitlabMM!Command
+}
+
+lazy rule ConditionalStep2Commands {
+	from
+		step : PIM!ConditionalStep
+	to
+		commands : Sequence(GitlabMM!Command)
+}
+
+lazy rule NonConditionalStep2Command {
+	from
+		step : PIM!NonConditionalStep
+	to
+		command : GitlabMM!Command
+}
+
+lazy rule Command2Command {
+	from
+		pimCommand : PIM!Command
+	to
+		gitlabCommand : GitlabMM!Command(
+			command <- thisModule.Expression2String(pimCommand.program)
+		)
+}
+
+lazy rule Plugin2Command {
+	from
+		pimPlugin : PIM!Plugin
+	to
+		gitlabCommand : GitlabMM!Command(
+			command <- pimPlugin.pluginName + if pimPlugin.version.oclIsUndefined() then '' else '@' + pimPlugin.version endif
+		)
+}
+
+lazy rule Cache2Command {
+	from
+		pimCache : PIM!Cache
+	to
+		gitlabCommand : GitlabMM!Command(
+			command <- 
+				if pimCache.store = #STORE then
+					'cache store'
+				else if pimCache.store = #LOAD then
+					'cache load'
+				else
+					'cache both'
+				endif
+				endif
+		)
+}
+
+lazy rule Artifact2Command {
+	from
+		pimArtifact : PIM!Artifact
+	to
+		gitlabCommand : GitlabMM!Command(
+			command <- 
+				if pimArtifact.store then
+					'artifact store'
+				else
+					'artifact download'
+				endif
+		)
+}
+
+lazy rule Checkout2Command {
+	from
+		pimCheckout : PIM!Checkout
+	to
+		gitlabCommand : GitlabMM!Command(
+			command <- 'git checkout'
+		)
+}
+
+lazy rule PipelinePath2Script {
+	from
+		pipelinePath : PIM!Expression
+	to
+		script : GitlabMM!Script(
+			commands <- Sequence{
+				thisModule.CreateCommand(thisModule.Expression2String(pipelinePath))
+			}
+		)
+}
+
+lazy rule CreateCommand {
+	from
+		commandStr : String
+	to
+		command : GitlabMM!Command(
+			command <- commandStr
+		)
+}
+
+lazy rule DockerContainer2Service {
+	from
+		dockerContainer : PIM!DockerContainer
+	to
+		service : GitlabMM!Service(
+			name <- 
+				if not dockerContainer.label.oclIsUndefined() then
+					dockerContainer.label
+				else
+					thisModule.Expression2String(dockerContainer.image)
+				endif,
+			alias <- dockerContainer.label
+		)
+}
+
+lazy rule Assignments2Variables {
+	from
+		assignments : Sequence(PIM!Assignment)
+	to
+		variables : GitlabMM!Variables(
+			variables <- assignments->collect(assignment | thisModule.Assignment2Variable(assignment))
+		)
+}
+
+lazy rule Assignment2Variable {
+	from
+		assignment : PIM!Assignment
+	to
+		variable : GitlabMM!Variable(
+			name <- assignment.key.name,
+			value <- thisModule.Expression2String(assignment.value)
+		)
+}
+
+lazy rule CustomAgent2Tags {
+	from
+		agent : PIM!CustomAgent
+	to
+		tags : GitlabMM!Tags(
+			tags <- agent.labels->collect(label | thisModule.Expression2Tag(label))
+		)
+}
+
+lazy rule Expression2Tag {
+	from
+		expr : PIM!Expression
+	to
+		tag : GitlabMM!Tag(
+			tag <- thisModule.Expression2String(expr)
+		)
+}
+
+lazy rule Agent2Image {
+	from
+		agent : PIM!Agent
+	to
+		image : GitlabMM!Image
+}
+
+lazy rule LinuxAgent2Image {
+	from
+		agent : PIM!LinuxAgent
+	to
+		image : GitlabMM!Image(
+			name <- 
+				if not agent.container.oclIsUndefined() and not agent.container.image.oclIsUndefined() then
+					thisModule.Expression2String(agent.container.image)
+				else if not agent.image.oclIsUndefined() then
+					thisModule.Expression2String(agent.image)
+				else
+					'ubuntu:latest'
+				endif
+				endif
+		)
+}
+
+lazy rule WindowsAgent2Image {
+	from
+		agent : PIM!WindowsAgent
+	to
+		image : GitlabMM!Image(
+			name <- 
+				if not agent.image.oclIsUndefined() then
+					thisModule.Expression2String(agent.image)
+				else
+					'windows:latest'
+				endif
+		)
+}
+
+lazy rule MacOSAgent2Image {
+	from
+		agent : PIM!MacOSAgent
+	to
+		image : GitlabMM!Image(
+			name <- 
+				if not agent.image.oclIsUndefined() then
+					thisModule.Expression2String(agent.image)
+				else
+					'macos:latest'
+				endif
+		)
+}
+
+lazy rule Triggers2Workflow {
+	from
+		triggers : Sequence(PIM!Trigger)
+	to
+		workflow : GitlabMM!Workflow(
+			rules <- triggers->collect(trigger | thisModule.Trigger2GitlabRule(trigger))
+		)
+}
+
+lazy rule Trigger2GitlabRule {
+	from
+		trigger : PIM!Trigger
+	to
+		gitlabRule : GitlabMM!GitlabRule
+}
+
+lazy rule PushTrigger2GitlabRule {
+	from
+		trigger : PIM!PushTrigger
+	to
+		gitlabRule : GitlabMM!GitlabRule(
+			gitlabIf <- 
+				if trigger.branchGlobs->notEmpty() then
+					'$CI_COMMIT_BRANCH =~ /' + trigger.branchGlobs->first() + '/'
+				else
+					'$CI_COMMIT_BRANCH'
+				endif
+		)
+}
+
+lazy rule PullRequestTrigger2GitlabRule {
+	from
+		trigger : PIM!PullRequestTrigger
+	to
+		gitlabRule : GitlabMM!GitlabRule(
+			gitlabIf <- '$CI_PIPELINE_SOURCE == "merge_request_event"'
+		)
+}
+
+lazy rule ManualTrigger2GitlabRule {
+	from
+		trigger : PIM!ManualTrigger
+	to
+		gitlabRule : GitlabMM!GitlabRule(
+			when <- 'manual'
+		)
+}
+
+lazy rule ScheduledTrigger2GitlabRule {
+	from
+		trigger : PIM!ScheduledTrigger
+	to
+		gitlabRule : GitlabMM!GitlabRule(
+			gitlabIf <- 
+				if trigger.crons->notEmpty() then
+					'$CI_PIPELINE_SOURCE == "schedule"'
+				else
+					OclUndefined
+				endif
+		)
+}
+
+lazy rule Expression2GitlabRule {
+	from
+		expr : PIM!Expression
+	to
+		gitlabRule : GitlabMM!GitlabRule(
+			gitlabIf <- thisModule.Expression2String(expr)
+		)
+}
+
+lazy rule Matrix2Parallel {
+	from
+		matrix : PIM!Matrix
+	to
+		parallel : GitlabMM!Parallel(
+			matrix <- thisModule.Matrix2GitlabMatrix(matrix)
+		)
+}
+
+lazy rule Matrix2GitlabMatrix {
+	from
+		matrix : PIM!Matrix
+	to
+		gitlabMatrix : GitlabMM!Matrix(
+			axes <- matrix.axes->collect(axis | thisModule.MatrixAxis2Axis(axis))
+		)
+}
+
+lazy rule MatrixAxis2Axis {
+	from
+		axis : PIM!MatrixAxis
+	to
+		gitlabAxis : GitlabMM!Axis(
+			name <- axis.name.name,
+			values <- axis.cells->collect(cell | thisModule.Expression2String(cell))
+		)
+}
+
+lazy rule PipelineBlock2Default {
+	from
+		agent : PIM!Agent,
+		shell : PIM!Expression,
+		workingDirectory : PIM!Expression
+	to
+		defaultBlock : GitlabMM!Default(
+			image <- 
+				if not agent.oclIsUndefined() then
+					thisModule.Agent2Image(agent)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+lazy rule Integer2TimeoutString {
+	from
+		minutes : Integer
+	to
+		timeoutStr : String
+}
+
+lazy rule Integer2Retry {
+	from
+		attempts : Integer
+	to
+		retry : GitlabMM!Retry(
+			max <- attempts - 1
+		)
+}
+
+lazy rule Expression2String {
+	from
+		expr : PIM!Expression
+	to
+		str : String
+}
+
+helper def : extractStages(jobs : Sequence(PIM!Job)) : Sequence(String) =
+	jobs->collect(job | job.id)->asOrderedSet()->asSequence();
+
+helper def : Step2Command(step : PIM!Step) : Sequence(GitlabMM!Command) =
+	if step.oclIsTypeOf(PIM!ConditionalStep) then
+		thisModule.ConditionalStep2Commands(step)
+	else if step.oclIsTypeOf(PIM!Command) then
+		Sequence{thisModule.Command2Command(step)}
+	else if step.oclIsTypeOf(PIM!Plugin) then
+		Sequence{thisModule.Plugin2Command(step)}
+	else if step.oclIsTypeOf(PIM!Cache) then
+		Sequence{thisModule.Cache2Command(step)}
+	else if step.oclIsTypeOf(PIM!Artifact) then
+		Sequence{thisModule.Artifact2Command(step)}
+	else if step.oclIsTypeOf(PIM!Checkout) then
+		Sequence{thisModule.Checkout2Command(step)}
+	else
+		Sequence{}
+	endif
+	endif
+	endif
+	endif
+	endif
+	endif;
+
+helper def : ConditionalStep2Commands(step : PIM!ConditionalStep) : Sequence(GitlabMM!Command) =
+	step.thenRun->collect(s | thisModule.Step2Command(s))->flatten();
+
+helper def : Agent2Image(agent : PIM!Agent) : GitlabMM!Image =
+	if agent.oclIsTypeOf(PIM!LinuxAgent) then
+		thisModule.LinuxAgent2Image(agent)
+	else if agent.oclIsTypeOf(PIM!WindowsAgent) then
+		thisModule.WindowsAgent2Image(agent)
+	else if agent.oclIsTypeOf(PIM!MacOSAgent) then
+		thisModule.MacOSAgent2Image(agent)
+	else
+		OclUndefined
+	endif
+	endif
+	endif;
+
+helper def : Trigger2GitlabRule(trigger : PIM!Trigger) : GitlabMM!GitlabRule =
+	if trigger.oclIsTypeOf(PIM!PushTrigger) then
+		thisModule.PushTrigger2GitlabRule(trigger)
+	else if trigger.oclIsTypeOf(PIM!PullRequestTrigger) then
+		thisModule.PullRequestTrigger2GitlabRule(trigger)
+	else if trigger.oclIsTypeOf(PIM!ManualTrigger) then
+		thisModule.ManualTrigger2GitlabRule(trigger)
+	else if trigger.oclIsTypeOf(PIM!ScheduledTrigger) then
+		thisModule.ScheduledTrigger2GitlabRule(trigger)
+	else
+		OclUndefined
+	endif
+	endif
+	endif
+	endif;
+
+helper def : Expression2String(expr : PIM!Expression) : String =
+	if expr.oclIsTypeOf(PIM!StringLiteral) then
+		expr.value
+	else if expr.oclIsTypeOf(PIM!IntegerLiteral) then
+		expr.value.toString()
+	else if expr.oclIsTypeOf(PIM!DoubleLiteral) then
+		expr.value.toString()
+	else if expr.oclIsTypeOf(PIM!BooleanLiteral) then
+		expr.value.toString()
+	else if expr.oclIsTypeOf(PIM!Concat) then
+		expr.expressions->collect(e | thisModule.Expression2String(e))->asSequence()->first()
+	else if expr.oclIsTypeOf(PIM!VariableReference) then
+		'$' + expr.reference.name
+	else
+		''
+	endif
+	endif
+	endif
+	endif
+	endif
+	endif;

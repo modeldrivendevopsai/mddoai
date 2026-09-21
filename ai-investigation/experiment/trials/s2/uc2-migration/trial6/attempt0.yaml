@@ -1,0 +1,74 @@
+---
+version: 2
+plan:
+  project-key: CHAT
+  key: CHATBOT
+  name: framework-chatbot
+
+variables:
+  IMAGE_NAME: chatbot-app
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+
+stages:
+  - Build Stage:
+      jobs:
+        - Build
+  - Test Stage:
+      jobs:
+        - Unit Test
+        - Health Check
+  - Push Stage:
+      jobs:
+        - Push
+
+Build:
+  key: BUILD
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker build -t ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UNITTEST
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HEALTHCHECK
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker run -d --name chatbot_health_check ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+            ./scripts/health_check.sh
+            docker rm -f chatbot_health_check
+  requirements:
+    - os.linux
+
+Push:
+  key: PUSH
+  tasks:
+    - checkout
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker login ${bamboo.REGISTRY} -u ${bamboo.DOCKER_USER} -p ${bamboo.DOCKER_PASSWORD}
+            docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux

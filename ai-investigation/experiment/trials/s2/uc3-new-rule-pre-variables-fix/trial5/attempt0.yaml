@@ -1,0 +1,51 @@
+stages:
+  - build
+  - test
+  - health_check
+  - secret_scan
+  - push
+
+build:
+  stage: build
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  script:
+    - docker build -t chatbot-app:$CI_COMMIT_SHORT_SHA .
+
+test:
+  stage: test
+  image: python:3.11
+  needs:
+    - build
+  script:
+    - python test/run_unit_tests.py
+
+health_check:
+  stage: health_check
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  needs:
+    - test
+  script:
+    - ./scripts/health_check.sh
+
+secretScan:
+  stage: secret_scan
+  image: zricethezav/gitleaks:latest
+  needs:
+    - health_check
+  script:
+    - gitleaks detect --source . --no-git -v
+
+push:
+  stage: push
+  image: docker:24.0
+  services:
+    - docker:24.0-dind
+  needs:
+    - secretScan
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker push chatbot-app:$CI_COMMIT_SHORT_SHA

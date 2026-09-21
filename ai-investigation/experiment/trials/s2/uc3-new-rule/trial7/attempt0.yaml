@@ -1,0 +1,63 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOT
+  name: chatbot-app
+
+# Pipeline-level variables so the image reference is defined once
+variables:
+  IMAGE_NAME: framework-chatbot-image
+  VERSION: ${bamboo.buildNumber}
+  IMAGE_TAG: ${IMAGE_NAME}:${VERSION}
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - secretScan
+        - push
+
+build:
+  key: BUILD
+  requirements:
+    - os.linux
+  tasks:
+    - script: |
+        # Build the application image
+        docker build -t ${IMAGE_TAG} .
+
+unitTest:
+  key: UNITTEST
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+healthCheck:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - script: |
+        docker run -d --rm --name chatbot_healthcheck ${IMAGE_TAG}
+        ./scripts/health_check.sh
+        docker stop chatbot_healthcheck
+
+secretScan:
+  key: SECRETSCAN
+  requirements:
+    - os.linux
+  tasks:
+    - script: |
+        # Mandatory quality gate: block the pipeline if secrets are found
+        gitleaks detect --source . --no-git -v
+
+push:
+  key: PUSH
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD} ${REGISTRY_URL}
+    - script: docker push ${IMAGE_TAG}

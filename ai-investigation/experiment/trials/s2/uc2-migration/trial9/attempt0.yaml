@@ -1,0 +1,116 @@
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCBPIPE
+  name: framework-chatbot - Docker Pipeline
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+
+stages:
+  - Build Stage:
+      manual: false
+      final: false
+      jobs:
+        - Build
+  - Test Stage:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+  - Health Check Stage:
+      manual: false
+      final: false
+      jobs:
+        - Health Check
+  - Push Stage:
+      manual: false
+      final: false
+      jobs:
+        - Push
+
+Build:
+  key: BLD
+  tasks:
+    - checkout:
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker build -t ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+  artifact-subscriptions: []
+
+Unit Test:
+  key: TST
+  tasks:
+    - checkout:
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+  artifact-subscriptions: []
+
+Health Check:
+  key: HLC
+  tasks:
+    - checkout:
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            ./scripts/health_check.sh
+  requirements:
+    - os.linux
+  artifact-subscriptions: []
+
+Push:
+  key: PSH
+  tasks:
+    - checkout:
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker login ${bamboo.REGISTRY} -u ${bamboo.DOCKER_USER} -p ${bamboo.DOCKER_PASSWORD}
+            docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux
+  artifact-subscriptions: []
+
+triggers:
+  - polling:
+      period: '180'
+
+branches:
+  create: manually
+  delete: never
+  link-to-jira: true
+
+notifications:
+  - events:
+      - plan-status-changed
+    recipients:
+      - webhook:
+          name: webhook
+          url: ''
+
+labels: []
+
+dependencies:
+  require-all-stages-passing: false
+  enabled-for-branches: true
+
+other:
+  concurrent-build-plugin: system-default

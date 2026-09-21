@@ -1,0 +1,111 @@
+---
+version: 2
+plan:
+  project-key: CHAT
+  key: CHATBOT
+  name: framework-chatbot - Docker Pipeline
+
+variables:
+  IMAGE_NAME: chatbot-app
+  IMAGE_TAG: "${bamboo.buildNumber}"
+  REGISTRY: registry.example.com
+
+stages:
+  - Build Stage:
+      manual: false
+      final: false
+      jobs:
+        - Build
+  - Test Stage:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+  - Verify Stage:
+      manual: false
+      final: false
+      jobs:
+        - Health Check
+  - Publish Stage:
+      manual: false
+      final: false
+      jobs:
+        - Push
+
+Build:
+  key: BUILD
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker build -t ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+  artifact-subscriptions: []
+
+Unit Test:
+  key: UNITTEST
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HEALTHCHECK
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - docker run -d --name chatbot_health_check ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+          - sleep 5
+          - ./scripts/health_check.sh
+          - docker rm -f chatbot_health_check
+  requirements:
+    - os.linux
+
+Push:
+  key: PUSH
+  tasks:
+    - checkout:
+        force-clean-build: false
+    - script:
+        interpreter: SHELL
+        scripts:
+          - echo "${bamboo.DOCKER_PASSWORD}" | docker login ${bamboo.REGISTRY} -u "${bamboo.DOCKER_USERNAME}" --password-stdin
+          - docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux
+
+repositories:
+  - chatbot-app:
+      type: git
+      url: https://github.com/example/chatbot-app.git
+      branch: main
+
+triggers:
+  - polling:
+      period: '180'
+
+branches:
+  create: manually
+  delete:
+    after-deleted-days: 7
+    after-inactive-days: 30
+  link-to-jira: true
+
+notifications:
+  - events:
+      - plan-status-changed
+    recipients:
+      - webhook:
+          name: Chatbot Pipeline Webhook
+          url: https://example.com/bamboo-webhook

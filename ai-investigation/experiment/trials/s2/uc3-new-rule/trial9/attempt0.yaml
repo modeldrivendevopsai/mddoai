@@ -1,0 +1,58 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOT
+  name: chatbot-app
+description: CI/CD pipeline for the framework-chatbot Docker image
+
+variables:
+  DOCKER_IMAGE_NAME: framework-chatbot
+  DOCKER_IMAGE_TAG: ${DOCKER_IMAGE_NAME}:${bamboo.buildNumber}
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - secretScan
+        - push
+
+build:
+  key: BUILD
+  description: Build the Docker image
+  tasks:
+    - script: docker build -t ${DOCKER_IMAGE_TAG} .
+
+unitTest:
+  key: UNITTEST
+  description: Run the Python unit test suite
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+healthCheck:
+  key: HEALTHCHECK
+  description: Verify the built image is healthy
+  requirements:
+    - os.linux
+  tasks:
+    - script: ./scripts/health_check.sh
+
+secretScan:
+  key: SECRETSCAN
+  description: Mandatory secret-scanning gate before publishing the image
+  requirements:
+    - os.linux
+  tasks:
+    - script: gitleaks detect --source . --no-git --report-format json --report-path gitleaks-report.json
+
+push:
+  key: PUSH
+  description: Log in and push the verified image to the registry
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD} ${REGISTRY_HOST}
+    - script: docker push ${DOCKER_IMAGE_TAG}

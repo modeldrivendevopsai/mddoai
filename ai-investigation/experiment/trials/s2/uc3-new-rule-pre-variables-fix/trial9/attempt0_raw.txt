@@ -1,0 +1,61 @@
+```yaml
+stages:
+  - build
+  - test
+  - health_check
+  - secret_scan
+  - push
+
+variables:
+  DOCKER_IMAGE: chatbot-app
+  DOCKER_TAG: $CI_COMMIT_SHORT_SHA
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+
+test:
+  stage: test
+  image: python:3.11
+  needs:
+    - build
+  script:
+    - python test/run_unit_tests.py
+
+health_check:
+  stage: health_check
+  image: docker:latest
+  services:
+    - docker:dind
+  needs:
+    - test
+  script:
+    - docker run -d --name health_check_container $DOCKER_IMAGE:$DOCKER_TAG
+    - ./scripts/health_check.sh
+    - docker stop health_check_container
+    - docker rm health_check_container
+
+secret_scan:
+  stage: secret_scan
+  image: zricethezav/gitleaks:latest
+  needs:
+    - health_check
+  script:
+    - gitleaks detect --source . --verbose --exit-code 1
+
+push:
+  stage: push
+  image: docker:latest
+  services:
+    - docker:dind
+  needs:
+    - secret_scan
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker tag $DOCKER_IMAGE:$DOCKER_TAG $CI_REGISTRY_IMAGE/$DOCKER_IMAGE:$DOCKER_TAG
+    - docker push $CI_REGISTRY_IMAGE/$DOCKER_IMAGE:$DOCKER_TAG
+```

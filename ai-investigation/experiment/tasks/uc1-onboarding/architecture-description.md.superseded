@@ -1,0 +1,25 @@
+# UC1: Onboarding — architecture description (S2 input)
+
+Written for this experiment (no real `.swarch` source exists for this task,
+see the experiment README). Describes the software's architecture only, not
+its CI/CD structure, the shared task prompt in `requirements.md` is what
+states the CI/CD requirement itself; this file is S2's stand-in for "the
+architecture model" row of the approach table.
+
+- **Component**: `chatbot-app`, a single Python 3.12 service.
+- **Packaging**: built as a Docker image. The image name is
+  `${CI_REGISTRY_IMAGE}/framework-chatbot-image`; the tag is
+  `${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}`.
+- **Tests**: a unit test suite runnable via `python3 test/run_unit_tests.py`,
+  intended to run against a plain `python:3.12-slim` environment (no need to
+  build the Docker image first).
+- **Runtime health check**: once built, the image exposes a way to verify
+  it started correctly, checked by running `./scripts/health_check.sh`
+  against it from a lightweight `curlimages/curl:latest` environment.
+- **Registry**: built images are published to the project's own container
+  registry (`${CI_REGISTRY}`), authenticating as `${CI_REGISTRY_USER}` with
+  `${CI_JOB_TOKEN}`.
+- **No other services**: no database, queue, or external dependency is part
+  of this component.
+
+Target CI/CD platform: GitLab.

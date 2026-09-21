@@ -1,0 +1,52 @@
+version: 2
+plan:
+  project-key: CHATBOT
+  key: CHATBOT
+  name: chatbot-app
+
+variables:
+  imageName: framework-chatbot
+  imageTag: ${bamboo.imageName}:${bamboo.buildNumber}
+
+stages:
+  - Default Stage:
+      jobs:
+        - dockerBuild
+        - pythonTests
+        - containerHealthCheck
+        - gitleaksScan
+        - pushImage
+
+dockerBuild:
+  key: DOCKERBUILD
+  tasks:
+    - script: docker build -t ${bamboo.imageTag} .
+
+pythonTests:
+  key: PYTHONTESTS
+  requirements:
+    - os.linux
+  tasks:
+    - script: python3 test/run_unit_tests.py
+
+containerHealthCheck:
+  key: HEALTHCHECK
+  requirements:
+    - os.linux
+  tasks:
+    - script: ./scripts/health_check.sh
+
+gitleaksScan:
+  key: GITLEAKSSCAN
+  requirements:
+    - os.linux
+  tasks:
+    - script: gitleaks detect --source . --no-git -v --exit-code 1
+
+pushImage:
+  key: PUSHIMAGE
+  requirements:
+    - os.linux
+  tasks:
+    - script: docker login -u ${bamboo.registryUser} -p ${bamboo.registryPassword} ${bamboo.registryUrl}
+    - script: docker push ${bamboo.imageTag}

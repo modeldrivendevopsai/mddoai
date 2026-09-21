@@ -1,0 +1,73 @@
+---
+version: 2
+plan:
+  project-key: CHATBOT_APP
+  key: CHATBOT_APP
+  name: chatbot-app
+
+variables:
+  IMAGE_NAME: ${bamboo.CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_VERSION}-${bamboo.CI_COMMIT_REF_SLUG}
+
+stages:
+  - Default Stage:
+      jobs:
+        - build
+        - unitTest
+        - healthCheck
+        - push
+
+jobs:
+  - key: BUILD
+    name: build
+    image: docker:24.0.5
+    docker:
+      image: docker:24.0.5
+      volumes:
+        /var/run/docker.sock: /var/run/docker.sock
+    tasks:
+      - checkout
+      - script:
+          interpreter: SHELL
+          scripts:
+            - docker build -t ${bamboo.IMAGE_TAG} .
+
+  - key: UNITTEST
+    name: unitTest
+    image: python:3.11
+    tasks:
+      - checkout
+      - script:
+          interpreter: SHELL
+          scripts:
+            - python3 test/run_unit_tests.py
+    requirements:
+      - os.linux
+
+  - key: HEALTHCHECK
+    name: healthCheck
+    image: curlimages/curl:latest
+    tasks:
+      - checkout
+      - script:
+          interpreter: SHELL
+          scripts:
+            - curl -f http://localhost:8080/health || exit 1
+            - ./scripts/health_check.sh
+    requirements:
+      - os.linux
+
+  - key: PUSH
+    name: push
+    image: docker:24.0.5
+    docker:
+      image: docker:24.0.5
+      volumes:
+        /var/run/docker.sock: /var/run/docker.sock
+    tasks:
+      - checkout
+      - script:
+          interpreter: SHELL
+          scripts:
+            - docker login -u ${bamboo.CI_REGISTRY_USER} -p ${bamboo.CI_JOB_TOKEN} ${bamboo.CI_REGISTRY}
+            - docker push ${bamboo.IMAGE_TAG}

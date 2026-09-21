@@ -1,0 +1,76 @@
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCB-CHATBOT
+  name: framework-chatbot
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+
+stages:
+  - Build:
+      manual: false
+      final: false
+      jobs:
+        - Build Docker Image
+  - Test:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+        - Health Check
+  - Deploy:
+      manual: false
+      final: false
+      jobs:
+        - Push Image
+
+Build Docker Image:
+  key: BUILD
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker build -t ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UT
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HC
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker run -d --name health_check_container ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+            ./scripts/health_check.sh
+            docker rm -f health_check_container
+  requirements:
+    - os.linux
+
+Push Image:
+  key: PUSH
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker login ${bamboo.REGISTRY} -u ${bamboo.DOCKER_USER} -p ${bamboo.DOCKER_PASSWORD}
+            docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux

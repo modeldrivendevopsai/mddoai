@@ -1,0 +1,69 @@
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCPIPE
+  name: framework-chatbot - Docker Pipeline
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+
+stages:
+  - Build Stage:
+      jobs:
+        - Build Image
+  - Test Stage:
+      jobs:
+        - Unit Test
+  - Verify Stage:
+      jobs:
+        - Health Check
+  - Publish Stage:
+      jobs:
+        - Push Image
+
+Build Image:
+  key: BUILD
+  tasks:
+    - script:
+        - docker build -t ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UTEST
+  tasks:
+    - script:
+        - python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HCHECK
+  tasks:
+    - script:
+        - ./scripts/health_check.sh
+  requirements:
+    - os.linux
+
+Push Image:
+  key: PUSH
+  tasks:
+    - script:
+        - docker login -u ${bamboo.REGISTRY_USER} -p ${bamboo.REGISTRY_PASSWORD} ${bamboo.REGISTRY}
+        - docker tag ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+        - docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux
+
+repositories:
+  - framework-chatbot:
+      type: git
+      url: https://example.com/framework-chatbot.git
+      branch: main
+
+triggers:
+  - polling:
+      period: 180

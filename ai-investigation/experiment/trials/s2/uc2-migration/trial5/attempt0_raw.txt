@@ -1,0 +1,85 @@
+```yaml
+---
+version: 2
+plan:
+  project-key: FCB
+  key: FCBPLAN
+  name: framework-chatbot - Default Plan
+
+variables:
+  IMAGE_NAME: framework-chatbot
+  IMAGE_TAG: latest
+  REGISTRY: registry.example.com
+  REGISTRY_USER: registry-user
+  REGISTRY_PASSWORD: registry-password
+
+stages:
+  - Build Stage:
+      manual: false
+      final: false
+      jobs:
+        - Build
+
+  - Test Stage:
+      manual: false
+      final: false
+      jobs:
+        - Unit Test
+        - Health Check
+
+  - Push Stage:
+      manual: false
+      final: false
+      jobs:
+        - Push
+
+Build:
+  key: BUILD
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker build -t ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} .
+  final-tasks: []
+  requirements:
+    - os.linux
+
+Unit Test:
+  key: UT
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            python3 test/run_unit_tests.py
+  requirements:
+    - os.linux
+
+Health Check:
+  key: HC
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            docker run -d --name health_check_container ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+            sleep 5
+            ./scripts/health_check.sh
+            docker rm -f health_check_container
+  requirements:
+    - os.linux
+
+Push:
+  key: PUSH
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |
+            echo "${bamboo.REGISTRY_PASSWORD}" | docker login ${bamboo.REGISTRY} -u "${bamboo.REGISTRY_USER}" --password-stdin
+            docker tag ${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG} ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+            docker push ${bamboo.REGISTRY}/${bamboo.IMAGE_NAME}:${bamboo.IMAGE_TAG}
+  requirements:
+    - os.linux
+```
