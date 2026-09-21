@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ASCII"?>
+<bambooMM:Plan xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bambooMM="http://www.mddoai.com/mddoai/metamodel/bamboo" projectKey="chatbot-app" planKey="chatbot-app">
+  <name xsi:type="bambooMM:StringLiteral" value="chatbot-app"/>
+  <stages name="Stage-build-unitTest">
+    <jobs name="build" key="build">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker build -t ${IMAGE_TAG} ."/>
+      </tasks>
+    </jobs>
+    <jobs name="unitTest" key="unitTest">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="python3 test/run_unit_tests.py"/>
+      </tasks>
+      <dockerConfiguration>
+        <image xsi:type="bambooMM:StringLiteral" value="python:3.12-slim"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-healthCheck-healthCheck">
+    <jobs name="healthCheck" key="healthCheck">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="./scripts/health_check.sh"/>
+      </tasks>
+      <dockerConfiguration>
+        <image xsi:type="bambooMM:StringLiteral" value="curlimages/curl:latest"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-push-push-push">
+    <jobs name="push" key="push">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker push ${IMAGE_TAG}"/>
+      </tasks>
+    </jobs>
+  </stages>
+  <variables>
+    <key name="IMAGE_NAME"/>
+    <value xsi:type="bambooMM:StringLiteral" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
+  </variables>
+  <variables>
+    <key name="IMAGE_TAG"/>
+    <value xsi:type="bambooMM:StringLiteral" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
+  </variables>
+</bambooMM:Plan>

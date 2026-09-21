@@ -1,0 +1,455 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI BambooMM=bambooMM=http://www.mddoai.com/mddoai/metamodel/bamboo
+
+module pim2bamboo;
+
+create OUT : BambooMM from IN : PIM;
+
+rule Pipeline2Plan {
+	from
+		pimPipeline : PIM!Pipeline
+	to
+		plan : BambooMM!Plan(
+			projectKey <- thisModule.deriveProjectKey(pimPipeline),
+			planKey <- thisModule.derivePlanKey(pimPipeline),
+			name <- 
+				thisModule.String2StringLiteral(
+					if not pimPipeline.name.oclIsUndefined() then
+						pimPipeline.name
+					else
+						'Plan'
+					endif
+				),
+			stages <- 
+				thisModule.createStageGroups(thisModule.getAllJobs(pimPipeline.jobStreams))
+					->collect(group | thisModule.JobGroup2Stage(group)),
+			triggers <- 
+				pimPipeline.triggers->select(t | 
+					t.oclIsTypeOf(PIM!PushTrigger) or t.oclIsTypeOf(PIM!ScheduledTrigger)
+				),
+			variables <- pimPipeline.environmentVariables
+		)
+}
+
+helper def : deriveProjectKey(pipeline : PIM!Pipeline) : String =
+	if not pipeline.name.oclIsUndefined() then
+		pipeline.name
+	else
+		'PROJ'
+	endif;
+
+helper def : derivePlanKey(pipeline : PIM!Pipeline) : String =
+	if not pipeline.name.oclIsUndefined() then
+		pipeline.name
+	else
+		'PLAN'
+	endif;
+
+helper def : getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+	let next : Sequence(PIM!Job) = 
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(PIM!Job)) = Sequence{} | 
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in 
+	if next.isEmpty() then
+		jobStreams
+	else 
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;
+
+helper def : computeJobLevel(job : PIM!Job) : Integer =
+	if job.previous->isEmpty() then
+		0
+	else
+		job.previous->iterate(p; maxLevel : Integer = 0 |
+			let pLevel : Integer = thisModule.computeJobLevel(p) + 1 in
+			if pLevel > maxLevel then pLevel else maxLevel endif
+		)
+	endif;
+
+helper def : getMaxLevel(jobs : Sequence(PIM!Job)) : Integer =
+	jobs->iterate(j; maxLevel : Integer = 0 |
+		let jLevel : Integer = thisModule.computeJobLevel(j) in
+		if jLevel > maxLevel then jLevel else maxLevel endif
+	);
+
+helper def : jobsAtLevel(jobs : Sequence(PIM!Job), level : Integer) : Sequence(PIM!Job) =
+	jobs->select(j | thisModule.computeJobLevel(j) = level);
+
+helper def : createStageGroups(jobs : Sequence(PIM!Job)) : Sequence(Sequence(PIM!Job)) =
+	thisModule.createStageGroupsFrom(jobs, 0, thisModule.getMaxLevel(jobs));
+
+helper def : createStageGroupsFrom(jobs : Sequence(PIM!Job), level : Integer, maxLevel : Integer) : Sequence(Sequence(PIM!Job)) =
+	if level > maxLevel then
+		Sequence{}
+	else
+		thisModule.createStageGroupsFrom(jobs, level + 1, maxLevel)->prepend(thisModule.jobsAtLevel(jobs, level))
+	endif;
+
+helper def : stageName(jobsInGroup : Sequence(PIM!Job)) : String =
+	jobsInGroup->iterate(j; acc : String = '' |
+		if acc = '' then
+			'Stage-' + j.id
+		else
+			acc + '-' + j.id
+		endif
+	);
+
+lazy rule JobGroup2Stage {
+	from
+		jobsInGroup : Sequence(PIM!Job)
+	to
+		stage : BambooMM!Stage(
+			name <- thisModule.stageName(jobsInGroup),
+			jobs <- jobsInGroup
+		)
+}
+
+abstract rule Job2Job {
+	from
+		pimJob : PIM!Job
+	to
+		bambooJob : BambooMM!Job(
+			name <- pimJob.id,
+			key <- 
+				if not pimJob.name.oclIsUndefined() then
+					pimJob.name
+				else
+					OclUndefined
+				endif,
+			requirements <- 
+				if not pimJob.agent.oclIsUndefined() then
+					pimJob.agent.requirementsHelper()
+				else
+					Sequence{}
+				endif,
+			dockerConfiguration <- 
+				if not pimJob.agent.oclIsUndefined() then
+					pimJob.agent.dockerConfigHelper()
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule ScriptJob2Job extends Job2Job {
+	from
+		pimJob : PIM!ScriptJob
+	to
+		bambooJob : BambooMM!Job(
+			tasks <- pimJob.steps->select(s | s.producesTask()),
+			artifacts <- 
+				pimJob.outputs->collect(o | thisModule.Output2Artifact(o))->union(
+					pimJob.steps->select(s | s.isArtifactUpload())
+						->collect(s | thisModule.ArtifactStep2Artifact(s))
+				)
+		)
+}
+
+rule PipelineCallJob2Job extends Job2Job {
+	from
+		pimJob : PIM!PipelineCallJob
+	to
+		bambooJob : BambooMM!Job(
+			tasks <- Sequence{thisModule.PipelineCallJob2ScriptTask(pimJob)},
+			artifacts <- pimJob.outputs->collect(o | thisModule.Output2Artifact(o))
+		)
+}
+
+lazy rule PipelineCallJob2ScriptTask {
+	from
+		pimJob : PIM!PipelineCallJob
+	to
+		scriptTask : BambooMM!ScriptTask(
+			inlineBody <- pimJob.pipelinePath,
+			environmentVariables <- pimJob.args
+		)
+}
+
+lazy rule Output2Artifact {
+	from
+		output : PIM!Output
+	to
+		bambooArtifact : BambooMM!Artifact(
+			name <- output.id.name,
+			location <- output.value,
+			shared <- true
+		)
+}
+
+lazy rule ArtifactStep2Artifact {
+	from
+		pimStep : PIM!Artifact
+	to
+		bambooArtifact : BambooMM!Artifact(
+			name <- 
+				if not pimStep.artifactName.oclIsUndefined() then
+					pimStep.artifactName.toStringValue()
+				else
+					'artifact'
+				endif,
+			location <- 
+				if pimStep.includePaths->notEmpty() then
+					pimStep.includePaths->first()
+				else
+					OclUndefined
+				endif,
+			shared <- true
+		)
+}
+
+abstract rule Step2AbstractTask {
+	from
+		pimStep : PIM!Step
+	to
+		bambooTask : BambooMM!AbstractTask
+}
+
+rule Command2ScriptTask extends Step2AbstractTask {
+	from
+		pimStep : PIM!Command
+	to
+		bambooTask : BambooMM!ScriptTask(
+			interpreter <- pimStep.shell,
+			inlineBody <- pimStep.program,
+			workingSubdirectory <- pimStep.workingDirectory
+		)
+}
+
+rule Plugin2AnyTask extends Step2AbstractTask {
+	from
+		pimStep : PIM!Plugin
+	to
+		bambooTask : BambooMM!AnyTask(
+			module <- thisModule.String2StringLiteral(pimStep.pluginName + '@' + pimStep.version),
+			configuration <- pimStep.kwargs
+		)
+}
+
+rule Checkout2VcsCheckoutTask extends Step2AbstractTask {
+	from
+		pimStep : PIM!Checkout
+	to
+		bambooTask : BambooMM!VcsCheckoutTask(
+			checkoutItems <- 
+				if not pimStep.path.oclIsUndefined() then
+					Sequence{thisModule.CheckoutItemFromPath(pimStep.path)}
+				else
+					Sequence{}
+				endif
+		)
+}
+
+rule DownloadArtifact2ArtifactDownloaderTask extends Step2AbstractTask {
+	from
+		pimStep : PIM!Artifact (not pimStep.store)
+	to
+		bambooTask : BambooMM!ArtifactDownloaderTask(
+			artifacts <- 
+				if not pimStep.artifactName.oclIsUndefined() then
+					Sequence{thisModule.DownloadItemFromName(pimStep.artifactName)}
+				else
+					Sequence{}
+				endif
+		)
+}
+
+lazy rule CheckoutItemFromPath {
+	from
+		path : PIM!Expression
+	to
+		checkoutItem : BambooMM!CheckoutItem(
+			path <- path
+		)
+}
+
+lazy rule DownloadItemFromName {
+	from
+		name : PIM!Expression
+	to
+		downloadItem : BambooMM!DownloadItem(
+			artifact <- name
+		)
+}
+
+helper context PIM!Step def : producesTask() : Boolean = false;
+helper context PIM!Command def : producesTask() : Boolean = true;
+helper context PIM!Plugin def : producesTask() : Boolean = true;
+helper context PIM!Checkout def : producesTask() : Boolean = true;
+helper context PIM!Artifact def : producesTask() : Boolean = not self.store;
+
+helper context PIM!Step def : isArtifactUpload() : Boolean = false;
+helper context PIM!Artifact def : isArtifactUpload() : Boolean = self.store;
+
+abstract rule Trigger2Trigger {
+	from
+		pimTrigger : PIM!Trigger
+	to
+		bambooTrigger : BambooMM!Trigger
+}
+
+rule PushTrigger2RepositoryPollingTrigger extends Trigger2Trigger {
+	from
+		pimTrigger : PIM!PushTrigger
+	to
+		bambooTrigger : BambooMM!RepositoryPollingTrigger(
+			scheduleType <- #INTERVAL
+		)
+}
+
+rule ScheduledTrigger2ScheduledTrigger extends Trigger2Trigger {
+	from
+		pimTrigger : PIM!ScheduledTrigger
+	to
+		bambooTrigger : BambooMM!ScheduledTrigger(
+			scheduleType <- #CRON,
+			cronExpression <- thisModule.String2StringLiteral(pimTrigger.crons->first())
+		)
+}
+
+rule Assignment2VariableAssignment {
+	from
+		assignment : PIM!Assignment
+	to
+		variableAssignment : BambooMM!VariableAssignment(
+			key <- assignment.key,
+			value <- assignment.value
+		)
+}
+
+rule VariableDeclaration2VariableDeclaration {
+	from
+		input : PIM!VariableDeclaration
+	to
+		output : BambooMM!VariableDeclaration(
+			name <- input.name
+		)
+}
+
+abstract rule Expression2Expression {
+	from
+		input : PIM!Expression
+	to
+		output : BambooMM!Expression
+}
+
+rule Concat2Concat extends Expression2Expression {
+	from
+		input : PIM!Concat
+	to
+		output : BambooMM!Concat(
+			expressions <- input.expressions
+		)
+}
+
+abstract rule Value2Value extends Expression2Expression {
+	from
+		input : PIM!Value
+	to
+		output : BambooMM!Value
+}
+
+rule VariableReference2VariableReference extends Value2Value {
+	from
+		input : PIM!VariableReference
+	to
+		output : BambooMM!VariableReference(
+			reference <- input.reference
+		)
+}
+
+abstract rule Literal2Literal extends Value2Value {
+	from
+		input : PIM!Literal
+	to
+		output : BambooMM!Literal
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+	from
+		input : PIM!StringLiteral
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+	from
+		input : PIM!IntegerLiteral
+	to
+		output : BambooMM!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+	from
+		input : PIM!DoubleLiteral
+	to
+		output : BambooMM!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+	from
+		input : PIM!BooleanLiteral
+	to
+		output : BambooMM!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+helper context PIM!Expression def : toStringValue() : String = '';
+helper context PIM!StringLiteral def : toStringValue() : String = self.value;
+helper context PIM!IntegerLiteral def : toStringValue() : String = self.value.toString();
+helper context PIM!DoubleLiteral def : toStringValue() : String = self.value.toString();
+helper context PIM!BooleanLiteral def : toStringValue() : String = self.value.toString();
+helper context PIM!VariableReference def : toStringValue() : String = self.reference.name;
+
+helper context PIM!Agent def : dockerConfigHelper() : BambooMM!DockerConfiguration = OclUndefined;
+
+helper context PIM!LinuxAgent def : dockerConfigHelper() : BambooMM!DockerConfiguration =
+	thisModule.LinuxAgentDockerConfig(self);
+
+lazy rule LinuxAgentDockerConfig {
+	from
+		agent : PIM!LinuxAgent
+	to
+		dockerConfig : BambooMM!DockerConfiguration(
+			image <- 
+				if not agent.container.oclIsUndefined() then
+					agent.container.image
+				else if not agent.image.oclIsUndefined() then
+					agent.image
+				else
+					thisModule.String2StringLiteral('docker:latest')
+				endif
+				endif
+		)
+}
+
+helper context PIM!Agent def : requirementsHelper() : Sequence(BambooMM!Requirement) = Sequence{};
+
+helper context PIM!CustomAgent def : requirementsHelper() : Sequence(BambooMM!Requirement) =
+	self.labels->collect(l | thisModule.Label2Requirement(l));
+
+lazy rule Label2Requirement {
+	from
+		label : PIM!Expression
+	to
+		requirement : BambooMM!Requirement(
+			key <- label.toStringValue(),
+			matchType <- #EXISTS
+		)
+}
+
+lazy rule String2StringLiteral {
+	from
+		string : String
+	to
+		stringLiteral : BambooMM!StringLiteral(
+			value <- string
+		)
+}

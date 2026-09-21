@@ -1,0 +1,193 @@
+version: 2
+name: fullstack-webapp
+
+project:
+  name: fullstack-webapp-project
+
+variables:
+  REGISTRY: ${CI_REGISTRY}
+  APP_IMAGE: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+  APP_VERSION: ${CI_COMMIT_SHORT_SHA}
+
+triggers:
+  type: repository-polling
+  pollInterval: 3
+  schedule:
+    interval: 3
+    unit: minutes
+  type: scheduled
+  schedule:
+    type: cron
+    expression: 0
+
+stages:
+  - name: stage-0
+    jobs:
+      - name: install-deps
+        agent: node:20-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Cache step: node-modules-cache"
+            description: Auto-generated placeholder for cache step
+          - type: script
+            script: |
+              npm ci --prefer-offline
+          - type: script
+            script: |
+              cd frontend && npm ci --prefer-offline
+  - name: stage-1
+    jobs:
+      - name: lint
+        agent: node:20-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Cache step: node-modules-cache"
+            description: Auto-generated placeholder for cache step
+          - type: script
+            script: |
+              npm run lint
+          - type: script
+            script: |
+              npm run format:check
+          - type: script
+            script: |
+              cd frontend && npm run lint
+      - name: test-unit
+        agent: node:${NODE_VERSION}-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Cache step: node-modules-cache"
+            description: Auto-generated placeholder for cache step
+          - type: script
+            script: |
+              npm run test:unit -- --coverage
+        artifacts:
+          - name: unit-test-coverage
+            location: coverage/
+      - name: test-integration
+        agent: node:20-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Cache step: node-modules-cache"
+            description: Auto-generated placeholder for cache step
+          - type: script
+            script: |
+              npm run db:migrate:test
+          - type: script
+            script: |
+              npm run test:integration
+        artifacts:
+          - name: integration-test-results
+            location: test-results/
+      - name: security-scan
+        agent: node:20-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Unsupported plugin: snyk/actions/node"
+            description: Auto-generated placeholder for unsupported plugin snyk/actions/node
+          - type: script
+            script: |
+              npm audit --audit-level=critical
+        artifacts:
+          - name: security-report
+            location: snyk-report.sarif
+  - name: stage-2
+    jobs:
+      - name: build
+        agent: node:20-alpine
+        tasks:
+          - type: script
+            script: |
+              echo "Cache step: node-modules-cache"
+            description: Auto-generated placeholder for cache step
+          - type: script
+            script: |
+              npm run build:backend
+          - type: script
+            script: |
+              cd frontend && npm run build
+        artifacts:
+          - name: build-output
+            location: dist/
+  - name: stage-3
+    jobs:
+      - name: docker-build
+        agent: docker:24-dind
+        tasks:
+          - type: script
+            script: |
+              docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+          - type: script
+            script: |
+              docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest .
+          - type: script
+            script: |
+              docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable
+          - type: script
+            script: |
+              echo 'Not on main, skipping stable tag'
+  - name: stage-4
+    jobs:
+      - name: docker-push
+        agent: docker:24-dind
+        tasks:
+          - type: script
+            script: |
+              docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+          - type: script
+            script: |
+              docker push ${APP_IMAGE}:${APP_VERSION}
+          - type: script
+            script: |
+              docker push ${APP_IMAGE}:latest
+          - type: script
+            script: |
+              docker push ${APP_IMAGE}:stable
+  - name: stage-5
+    jobs:
+      - name: deploy-staging
+        agent: bitnami/kubectl:latest
+        tasks:
+          - type: script
+            script: |
+              kubectl config use-context staging
+          - type: script
+            script: |
+              kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+          - type: script
+            script: |
+              kubectl rollout status deployment/webapp -n staging --timeout=5m
+  - name: stage-6
+    jobs:
+      - name: e2e-test
+        agent: mcr.microsoft.com/playwright:v1.44.0-jammy
+        tasks:
+          - type: script
+            script: |
+              npm run test:e2e -- --reporter=html
+        artifacts:
+          - name: e2e-report
+            location: playwright-report/
+  - name: stage-7
+    jobs:
+      - name: deploy-prod
+        agent: bitnami/kubectl:latest
+        tasks:
+          - type: script
+            script: |
+              kubectl config use-context production
+          - type: script
+            script: |
+              kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+          - type: script
+            script: |
+              kubectl rollout status deployment/webapp -n production --timeout=10m
+          - type: script
+            script: |
+              kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite
+

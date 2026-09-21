@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="ASCII"?>
+<bambooMM:Plan xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bambooMM="http://www.mddoai.com/mddoai/metamodel/bamboo" name="fullstack-webapp">
+  <project name="fullstack-webapp-project"/>
+  <variables xsi:type="bambooMM:PlanVariable" name="REGISTRY" value="${CI_REGISTRY}"/>
+  <variables xsi:type="bambooMM:PlanVariable" name="APP_IMAGE" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+  <variables xsi:type="bambooMM:PlanVariable" name="APP_VERSION" value="${CI_COMMIT_SHORT_SHA}"/>
+  <triggers xsi:type="bambooMM:RepositoryPollingTrigger" pollInterval="3">
+    <schedule xsi:type="bambooMM:PeriodicPollSchedule" interval="3"/>
+  </triggers>
+  <triggers xsi:type="bambooMM:ScheduledTrigger">
+    <schedule xsi:type="bambooMM:CronTriggerSchedule" expression="0"/>
+  </triggers>
+  <stages name="stage-0">
+    <jobs name="install-deps">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Cache step: node-modules-cache&quot;" description="Auto-generated placeholder for cache step"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm ci --prefer-offline"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="cd frontend &amp;&amp; npm ci --prefer-offline"/>
+      <agent name="node:20-alpine"/>
+    </jobs>
+  </stages>
+  <stages name="stage-1">
+    <jobs name="lint">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Cache step: node-modules-cache&quot;" description="Auto-generated placeholder for cache step"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run lint"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run format:check"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="cd frontend &amp;&amp; npm run lint"/>
+      <agent name="node:20-alpine"/>
+    </jobs>
+    <jobs name="test-unit">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Cache step: node-modules-cache&quot;" description="Auto-generated placeholder for cache step"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run test:unit -- --coverage"/>
+      <agent name="node:${NODE_VERSION}-alpine"/>
+      <artifacts name="unit-test-coverage" location="coverage/"/>
+    </jobs>
+    <jobs name="test-integration">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Cache step: node-modules-cache&quot;" description="Auto-generated placeholder for cache step"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run db:migrate:test"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run test:integration"/>
+      <agent name="node:20-alpine"/>
+      <artifacts name="integration-test-results" location="test-results/"/>
+    </jobs>
+    <jobs name="security-scan">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Unsupported plugin: snyk/actions/node&quot;" description="Auto-generated placeholder for unsupported plugin snyk/actions/node"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm audit --audit-level=critical"/>
+      <agent name="node:20-alpine"/>
+      <artifacts name="security-report" location="snyk-report.sarif"/>
+    </jobs>
+  </stages>
+  <stages name="stage-2">
+    <jobs name="build">
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo &quot;Cache step: node-modules-cache&quot;" description="Auto-generated placeholder for cache step"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run build:backend"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="cd frontend &amp;&amp; npm run build"/>
+      <agent name="node:20-alpine"/>
+      <artifacts name="build-output" location="dist/"/>
+    </jobs>
+  </stages>
+  <stages name="stage-3">
+    <jobs name="docker-build">
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest ."/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="echo 'Not on main, skipping stable tag'"/>
+      <agent name="docker:24-dind"/>
+    </jobs>
+  </stages>
+  <stages name="stage-4">
+    <jobs name="docker-push">
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker push ${APP_IMAGE}:${APP_VERSION}"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker push ${APP_IMAGE}:latest"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="docker push ${APP_IMAGE}:stable"/>
+      <agent name="docker:24-dind"/>
+    </jobs>
+  </stages>
+  <stages name="stage-5">
+    <jobs name="deploy-staging">
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl config use-context staging"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl rollout status deployment/webapp -n staging --timeout=5m"/>
+      <agent name="bitnami/kubectl:latest"/>
+    </jobs>
+  </stages>
+  <stages name="stage-6">
+    <jobs name="e2e-test">
+      <tasks xsi:type="bambooMM:ScriptTask" script="npm run test:e2e -- --reporter=html"/>
+      <agent name="mcr.microsoft.com/playwright:v1.44.0-jammy"/>
+      <artifacts name="e2e-report" location="playwright-report/"/>
+    </jobs>
+  </stages>
+  <stages name="stage-7">
+    <jobs name="deploy-prod">
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl config use-context production"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl rollout status deployment/webapp -n production --timeout=10m"/>
+      <tasks xsi:type="bambooMM:ScriptTask" script="kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite"/>
+      <agent name="bitnami/kubectl:latest"/>
+    </jobs>
+  </stages>
+</bambooMM:Plan>

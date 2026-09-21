@@ -1,0 +1,53 @@
+version: 2
+name: chatbot-app
+
+project:
+  name: chatbot-app-project
+
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+
+stages:
+  - name: stage-0
+    jobs:
+      - name: build
+        agent: default
+        tasks:
+          - type: script
+            script: |
+              docker build -t ${IMAGE_TAG} .
+      - name: unitTest
+        agent: python:3.12-slim
+        tasks:
+          - type: script
+            script: |
+              python3 test/run_unit_tests.py
+  - name: stage-1
+    jobs:
+      - name: healthCheck
+        agent: curlimages/curl:latest
+        tasks:
+          - type: script
+            script: |
+              ./scripts/health_check.sh
+  - name: stage-2
+    jobs:
+      - name: secretScan
+        agent: default
+        tasks:
+          - type: script
+            script: |
+              gitleaks detect --source . --no-git -v
+  - name: stage-3
+    jobs:
+      - name: push
+        agent: default
+        tasks:
+          - type: script
+            script: |
+              docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+          - type: script
+            script: |
+              docker push ${IMAGE_TAG}
+

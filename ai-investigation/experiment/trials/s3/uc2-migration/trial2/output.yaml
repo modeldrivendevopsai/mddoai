@@ -1,0 +1,298 @@
+---
+version: 2
+plan:
+  project-key: fullstack-webapp
+  name: fullstack-webapp
+  key: fullstack-webapp
+  enabled: true
+
+stages:
+  - Stage-install-deps:
+      jobs:
+        - install-deps
+
+  - Stage-lint-test-unit-test-integration-security-scan-test-unit-lint-security-scan-test-integration:
+      jobs:
+        - lint
+        - test-unit
+        - test-integration
+        - security-scan
+
+  - Stage-build-build-build:
+      jobs:
+        - build
+
+  - Stage-docker-build-docker-build-docker-build-docker-build:
+      jobs:
+        - docker-build
+
+  - Stage-docker-push-docker-push-docker-push-docker-push-docker-push:
+      jobs:
+        - docker-push
+
+  - Stage-deploy-staging-deploy-staging-deploy-staging-deploy-staging-deploy-staging-deploy-staging:
+      jobs:
+        - deploy-staging
+
+  - Stage-e2e-test-e2e-test-e2e-test-e2e-test-e2e-test-e2e-test-e2e-test:
+      jobs:
+        - e2e-test
+
+  - Stage-deploy-prod-deploy-prod-deploy-prod-deploy-prod-deploy-prod-deploy-prod-deploy-prod-deploy-prod:
+      jobs:
+        - deploy-prod
+
+
+install-deps:
+  key: install-deps
+  tasks:
+    - script:
+        body: npm ci --prefer-offline
+        enabled: true
+
+
+    - script:
+        body: cd frontend && npm ci --prefer-offline
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: node:20-alpine
+
+
+lint:
+  key: lint
+  tasks:
+    - script:
+        body: npm run lint
+        enabled: true
+
+
+    - script:
+        body: npm run format:check
+        enabled: true
+
+
+    - script:
+        body: cd frontend && npm run lint
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: node:20-alpine
+
+
+test-unit:
+  key: test-unit
+  tasks:
+    - script:
+        body: npm run test:unit -- --coverage
+        enabled: true
+
+
+  artifacts:
+    - name: COVERAGE_PCT
+      location: ${COVERAGE}
+      shared: true
+    - name: unit-test-coverage
+      location: coverage/
+      shared: true
+  clean-working-dir: false
+  docker:
+    image: node:${NODE_VERSION}-alpine
+
+
+test-integration:
+  key: test-integration
+  tasks:
+    - script:
+        body: npm run db:migrate:test
+        enabled: true
+
+
+    - script:
+        body: npm run test:integration
+        enabled: true
+
+
+  artifacts:
+    - name: integration-test-results
+      location: test-results/
+      shared: true
+  clean-working-dir: false
+  docker:
+    image: node:20-alpine
+
+
+security-scan:
+  key: security-scan
+  tasks:
+    - any-task:
+        module: snyk/actions/node@master
+        configuration:
+          args: --severity-threshold=high
+        enabled: true
+
+
+    - script:
+        body: npm audit --audit-level=critical
+        enabled: true
+
+
+  artifacts:
+    - name: security-report
+      location: snyk-report.sarif
+      shared: true
+  clean-working-dir: false
+  docker:
+    image: node:20-alpine
+
+
+build:
+  key: build
+  tasks:
+    - script:
+        body: npm run build:backend
+        enabled: true
+
+
+    - script:
+        body: cd frontend && npm run build
+        enabled: true
+
+
+  artifacts:
+    - name: BUILD_SHA
+      location: ${CI_COMMIT_SHORT_SHA}
+      shared: true
+    - name: build-output
+      location: dist/
+      shared: true
+  clean-working-dir: false
+  docker:
+    image: node:20-alpine
+
+
+docker-build:
+  key: docker-build
+  tasks:
+    - script:
+        body: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+        enabled: true
+
+
+    - script:
+        body: docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest .
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: docker:24-dind
+
+
+docker-push:
+  key: docker-push
+  tasks:
+    - script:
+        body: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+        enabled: true
+
+
+    - script:
+        body: docker push ${APP_IMAGE}:${APP_VERSION}
+        enabled: true
+
+
+    - script:
+        body: docker push ${APP_IMAGE}:latest
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: docker:24-dind
+
+
+deploy-staging:
+  key: deploy-staging
+  tasks:
+    - script:
+        body: kubectl config use-context staging
+        enabled: true
+
+
+    - script:
+        body: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+        enabled: true
+
+
+    - script:
+        body: kubectl rollout status deployment/webapp -n staging --timeout=5m
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: bitnami/kubectl:latest
+
+
+e2e-test:
+  key: e2e-test
+  tasks:
+    - script:
+        body: npm run test:e2e -- --reporter=html
+        enabled: true
+
+
+  artifacts:
+    - name: e2e-report
+      location: playwright-report/
+      shared: true
+  clean-working-dir: false
+  docker:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+
+
+deploy-prod:
+  key: deploy-prod
+  tasks:
+    - script:
+        body: kubectl config use-context production
+        enabled: true
+
+
+    - script:
+        body: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+        enabled: true
+
+
+    - script:
+        body: kubectl rollout status deployment/webapp -n production --timeout=10m
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: bitnami/kubectl:latest
+
+
+triggers:
+  - repository-polling:
+      type: interval
+      
+
+
+  - scheduled:
+      type: cron
+      cron: 0
+      
+
+
+variables:
+  REGISTRY: ${CI_REGISTRY}
+  APP_IMAGE: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+  APP_VERSION: ${CI_COMMIT_SHORT_SHA}
+

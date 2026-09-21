@@ -1,0 +1,80 @@
+---
+version: 2
+plan:
+  project-key: chatbot-app
+  name: chatbot-app
+  key: chatbot-app
+  enabled: true
+
+stages:
+  - Stage-build-unitTest:
+      jobs:
+        - build
+        - unitTest
+
+  - Stage-healthCheck-healthCheck:
+      jobs:
+        - healthCheck
+
+  - Stage-push-push-push:
+      jobs:
+        - push
+
+
+build:
+  key: build
+  tasks:
+    - script:
+        body: docker build -t ${IMAGE_TAG} .
+        enabled: true
+
+
+  clean-working-dir: false
+
+
+unitTest:
+  key: unitTest
+  tasks:
+    - script:
+        body: python3 test/run_unit_tests.py
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: python:3.12-slim
+
+
+healthCheck:
+  key: healthCheck
+  tasks:
+    - script:
+        body: ./scripts/health_check.sh
+        enabled: true
+
+
+  clean-working-dir: false
+  docker:
+    image: curlimages/curl:latest
+
+
+push:
+  key: push
+  tasks:
+    - script:
+        body: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+        enabled: true
+
+
+    - script:
+        body: docker push ${IMAGE_TAG}
+        enabled: true
+
+
+  clean-working-dir: false
+
+
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}/framework-chatbot-image
+  IMAGE_TAG: ${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}
+

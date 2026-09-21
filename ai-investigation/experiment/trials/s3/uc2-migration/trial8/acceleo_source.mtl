@@ -1,0 +1,410 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/bamboo')]
+
+[query public getTaskType(task : Task) : String =
+  if task.oclIsTypeOf(ScriptTask) then 'script'
+  else if task.oclIsTypeOf(CleanWorkingDirectoryTask) then 'clean-working-directory'
+  else if task.oclIsTypeOf(InjectVariablesTask) then 'inject-variables'
+  else if task.oclIsTypeOf(MavenTask) then 'maven'
+  else if task.oclIsTypeOf(NUnitRunnerTask) then 'nunit-runner'
+  else if task.oclIsTypeOf(DockerCLITask) then 'docker-cli'
+  else if task.oclIsTypeOf(DockerBuildImageTask) then 'docker-build-image'
+  else if task.oclIsTypeOf(DockerRunContainerTask) then 'docker-run-container'
+  else if task.oclIsTypeOf(DockerPushImageTask) then 'docker-push-image'
+  else if task.oclIsTypeOf(DockerPullImageTask) then 'docker-pull-image'
+  else if task.oclIsTypeOf(ArtifactDownloaderTask) then 'artifact-downloader'
+  else if task.oclIsTypeOf(JUnitParserTask) then 'junit-parser'
+  else if task.oclIsTypeOf(TestNGParserTask) then 'testng-parser'
+  else if task.oclIsTypeOf(MochaParserTask) then 'mocha-parser'
+  else if task.oclIsTypeOf(NUnitParserTask) then 'nunit-parser'
+  else if task.oclIsTypeOf(MSTestParserTask) then 'mstest-parser'
+  else if task.oclIsTypeOf(TestResultsParserTask) then 'test-results-parser'
+  else 'unknown'
+  endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif
+/]
+
+[query public getTriggerType(trigger : Trigger) : String =
+  if trigger.oclIsTypeOf(RepositoryPollingTrigger) then 'repository-polling'
+  else if trigger.oclIsTypeOf(RemoteTrigger) then 'remote'
+  else if trigger.oclIsTypeOf(ScheduledTrigger) then 'scheduled'
+  else if trigger.oclIsTypeOf(DeploymentTrigger) then 'deployment'
+  else if trigger.oclIsTypeOf(ConditionalBuildTrigger) then 'conditional'
+  else 'unknown'
+  endif endif endif endif endif
+/]
+
+[query public getRepositoryType(repo : Repository) : String =
+  if repo.oclIsTypeOf(GitRepository) then 'git'
+  else if repo.oclIsTypeOf(BitbucketServerRepository) then 'bitbucket-server'
+  else if repo.oclIsTypeOf(SVNRepository) then 'svn'
+  else 'unknown'
+  endif endif endif
+/]
+
+[query public getVariableType(variable : Variable) : String =
+  if variable.oclIsTypeOf(GlobalVariable) then 'global'
+  else if variable.oclIsTypeOf(ProjectVariable) then 'project'
+  else if variable.oclIsTypeOf(PlanVariable) then 'plan'
+  else if variable.oclIsTypeOf(BuildSpecificVariable) then 'build-specific'
+  else if variable.oclIsTypeOf(SystemVariable) then 'system'
+  else 'unknown'
+  endif endif endif endif endif
+/]
+
+[template public generateVariable(variable : Variable) post (trim())]
+[variable.name/]: [variable.value/]
+[/template]
+
+[template public generateRepository(repo : Repository) post (trim())]
+name: [repo.name/]
+type: [getRepositoryType(repo)/]
+[if (repo.oclIsTypeOf(GitRepository))]
+[let gitRepo : GitRepository = repo.oclAsType(GitRepository)]
+url: [gitRepo.url/]
+[if (not gitRepo.branch.oclIsUndefined())]
+branch: [gitRepo.branch/]
+[/if]
+[/let]
+[elseif (repo.oclIsTypeOf(SVNRepository))]
+[let svnRepo : SVNRepository = repo.oclAsType(SVNRepository)]
+url: [svnRepo.url/]
+[/let]
+[/if]
+[/template]
+
+[template public generateRequirement(requirement : Requirement) post (trim())]
+- capability: [requirement.capability/]
+[/template]
+
+[template public generateArtifact(artifact : Artifact) post (trim())]
+- name: [artifact.name/]
+  location: [artifact.location/]
+[/template]
+
+[template public generateNotification(notification : Notification) post (trim())]
+- event: [notification.event/]
+[if (notification.recipients->notEmpty())]
+  recipients:
+[for (recipient : String | notification.recipients)]
+  - [recipient/]
+[/for]
+[/if]
+[/template]
+
+[template public generatePollSchedule(schedule : PollSchedule) post (trim())]
+[if (schedule.oclIsTypeOf(PeriodicPollSchedule))]
+[let periodicSchedule : PeriodicPollSchedule = schedule.oclAsType(PeriodicPollSchedule)]
+interval: [periodicSchedule.interval/]
+unit: [periodicSchedule.unit.toString()/]
+[/let]
+[elseif (schedule.oclIsTypeOf(CronPollSchedule))]
+[let cronSchedule : CronPollSchedule = schedule.oclAsType(CronPollSchedule)]
+cron: [cronSchedule.expression/]
+[/let]
+[/if]
+[/template]
+
+[template public generateTriggerSchedule(schedule : TriggerSchedule) post (trim())]
+[if (schedule.oclIsTypeOf(DailySchedule))]
+[let dailySchedule : DailySchedule = schedule.oclAsType(DailySchedule)]
+type: daily
+hour: [dailySchedule.hour/]
+minute: [dailySchedule.minute/]
+[/let]
+[elseif (schedule.oclIsTypeOf(WeeklySchedule))]
+[let weeklySchedule : WeeklySchedule = schedule.oclAsType(WeeklySchedule)]
+type: weekly
+dayOfWeek: [weeklySchedule.dayOfWeek/]
+hour: [weeklySchedule.hour/]
+minute: [weeklySchedule.minute/]
+[/let]
+[elseif (schedule.oclIsTypeOf(MonthlySchedule))]
+[let monthlySchedule : MonthlySchedule = schedule.oclAsType(MonthlySchedule)]
+type: monthly
+dayOfMonth: [monthlySchedule.dayOfMonth/]
+hour: [monthlySchedule.hour/]
+minute: [monthlySchedule.minute/]
+[/let]
+[elseif (schedule.oclIsTypeOf(CronTriggerSchedule))]
+[let cronSchedule : CronTriggerSchedule = schedule.oclAsType(CronTriggerSchedule)]
+type: cron
+expression: [cronSchedule.expression/]
+[/let]
+[/if]
+[/template]
+
+[template public generateTrigger(trigger : Trigger) post (trim())]
+[if (trigger.oclIsTypeOf(RepositoryPollingTrigger))]
+[let pollingTrigger : RepositoryPollingTrigger = trigger.oclAsType(RepositoryPollingTrigger)]
+type: repository-polling
+[if (not pollingTrigger.pollInterval.oclIsUndefined())]
+pollInterval: [pollingTrigger.pollInterval/]
+[/if]
+[if (not pollingTrigger.schedule.oclIsUndefined())]
+schedule:
+  [generatePollSchedule(pollingTrigger.schedule)/]
+[/if]
+[/let]
+[elseif (trigger.oclIsTypeOf(RemoteTrigger))]
+[let remoteTrigger : RemoteTrigger = trigger.oclAsType(RemoteTrigger)]
+type: remote
+[if (remoteTrigger.repositories->notEmpty())]
+repositories:
+[for (repoName : String | remoteTrigger.repositories)]
+  - [repoName/]
+[/for]
+[/if]
+[/let]
+[elseif (trigger.oclIsTypeOf(ScheduledTrigger))]
+[let scheduledTrigger : ScheduledTrigger = trigger.oclAsType(ScheduledTrigger)]
+type: scheduled
+schedule:
+  [generateTriggerSchedule(scheduledTrigger.schedule)/]
+[/let]
+[elseif (trigger.oclIsTypeOf(DeploymentTrigger))]
+[let deploymentTrigger : DeploymentTrigger = trigger.oclAsType(DeploymentTrigger)]
+type: deployment
+deploymentProject: [deploymentTrigger.deploymentProject/]
+[if (not deploymentTrigger.environment.oclIsUndefined())]
+environment: [deploymentTrigger.environment/]
+[/if]
+[/let]
+[elseif (trigger.oclIsTypeOf(ConditionalBuildTrigger))]
+[let conditionalTrigger : ConditionalBuildTrigger = trigger.oclAsType(ConditionalBuildTrigger)]
+type: conditional
+condition: [conditionalTrigger.condition/]
+trigger:
+  [generateTrigger(conditionalTrigger.trigger)/]
+[/let]
+[/if]
+[/template]
+
+[template public generateTask(task : Task) post (trim())]
+- type: [getTaskType(task)/]
+[if (task.oclIsTypeOf(ScriptTask))]
+[let scriptTask : ScriptTask = task.oclAsType(ScriptTask)]
+[if (not scriptTask.name.oclIsUndefined())]
+  name: [scriptTask.name/]
+[/if]
+  script: |
+    [scriptTask.script/]
+[if (not scriptTask.description.oclIsUndefined())]
+  description: [scriptTask.description/]
+[/if]
+[/let]
+[elseif (task.oclIsTypeOf(InjectVariablesTask))]
+[let injectTask : InjectVariablesTask = task.oclAsType(InjectVariablesTask)]
+[if (not injectTask.name.oclIsUndefined())]
+  name: [injectTask.name/]
+[/if]
+  filePath: [injectTask.filePath/]
+[/let]
+[elseif (task.oclIsTypeOf(MavenTask))]
+[let mavenTask : MavenTask = task.oclAsType(MavenTask)]
+[if (not mavenTask.name.oclIsUndefined())]
+  name: [mavenTask.name/]
+[/if]
+  goal: [mavenTask.goal/]
+[if (not mavenTask.options.oclIsUndefined())]
+  options: [mavenTask.options/]
+[/if]
+[/let]
+[elseif (task.oclIsTypeOf(NUnitRunnerTask))]
+[let nunitTask : NUnitRunnerTask = task.oclAsType(NUnitRunnerTask)]
+[if (not nunitTask.name.oclIsUndefined())]
+  name: [nunitTask.name/]
+[/if]
+  testAssembly: [nunitTask.testAssembly/]
+[/let]
+[elseif (task.oclIsTypeOf(DockerCLITask))]
+[let dockerCliTask : DockerCLITask = task.oclAsType(DockerCLITask)]
+[if (not dockerCliTask.name.oclIsUndefined())]
+  name: [dockerCliTask.name/]
+[/if]
+  command: [dockerCliTask.command/]
+[/let]
+[elseif (task.oclIsTypeOf(DockerBuildImageTask))]
+[let dockerBuildTask : DockerBuildImageTask = task.oclAsType(DockerBuildImageTask)]
+[if (not dockerBuildTask.name.oclIsUndefined())]
+  name: [dockerBuildTask.name/]
+[/if]
+  dockerfile: [dockerBuildTask.dockerfile/]
+  imageName: [dockerBuildTask.imageName/]
+[/let]
+[elseif (task.oclIsTypeOf(DockerRunContainerTask))]
+[let dockerRunTask : DockerRunContainerTask = task.oclAsType(DockerRunContainerTask)]
+[if (not dockerRunTask.name.oclIsUndefined())]
+  name: [dockerRunTask.name/]
+[/if]
+  imageName: [dockerRunTask.imageName/]
+[if (not dockerRunTask.containerCommand.oclIsUndefined())]
+  containerCommand: [dockerRunTask.containerCommand/]
+[/if]
+[/let]
+[elseif (task.oclIsTypeOf(DockerPushImageTask))]
+[let dockerPushTask : DockerPushImageTask = task.oclAsType(DockerPushImageTask)]
+[if (not dockerPushTask.name.oclIsUndefined())]
+  name: [dockerPushTask.name/]
+[/if]
+  imageName: [dockerPushTask.imageName/]
+  registryUrl: [dockerPushTask.registryUrl/]
+[/let]
+[elseif (task.oclIsTypeOf(DockerPullImageTask))]
+[let dockerPullTask : DockerPullImageTask = task.oclAsType(DockerPullImageTask)]
+[if (not dockerPullTask.name.oclIsUndefined())]
+  name: [dockerPullTask.name/]
+[/if]
+  imageName: [dockerPullTask.imageName/]
+[if (not dockerPullTask.registryUrl.oclIsUndefined())]
+  registryUrl: [dockerPullTask.registryUrl/]
+[/if]
+[/let]
+[elseif (task.oclIsTypeOf(ArtifactDownloaderTask))]
+[let artifactTask : ArtifactDownloaderTask = task.oclAsType(ArtifactDownloaderTask)]
+[if (not artifactTask.name.oclIsUndefined())]
+  name: [artifactTask.name/]
+[/if]
+  sourcePlan: [artifactTask.sourcePlan/]
+  targetDirectory: [artifactTask.targetDirectory/]
+[/let]
+[elseif (task.oclIsTypeOf(JUnitParserTask))]
+[let junitTask : JUnitParserTask = task.oclAsType(JUnitParserTask)]
+[if (not junitTask.name.oclIsUndefined())]
+  name: [junitTask.name/]
+[/if]
+  testDirectory: [junitTask.testDirectory/]
+[/let]
+[elseif (task.oclIsTypeOf(TestResultsParserTask))]
+[let testResultsTask : TestResultsParserTask = task.oclAsType(TestResultsParserTask)]
+[if (not testResultsTask.name.oclIsUndefined())]
+  name: [testResultsTask.name/]
+[/if]
+  testDataPath: [testResultsTask.testDataPath/]
+[/let]
+[elseif (task.oclIsTypeOf(TestNGParserTask) or task.oclIsTypeOf(MochaParserTask) or task.oclIsTypeOf(NUnitParserTask) or task.oclIsTypeOf(MSTestParserTask))]
+[if (not task.name.oclIsUndefined())]
+  name: [task.name/]
+[/if]
+[/if]
+[/template]
+
+[template public generateJob(job : Job) post (trim())]
+- name: [job.name/]
+[if (job.agent.oclIsUndefined())]
+  agent: default
+[else]
+  agent: [job.agent.name/]
+[/if]
+[if (job.requirements->notEmpty())]
+  requirements:
+[for (requirement : Requirement | job.requirements)]
+    [generateRequirement(requirement)/]
+[/for]
+[/if]
+[if (job.tasks->notEmpty())]
+  tasks:
+[for (taskItem : Task | job.tasks)]
+    [generateTask(taskItem)/]
+[/for]
+[/if]
+[if (job.artifacts->notEmpty())]
+  artifacts:
+[for (artifactItem : Artifact | job.artifacts)]
+    [generateArtifact(artifactItem)/]
+[/for]
+[/if]
+[if (job.notifications->notEmpty())]
+  notifications:
+[for (notificationItem : Notification | job.notifications)]
+    [generateNotification(notificationItem)/]
+[/for]
+[/if]
+[/template]
+
+[template public generateStage(stage : Stage) post (trim())]
+- name: [stage.name/]
+  jobs:
+[for (jobItem : Job | stage.jobs)]
+    [generateJob(jobItem)/]
+[/for]
+[/template]
+
+[template public generatePlanBranch(planBranch : PlanBranch) post (trim())]
+- name: [planBranch.name/]
+  branchName: [planBranch.branchName/]
+[/template]
+
+[template public generatePlanDependency(dependency : PlanDependency) post (trim())]
+- dependentPlan: [dependency.dependentPlan/]
+[/template]
+
+[template public generateElement(plan : Plan)]
+[comment @main/]
+[file (plan.name + '.yaml', false, 'UTF-8')]
+version: 2
+name: [plan.name/]
+
+project:
+  name: [plan.project.name/]
+[if (plan.project.variables->notEmpty())]
+  variables:
+[for (projectVar : Variable | plan.project.variables)]
+    [generateVariable(projectVar)/]
+[/for]
+[/if]
+[if (plan.project.permissions->notEmpty())]
+  permissions:
+[for (permission : Permission | plan.project.permissions)]
+    [permission.key.toString()/]: [permission.value.toString()/]
+[/for]
+[/if]
+
+[if (plan.repositories->notEmpty())]
+repositories:
+[for (repository : Repository | plan.repositories)]
+  [generateRepository(repository)/]
+[/for]
+
+[/if]
+[if (plan.variables->notEmpty())]
+variables:
+[for (planVar : Variable | plan.variables)]
+  [generateVariable(planVar)/]
+[/for]
+
+[/if]
+[if (plan.triggers->notEmpty())]
+triggers:
+[for (triggerItem : Trigger | plan.triggers)]
+  [generateTrigger(triggerItem)/]
+[/for]
+
+[/if]
+stages:
+[for (stageItem : Stage | plan.stages)]
+  [generateStage(stageItem)/]
+[/for]
+
+[if (plan.notifications->notEmpty())]
+notifications:
+[for (notificationItem : Notification | plan.notifications)]
+  [generateNotification(notificationItem)/]
+[/for]
+
+[/if]
+[if (plan.planBranches->notEmpty())]
+planBranches:
+[for (branchItem : PlanBranch | plan.planBranches)]
+  [generatePlanBranch(branchItem)/]
+[/for]
+
+[/if]
+[if (plan.dependencies->notEmpty())]
+dependencies:
+[for (depItem : PlanDependency | plan.dependencies)]
+  [generatePlanDependency(depItem)/]
+[/for]
+
+[/if]
+[/file]
+[/template]

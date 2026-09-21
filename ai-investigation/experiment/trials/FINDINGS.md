@@ -9,7 +9,7 @@ temperature (see the temperature note below).
 | -------- | --- | --- | --- |
 | S1 (existing chain) | 100% convergent | 100% convergent | 100% convergent |
 | S2 (minimal prompting) | fully divergent | fully divergent | fully divergent |
-| S3 (from-scratch synthesis) | convergent once a chain is validated (not independently re-measured) | same | same |
+| S3 (from-scratch synthesis) | measured: 2/2 independent syntheses near-identical | measured: 2/2 converge on job/stage design, differ on implementation defects | same as UC1 (reuses the already-validated chain, no fresh synthesis) |
 
 S1 reuses an already-validated, human-authored transformation chain
 unmodified, so every run produces the byte-identical pipeline. The model's
@@ -19,6 +19,22 @@ real design choice is up to the model and varies every single time. This
 holds on UC3 even after its first-attempt pass rate reached 100% (see
 below): passing every trial and producing a different design every trial
 are independent facts.
+
+**S3's own determinism is now a real, measured result on UC1 and UC2, not
+just a mechanism argument.** Two independent, fresh, cold-start syntheses
+were run for each. On UC1 (GitLab), the two converged almost completely:
+every job name, variable name, image choice, script, and flag was
+byte-identical, the only difference was two explicit `needs:` fields the
+second run added where the first relied on implicit stage-ordering. On UC2
+(Bamboo), the two converged on the same high-level design (identical job
+names, same stage grouping) but diverged on implementation robustness: the
+first run had a malformed trigger block and an unexpanded build matrix; the
+second had a different real bug, multi-job stage names getting job names
+concatenated repeatedly (e.g. `Stage-push-push-push-push-push`), plus a
+real semantic gap, no docker-capable environment declared for the build/push
+jobs. High-level design converges reliably; low-level implementation detail
+still varies run to run, a real, more precise version of the determinism
+claim than "S3 is deterministic once validated."
 
 ## Success rate
 

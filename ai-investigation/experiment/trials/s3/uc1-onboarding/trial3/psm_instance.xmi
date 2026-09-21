@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ASCII"?>
+<gitlabMM:Pipeline xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <stages>build</stages>
+  <stages>unitTest</stages>
+  <stages>healthCheck</stages>
+  <stages>push</stages>
+  <jobs name="build" stage="build">
+    <script>
+      <commands command="docker build -t ${IMAGE_TAG} ."/>
+    </script>
+    <retry max="1"/>
+  </jobs>
+  <jobs name="unitTest" stage="unitTest">
+    <script>
+      <commands command="python3 test/run_unit_tests.py"/>
+    </script>
+    <image name="python:3.12-slim"/>
+    <retry max="1"/>
+  </jobs>
+  <jobs name="healthCheck" stage="healthCheck">
+    <script>
+      <commands command="./scripts/health_check.sh"/>
+    </script>
+    <image name="curlimages/curl:latest"/>
+    <needs job="build"/>
+    <retry max="1"/>
+  </jobs>
+  <jobs name="push" stage="push">
+    <script>
+      <commands command="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${CI_REGISTRY}"/>
+      <commands command="docker push ${IMAGE_TAG}"/>
+    </script>
+    <needs job="healthCheck"/>
+    <retry max="1"/>
+  </jobs>
+  <variables>
+    <variables name="IMAGE_NAME" value="${CI_REGISTRY_IMAGE}/framework-chatbot-image"/>
+    <variables name="IMAGE_TAG" value="${IMAGE_NAME}:${IMAGE_VERSION}-${CI_COMMIT_REF_SLUG}"/>
+  </variables>
+  <default>
+    <image name="docker:latest"/>
+  </default>
+</gitlabMM:Pipeline>
