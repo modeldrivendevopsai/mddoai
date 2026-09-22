@@ -42,15 +42,17 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 
 ```json
 // request
-{"filename": "swarch2pim.atl", "content": "module ...;"}
+{"filename": "swarch2pim.atl", "content": "module ...;", "metamodel_ecore": "<ecore:EPackage .../>"}
 
 // response (200)
 {"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310, "generated_source_path": null}
 ```
 
-Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. It does **not** catch a reference to a type or attribute that doesn't actually exist in the real `.ecore` metamodel — ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture); that class of error only surfaces when the transformation actually runs against real model instances.
+Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. Compiling alone does **not** catch every real problem, though: ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture), and even a reference to a real type can still crash at runtime (e.g. a lazy rule instantiating an abstract classifier directly instead of dispatching to a concrete subtype rule — confirmed against a genuine LLM-generated transformation that compiled clean and only failed once it actually ran).
 
-Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, nesting the compiled output two levels deeper still, see [Setup](#setup) below.
+`metamodel_ecore` closes that second gap: given the target platform's own real PSM `.ecore` content, `AtlValidator` also actually **runs** the compiled transformation, via `main/`'s own execution classes, against a real, fixed PIM model instance mounted into this container (`ATL_SMOKE_TEST_PIM_INSTANCE_PATH` — see [Setup](#setup) below). A real runtime-only failure is reported as an `ERROR` issue the same way a compile error is, so the regenerate loop can act on it during the calling stage's own retry rounds instead of only discovering it later, with no retries left. Optional: without it, this endpoint behaves exactly as it always has (compile-only checking).
+
+Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has without a target metamodel, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, nesting the compiled output two levels deeper still, see [Setup](#setup) below.
 
 ### `POST /validate/acceleo`
 
@@ -68,6 +70,8 @@ Compiles the `.mtl` source with Acceleo's own classic standalone compiler (`Acce
 
 Since this field's content ultimately traces back to a stage-agent's own request body (not something this service generates itself), `EMFUtils.loadEPackage()` (the shared loader both this field and `/validate/ecore`'s own codegen path use) parses it with DOCTYPE declarations rejected outright and outbound network resolution disabled for any cross-document reference — see that method's own comment for the real class of attack (XXE, SSRF via EMF's own proxy resolution) this closes.
 
+`atl_source` is optional too, and only does anything alongside `metamodel_ecore`: this run's own already-generated, already-approved ATL. Given both, `AcceleoValidator` also actually **generates** real output — it first runs `atl_source` against the same fixed PIM sample `/validate/atl`'s own execution smoke test uses to produce a real PSM model instance, then runs the compiled Acceleo module against that, catching a real runtime-only Acceleo failure (a template that compiles clean but produces no real output, say) that compiling alone can never see. A real failure anywhere in that chain, including in the given `atl_source` itself, is reported as an `ERROR` issue. Without `atl_source` (or without `metamodel_ecore`), this behaves exactly as it always has.
+
 Same real-compiled-output behavior as `/validate/atl`: `generated_source_path` reports where the compiled `.emtl` module actually landed, and the same optional `run_id`/`stage`/`attempt` fields scope it.
 
 ### `GET /health`
@@ -83,6 +87,17 @@ This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-c
 ```
 cp .env.example .env   # optional — every setting has a working default
 ```
+
+`ATL_SMOKE_TEST_PIM_INSTANCE_PATH` (Java-side env var, read by `AtlValidator`/`AcceleoValidator`
+directly) points at the real, fixed PIM model instance their own execution smoke test runs a
+candidate ATL/Acceleo pair against, once a request also gives a real target metamodel (`metamodel_ecore`
+on `/validate/atl`, `metamodel_ecore` + `atl_source` on `/validate/acceleo`). In Docker this is the same
+real file `integration_runner`'s own generation-stage mount already uses (`main/src/test/resources/
+testCases/execution/gitlab/input.pimmm`, bind-mounted read-only) — ATL's own source metamodel never
+varies by target platform, so this one real, rich fixture (11 jobs, 3 trigger kinds, matrix builds,
+services, caches, artifacts) is enough to smoke-test any future platform's generated ATL, not only
+the one it was originally authored against. Unset (e.g. a plain local run with no Docker mount),
+this endpoint simply skips execution and falls back to compile-only checking.
 
 `VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator`/`AtlValidator`/
 `AcceleoValidator` directly, not by this Python service) is the base directory every real

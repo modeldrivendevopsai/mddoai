@@ -15,7 +15,7 @@ operation is implemented, not two.
 """
 import threading
 
-from integration_runner.pipeline import IntegrationRun
+from integration_runner.pipeline import STAGES, IntegrationRun
 
 # Serializes the functions that reassign _default (start_pipeline,
 # reset_pipeline, resume_run) against each other. Without it, two
@@ -213,6 +213,84 @@ def start_pipeline(
         # claimed above, before the reset-or-reuse decision, earlier than
         # start_stage_run()'s own claim_busy() would run.
         return _default.start_claimed_stage_run(context)
+
+
+def _seed_context_from(source_run: IntegrationRun, from_stage: str) -> dict:
+    """The real context from_stage would have received the first time
+    source_run reached it, reconstructed from source_run's own final
+    last_context rather than replayed from history: record_review() only
+    ever adds one f"{stage}_output" key per approval, purely additively
+    (see its own docstring), so subtracting from_stage's own key and every
+    later stage's from a run that got at least that far reproduces exactly
+    the context that stage originally ran with, no on-disk attempt replay
+    needed. Raises ValueError if source_run never actually got far enough
+    for this to be meaningful: forking a run that died at "docs" into
+    "atl" would otherwise silently hand atl blank pim_output/psm_output
+    instead of erroring (see stages/atl/agent.py's own context.get(...,"")
+    defaults - designed for a direct/test caller skipping context on
+    purpose, not for this)."""
+    boundary = STAGES.index(from_stage)
+    required = [f"{s}_output" for s in STAGES[:boundary]]
+    missing = [key for key in required if key not in source_run.last_context]
+    if missing:
+        raise ValueError(
+            f"Run {source_run.run_id!r} never produced {', '.join(missing)}, can't fork it into {from_stage!r}."
+        )
+    drop = {f"{s}_output" for s in STAGES[boundary:]}
+    return {k: v for k, v in source_run.last_context.items() if k not in drop}
+
+
+def fork_run(source_run_id: str, from_stage: str) -> dict:
+    """Starts a genuinely new run that reuses a past run's own real output
+    up to (not including) from_stage, then pauses there for a human to
+    review/correct before it runs for real - the real answer to "the
+    problem was actually in an earlier stage, not generation itself, and I
+    don't want to redo the whole pipeline to fix it." Rather than rewinding
+    source_run in place (current_stage_index only ever advances, by design,
+    and nothing else in this codebase assumes otherwise), this creates a
+    sibling run, so source_run's own real history, including its own
+    failure, stays exactly as it happened, inspectable via
+    GET /events?run_id=source_run_id forever, while the new run gets a
+    clean shot at from_stage onward. from_stage can be any real stage, not
+    only the one right before generation: the real problem behind a
+    generation failure could just as easily be the platform's own fetched
+    docs or its target metamodel as the ATL/Acceleo built from them.
+
+    Deliberately takes no "reason"/correction parameter of its own: the
+    caller uses the existing real POST /constraint/{stage} against the
+    newly-forked run afterward, the same real mechanism a normal rejection
+    already uses, rather than a second, parallel way to record one.
+
+    Always leaves from_stage pending rather than auto-starting it, even for
+    a stage outside _REQUIRES_MANUAL_START: a fork is exactly the moment a
+    human just made a real judgment call about where the pipeline actually
+    went wrong, they should get the same pause every other manual-start
+    stage already gets, to add that reasoning as a constraint before it
+    fires - auto-starting immediately would race a POST /constraint/{stage}
+    call sent right after this one, with no guarantee run_stage()'s own
+    first attempt reads it before it starts.
+
+    Raises ValueError for an unknown source_run_id or an unreal from_stage,
+    left for the caller (this service's own main.py) to turn into the right
+    HTTP status, same convention as resume_run()/rerun(). Raises BusyError
+    (via _reject_if_busy()) if the run being replaced is busy, same as
+    reset_pipeline()/resume_run()."""
+    if from_stage not in STAGES:
+        raise ValueError(f"{from_stage!r} isn't a real stage, choose one of {STAGES}.")
+    global _default
+    with _registry_lock:
+        source_run = get_run(source_run_id)
+        if source_run is None:
+            raise ValueError(f"No run with id {source_run_id!r}")
+        seed_context = _seed_context_from(source_run, from_stage)
+        _reject_if_busy(_default)
+        new_run = IntegrationRun()
+        new_run.current_stage_index = STAGES.index(from_stage)
+        new_run.last_context = seed_context
+        new_run.record_event("forked_from", from_stage, {"source_run_id": source_run_id})
+        _default = new_run
+        _runs[new_run.run_id] = new_run
+        return {"run_id": new_run.run_id, "stage": new_run.current_stage}
 
 
 def wait_for_idle(timeout: float = 5.0) -> None:

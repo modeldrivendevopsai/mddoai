@@ -1,6 +1,6 @@
 """available_files.py unit tests: real filesystem scan against
-REFERENCE_EXAMPLE_PATH (the real, checked-in pim2gitlabmodel.atl), no
-mocking for the "does the real file exist" cases.
+REFERENCE_EXAMPLE_PATH (the real, checked-in cicd2gha.atl), no mocking for
+the "does the real file exist" cases.
 """
 from unittest.mock import patch
 
@@ -10,7 +10,7 @@ import available_files
 def test_finds_the_real_master_example():
     files = available_files.list_available_files()
 
-    assert "pim2gitlabmodel.atl" in files
+    assert "cicd2gha.atl" in files
 
 
 def test_sorted_for_a_deterministic_listing():

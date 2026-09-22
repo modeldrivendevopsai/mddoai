@@ -44,7 +44,8 @@ default:
 [if (d.image <> null)]
   image: [d.image.name/]
 [/if]
-[generateServices(d.services)/][if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+  [generateServices(d.services)/]
+[if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
   before_script:
 [for (command: Command | d.beforeScript.commands)]
     - [command.command/]
@@ -164,20 +165,20 @@ reports:
 
 [template public generateJobVariables(variables: Variables)]
 [if (variables <> null and variables.variables->notEmpty())]
-  variables:
+variables:
 [for (variable : Variable | variables.variables)]
-    [variable.name/]: [variable.value/]
+  [variable.name/]: [variable.value/]
 [/for]
 [/if]
 [/template]
 
 [template public generateServices(services: OrderedSet(Service))]
 [if (services->notEmpty())]
-  services:
+services:
 [for (service : Service | services)]
-    - name: [service.name/]
+  - name: [service.name/]
 [if (service.alias <> null)]
-      alias: [service.alias/]
+    alias: [service.alias/]
 [/if]
 [/for]
 [/if]
@@ -185,31 +186,31 @@ reports:
 
 [template public generateAllowFailure(allowFailure: Boolean)]
 [if (allowFailure <> null and allowFailure = true)]
-  allow_failure: true
+allow_failure: true
 [/if]
 [/template]
 
 [template public generateTimeout(timeout: String)]
 [if (timeout <> null)]
-  timeout: [timeout/]
+timeout: [timeout/]
 [/if]
 [/template]
 
 [template public generateRetry(retry: Retry)]
 [if (retry <> null)]
-  retry:
-    max: [retry.max/]
+retry:
+  max: [retry.max/]
 [/if]
 [/template]
 
 [template public generateParallel(parallel: Parallel)]
 [if (parallel <> null and parallel.matrix <> null)]
-  parallel:
-    matrix:
+parallel:
+  matrix:
 [for (axis : Axis | parallel.matrix.axes)]
-      - [axis.name/]:
+    - [axis.name/]:
 [for (value : String | axis.values)]
-          - "[value/]"
+        - "[value/]"
 [/for]
 [/for]
 [/if]
@@ -217,11 +218,11 @@ reports:
 
 [template public generateRules(rules: OrderedSet(GitlabRule))]
 [if (rules->notEmpty())]
-  rules:
+rules:
 [for (rule : GitlabRule | rules)]
-    - if: [rule.gitlabIf/]
+  - if: [rule.gitlabIf/]
 [if (rule.when <> null)]
-      when: [rule.when/]
+    when: [rule.when/]
 [/if]
 [/for]
 [/if]
@@ -229,14 +230,14 @@ reports:
 
 [template public generateCache(cache: Cache)]
 [if (cache <> null)]
-  cache:
+cache:
 [if (cache.key <> null)]
-    key: [cache.key.name/]
+  key: [cache.key.name/]
 [/if]
 [if (cache.paths->notEmpty())]
-    paths:
+  paths:
 [for (path : String | cache.paths)]
-      - [path/]
+    - [path/]
 [/for]
 [/if]
 [/if]

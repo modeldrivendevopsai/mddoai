@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     model: str | None = None
     tools: list[dict] | None = None
     tool_choice: str | None = None
+    temperature: float | None = None
 
 
 class ChatResponse(BaseModel):
@@ -52,6 +53,8 @@ def chat_endpoint(request: ChatRequest):
         kwargs["tools"] = request.tools
     if request.tool_choice is not None:
         kwargs["tool_choice"] = request.tool_choice
+    if request.temperature is not None:
+        kwargs["temperature"] = request.temperature
     try:
         response = chat(request.messages, model=request.model, **kwargs)
         message = response.choices[0].message

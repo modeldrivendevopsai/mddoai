@@ -27,16 +27,25 @@ from .prompt_builder import build_prompt
 # 6 after a real Acceleo generation run: the model misused four distinct
 # reserved OCL/Acceleo keywords as plain identifiers (`context`, `and`,
 # `or`, `not`) in one .mtl file, one real ERROR per round wasn't enough
-# rounds to work through all four before hitting the old budget. 6 covers
-# that real case (four fixes) plus headroom for one more round of
-# regressions, without being unbounded. Costs nothing extra on a
-# generation that already validates in round 1 (the common case for
-# psm/atl today, confirmed against every real run so far), since the loop
-# still exits the moment validate_fn reports valid - the cost only lands
-# on a generation that keeps failing, where it's now up to 7 real LLM
-# calls instead of 4 across all three of psm/atl/acceleo (none override
-# this), since none has its own budget yet.
-DEFAULT_MAX_REGENERATE_ROUNDS = 6
+# rounds to work through all four before hitting the old budget. Raised
+# again, from 6 to 10, after a second real case of the same underlying
+# pattern: a real Acceleo generation (a genuinely new platform's own
+# template, run through the new real ATL/Acceleo execution smoke test, not
+# just compiled) still reported three distinct, simultaneous ERROR-severity
+# syntax issues ("the invocation isn't terminated", "parenthesis required",
+# "model content is invalid") on its 7th and final round under the old
+# budget - fixing one real issue per round for several rounds in a row is
+# the normal, observed shape of a real regenerate loop recovering from
+# several independent mistakes, not evidence of a runaway loop. 10 gives
+# that same class of real failure real headroom to actually resolve
+# instead of failing closed one or two rounds short, without being
+# unbounded. Costs nothing extra on a generation that already validates in
+# round 1 (the common case for psm/atl today, confirmed against every real
+# run so far), since the loop still exits the moment validate_fn reports
+# valid - the cost only lands on a generation that keeps failing, across
+# all three of psm/atl/acceleo (none override this), since none has its
+# own budget yet.
+DEFAULT_MAX_REGENERATE_ROUNDS = 10
 
 _CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
@@ -77,11 +86,38 @@ def run_with_retry(
     render_user_content: Callable[[dict[str, str]], str] = _default_render,
     max_regenerate_rounds: int = DEFAULT_MAX_REGENERATE_ROUNDS,
     model: str | None = None,
+    temperature: float | None = None,
 ) -> dict:
-    """Returns {"output": str, "prompt": dict, "validation": dict | None, "rounds": int}.
-    `prompt` always reflects the round that actually produced `output`, so a caller
-    showing "what was fed to the model" is always showing the truth. `validation` is
-    None when `validate_fn` was never given (single-shot mode)."""
+    """Returns {"output": str, "prompt": dict, "validation": dict | None,
+    "rounds": int, "round_constraints": list[str]}. `prompt` always
+    reflects the round that actually produced `output`, so a caller showing
+    "what was fed to the model" is always showing the truth. `validation` is
+    None when `validate_fn` was never given (single-shot mode).
+
+    `round_constraints` is a real, per-run concept, deliberately named
+    apart from this same package's own prompt_config.learned_constraints
+    (a permanent, cross-run constraint set a human explicitly promotes into
+    a stage's saved config - a completely different, longer-lived thing):
+    this is the full accumulated list (the original `constraints` plus
+    every real fix this call folded in along the way), not just this
+    call's own delta - real, describable knowledge this call spent up to
+    `max_regenerate_rounds` real LLM calls discovering, that would
+    otherwise only ever live in this function's own local variable and be
+    thrown away the moment it returns, forcing a caller's next external
+    retry to rediscover the same real mistakes from a blank slate
+    (confirmed for real: a stuck real run needed 5 external retries, each
+    silently re-spending its own internal budget from scratch, before this
+    existed). The caller is expected to persist these as real per-run
+    constraints (the same mechanism a human rejection already uses) so the
+    next call actually builds on this one.
+
+    `temperature` is forwarded to ai_layer_client.chat() as-is (None lets
+    the provider's own default apply). A structured, syntax-strict
+    generation task (a transformation or template that must parse under a
+    fixed grammar) benefits from a low or zero temperature - it reduces the
+    kind of invented-but-wrong construct a higher temperature makes more
+    likely, though it cannot fix a genuine, systematic knowledge gap the
+    model would get wrong at any temperature."""
     current_constraints = list(constraints or [])
     output = ""
     prompt: dict[str, str] = {}
@@ -94,7 +130,7 @@ def run_with_retry(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": render_user_content(prompt)},
         ]
-        response = ai_layer_client.chat(messages, model=model)
+        response = ai_layer_client.chat(messages, model=model, temperature=temperature)
         output = strip_code_fence(response["content"] or "")
 
         if validate_fn is None:
@@ -112,4 +148,10 @@ def run_with_retry(
             if fix not in current_constraints:
                 current_constraints.append(fix)
 
-    return {"output": output, "prompt": prompt, "validation": validation, "rounds": round_num}
+    return {
+        "output": output,
+        "prompt": prompt,
+        "validation": validation,
+        "rounds": round_num,
+        "round_constraints": current_constraints,
+    }

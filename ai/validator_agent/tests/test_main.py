@@ -261,7 +261,7 @@ def test_validate_atl_forwards_run_id():
     with patch("main.run_atl_validator", return_value=fake_atl_result()) as mock_run:
         client.post("/validate/atl", json={"filename": "sample.atl", "content": "module M;", "run_id": "run-123"})
 
-    mock_run.assert_called_once_with("module M;", "sample.atl", "run-123", None, None)
+    mock_run.assert_called_once_with("module M;", "sample.atl", "run-123", None, None, metamodel_ecore=None)
 
 
 def test_validate_atl_forwards_stage_and_attempt():
@@ -271,7 +271,27 @@ def test_validate_atl_forwards_stage_and_attempt():
             "run_id": "run-123", "stage": "atl", "attempt": "attempt_2",
         })
 
-    mock_run.assert_called_once_with("module M;", "sample.atl", "run-123", "atl", "attempt_2")
+    mock_run.assert_called_once_with(
+        "module M;", "sample.atl", "run-123", "atl", "attempt_2", metamodel_ecore=None
+    )
+
+
+def test_validate_atl_forwards_the_target_metamodel_when_given():
+    with patch("main.run_atl_validator", return_value=fake_atl_result()) as mock_run:
+        client.post("/validate/atl", json={
+            "filename": "sample.atl", "content": "module M;", "metamodel_ecore": "<ecore:EPackage/>",
+        })
+
+    assert mock_run.call_args.kwargs["metamodel_ecore"] == "<ecore:EPackage/>"
+
+
+def test_validate_atl_rejects_oversized_metamodel_ecore():
+    oversized = "x" * (main.MAX_CONTENT_BYTES + 1)
+    response = client.post("/validate/atl", json={
+        "filename": "sample.atl", "content": "module M;", "metamodel_ecore": oversized,
+    })
+
+    assert response.status_code == 413
 
 
 def test_validate_atl_rejects_dot_dot_run_id():
@@ -363,7 +383,8 @@ def test_validate_acceleo_forwards_run_id():
         })
 
     mock_run.assert_called_once_with(
-        "[module generate('http://x')]", "generate.mtl", "run-123", None, None, metamodel_ecore=None
+        "[module generate('http://x')]", "generate.mtl", "run-123", None, None,
+        metamodel_ecore=None, atl_source=None,
     )
 
 
@@ -375,7 +396,8 @@ def test_validate_acceleo_forwards_stage_and_attempt():
         })
 
     mock_run.assert_called_once_with(
-        "[module generate('http://x')]", "generate.mtl", "run-123", "acceleo", "attempt_2", metamodel_ecore=None
+        "[module generate('http://x')]", "generate.mtl", "run-123", "acceleo", "attempt_2",
+        metamodel_ecore=None, atl_source=None,
     )
 
 
@@ -387,6 +409,25 @@ def test_validate_acceleo_forwards_the_target_metamodel_when_given():
         })
 
     assert mock_run.call_args.kwargs["metamodel_ecore"] == "<ecore:EPackage/>"
+
+
+def test_validate_acceleo_forwards_atl_source_when_given():
+    with patch("main.run_acceleo_validator", return_value=fake_acceleo_result()) as mock_run:
+        client.post("/validate/acceleo", json={
+            "filename": "generate.mtl", "content": "[module generate('http://x')]",
+            "metamodel_ecore": "<ecore:EPackage/>", "atl_source": "module M; ...",
+        })
+
+    assert mock_run.call_args.kwargs["atl_source"] == "module M; ..."
+
+
+def test_validate_acceleo_rejects_oversized_atl_source():
+    oversized = "x" * (main.MAX_CONTENT_BYTES + 1)
+    response = client.post("/validate/acceleo", json={
+        "filename": "generate.mtl", "content": "[module generate('http://x')]", "atl_source": oversized,
+    })
+
+    assert response.status_code == 413
 
 
 def test_validate_acceleo_rejects_oversized_metamodel_ecore():

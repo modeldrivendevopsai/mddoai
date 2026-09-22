@@ -4,7 +4,9 @@ concepts, for the pim stage (and any future stage) to build on.
 
 Three steps, matching the architecture diagram exactly (one LLM call, not
 three): an LLM call extracts pipeline/job/task-shaped fragments from the raw
-prose (_extract_fragments); each fragment is then labeled deterministically
+prose (_extract_fragments, no PIM-concept grounding fed into this step -
+the extraction system prompt already names the structural categories to
+look for directly); each fragment is then labeled deterministically
 against pim_agent's real PIM concepts via pim_agent_client.ground()
 (_label_fragment, no LLM call); the labeled fragments are assembled into
 markdown by plain string formatting (_build_markdown, no LLM call). A
@@ -43,19 +45,6 @@ _EXTRACTION_SYSTEM_PROMPT = (
 )
 
 
-def _concept_context(concepts: dict[str, list[str]]) -> str:
-    """Builds the 'known PIM concepts' block fed into extraction by calling
-    pim_agent's real /ground once per concept, rather than hardcoding concept
-    descriptions as prompt text — this tracks pim_agent's own reference
-    knowledge automatically if its metamodel entries ever change."""
-    lines = []
-    for concept in concepts:
-        matches = pim_agent_client.ground(concept, top_k=1)
-        if matches:
-            lines.append(f"- {concept}: {matches[0]['content'].splitlines()[0]}")
-    return "\n".join(lines)
-
-
 _CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
 
@@ -68,11 +57,10 @@ def _strip_code_fence(raw: str) -> str:
     return match.group(1) if match else raw
 
 
-def _extract_fragments(docs_text: str, model: str | None, concepts: dict[str, list[str]]) -> list[dict]:
-    user_content = f"Known PIM concepts for context:\n{_concept_context(concepts)}\n\n---\n\n{docs_text}"
+def _extract_fragments(docs_text: str, model: str | None) -> list[dict]:
     messages = [
         {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
+        {"role": "user", "content": docs_text},
     ]
     raw = ai_layer_client.chat(messages, model=model)["content"] or ""
     try:
@@ -159,6 +147,6 @@ def serialization_agent(context: dict) -> str:
     page_count = f"{page_count_match.group(1)} page(s)" if page_count_match else "page count unknown"
 
     concepts = pim_agent_client.concepts()
-    fragments = _extract_fragments(docs_output, context.get("model"), concepts)
+    fragments = _extract_fragments(docs_output, context.get("model"))
     labeled = [_label_fragment(fragment, concepts) for fragment in fragments]
     return _build_markdown(labeled, page_count, concepts)

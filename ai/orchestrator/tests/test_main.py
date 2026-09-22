@@ -3,14 +3,14 @@ FastAPI endpoint tests for the orchestrator service.
 
 Real end-to-end test of the two-service split, not hand-mocked JSON shapes:
 clients/integration_runner_client's httpx calls are routed to a REAL,
-in-process integration_runner.main.app via httpx.ASGITransport — this
+in-process integration_runner.main.app via httpx.ASGITransport, this
 exercises integration_runner's actual FastAPI validation, busy guards, and
 stage staleness checks too, the same ones a real deployed integration_runner
 container would enforce, not orchestrator's own guesses about what they'd
 say. clients/ai_layer_client's, clients/retrieval_client's, and
 clients/validator_agent_client's httpx calls (the true external network
 boundary) are still mocked directly, same as every other test in this
-repo — the last of those three only matters once a test reaches pim/psm/atl
+repo, the last of those three only matters once a test reaches pim/psm/atl
 /acceleo, which now call validator_agent_client for their own real (mock)
 content instead of ai_layer_client (see integration_runner/stages/pim/
 agent.py etc.).
@@ -19,7 +19,7 @@ Narration is fully decoupled from the request/response cycle now (see
 chat_log.py): recording a stage event on integration_runner never triggers
 a chat() call by itself, narration only happens lazily, in the background,
 the next time something polls GET /events. Most tests here never poll
-/events, so they never see a narration call at all — only the stage agent's
+/events, so they never see a narration call at all, only the stage agent's
 own real chat()/retrieval call (mocked). Tests that DO poll /events (and
 therefore want to assert on the resulting narration) wait for chat_log's
 own background thread explicitly (_wait_for_narration()), separately from
@@ -60,6 +60,7 @@ from clients import (
     acceleo_agent_client,
     ai_layer_client,
     atl_agent_client,
+    execution_agent_client,
     integration_runner_client,
     psm_agent_client,
     retrieval_client,
@@ -72,7 +73,7 @@ from integration_runner.pipeline import IntegrationRun
 client = TestClient(main.app)
 
 # Routes integration_runner_client's httpx calls to a REAL, in-process
-# integration_runner.main.app instead of a real network connection —
+# integration_runner.main.app instead of a real network connection,
 # httpx.ASGITransport runs the actual ASGI app in-process, no real socket.
 # ASGITransport only implements the async transport interface (there is no
 # sync equivalent), but integration_runner_client itself is synchronous
@@ -96,7 +97,7 @@ def real_integration_runner():
     """Each test drives a real integration_runner.main.app through HTTP, so
     isolate them from each other by resetting its own run registry between
     tests (reaching into integration_runner.runs directly, the same state
-    integration_runner's own tests reset — orchestrator no longer holds any
+    integration_runner's own tests reset, orchestrator no longer holds any
     of this itself)."""
     original_default = ir_runs._default
     original_runs = dict(ir_runs._runs)
@@ -133,7 +134,7 @@ def _fake_psm_response(artifact="Generic stage output", valid=True):
     # psm/atl/acceleo are each genuinely real now, not mock-validated like
     # pim (see integration_runner/stages/psm/agent.py etc.): each calls its
     # own real *_agent_client, a different real boundary than either
-    # ai_layer_client or validator_agent_client directly — approve() needs
+    # ai_layer_client or validator_agent_client directly, approve() needs
     # this mocked too, or approving pim (which starts psm's real run) makes
     # a genuinely unmocked network call to a real psm-agent that may not be
     # running on the test machine.
@@ -212,7 +213,7 @@ def approve(stage_id, agent_response_text="Generic stage output"):
     # Whichever stage this approval starts running next might be an
     # LLM-prompt one (ai_layer_client), a mock-validated one
     # (validator_agent_client), or one of the real, separate services
-    # (psm_agent_client, atl_agent_client, acceleo_agent_client) — all five
+    # (psm_agent_client, atl_agent_client, acceleo_agent_client), all five
     # mocked here since the caller doesn't know or care which, same
     # reasoning as _fake_httpx_response's own "Generic stage output" default.
     # psm/atl/acceleo are each in _REQUIRES_MANUAL_START though, so approving
@@ -250,7 +251,7 @@ def _rerun_manual_start_stage(stage_id, client_module, fake_response, agent_resp
 def _advance_to_psm():
     """Starts the pipeline (lands on docs) and approves docs then
     serialization then pim, landing on psm, then explicitly starts psm's
-    own real run — unlike every earlier stage, arriving at psm does NOT
+    own real run, unlike every earlier stage, arriving at psm does NOT
     auto-run it (see pipeline.py's own _REQUIRES_MANUAL_START: psm has a
     real, editable prompt config, so a human/caller gets a real pause to
     review or edit it before its first real attempt, the approval into psm
@@ -261,7 +262,7 @@ def _advance_to_psm():
     own manual start.
 
     Approving docs starts serialization's real run, which calls
-    serialization_agent_client.serialize() (a separate service) — needs its
+    serialization_agent_client.serialize() (a separate service), needs its
     own mock, or serialization never actually completes and the next
     approval is rejected."""
     start_pipeline()
@@ -276,20 +277,26 @@ def _advance_to_psm():
     return response
 
 
-def _advance_to_atl():
+def _advance_to_atl(atl_artifact="atl output"):
     """Extends _advance_to_psm() one stage further: approves psm's own
     completed result, landing on atl (also in _REQUIRES_MANUAL_START), then
-    explicitly starts atl's own real run via _rerun_manual_start_stage()."""
+    explicitly starts atl's own real run via _rerun_manual_start_stage().
+    atl_artifact defaults to plain placeholder text - a test that
+    subsequently reaches generation's own real execution needs a real
+    "create OUT : <Name> from IN : PIM;" shaped string instead (see
+    stages/generation/agent.py's own output-model-name parsing), passed
+    here explicitly."""
     _advance_to_psm()
     approve("psm", "ATL rules")
-    return _rerun_manual_start_stage("atl", atl_agent_client, _fake_atl_response, "atl output")
+    return _rerun_manual_start_stage("atl", atl_agent_client, _fake_atl_response, atl_artifact)
 
 
-def _advance_to_acceleo():
+def _advance_to_acceleo(atl_artifact="atl output"):
     """Extends _advance_to_atl() one stage further: approves atl's own
     completed result, landing on acceleo (also in _REQUIRES_MANUAL_START),
-    then explicitly starts acceleo's own real run."""
-    _advance_to_atl()
+    then explicitly starts acceleo's own real run. atl_artifact is
+    forwarded to _advance_to_atl() - see its own docstring."""
+    _advance_to_atl(atl_artifact)
     approve("atl", "Acceleo template")
     return _rerun_manual_start_stage("acceleo", acceleo_agent_client, _fake_acceleo_response, "acceleo output")
 
@@ -400,7 +407,7 @@ def test_start_endpoint_omits_model_when_none_chosen():
 
 
 def test_start_endpoint_returns_409_while_busy():
-    """integration_runner's own busy guard, not orchestrator's — start_pipeline()
+    """integration_runner's own busy guard, not orchestrator's, start_pipeline()
     may reuse the current run in place or swap in a brand-new one (see its
     own docstring), but never while it's busy, so restarting (or
     double-clicking Start) mid-run must error, not silently kick off a
@@ -479,6 +486,66 @@ def test_resume_endpoint_returns_409_while_busy():
     assert ir_runs.current_run_id() != old_run_id
 
 
+# --- POST /fork ----------------------------------------------------------------
+
+
+def test_fork_endpoint_starts_a_new_run_seeded_from_an_earlier_stage():
+    start_pipeline(platform_description="A GitLab CI platform")
+    # docs -> serialization -> pim -> psm (paused, manual-start, not yet
+    # run), same real advancement _advance_to_psm() does, without also
+    # starting psm's own first attempt - forking psm should hand it a
+    # clean, not-yet-run seed, matching what a human would actually fork
+    # into.
+    with patch.object(serialization_agent_client, "serialize", return_value="Serialized docs"):
+        approve("docs")
+    approve("serialization")
+    approve("pim")
+    source_run_id = ir_runs.current_run_id()
+    source_context = dict(ir_runs.current().last_context)
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "psm"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["stage"] == "psm"
+    assert body["run_id"] != source_run_id
+    assert ir_runs.current_run_id() == body["run_id"]  # the new run is now current
+    assert ir_runs.current().last_context == source_context  # nothing to drop for "psm" itself here
+    assert ir_runs.current().busy is False  # paused, not auto-started
+    # source_run itself is untouched, still there, still current-stage psm
+    source_run = ir_runs.get_run(source_run_id)
+    assert source_run is not None
+    assert source_run.current_stage == "psm"
+
+
+def test_fork_endpoint_returns_404_for_an_unknown_source_run():
+    response = client.post("/fork", json={"source_run_id": "no-such-run", "from_stage": "atl"})
+
+    assert response.status_code == 404
+
+
+def test_fork_endpoint_returns_400_for_a_stage_the_source_run_never_reached():
+    start_pipeline(platform_description="A GitLab CI platform")
+    source_run_id = ir_runs.current_run_id()  # still at docs, nothing downstream produced yet
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "atl"})
+
+    assert response.status_code == 400
+
+
+def test_fork_endpoint_returns_409_while_busy():
+    start_pipeline(platform_description="A GitLab CI platform")
+    approve("docs")
+    approve("serialization")
+    source_run_id = ir_runs.current_run_id()
+    start_pipeline(platform_description="A different, current platform")
+    ir_runs.current().busy = True
+
+    response = client.post("/fork", json={"source_run_id": source_run_id, "from_stage": "psm"})
+
+    assert response.status_code == 409
+
+
 # --- GET /providers ----------------------------------------------------------------
 
 
@@ -536,20 +603,19 @@ def test_model_endpoint_back_to_auto_with_null():
 
 
 def test_model_endpoint_change_is_picked_up_by_the_next_real_stage_run():
-    # generation, not psm/atl/acceleo: the only remaining stage whose own
-    # real call (ai_layer_client.chat) actually reads context["model"] as a
-    # plain prompt-building concern the same way generation's own
-    # placeholder agent does - psm/atl/acceleo each forward it through
-    # their own real *_agent_client instead (see
-    # integration_runner/stages/psm/agent.py etc.), a real HTTP request
-    # body field, not asserted here.
+    # acceleo, not generation: generation now actually runs the real
+    # ATL/Acceleo output via execution_agent instead of summarizing it (see
+    # stages/generation/agent.py) and takes no model choice at all -
+    # psm/atl/acceleo each still forward context["model"] through their own
+    # real *_agent_client as a real HTTP request body field, so acceleo (the
+    # stage _advance_to_acceleo() already lands on) is what this actually
+    # verifies now.
     _advance_to_acceleo()
-    approve("acceleo", "Final summary v1")
     client.post("/model", json={"model": "cerebras-120b"})
 
-    with patch.object(ai_layer_client, "httpx") as mock_httpx:
-        mock_httpx.post.return_value = _fake_httpx_response("Final summary v2")
-        response = client.post("/rerun/generation")
+    with patch.object(acceleo_agent_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_acceleo_response("Acceleo template v2")
+        response = client.post("/rerun/acceleo")
         ir_runs.wait_for_idle()
 
     assert response.status_code == 202
@@ -671,12 +737,18 @@ def test_review_endpoint_approving_into_psm_does_not_auto_run_it():
 
 
 def test_review_endpoint_returns_complete_status_on_last_stage_approval():
-    _advance_to_acceleo()
+    # A real "create OUT : <Name> from IN : PIM;" shaped atl_output: unlike
+    # every earlier stage this run passes through, generation's own real
+    # execution actually parses it (see stages/generation/agent.py), so the
+    # placeholder text every other test's own _advance_to_acceleo() call
+    # gets away with would raise here instead of letting this approval's
+    # own real, auto-started generation run complete successfully.
+    _advance_to_acceleo(atl_artifact="create OUT : GitLabMM from IN : PIM;")
 
-    with patch.object(ai_layer_client, "httpx") as mock_httpx:
-        mock_httpx.post.return_value = _fake_httpx_response("Final summary")
-        response = client.post("/review/acceleo", json={"approved": True})
-        ir_runs.wait_for_idle()
+    with patch.object(execution_agent_client, "execute_atl", return_value="<gitlabMM:Pipeline/>"):
+        with patch.object(execution_agent_client, "execute_acceleo", return_value={".gitlab-ci.yml": "stages: []\n"}):
+            response = client.post("/review/acceleo", json={"approved": True})
+            ir_runs.wait_for_idle()
 
     assert response.status_code == 202
     assert ir_runs.current().current_stage == "generation"
@@ -698,7 +770,7 @@ def test_review_endpoint_returns_rerun_status_with_correction_without_scheduling
 
     assert response.status_code == 200
     assert response.json() == {"status": "rerun", "stage": "psm"}
-    # rejecting doesn't start a stage run — no real chat()/retrieval call at all
+    # rejecting doesn't start a stage run, no real chat()/retrieval call at all
     mock_httpx.post.assert_not_called()
 
 
@@ -818,7 +890,7 @@ def test_rerun_endpoint_returns_409_while_busy():
 # approve, start_pipeline) does so via integration_runner's own REST
 # endpoints, the same background-thread path a direct REST call uses, so
 # /message's own response only ever carries {"status": "started", ...},
-# never the finished stage's output — that shows up via GET /events once
+# never the finished stage's output, that shows up via GET /events once
 # integration_runner's thread completes.
 
 

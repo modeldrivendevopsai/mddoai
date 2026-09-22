@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
+  forkRun,
   getEvents,
   getProviders,
   getStageMetadata,
@@ -305,6 +306,44 @@ export function useIntegration(runId?: string) {
     }
   }, [runId, fetchFull])
 
+  // Starts a genuinely new run seeded with the currently-viewed run's own
+  // real output up to (not including) fromStage, then pauses there - the
+  // real target for "the problem was actually in an earlier stage." Uses
+  // viewedRunId, not this hook's own runId parameter, since the sidebar
+  // (SessionsList.tsx) navigates to every session via ?run=<id>, including
+  // the current one - runId is just as often defined here as undefined,
+  // viewedRunId is the one value that's always whichever run this hook is
+  // actually showing right now, live or not.
+  //
+  // Returns the new run's real id (or undefined on failure) rather than
+  // just resolving, unlike every other action here: fork is the only one
+  // that hands the caller a DIFFERENT run than whichever one this hook is
+  // currently keyed to (runId is a fixed, URL-derived parameter this hook
+  // never changes itself - see IntegrationScreen.tsx's own component,
+  // which owns the URL). A bare fetchFull() here would still ask for
+  // *this* hook's own fixed runId, landing back on the now-non-current
+  // source run instead of the new one - IntegrationScreen.tsx's own
+  // onForkFrom is what actually navigates to the new id, this just reports
+  // it. Resets local event tracking exactly like reset() does: the new run
+  // has its own separate event history, mixing the old run's accumulated
+  // events into it would misattribute them.
+  const fork = useCallback(
+    async (fromStage: StageId): Promise<string | undefined> => {
+      if (!viewedRunId) return undefined
+      setError(null)
+      try {
+        const result = await forkRun(viewedRunId, fromStage)
+        allEventsRef.current = []
+        doneRef.current = false
+        return result.run_id
+      } catch (err) {
+        setError(messageFor(err, "Could not fork this run."))
+        return undefined
+      }
+    },
+    [viewedRunId]
+  )
+
   return {
     events,
     currentStage,
@@ -323,5 +362,6 @@ export function useIntegration(runId?: string) {
     changeModel,
     reset,
     resume,
+    fork,
   }
 }

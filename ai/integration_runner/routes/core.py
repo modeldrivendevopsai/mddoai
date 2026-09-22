@@ -77,6 +77,11 @@ class ModelRequest(BaseModel):
     model: str | None = None
 
 
+class ForkRequest(BaseModel):
+    source_run_id: str
+    from_stage: str
+
+
 @router.get("/health")
 def health():
     return {"status": "ok"}
@@ -192,6 +197,28 @@ def resume_endpoint(run_id: str):
         return runs.resume_run(run_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+
+
+@router.post("/fork")
+def fork_endpoint(request: ForkRequest):
+    """Starts a genuinely new run, seeded with a past run's own real output
+    up to (not including) from_stage, then pauses there pending a human's
+    review, same as any other manual-start stage — the real target for "the
+    problem was actually in an earlier stage, let me fix that one instead
+    of redoing the whole pipeline." source_run itself is untouched, its own
+    real history (including its own failure) stays exactly as it happened.
+    404 for an unknown source_run_id, 400 for a from_stage that isn't a
+    real stage, or one source_run never actually reached."""
+    if runs.current().busy:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+    if runs.get_run(request.source_run_id) is None:
+        raise HTTPException(status_code=404, detail=f"No run with id {request.source_run_id!r}")
+    try:
+        return runs.fork_run(request.source_run_id, request.from_stage)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except BusyError:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
 

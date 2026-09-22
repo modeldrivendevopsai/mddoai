@@ -3,6 +3,7 @@ import type {
   BrokenReference,
   DocsOptions,
   EventsResponse,
+  ForkResponse,
   LearnedConstraintsUpdate,
   ManifestEntry,
   MessageResponse,
@@ -99,6 +100,27 @@ export async function resumeRun(runId: string): Promise<ResumeResponse> {
 
   if (!res.ok) {
     throw await errorFor("Resume", res)
+  }
+
+  return res.json()
+}
+
+// Starts a genuinely new run, seeded with sourceRunId's own real output up
+// to (not including) fromStage, then pauses there pending review - the
+// real target for "the problem was actually in an earlier stage, let me
+// fix that one instead of redoing the whole pipeline." sourceRunId itself
+// is untouched. 404s if sourceRunId is unknown, 400s if fromStage isn't a
+// real stage or sourceRunId never actually reached it (both surfaced via
+// errorFor's real detail message).
+export async function forkRun(sourceRunId: string, fromStage: StageId): Promise<ForkResponse> {
+  const res = await fetch(`/orchestrator-api/fork`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source_run_id: sourceRunId, from_stage: fromStage }),
+  })
+
+  if (!res.ok) {
+    throw await errorFor("Fork", res)
   }
 
   return res.json()

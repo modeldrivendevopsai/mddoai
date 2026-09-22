@@ -35,6 +35,12 @@ def _path_segment_error_handler(request: Request, exc: PathSegmentError) -> JSON
 class GenerateRequest(BaseModel):
     psm_artifact: str
     platform_docs: str
+    # This run's own already-generated ATL - forwarded to validator-agent
+    # alongside psm_artifact so the real Acceleo template can actually be
+    # RUN against a real PSM model instance, not just compiled. See
+    # generation.py's generate() docstring. Optional: omitted, this behaves
+    # exactly as before (compile-only checking).
+    atl_artifact: str | None = None
     constraints: list[str] | None = None
     model: str | None = None
     run_id: str | None = None
@@ -63,6 +69,7 @@ def generate_endpoint(request: GenerateRequest):
     return generation.generate(
         request.psm_artifact,
         request.platform_docs,
+        atl_artifact=request.atl_artifact,
         constraints=request.constraints,
         model=request.model,
         run_id=request.run_id,

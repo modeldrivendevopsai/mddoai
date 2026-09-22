@@ -32,6 +32,13 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
     # precedence stages/psm/agent.py's own docs fallback chain uses.
     platform_description = context.get("platform_description", "")
     psm_artifact = context.get("psm_output", "")
+    # atl_output is what a live run actually has once "atl" precedes
+    # "acceleo" - forwarded so acceleo_agent's own real validator-agent call
+    # can actually RUN the candidate template against a real PSM model
+    # instance (produced by running this same ATL), not just compile it.
+    # No fallback, matching psm_artifact above: there's no reasonable
+    # stand-in for a caller that skips straight to acceleo.
+    atl_artifact = context.get("atl_output", "")
     docs = context.get("serialization_output") or context.get("docs_output") or platform_description
     constraints = context.get("constraints", {}).get("acceleo", [])
     # Reserved before run_acceleo() runs, not after: run_acceleo() is what
@@ -45,6 +52,7 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
         result = acceleo_agent_client.run_acceleo(
             psm_artifact,
             docs,
+            atl_artifact=atl_artifact,
             constraints=constraints,
             model=context.get("model"),
             run_id=run_id,

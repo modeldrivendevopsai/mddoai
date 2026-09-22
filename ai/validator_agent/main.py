@@ -117,6 +117,14 @@ class AtlValidateRequest(BaseModel):
     # scope and why.
     stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
+    # The target platform's own real PSM .ecore content - beyond dynamic
+    # registration (see AcceleoValidateRequest's own metamodel_ecore field),
+    # giving this also makes validator_runner.run_atl_validator actually RUN
+    # the compiled transformation against a real, fixed PIM model instance,
+    # catching a real runtime-only ATL failure compiling alone can never
+    # see. Optional: omitted, this behaves exactly as it always has
+    # (compile-only checking).
+    metamodel_ecore: str | None = Field(default=None, description="Raw .ecore content of the target platform's own PSM metamodel.")
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
     _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
@@ -138,6 +146,12 @@ class AcceleoValidateRequest(BaseModel):
     # EMFUtils.init() hardcodes. Optional: omitted, this behaves exactly
     # as it always has (only the hardcoded metamodels resolve).
     metamodel_ecore: str | None = Field(default=None, description="Raw .ecore content of the target platform's own PSM metamodel.")
+    # This run's own already-generated ATL - given alongside metamodel_ecore,
+    # this also makes validator_runner.run_acceleo_validator actually RUN
+    # the compiled module against a real PSM model instance (produced by
+    # running this ATL against the same fixed PIM sample). Optional: without
+    # it, or without metamodel_ecore, this behaves exactly as it always has.
+    atl_source: str | None = Field(default=None, description="This run's own already-generated ATL source.")
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))
     _validate_stage = field_validator("stage")(classmethod(lambda cls, v: _reject_dot_segments(v)))
@@ -173,10 +187,19 @@ def validate_atl_endpoint(request: AtlValidateRequest) -> AtlValidationResult:
     content_bytes = len(request.content.encode("utf-8"))
     if content_bytes > MAX_CONTENT_BYTES:
         raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+    if request.metamodel_ecore is not None and len(request.metamodel_ecore.encode("utf-8")) > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"metamodel_ecore exceeds {MAX_CONTENT_BYTES} bytes")
 
     logger.info("POST /validate/atl filename=%s bytes=%d", request.filename, content_bytes)
     try:
-        result = run_atl_validator(request.content, request.filename, request.run_id, request.stage, request.attempt)
+        result = run_atl_validator(
+            request.content,
+            request.filename,
+            request.run_id,
+            request.stage,
+            request.attempt,
+            metamodel_ecore=request.metamodel_ecore,
+        )
     except ValidatorInfraError as e:
         logger.error("POST /validate/atl infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -192,6 +215,8 @@ def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidat
         raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
     if request.metamodel_ecore is not None and len(request.metamodel_ecore.encode("utf-8")) > MAX_CONTENT_BYTES:
         raise HTTPException(status_code=413, detail=f"metamodel_ecore exceeds {MAX_CONTENT_BYTES} bytes")
+    if request.atl_source is not None and len(request.atl_source.encode("utf-8")) > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"atl_source exceeds {MAX_CONTENT_BYTES} bytes")
 
     logger.info("POST /validate/acceleo filename=%s bytes=%d", request.filename, content_bytes)
     try:
@@ -202,6 +227,7 @@ def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidat
             request.stage,
             request.attempt,
             metamodel_ecore=request.metamodel_ecore,
+            atl_source=request.atl_source,
         )
     except ValidatorInfraError as e:
         logger.error("POST /validate/acceleo infra failure: %s", e)

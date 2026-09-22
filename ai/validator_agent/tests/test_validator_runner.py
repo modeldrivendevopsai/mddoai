@@ -256,6 +256,35 @@ def test_atl_generated_source_path_is_translated_from_camel_case_java_key():
     assert "generatedOutputPath" not in result
 
 
+def test_atl_appends_the_target_metamodel_path_when_given():
+    # Without this, AtlValidator's own execution smoke test never runs at
+    # all (see its own pimSampleInstancePath comment) - a real runtime-only
+    # ATL failure would then only ever surface later, at the pipeline's own
+    # final execution stage, with no retries left.
+    valid_json = json.dumps({"valid": True, "issues": []})
+    captured = {}
+
+    def capture_and_respond(argv, **kwargs):
+        captured["argv"] = argv
+        captured["ecore_content"] = Path(argv[5]).read_text(encoding="utf-8")
+        return fake_completed_process(stdout=valid_json)
+
+    with patch("validator_runner.subprocess.run", side_effect=capture_and_respond):
+        run_atl_validator("module M;", "sample.atl", metamodel_ecore="<ecore:EPackage/>")
+
+    assert len(captured["argv"]) == 6
+    assert captured["argv"][5].endswith(".ecore")
+    assert captured["ecore_content"] == "<ecore:EPackage/>"
+
+
+def test_atl_omits_the_metamodel_arg_when_not_given():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+        run_atl_validator("module M;", "sample.atl")
+
+    assert len(mock_run.call_args.args[0]) == 5
+
+
 def test_atl_scopes_java_output_directory_to_run_id():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch.dict("validator_runner.os.environ", {"VALIDATOR_OUTPUT_DIR": "/validator-output"}), \
@@ -376,6 +405,43 @@ def test_acceleo_omits_the_metamodel_arg_when_not_given():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
         run_acceleo_validator("[module generate('http://example.com/mm')]", "generate.mtl")
+
+    assert len(mock_run.call_args.args[0]) == 5
+
+
+def test_acceleo_appends_the_atl_source_path_after_the_metamodel_when_both_given():
+    # Without this, AcceleoValidator's own execution smoke test never has a
+    # real PSM model instance to actually generate from (it only exists by
+    # actually running this same atl_source first - see
+    # AcceleoValidator.java's own three-arg validate() comment).
+    valid_json = json.dumps({"valid": True, "issues": []})
+    captured = {}
+
+    def capture_and_respond(argv, **kwargs):
+        captured["argv"] = argv
+        captured["atl_content"] = Path(argv[6]).read_text(encoding="utf-8")
+        return fake_completed_process(stdout=valid_json)
+
+    with patch("validator_runner.subprocess.run", side_effect=capture_and_respond):
+        run_acceleo_validator(
+            "[module generate('http://example.com/mm')]", "generate.mtl",
+            metamodel_ecore="<ecore:EPackage/>", atl_source="module M; ...",
+        )
+
+    assert len(captured["argv"]) == 7
+    assert captured["argv"][6].endswith(".atl")
+    assert captured["atl_content"] == "module M; ..."
+
+
+def test_acceleo_omits_the_atl_source_arg_without_a_metamodel_even_if_given():
+    # There's no target metamodel to run either executor against without
+    # metamodel_ecore too, so atl_source alone is meaningless and ignored -
+    # matches run_acceleo_validator's own documented behavior.
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+        run_acceleo_validator(
+            "[module generate('http://example.com/mm')]", "generate.mtl", atl_source="module M; ..."
+        )
 
     assert len(mock_run.call_args.args[0]) == 5
 

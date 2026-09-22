@@ -120,6 +120,23 @@ def resume_endpoint(run_id: str):
     return integration_runner_client.resume_run(run_id)
 
 
+class ForkRequest(BaseModel):
+    source_run_id: str
+    from_stage: str
+
+
+@app.post("/fork")
+def fork_endpoint(request: ForkRequest):
+    """Starts a genuinely new run seeded with a past run's own real output
+    up to (not including) from_stage, then pauses there pending review -
+    the real target for "the problem was actually in an earlier stage, let
+    me fix that one instead of redoing the whole pipeline." source_run
+    itself is untouched. 404 for an unknown source_run_id, 400 for a stage
+    that isn't real or that source_run never actually reached, both
+    surfaced via IntegrationRunnerError."""
+    return integration_runner_client.fork_run(request.source_run_id, request.from_stage)
+
+
 @app.get("/providers")
 def providers_endpoint():
     return ai_layer_client.list_providers()

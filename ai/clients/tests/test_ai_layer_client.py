@@ -36,6 +36,15 @@ def test_chat_omits_tools_and_tool_choice_when_not_provided():
     sent_payload = mock_post.call_args.kwargs["json"]
     assert "tools" not in sent_payload
     assert "tool_choice" not in sent_payload
+    assert "temperature" not in sent_payload
+
+
+def test_chat_includes_temperature_when_provided():
+    with patch("ai_layer_client.httpx.post", return_value=_fake_httpx_response("hello")) as mock_post:
+        ai_layer_client.chat([{"role": "user", "content": "hi"}], temperature=0)
+
+    sent_payload = mock_post.call_args.kwargs["json"]
+    assert sent_payload["temperature"] == 0
 
 
 def test_chat_includes_tools_and_tool_choice_when_provided():

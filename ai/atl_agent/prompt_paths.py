@@ -1,9 +1,10 @@
 """Where this service's own real, UI-editable prompt config (and its "file"
 attachment's uploaded copies) lives on disk - mirrors psm_agent's own
 prompt_paths.py, one real difference: REFERENCE_EXAMPLE_PATH, the one real
-master-example ATL file this service reads (read-only), instead of a whole
-META_MODELS_DIR tree - see ai/CLAUDE.md's folder-boundaries section for why
-a single real file, not a directory, is mounted here.
+master-example ATL file this service reads, a real file this service owns
+directly under its own reference_example/ (see that constant's own comment
+for why, unlike psm_agent's whole META_MODELS_DIR tree, this needs no
+Docker bind mount at all).
 
 Sibling to this service's own source, matching integration_runner's
 RUNS_DIR / psm_agent's own PROMPT_CONFIG_DIR pattern for "a real,
@@ -24,23 +25,34 @@ ATTACHMENT_UPLOADS_DIR = Path(
     os.environ.get("ATL_AGENT_ATTACHMENT_UPLOADS_DIR", str(Path(__file__).resolve().parent / "attachments"))
 )
 
-# The one real, pre-existing repo file this service reads: main/'s own
-# real, working PIM->GitLab ATL transformation - the master example this
-# stage's own default prompt attaches, the same role psm_agent's own
-# master-example .ecore file plays for it. Defaults to the real relative
-# repo path (same "real default for local/non-Docker dev" reasoning as
-# comparison.py's own META_MODELS_DIR); the real docker-compose entry
-# bind-mounts the same real file, read-only, at a container-local path and
-# overrides this to point at it - a single file, not a whole directory
-# mount (narrower than psm_agent's own META_MODELS_DIR), since this is the
-# one real file this service ever needs, not a browsable tree.
+# The master example this stage's own default prompt attaches, the same
+# role psm_agent's own master-example .ecore file plays for it: a real,
+# working ATL transformation from PIM to a target platform, ported from
+# this project's own validated ai-research experiments (cicd2gha.atl -
+# ACICDTrip's real, working transformation from its own CICD metamodel to
+# GitHub Actions), the same reference the paper's own "Step 2 (ATL)"
+# results were produced against, matching the master-example convention
+# already used for real, unchanged, across every platform in that
+# experiment - reused directly here rather than this project's own
+# hand-authored pim2gitlabmodel.atl, so this stage's default prompt teaches
+# the same real ATL/OCL idioms (lazy-rule dispatch, tuple parameters,
+# helper operations) the validated research actually relied on. Compiles
+# clean via the real AtlValidator, confirmed directly - a real-execution
+# check isn't meaningful for it the way it is for a PIM-sourced
+# transformation, since its own real source metamodel is CICD, not this
+# project's own fixed PIM, and AtlExecutor only ever loads a real PIM
+# instance as its source.
+#
+# A real file this service owns directly (reference_example/cicd2gha.atl),
+# not an external mount: unlike psm_agent's meta_models/ (real MDE-engine
+# data this AI service doesn't own) or the pre-existing pim2gitlabmodel.atl
+# this used to point at, this file exists solely as this stage's own
+# prompt-engineering asset, so it lives, and ships, with this service like
+# any other of its own source files - no separate Docker bind mount needed.
 REFERENCE_EXAMPLE_PATH = Path(
     os.environ.get(
         "ATL_AGENT_REFERENCE_EXAMPLE_PATH",
-        str(
-            Path(__file__).resolve().parents[2]
-            / "main" / "src" / "main" / "resources" / "transformations" / "pim2psm" / "pim2gitlabmodel.atl"
-        ),
+        str(Path(__file__).resolve().parent / "reference_example" / "cicd2gha.atl"),
     )
 )
 

@@ -5,10 +5,11 @@ Tests verify:
   1. All free providers exhausted → commercial Claude is called.
   2. Providers 1-3 fail → Groq handles it, commercial Claude is not called.
 """
+import pytest
 from unittest.mock import MagicMock, patch
 
 from litellm import Router
-from litellm.exceptions import RateLimitError
+from litellm.exceptions import BadRequestError, RateLimitError
 
 from conftest import reload_router_modules
 
@@ -20,6 +21,18 @@ reload_router_modules()
 
 from router.config import AVAILABLE  # noqa: E402
 from router import router as router_module  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_confirmed_no_temperature():
+    # router_module._confirmed_no_temperature is module-level, mutable state
+    # that persists across tests in the same run. Several tests below reuse
+    # AVAILABLE[0]'s model name; without this reset, a test that triggers the
+    # deprecation retry would silently change what a later test using the
+    # same model actually exercises.
+    router_module._confirmed_no_temperature.clear()
+    yield
+    router_module._confirmed_no_temperature.clear()
 
 
 def make_router():
@@ -142,6 +155,75 @@ def test_chat_ignores_invalid_model_and_uses_default():
         router_module.chat([{"role": "user", "content": "hi"}], model="not-a-real-provider")
 
     assert mock_router.completion.call_args.kwargs["model"] == names[0]
+
+
+def test_chat_retries_without_temperature_on_deprecation_error():
+    # Real, confirmed-live behavior: Claude Sonnet 5 (and Opus 4.8 onward)
+    # 400s the instant `temperature` is present at all, even at its default
+    # value ("`temperature` is deprecated for this model"). chat() must
+    # retry once with temperature stripped rather than surface that error.
+    names = [m["name"] for m in AVAILABLE]
+    deprecation_error = BadRequestError(
+        message="litellm.BadRequestError: AnthropicException - `temperature` is deprecated for this model.",
+        model=AVAILABLE[0]["model"],
+        llm_provider="anthropic",
+    )
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.side_effect = [deprecation_error, ok_response(AVAILABLE[0]["model"])]
+        response = router_module.chat(
+            [{"role": "user", "content": "hi"}], model=names[0], temperature=0
+        )
+
+    assert response.model == AVAILABLE[0]["model"]
+    assert mock_router.completion.call_count == 2
+    first_call, second_call = mock_router.completion.call_args_list
+    assert first_call.kwargs["temperature"] == 0
+    assert "temperature" not in second_call.kwargs
+
+
+def test_chat_skips_temperature_on_repeat_call_to_a_confirmed_model():
+    # After chat() has already discovered, for real, that a model rejects
+    # temperature, a later call to that SAME model should not pay for the
+    # same doomed round trip again - it should send the no-temperature
+    # request directly, in one call, not two.
+    names = [m["name"] for m in AVAILABLE]
+    deprecation_error = BadRequestError(
+        message="litellm.BadRequestError: AnthropicException - `temperature` is deprecated for this model.",
+        model=AVAILABLE[0]["model"],
+        llm_provider="anthropic",
+    )
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.side_effect = [deprecation_error, ok_response(AVAILABLE[0]["model"])]
+        router_module.chat([{"role": "user", "content": "hi"}], model=names[0], temperature=0)
+
+        mock_router.completion.reset_mock(side_effect=True)
+        mock_router.completion.return_value = ok_response(AVAILABLE[0]["model"])
+        response = router_module.chat([{"role": "user", "content": "hi"}], model=names[0], temperature=0)
+
+    assert response.model == AVAILABLE[0]["model"]
+    assert mock_router.completion.call_count == 1
+    assert "temperature" not in mock_router.completion.call_args.kwargs
+
+
+def test_chat_does_not_retry_on_unrelated_bad_request_error():
+    names = [m["name"] for m in AVAILABLE]
+    unrelated_error = BadRequestError(
+        message="litellm.BadRequestError: AnthropicException - some other real validation failure",
+        model=AVAILABLE[0]["model"],
+        llm_provider="anthropic",
+    )
+
+    with patch.object(router_module, "_router") as mock_router:
+        mock_router.completion.side_effect = unrelated_error
+        try:
+            router_module.chat([{"role": "user", "content": "hi"}], model=names[0], temperature=0)
+            assert False, "expected BadRequestError to propagate"
+        except BadRequestError:
+            pass
+
+    assert mock_router.completion.call_count == 1
 
 
 def test_chat_explicit_auto_uses_default():

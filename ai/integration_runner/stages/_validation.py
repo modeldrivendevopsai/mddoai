@@ -1,14 +1,12 @@
 """Shared helper the pim/psm/atl/acceleo stage agents use to persist their
-DSL output (mock for pim/atl/acceleo, real for psm) alongside its
-validation result, win or lose. pim/atl/acceleo also use this module to
-turn a failing result into the same raised-exception failure pipeline.py's
-own _run_stage_worker already knows how to report (a call_failed event
-carrying str(e)) — matching stages/docs/agent.py's own raise-on-failure
-convention, no new reporting path needed. psm deliberately does NOT raise
-on its own generation-mode failure — see stages/psm/agent.py's own
-docstring for why. The one other thing these four stages share besides
-_shared.py's constraints_note() (which they no longer use, see each
-stage's own agent.py).
+real DSL output (pim's own fixed metamodel; psm/atl/acceleo's own real,
+LLM-generated content) alongside its validation result, win or lose.
+pim/atl/acceleo also use this module to turn a failing result into the
+same raised-exception failure pipeline.py's own _run_stage_worker already
+knows how to report (a call_failed event carrying str(e)), matching
+stages/docs/agent.py's own raise-on-failure convention, no new reporting
+path needed. psm deliberately does NOT raise on its own generation-mode
+failure, see stages/psm/agent.py's own docstring for why.
 
 This module's own concern is the attempt directory and manifest below.
 The related "two near-simultaneous mutating requests race on the same run"
@@ -25,25 +23,25 @@ from pathlib import Path
 
 # Sibling to stages/ itself (ai/integration_runner/runs/), so this travels
 # with the service in any deployment, local or Docker, without needing a
-# separately mounted path — mounting it externally for durability across a
+# separately mounted path, mounting it externally for durability across a
 # container restart is a real future concern, deliberately not solved here.
 RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 # Serializes manifest.json's own read-modify-write (_update_manifest())
-# process-wide — sufficient because this service runs single-process, no
+# process-wide, sufficient because this service runs single-process, no
 # --workers flag (see integration_runner/Dockerfile); a cross-process file
 # lock would solve a problem this deployment doesn't actually have.
 _manifest_lock = threading.Lock()
 
 
 def reserve_attempt_dir(run_id: str, stage: str) -> Path:
-    """The Nth attempt for this run+stage, one-indexed — found by atomically
+    """The Nth attempt for this run+stage, one-indexed, found by atomically
     trying to create attempt_1, attempt_2, ... in turn, not by listing the
     directory first and trusting that snapshot. Path.mkdir()'s default
     exist_ok=False already raises FileExistsError atomically (backed by the
     OS's own atomic mkdir(2)); an earlier version of this function listed
     the directory to compute "next" as a separate step before creating it
-    — a real, reachable check-then-act race (confirmed against this
+   , a real, reachable check-then-act race (confirmed against this
     service's actual threading model, not just in theory: every mutating
     endpoint is a sync route dispatched through FastAPI's real threadpool,
     see this module's own docstring) where two concurrent callers could
@@ -118,11 +116,11 @@ def reserved_attempt(run_id: str | None, stage: str):
 def _atomic_write_json(path: Path, data) -> None:
     """Writes data to path as JSON without ever leaving a partially-written
     or corrupted file behind, even if the process crashes mid-write: writes
-    to a sibling temp file first, then os.replace()'s it into place — an
+    to a sibling temp file first, then os.replace()'s it into place, an
     atomic rename on both POSIX and Windows, so any reader always sees
     either the previous complete version or the new one, never a half-written
     one. The temp name includes the pid and thread id so two threads writing
-    concurrently never collide on the temp file itself — only the final
+    concurrently never collide on the temp file itself, only the final
     os.replace() needs to be serialized against other writers of the same
     real path, which _update_manifest()'s own lock already does."""
     tmp_path = path.with_name(f"{path.name}.tmp.{os.getpid()}.{threading.get_ident()}")
@@ -131,15 +129,15 @@ def _atomic_write_json(path: Path, data) -> None:
 
 
 def _update_manifest(run_id: str, stage: str, attempt_n: int, valid: bool) -> None:
-    """Appends this attempt's summary to runs/<run_id>/manifest.json — the
+    """Appends this attempt's summary to runs/<run_id>/manifest.json, the
     one place that answers "what happened in this run" without opening any
     attempt folder by hand: a flat, append-only, chronological list of
     {run_id, stage, attempt_n, valid, timestamp} records, one call = one
-    record. Read-modify-write, so an atomic write on its own isn't enough —
+    record. Read-modify-write, so an atomic write on its own isn't enough,
     two concurrent updates could both read the same old version and each
     write back independently, silently losing whichever wrote first.
     _manifest_lock serializes the whole read-modify-write as one critical
-    section (correct and sufficient here — see this module's own docstring
+    section (correct and sufficient here, see this module's own docstring
     for why a single process's threading.Lock is the real deployment shape,
     not a cross-process file lock); _atomic_write_json's own os.replace() on
     top means a crash mid-write still can't corrupt a previously-good
@@ -149,7 +147,7 @@ def _update_manifest(run_id: str, stage: str, attempt_n: int, valid: bool) -> No
     # persist_attempt()'s own reserve_attempt_dir() call already creates
     # this directory before _update_manifest() ever runs, but this
     # shouldn't be a function that only works if called in the right order
-    # after something else — exist_ok=True makes the normal case a no-op.
+    # after something else, exist_ok=True makes the normal case a no-op.
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     entry = {
         "run_id": run_id,
@@ -178,11 +176,11 @@ def persist_attempt(
     prompt_version: str | None = None,
 ) -> Path:
     """Writes this attempt's real artifact and validator-agent result to
-    disk, synchronously, before the caller decides pass/fail — a failed
+    disk, synchronously, before the caller decides pass/fail, a failed
     attempt is exactly the record this exists to keep, so both files land
     on disk even when raise_if_invalid() (below) is about to raise. Never
     overwrites a prior attempt (see reserve_attempt_dir()). Also updates
-    runs/<run_id>/manifest.json with this same attempt, every time — not
+    runs/<run_id>/manifest.json with this same attempt, every time, not
     something a caller does separately (see _update_manifest()). Returns
     the attempt directory, for a caller that wants to log/report its path.
 
@@ -222,7 +220,7 @@ def persist_attempt(
 
 def raise_if_invalid(stage: str, result: dict) -> None:
     """Turns a validator-agent 'valid: false' result into a real raised
-    failure, carrying its real issue detail — never called for an infra
+    failure, carrying its real issue detail, never called for an infra
     failure (a raised httpx error from validator_agent_client propagates on
     its own, before persist_attempt ever runs, so there's no result to
     check here yet)."""

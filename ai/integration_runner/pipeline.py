@@ -152,16 +152,43 @@ class IntegrationRun:
         enriched_context = {**context, "constraints": self.constraints, "model": self.model, "run_id": self.run_id}
         raw = agent(enriched_context)
         # Every stage agent's normal contract is (context: dict) -> str (see
-        # ai/CLAUDE.md's stage-agent recipe). psm is the one narrow, documented
-        # exception: it returns (output, extra) since it has real structured
-        # data (the prompt actually used, validation/gap results) the chat-ui
-        # needs alongside the artifact - a plain string has nowhere to put
-        # that. Backward compatible: every other stage's plain str return is
-        # unaffected, extra is just {} for them.
+        # ai/CLAUDE.md's stage-agent recipe). psm/atl/acceleo are the
+        # documented exception: each returns (output, extra) since each has
+        # real structured data (the prompt actually used, validation/gap
+        # results) the chat-ui needs alongside the artifact - a plain string
+        # has nowhere to put that. Backward compatible: every other stage's
+        # plain str return is unaffected, extra is just {} for them.
         output, extra = raw if isinstance(raw, tuple) else (raw, {})
+        self._persist_round_constraints(stage, extra.pop("round_constraints", None))
         self.last_output = output
         self.last_completed_stage = stage
         return {"stage": stage, "output": output, **extra}
+
+    def _persist_round_constraints(self, stage: str, round_constraints: list[str] | None) -> None:
+        """psm/atl/acceleo's own real generate-validate-retry loop (see
+        generation_toolkit.generation_agent.run_with_retry) can spend up to
+        its own max_regenerate_rounds real LLM calls discovering real fixes
+        for a persistently-invalid generation, but that in-progress
+        learning was, until this method existed, only ever a local
+        variable inside that one call, thrown away the moment it returned -
+        a human's next real Retry click started run_with_retry's own loop
+        completely over, minus whatever had already been manually
+        recorded, wasting every real round the previous call already spent
+        (confirmed for real: a stuck real run needed 5 external retries,
+        each re-discovering the same real mistakes from scratch, before
+        this existed). Recording each newly-learned fix as a real
+        constraint, the same mechanism a human rejection already uses,
+        means the next call actually builds on it. Popped out of extra by
+        the caller before this stage's own real constraint_added events
+        fire, so the same information doesn't also sit duplicated in the
+        call_completed event's own data. Checked fresh against
+        self.constraints on every iteration, not a snapshot taken once
+        before the loop: add_constraint() mutates that same list in place,
+        and a fresh read is what keeps this correct regardless of whether
+        stage already had an entry before this call."""
+        for fix in round_constraints or []:
+            if fix not in self.constraints.get(stage, []):
+                self.add_constraint(stage, fix)
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
@@ -209,10 +236,24 @@ class IntegrationRun:
         self.model = model
 
     def start_stage_run(self, context: dict) -> dict:
-        """Start the current stage running in the background with the given
-        context, and report that it started. The run_stage tool's real
-        target."""
-        self.run_stage_async(context)
+        """Start the current stage running in the background, layering the
+        given context onto what's already accumulated (self.last_context) -
+        the run_stage tool's real target. Mirrors rerun()'s own
+        {**self.last_context, **overrides} merge exactly: the tool's own
+        schema documents context as "layered onto its normal context,
+        rarely needs anything supplied manually", so a caller that has
+        nothing extra to add (the common case, {} - confirmed for real:
+        this is what the orchestrator's own run_stage tool sends whenever
+        the LLM has no override in mind) must not wipe every prior stage's
+        real output. Before this merge, a manual-start stage (psm/atl/
+        acceleo) begun this way ran against whatever bare dict the caller
+        passed as its ENTIRE context, discarding pim_output/psm_output/
+        atl_output/etc. that review() had just correctly assembled into
+        self.last_context moments earlier - confirmed for real: a live run's
+        own atl_output reached the generation stage as an empty string after
+        going through exactly this path with context={}."""
+        merged_context = {**self.last_context, **context}
+        self.run_stage_async(merged_context)
         return {"status": "started", "stage": self.current_stage}
 
     def start_claimed_stage_run(self, context: dict) -> dict:
@@ -375,6 +416,19 @@ class IntegrationRun:
                 result = self.run_stage(context)
                 self.record_event("call_completed", stage, result)
             except Exception as e:
-                self.record_event("call_failed", stage, {"error": str(e)})
+                # A raised exception's own optional "extra" attribute (a
+                # dict) rides along into call_failed's own data, the same
+                # (output, extra) exception run_stage() already applies to
+                # a successful result - a stage whose real failure still
+                # produced a real, useful partial artifact (e.g.
+                # generation's own psm_instance when ATL succeeded but
+                # Acceleo then failed - see stages/generation/agent.py's
+                # own docstring) has somewhere real to put it, instead of
+                # every failure being reduced to a bare error string.
+                # getattr()'s own default means an ordinary exception with
+                # no such attribute (every stage's failures until now)
+                # behaves exactly as before.
+                extra = getattr(e, "extra", None) or {}
+                self.record_event("call_failed", stage, {"error": str(e), **extra})
         finally:
             self.release_busy()

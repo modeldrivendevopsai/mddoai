@@ -23,6 +23,7 @@ ACCELEO_CONFIG_TIMEOUT = float(os.environ.get("ACCELEO_CONFIG_TIMEOUT", "10.0"))
 def run_acceleo(
     psm_artifact: str,
     platform_docs: str,
+    atl_artifact: str | None = None,
     constraints: list[str] | None = None,
     model: str | None = None,
     run_id: str | None = None,
@@ -39,12 +40,16 @@ def run_acceleo(
     sibling of it (see stages/acceleo/agent.py's own reserve_attempt_dir()
     call). mock mirrors docs_stage's own per-run "Mock" override - see
     acceleo_agent's generation.py generate() docstring for exactly what it
-    skips."""
+    skips. atl_artifact, when given, is this run's own already-generated
+    ATL, forwarded so validator-agent can actually RUN the candidate
+    template against a real PSM model instance, not just compile it - see
+    generation.py's own generate() docstring."""
     response = httpx.post(
         f"{ACCELEO_AGENT_URL}/generate",
         json={
             "psm_artifact": psm_artifact,
             "platform_docs": platform_docs,
+            "atl_artifact": atl_artifact,
             "constraints": constraints,
             "model": model,
             "run_id": run_id,

@@ -87,6 +87,24 @@ def test_defaults_to_empty_psm_artifact_without_psm_output():
     assert args[0] == ""
 
 
+def test_forwards_atl_output_as_the_atl_artifact():
+    # atl_output is what a live run actually has once "atl" precedes
+    # "acceleo" - forwarded so acceleo_agent's own real validator-agent call
+    # can actually RUN the candidate template against a real PSM model
+    # instance, not just compile it.
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=_generation_response()) as mock_run:
+        acceleo_stage({"platform_description": "TeamCity", "atl_output": "module m; ..."})
+
+    assert mock_run.call_args.kwargs.get("atl_artifact") == "module m; ..."
+
+
+def test_defaults_to_empty_atl_artifact_without_atl_output():
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=_generation_response()) as mock_run:
+        acceleo_stage({"platform_description": "TeamCity"})
+
+    assert mock_run.call_args.kwargs.get("atl_artifact") == ""
+
+
 def test_forwards_constraints_and_model():
     with patch.object(acceleo_agent_client, "run_acceleo", return_value=_generation_response()) as mock_run:
         acceleo_stage({

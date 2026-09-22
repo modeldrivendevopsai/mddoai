@@ -1,0 +1,10 @@
+[comment encoding = UTF-8 /]
+[module invalidYaml('http://www.mddoai.com/mddoai/metamodel/gitlab')]
+
+[template public generateElement(pipeline : Pipeline)]
+[comment @main/]
+[file ('out.yml', false, 'UTF-8')]
+foo:
+	bar: 1
+[/file]
+[/template]

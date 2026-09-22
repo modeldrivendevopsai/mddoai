@@ -9,7 +9,7 @@ import tools
 from clients import integration_runner_client
 
 # The real STAGES/STAGE_DESCRIPTIONS content (integration_runner/pipeline.py,
-# integration_runner/stages/__init__.py) — kept here, not fetched from a live
+# integration_runner/stages/__init__.py), kept here, not fetched from a live
 # integration_runner, since these tests are unit tests of orchestrator's own
 # code, not integration tests of the two services together (see
 # test_main.py's own real end-to-end tests for that boundary).
@@ -22,7 +22,7 @@ _FAKE_STAGE_METADATA = {
         "psm": "a PSM (Platform-Specific Model) description of the platform.",
         "atl": "the ATL transformation rules needed to build that PSM.",
         "acceleo": "the Acceleo code-generation template for that ATL.",
-        "generation": "a final summary tying all prior stages together.",
+        "generation": "actually runs the real ATL transformation and Acceleo template to produce the real generated CI/CD configuration.",
     },
     # A representative fake, not a full copy of every real field - only
     # "pim" and "docs" are exercised (one placeholder stage, one real one),
@@ -58,7 +58,7 @@ chat_log.set_reactor(assistant.react_to_event)
 def reset_chat_logs():
     """Each test starts with a clean chat_log._chat_logs, so one test's
     mirrored events/narration/messages can't leak into another's
-    assertions — every test that touches GET /events or send_message()
+    assertions, every test that touches GET /events or send_message()
     writes into this same process-wide dict."""
     original = dict(chat_log._chat_logs)
     chat_log._chat_logs.clear()
@@ -72,7 +72,7 @@ def reset_tools_cache():
     """tools.stage_metadata()/get_tools() cache their result for the life of
     the process (see tools/__init__.py's own docstring for why: it's real,
     static data, fetched once). That caching is exactly wrong across tests
-    that mock integration_runner_client.get_stage_metadata() differently —
+    that mock integration_runner_client.get_stage_metadata() differently,
     without this reset, whichever test runs first would "win" and every
     later test would silently see its stale cached value instead of its own
     mock."""
@@ -87,12 +87,12 @@ def reset_tools_cache():
 def _isolated_validation_runs_dir(tmp_path, monkeypatch):
     # test_main.py's own real_integration_runner fixture runs
     # integration_runner.main.app for real, in-process (httpx.ASGITransport,
-    # not mocked) — any test that reaches pim/psm/atl/acceleo for real
+    # not mocked), any test that reaches pim/psm/atl/acceleo for real
     # (approve()/rerun() against those stages) would otherwise write real
     # attempt files into integration_runner's own real
     # ai/integration_runner/runs/ directory. Matches
     # integration_runner/tests/conftest.py's own identical isolation for its
-    # own suite — this is the same gap, just on orchestrator's side of the
+    # own suite, this is the same gap, just on orchestrator's side of the
     # process boundary.
     from integration_runner.stages import _validation
     monkeypatch.setattr(_validation, "RUNS_DIR", tmp_path / "runs")
@@ -102,7 +102,7 @@ def _isolated_validation_runs_dir(tmp_path, monkeypatch):
 def fake_stage_metadata():
     """Every test that calls send_message()/react_to_event() needs a real
     stage list/descriptions to build the system prompt and tool schemas
-    from (see tools.stage_metadata()) — patched here once, for the whole
+    from (see tools.stage_metadata()), patched here once, for the whole
     suite, rather than every test file repeating the same mock."""
     with patch.object(integration_runner_client, "get_stage_metadata", return_value=_FAKE_STAGE_METADATA):
         yield

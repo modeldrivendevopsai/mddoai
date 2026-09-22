@@ -37,13 +37,23 @@ public final class AtlValidatorCli {
     // this repo's test packages (test.java.unit.java.mddoai...) don't share a package
     // with main.java.mddoai..., so package-private would be untestable.
     public static int run(String[] args, PrintStream out, PrintStream err) {
-        if (args.length != 1) {
-            err.println("usage: AtlValidatorCli <path-to-atl-file>");
+        if (args.length != 1 && args.length != 2) {
+            err.println("usage: AtlValidatorCli <path-to-atl-file> [path-to-target-ecore-file]");
             return 2;
         }
         String path = args[0];
+        // The optional second arg: the target platform's own real PSM
+        // metamodel - given, this also actually runs the compiled
+        // transformation against a real, fixed PIM model instance (see
+        // AtlValidator.validate(String, String)'s own comment for why this
+        // catches a real class of runtime-only failure compiling alone
+        // never can). Mirrors AcceleoValidatorCli's own identical optional
+        // second arg exactly.
+        String targetEcorePath = args.length == 2 ? args[1] : null;
         try {
-            AtlCompileResult result = AtlValidator.validate(path);
+            AtlCompileResult result = targetEcorePath == null
+                    ? AtlValidator.validate(path)
+                    : AtlValidator.validate(path, targetEcorePath);
             out.println(toJson(result));
             return 0;
         } catch (Exception e) {

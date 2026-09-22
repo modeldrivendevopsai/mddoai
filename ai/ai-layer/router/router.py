@@ -8,6 +8,15 @@ from .logger import log_call, log_deployment_failure
 if not AVAILABLE:
     raise RuntimeError("No API keys configured. Add at least one key to .env (see .env.example).")
 
+# Newer models drop support for request params older ones accepted (confirmed
+# for real: litellm itself rejects temperature=0 for claude-sonnet-5 client-side,
+# "Only temperature=1 is supported", before ever calling the API) — litellm's own
+# per-model capability table already knows which params a given model supports,
+# so silently dropping an unsupported one here is more robust than this project
+# hardcoding its own list of which models reject which params, a list that goes
+# stale the moment Anthropic (or any other provider) changes another model.
+litellm.drop_params = True
+
 
 class _FallbackLogger(CustomLogger):
     """Logs every individual deployment failure litellm's Router hits while
@@ -86,6 +95,29 @@ def _refresh_subscription_token() -> None:
 AUTO = "auto"
 
 
+def _is_temperature_deprecation(exc: Exception) -> bool:
+    # Anthropic deprecated `temperature` outright for Claude Sonnet 5 and
+    # Opus 4.8 onward: the API 400s the instant the field is present at all,
+    # even set to a default value ("`temperature` is deprecated for this
+    # model"), confirmed for real against the live API. Rather than hardcode
+    # a list of which model names this applies to (which changes every time
+    # Anthropic retires the parameter for another model), detect the real
+    # error and retry once without it - the same shape as this module's own
+    # fallback-on-failure design one level up.
+    message = str(exc).lower()
+    return "temperature" in message and "deprecated" in message
+
+
+# Models confirmed, for real, this process lifetime, to reject `temperature`
+# outright. `litellm.drop_params` already silently strips it for models
+# litellm's own compatibility database knows about; this set instead covers
+# a model litellm doesn't (yet) know about, so the first call still pays the
+# real failing round trip once, but every later call to that same model in
+# this process skips straight to the no-temperature request instead of
+# repeating the same doomed call every time.
+_confirmed_no_temperature: set[str] = set()
+
+
 def chat(messages: list[dict], model: str | None = None, **kwargs):
     """Call the LLM. `model="auto"` (or omitted/unrecognized) runs the full default
     priority chain starting at _names[0]; naming a specific provider starts there
@@ -93,8 +125,17 @@ def chat(messages: list[dict], model: str | None = None, **kwargs):
     requested_a_specific_provider = model is not None and model != AUTO and model in _names
     starting_model = model if requested_a_specific_provider else _names[0]
     _refresh_subscription_token()
+    if "temperature" in kwargs and starting_model in _confirmed_no_temperature:
+        kwargs = {k: v for k, v in kwargs.items() if k != "temperature"}
     try:
-        response = _router.completion(model=starting_model, messages=messages, **kwargs)
+        try:
+            response = _router.completion(model=starting_model, messages=messages, **kwargs)
+        except litellm.BadRequestError as e:
+            if "temperature" not in kwargs or not _is_temperature_deprecation(e):
+                raise
+            _confirmed_no_temperature.add(starting_model)
+            retry_kwargs = {k: v for k, v in kwargs.items() if k != "temperature"}
+            response = _router.completion(model=starting_model, messages=messages, **retry_kwargs)
     except litellm.AuthenticationError as e:
         if _subscription_model is not None and getattr(e, "model", None) == _subscription_model:
             msg = str(e).lower()

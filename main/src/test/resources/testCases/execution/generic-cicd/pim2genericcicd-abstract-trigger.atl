@@ -1,0 +1,175 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI GenericCICDMM=genericCICDMM=http://www.mddoai.com/mddoai/metamodel/genericcicd
+
+module pim2genericcicd;
+create OUT : GenericCICDMM from IN : PIM;
+
+-- Main pipeline transformation
+rule Pipeline2GenericPipeline {
+    from
+        source : PIM!Pipeline
+    to
+        pipeline : GenericCICDMM!Pipeline (
+            name <- thisModule.expressionFromString(source.name),
+            triggers <- source.triggers->collect(t | thisModule.createTrigger(t)),
+            environmentVariables <- if source.environmentVariables->notEmpty() then
+                                       source.environmentVariables->collect(a | thisModule.createVariableAssignment(a))
+                                    else
+                                       Sequence{}
+                                    endif,
+            jobs <- source.jobStreams->collect(j | thisModule.createJob(Tuple{job = j, pipeline = source}))
+        )
+}
+
+-- Transform Job
+lazy rule createJob {
+    from
+        source : TupleType(job : PIM!Job, pipeline : PIM!Pipeline)
+    to
+        job : GenericCICDMM!Job (
+            name <- source.job.id,
+            agent <- if source.job.agent.oclIsUndefined() then
+                        OclUndefined
+                     else
+                        thisModule.createAgent(source.job.agent)
+                     endif,
+            environmentVariables <- if source.job.environmentVariables->notEmpty() then
+                                       source.job.environmentVariables->collect(a | thisModule.createVariableAssignment(a))
+                                    else
+                                       Sequence{}
+                                    endif,
+            services <- if source.job.services->notEmpty() then
+                           source.job.services->collect(s | thisModule.createService(s))
+                        else
+                           Sequence{}
+                        endif,
+            strategy <- if source.job.matrix.oclIsUndefined() then
+                           OclUndefined
+                        else
+                           thisModule.createMatrix(source.job.matrix)
+                        endif,
+            steps <- if source.job.oclIsTypeOf(PIM!ScriptJob) then
+                        thisModule.createStepsFromScriptJob(source.job)
+                     else
+                        Sequence{thisModule.createPipelineCallStep(source.job)}
+                     endif
+        )
+}
+
+-- Create steps from ScriptJob
+lazy rule createStepsFromScriptJob {
+    from
+        scriptJob : PIM!ScriptJob
+    to
+        steps : GenericCICDMM!CommandStep (
+            id <- OclUndefined,
+            name <- OclUndefined,
+            environmentVariables <- Sequence{},
+            command <- thisModule.createCommandFromSteps(scriptJob.steps)
+        )
+}
+
+-- Create command from steps
+lazy rule createCommandFromSteps {
+    from
+        steps : Sequence(PIM!Step)
+    to
+        expr : GenericCICDMM!StringLiteral (
+            value <- thisModule.concatenateSteps(steps)
+        )
+}
+
+-- Create step for PipelineCallJob
+lazy rule createPipelineCallStep {
+    from
+        pipelineCallJob : PIM!PipelineCallJob
+    to
+        step : GenericCICDMM!CliParsingAndEnvironmentInitStep (
+            id <- OclUndefined,
+            name <- OclUndefined,
+            environmentVariables <- if pipelineCallJob.environmentVariables->notEmpty() then
+                                       pipelineCallJob.environmentVariables->collect(a | thisModule.createVariableAssignment(a))
+                                    else
+                                       Sequence{}
+                                    endif,
+            command <- pipelineCallJob.pipelinePath
+        )
+}
+
+-- Transform Agent
+lazy rule createAgent {
+    from
+        agent : PIM!Agent
+    to
+        psAgent : GenericCICDMM!Agent (
+        )
+}
+
+-- Transform DockerContainer as Service
+lazy rule createService {
+    from
+        container : PIM!DockerContainer
+    to
+        service : GenericCICDMM!Service (
+        )
+}
+
+-- Transform Trigger
+lazy rule createTrigger {
+    from
+        trigger : PIM!Trigger
+    to
+        psTrigger : GenericCICDMM!Trigger (
+        )
+}
+
+-- Transform Matrix
+lazy rule createMatrix {
+    from
+        matrix : PIM!Matrix
+    to
+        psMatrix : GenericCICDMM!Matrix (
+        )
+}
+
+-- Create VariableAssignment
+lazy rule createVariableAssignment {
+    from
+        assignment : PIM!Assignment
+    to
+        varAssign : GenericCICDMM!VariableAssignment (
+            key <- assignment.key,
+            value <- assignment.value
+        )
+}
+
+-- Helper to create Expression from string
+helper def : expressionFromString(str : String) : GenericCICDMM!Expression =
+    if str.oclIsUndefined() then
+        OclUndefined
+    else
+        let lit : GenericCICDMM!StringLiteral = OclUndefined in lit
+    endif;
+
+-- Helper to concatenate steps into a single command string
+helper def : concatenateSteps(steps : Sequence(PIM!Step)) : String =
+    if steps->notEmpty() then
+        steps->select(s | s.oclIsTypeOf(PIM!Command))
+            ->collect(s | 
+                if s.oclIsTypeOf(PIM!Command) then
+                    s.program.toGenericCICDString()
+                else
+                    ''
+                endif
+            )->asSequence()->sep('\n')
+    else
+        ''
+    endif;
+
+-- Transform Expression to string
+helper context PIM!Expression def : toGenericCICDString() : String = 'UNKNOWN';
+helper context PIM!StringLiteral def : toGenericCICDString() : String = self.value;
+helper context PIM!IntegerLiteral def : toGenericCICDString() : String = self.value.toString();
+helper context PIM!VariableReference def : toGenericCICDString() : String = '$' + self.reference.name;
+helper context PIM!Concat def : toGenericCICDString() : String =
+    self.expressions->collect(e | e.toGenericCICDString())->sep('');
