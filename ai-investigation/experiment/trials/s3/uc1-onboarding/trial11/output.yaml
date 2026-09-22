@@ -1,0 +1,372 @@
+stages:
+  - stage0
+  - stage1
+  - stage2
+  - stage3
+  - stage4
+  - stage5
+  - stage6
+  - stage7
+
+variables:
+  REGISTRY: ${CI_REGISTRY}
+  
+  APP_IMAGE: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+  
+  APP_VERSION: ${CI_COMMIT_SHORT_SHA}
+  
+
+
+default:
+  image:
+    name: docker:24-dind
+  
+  timeout: 90 minutes
+
+
+install-deps:
+  stage: stage0
+  image:
+    name: node:20-alpine
+  
+  script:
+    - npm ci --prefer-offline
+    - cd frontend && npm ci --prefer-offline
+  
+  timeout: 15 minutes
+  cache:
+    key:
+      name: node-modules-cache
+      files:
+        - ${CI_COMMIT_REF_SLUG}-node-modules
+    
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+  
+  retry:
+    max: 1
+  
+
+
+lint:
+  stage: stage1
+  image:
+    name: node:20-alpine
+  
+  script:
+    - npm run lint
+    - npm run format:check
+    - cd frontend && npm run lint
+  
+  cache:
+    key:
+      name: node-modules-cache
+      files:
+        - ${CI_COMMIT_REF_SLUG}-node-modules
+    
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+  
+  needs:
+    - job: install-deps
+    
+  retry:
+    max: 1
+  
+
+
+test-unit:
+  stage: stage1
+  image:
+    name: node:${NODE_VERSION}-alpine
+  
+  variables:
+    NODE_ENV: test
+    
+    CI: true
+    
+  
+  script:
+    - npm run test:unit -- --coverage
+  
+  artifacts:
+    name: unit-test-coverage
+    expire_in: 3 days
+    paths:
+      - coverage/
+  
+  cache:
+    key:
+      name: node-modules-cache
+      files:
+        - ${CI_COMMIT_REF_SLUG}-node-modules
+    
+    paths:
+      - node_modules/
+  
+  needs:
+    - job: install-deps
+    
+  retry:
+    max: 2
+  
+  parallel:
+    matrix:
+      - NODE_VERSION: [18, 20, 22]
+  
+
+
+test-integration:
+  stage: stage1
+  image:
+    name: node:20-alpine
+  
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+    
+    - name: redis:7-alpine
+      alias: redis
+    
+  variables:
+    DATABASE_URL: postgres://testuser:testpass@postgres/testdb
+    
+    REDIS_URL: redis://redis:6379
+    
+  
+  script:
+    - npm run db:migrate:test
+    - npm run test:integration
+  
+  artifacts:
+    name: integration-test-results
+    expire_in: 3 days
+    paths:
+      - test-results/
+  
+  cache:
+    key:
+      name: node-modules-cache
+      files:
+        - ${CI_COMMIT_REF_SLUG}-node-modules
+    
+    paths:
+      - node_modules/
+  
+  needs:
+    - job: install-deps
+    
+  retry:
+    max: 2
+  
+
+
+security-scan:
+  stage: stage1
+  image:
+    name: node:20-alpine
+  
+  variables:
+    SNYK_TOKEN: ${SNYK_TOKEN}
+    
+  
+  script:
+    - echo "Running plugin snyk/actions/node@master"
+    - npm audit --audit-level=critical
+  
+  allow_failure: true
+  artifacts:
+    name: security-report
+    expire_in: 30 days
+    paths:
+      - snyk-report.sarif
+  
+  needs:
+    - job: install-deps
+    
+  retry:
+    max: 1
+  
+
+
+build:
+  stage: stage2
+  image:
+    name: node:20-alpine
+  
+  variables:
+    NODE_ENV: production
+    
+  
+  script:
+    - npm run build:backend
+    - cd frontend && npm run build
+  
+  artifacts:
+    name: build-output
+    expire_in: 1 day
+    paths:
+      - dist/
+      - frontend/dist/
+  
+  cache:
+    key:
+      name: node-modules-cache
+      files:
+        - ${CI_COMMIT_REF_SLUG}-node-modules
+    
+    paths:
+      - node_modules/
+      - frontend/node_modules/
+  
+  needs:
+    - job: lint
+    
+    - job: test-unit
+    
+    - job: test-integration
+    
+  retry:
+    max: 1
+  
+
+
+docker-build:
+  stage: stage3
+  image:
+    name: docker:24-dind
+  
+  variables:
+    DOCKER_BUILDKIT: 1
+    
+  
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    - docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest .
+    - if [ ${CI_COMMIT_BRANCH} == 'main' ]; then
+    - docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable
+    - else
+    - echo 'Not on main, skipping stable tag'
+    - fi
+  
+  needs:
+    - job: build
+    
+  retry:
+    max: 1
+  
+
+
+docker-push:
+  stage: stage4
+  image:
+    name: docker:24-dind
+  
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    - docker push ${APP_IMAGE}:${APP_VERSION}
+    - docker push ${APP_IMAGE}:latest
+    - if [ ${CI_COMMIT_BRANCH} == 'main' ]; then
+    - docker push ${APP_IMAGE}:stable
+    - fi
+  
+  needs:
+    - job: docker-build
+    
+    - job: security-scan
+    
+  retry:
+    max: 1
+  
+
+
+deploy-staging:
+  stage: stage5
+  image:
+    name: bitnami/kubectl:latest
+  
+  variables:
+    KUBECONFIG: ${STAGING_KUBECONFIG}
+    
+    DEPLOY_NAMESPACE: staging
+    
+  
+  script:
+    - kubectl config use-context staging
+    - kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+    - kubectl rollout status deployment/webapp -n staging --timeout=5m
+  
+  timeout: 20 minutes
+  needs:
+    - job: docker-push
+    
+  retry:
+    max: 1
+  
+
+
+e2e-test:
+  stage: stage6
+  image:
+    name: mcr.microsoft.com/playwright:v1.44.0-jammy
+  
+  variables:
+    BASE_URL: https://staging.example.com
+    
+    CI: true
+    
+  
+  script:
+    - npm run test:e2e -- --reporter=html
+  
+  artifacts:
+    name: e2e-report
+    expire_in: 7 days
+    paths:
+      - playwright-report/
+      - test-results/
+  
+  rules:
+    - if: ${SKIP_E2E} != 'true'
+    
+  needs:
+    - job: deploy-staging
+    
+  retry:
+    max: 2
+  
+
+
+deploy-prod:
+  stage: stage7
+  image:
+    name: bitnami/kubectl:latest
+  
+  variables:
+    KUBECONFIG: ${PROD_KUBECONFIG}
+    
+    DEPLOY_NAMESPACE: production
+    
+  
+  script:
+    - kubectl config use-context production
+    - kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+    - kubectl rollout status deployment/webapp -n production --timeout=10m
+    - if [ ${CI_COMMIT_TAG} != '' ]; then
+    - kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite
+    - fi
+  
+  timeout: 30 minutes
+  rules:
+    - if: ${CI_COMMIT_BRANCH} == 'main' || ${CI_COMMIT_TAG} != ''
+    
+  needs:
+    - job: e2e-test
+    
+  retry:
+    max: 1
+  
+
+

@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="ASCII"?>
+<bambooMM:Plan xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bambooMM="http://www.mddoai.com/mddoai/metamodel/bamboo" key="fullstack-webapp" name="fullstack-webapp" projectKey="PROJ">
+  <stages name="Stage-install-deps">
+    <jobs name="install-deps" key="install-deps">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="com.atlassian.bamboo.plugins.cache:task"/>
+        <configuration>
+          <key name="cacheKey"/>
+          <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+        </configuration>
+        <configuration>
+          <key name="cachePath"/>
+          <value xsi:type="bambooMM:StringLiteral" value="node_modules/"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm ci --prefer-offline"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="cd frontend &amp;&amp; npm ci --prefer-offline"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:20-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-lint">
+    <jobs name="lint" key="lint">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="com.atlassian.bamboo.plugins.cache:task"/>
+        <configuration>
+          <key name="cacheKey"/>
+          <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+        </configuration>
+        <configuration>
+          <key name="cachePath"/>
+          <value xsi:type="bambooMM:StringLiteral" value="node_modules/"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run lint"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run format:check"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="cd frontend &amp;&amp; npm run lint"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:20-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+    <jobs name="test-unit" key="test-unit">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="com.atlassian.bamboo.plugins.cache:task"/>
+        <configuration>
+          <key name="cacheKey"/>
+          <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+        </configuration>
+        <configuration>
+          <key name="cachePath"/>
+          <value xsi:type="bambooMM:StringLiteral" value="node_modules/"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run test:unit -- --coverage"/>
+      </tasks>
+      <artifacts name="unit-test-coverage" shared="true">
+        <location xsi:type="bambooMM:StringLiteral" value="coverage/"/>
+      </artifacts>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:${NODE_VERSION}-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+    <jobs name="test-integration" key="test-integration">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="com.atlassian.bamboo.plugins.cache:task"/>
+        <configuration>
+          <key name="cacheKey"/>
+          <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+        </configuration>
+        <configuration>
+          <key name="cachePath"/>
+          <value xsi:type="bambooMM:StringLiteral" value="node_modules/"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run db:migrate:test"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run test:integration"/>
+      </tasks>
+      <artifacts name="integration-test-results" shared="true">
+        <location xsi:type="bambooMM:StringLiteral" value="test-results/"/>
+      </artifacts>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:20-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+    <jobs name="security-scan" key="security-scan">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="snyk/actions/node@master"/>
+        <configuration>
+          <key name="args"/>
+          <value xsi:type="bambooMM:StringLiteral" value="--severity-threshold=high"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm audit --audit-level=critical"/>
+      </tasks>
+      <artifacts name="security-report" shared="true">
+        <location xsi:type="bambooMM:StringLiteral" value="snyk-report.sarif"/>
+      </artifacts>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:20-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-build">
+    <jobs name="build" key="build">
+      <tasks xsi:type="bambooMM:AnyTask">
+        <moduleKey xsi:type="bambooMM:StringLiteral" value="com.atlassian.bamboo.plugins.cache:task"/>
+        <configuration>
+          <key name="cacheKey"/>
+          <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_REF_SLUG}-node-modules"/>
+        </configuration>
+        <configuration>
+          <key name="cachePath"/>
+          <value xsi:type="bambooMM:StringLiteral" value="node_modules/"/>
+        </configuration>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run build:backend"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="cd frontend &amp;&amp; npm run build"/>
+      </tasks>
+      <artifacts name="build-output" shared="true">
+        <location xsi:type="bambooMM:StringLiteral" value="dist/"/>
+      </artifacts>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="node:20-alpine"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-docker-build">
+    <jobs name="docker-build" key="docker-build">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest ."/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="docker:24-dind"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-docker-push">
+    <jobs name="docker-push" key="docker-push">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker push ${APP_IMAGE}:${APP_VERSION}"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker push ${APP_IMAGE}:latest"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="docker push ${APP_IMAGE}:stable"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="docker:24-dind"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-deploy-staging">
+    <jobs name="deploy-staging" key="deploy-staging">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl config use-context staging"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl rollout status deployment/webapp -n staging --timeout=5m"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="bitnami/kubectl:latest"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-e2e-test">
+    <jobs name="e2e-test" key="e2e-test">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="npm run test:e2e -- --reporter=html"/>
+      </tasks>
+      <artifacts name="e2e-report" shared="true">
+        <location xsi:type="bambooMM:StringLiteral" value="playwright-report/"/>
+      </artifacts>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="mcr.microsoft.com/playwright:v1.44.0-jammy"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <stages name="Stage-deploy-prod">
+    <jobs name="deploy-prod" key="deploy-prod">
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl config use-context production"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl rollout status deployment/webapp -n production --timeout=10m"/>
+      </tasks>
+      <tasks xsi:type="bambooMM:ScriptTask">
+        <inlineBody xsi:type="bambooMM:StringLiteral" value="kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite"/>
+      </tasks>
+      <dockerConfiguration enabled="true">
+        <image xsi:type="bambooMM:StringLiteral" value="bitnami/kubectl:latest"/>
+      </dockerConfiguration>
+    </jobs>
+  </stages>
+  <triggers xsi:type="bambooMM:RepositoryPollingTrigger">
+    <selectedRepositories xsi:type="bambooMM:StringLiteral" value="main"/>
+    <selectedRepositories xsi:type="bambooMM:StringLiteral" value="develop"/>
+    <selectedRepositories xsi:type="bambooMM:StringLiteral" value="feature/*"/>
+    <selectedRepositories xsi:type="bambooMM:StringLiteral" value="hotfix/*"/>
+  </triggers>
+  <triggers xsi:type="bambooMM:ScheduledTrigger">
+    <cronExpression xsi:type="bambooMM:StringLiteral" value="0"/>
+  </triggers>
+  <variables>
+    <key name="REGISTRY"/>
+    <value xsi:type="bambooMM:StringLiteral" value="${CI_REGISTRY}"/>
+  </variables>
+  <variables>
+    <key name="APP_IMAGE"/>
+    <value xsi:type="bambooMM:StringLiteral" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+  </variables>
+  <variables>
+    <key name="APP_VERSION"/>
+    <value xsi:type="bambooMM:StringLiteral" value="${CI_COMMIT_SHORT_SHA}"/>
+  </variables>
+</bambooMM:Plan>

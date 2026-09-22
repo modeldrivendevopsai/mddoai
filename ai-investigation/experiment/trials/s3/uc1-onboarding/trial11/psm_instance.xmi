@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:gitlabMM="http://www.mddoai.com/mddoai/metamodel/gitlab">
+  <gitlabMM:Pipeline>
+    <stages>stage0</stages>
+    <stages>stage1</stages>
+    <stages>stage2</stages>
+    <stages>stage3</stages>
+    <stages>stage4</stages>
+    <stages>stage5</stages>
+    <stages>stage6</stages>
+    <stages>stage7</stages>
+    <jobs name="install-deps" stage="stage0" timeout="15 minutes">
+      <script>
+        <commands command="npm ci --prefer-offline"/>
+        <commands command="cd frontend &amp;&amp; npm ci --prefer-offline"/>
+      </script>
+      <image name="node:20-alpine"/>
+      <cache key="/1">
+        <paths>node_modules/</paths>
+        <paths>frontend/node_modules/</paths>
+      </cache>
+      <retry max="1"/>
+    </jobs>
+    <jobs name="lint" stage="stage1">
+      <script>
+        <commands command="npm run lint"/>
+        <commands command="npm run format:check"/>
+        <commands command="cd frontend &amp;&amp; npm run lint"/>
+      </script>
+      <image name="node:20-alpine"/>
+      <cache key="/2">
+        <paths>node_modules/</paths>
+        <paths>frontend/node_modules/</paths>
+      </cache>
+      <needs job="install-deps"/>
+      <retry max="1"/>
+    </jobs>
+    <jobs name="test-unit" stage="stage1">
+      <artifacts name="unit-test-coverage" expireIn="3 days">
+        <paths path="coverage/"/>
+      </artifacts>
+      <script>
+        <commands command="npm run test:unit -- --coverage"/>
+      </script>
+      <image name="node:${NODE_VERSION}-alpine"/>
+      <cache key="/3">
+        <paths>node_modules/</paths>
+      </cache>
+      <needs job="install-deps"/>
+      <retry max="2"/>
+      <variables>
+        <variables name="NODE_ENV" value="test"/>
+        <variables name="CI" value="true"/>
+      </variables>
+      <parallel>
+        <matrix>
+          <axes name="NODE_VERSION">
+            <values>18</values>
+            <values>20</values>
+            <values>22</values>
+          </axes>
+        </matrix>
+      </parallel>
+    </jobs>
+    <jobs name="test-integration" stage="stage1">
+      <artifacts name="integration-test-results" expireIn="3 days">
+        <paths path="test-results/"/>
+      </artifacts>
+      <script>
+        <commands command="npm run db:migrate:test"/>
+        <commands command="npm run test:integration"/>
+      </script>
+      <image name="node:20-alpine"/>
+      <cache key="/4">
+        <paths>node_modules/</paths>
+      </cache>
+      <needs job="install-deps"/>
+      <services name="postgres:15-alpine" alias="postgres"/>
+      <services name="redis:7-alpine" alias="redis"/>
+      <retry max="2"/>
+      <variables>
+        <variables name="DATABASE_URL" value="postgres://testuser:testpass@postgres/testdb"/>
+        <variables name="REDIS_URL" value="redis://redis:6379"/>
+      </variables>
+    </jobs>
+    <jobs name="security-scan" stage="stage1" allowFailure="true">
+      <artifacts name="security-report" expireIn="30 days">
+        <paths path="snyk-report.sarif"/>
+      </artifacts>
+      <script>
+        <commands command="echo &quot;Running plugin snyk/actions/node@master&quot;"/>
+        <commands command="npm audit --audit-level=critical"/>
+      </script>
+      <image name="node:20-alpine"/>
+      <needs job="install-deps"/>
+      <retry max="1"/>
+      <variables>
+        <variables name="SNYK_TOKEN" value="${SNYK_TOKEN}"/>
+      </variables>
+    </jobs>
+    <jobs name="build" stage="stage2">
+      <artifacts name="build-output" expireIn="1 day">
+        <paths path="dist/"/>
+        <paths path="frontend/dist/"/>
+      </artifacts>
+      <script>
+        <commands command="npm run build:backend"/>
+        <commands command="cd frontend &amp;&amp; npm run build"/>
+      </script>
+      <image name="node:20-alpine"/>
+      <cache key="/5">
+        <paths>node_modules/</paths>
+        <paths>frontend/node_modules/</paths>
+      </cache>
+      <needs job="lint"/>
+      <needs job="test-unit"/>
+      <needs job="test-integration"/>
+      <retry max="1"/>
+      <variables>
+        <variables name="NODE_ENV" value="production"/>
+      </variables>
+    </jobs>
+    <jobs name="docker-build" stage="stage3">
+      <script>
+        <commands command="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+        <commands command="docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest ."/>
+        <commands command="if [ ${CI_COMMIT_BRANCH} == 'main' ]; then"/>
+        <commands command="docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable"/>
+        <commands command="else"/>
+        <commands command="echo 'Not on main, skipping stable tag'"/>
+        <commands command="fi"/>
+      </script>
+      <image name="docker:24-dind"/>
+      <needs job="build"/>
+      <retry max="1"/>
+      <variables>
+        <variables name="DOCKER_BUILDKIT" value="1"/>
+      </variables>
+    </jobs>
+    <jobs name="docker-push" stage="stage4">
+      <script>
+        <commands command="docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}"/>
+        <commands command="docker push ${APP_IMAGE}:${APP_VERSION}"/>
+        <commands command="docker push ${APP_IMAGE}:latest"/>
+        <commands command="if [ ${CI_COMMIT_BRANCH} == 'main' ]; then"/>
+        <commands command="docker push ${APP_IMAGE}:stable"/>
+        <commands command="fi"/>
+      </script>
+      <image name="docker:24-dind"/>
+      <needs job="docker-build"/>
+      <needs job="security-scan"/>
+      <retry max="1"/>
+    </jobs>
+    <jobs name="deploy-staging" stage="stage5" timeout="20 minutes">
+      <script>
+        <commands command="kubectl config use-context staging"/>
+        <commands command="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging"/>
+        <commands command="kubectl rollout status deployment/webapp -n staging --timeout=5m"/>
+      </script>
+      <image name="bitnami/kubectl:latest"/>
+      <needs job="docker-push"/>
+      <retry max="1"/>
+      <variables>
+        <variables name="KUBECONFIG" value="${STAGING_KUBECONFIG}"/>
+        <variables name="DEPLOY_NAMESPACE" value="staging"/>
+      </variables>
+    </jobs>
+    <jobs name="e2e-test" stage="stage6">
+      <artifacts name="e2e-report" expireIn="7 days">
+        <paths path="playwright-report/"/>
+        <paths path="test-results/"/>
+      </artifacts>
+      <script>
+        <commands command="npm run test:e2e -- --reporter=html"/>
+      </script>
+      <image name="mcr.microsoft.com/playwright:v1.44.0-jammy"/>
+      <rules gitlabIf="${SKIP_E2E} != 'true'"/>
+      <needs job="deploy-staging"/>
+      <retry max="2"/>
+      <variables>
+        <variables name="BASE_URL" value="https://staging.example.com"/>
+        <variables name="CI" value="true"/>
+      </variables>
+    </jobs>
+    <jobs name="deploy-prod" stage="stage7" timeout="30 minutes">
+      <script>
+        <commands command="kubectl config use-context production"/>
+        <commands command="kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production"/>
+        <commands command="kubectl rollout status deployment/webapp -n production --timeout=10m"/>
+        <commands command="if [ ${CI_COMMIT_TAG} != '' ]; then"/>
+        <commands command="kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite"/>
+        <commands command="fi"/>
+      </script>
+      <image name="bitnami/kubectl:latest"/>
+      <rules gitlabIf="${CI_COMMIT_BRANCH} == 'main' || ${CI_COMMIT_TAG} != ''"/>
+      <needs job="e2e-test"/>
+      <retry max="1"/>
+      <variables>
+        <variables name="KUBECONFIG" value="${PROD_KUBECONFIG}"/>
+        <variables name="DEPLOY_NAMESPACE" value="production"/>
+      </variables>
+    </jobs>
+    <variables>
+      <variables name="REGISTRY" value="${CI_REGISTRY}"/>
+      <variables name="APP_IMAGE" value="${CI_REGISTRY_IMAGE}/fullstack-webapp"/>
+      <variables name="APP_VERSION" value="${CI_COMMIT_SHORT_SHA}"/>
+    </variables>
+    <default timeout="90 minutes">
+      <image name="docker:24-dind"/>
+    </default>
+  </gitlabMM:Pipeline>
+  <gitlabMM:Key name="node-modules-cache">
+    <files>${CI_COMMIT_REF_SLUG}-node-modules</files>
+  </gitlabMM:Key>
+  <gitlabMM:Key name="node-modules-cache">
+    <files>${CI_COMMIT_REF_SLUG}-node-modules</files>
+  </gitlabMM:Key>
+  <gitlabMM:Key name="node-modules-cache">
+    <files>${CI_COMMIT_REF_SLUG}-node-modules</files>
+  </gitlabMM:Key>
+  <gitlabMM:Key name="node-modules-cache">
+    <files>${CI_COMMIT_REF_SLUG}-node-modules</files>
+  </gitlabMM:Key>
+  <gitlabMM:Key name="node-modules-cache">
+    <files>${CI_COMMIT_REF_SLUG}-node-modules</files>
+  </gitlabMM:Key>
+</xmi:XMI>

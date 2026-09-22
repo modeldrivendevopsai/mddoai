@@ -1,0 +1,526 @@
+-- @nsURI PIM=pimMM=http://www.mddoai.com/mddoai/metamodel/pim
+-- @nsURI BambooMM=bambooMM=http://www.mddoai.com/mddoai/metamodel/bamboo
+
+module pim2bamboo;
+
+create OUT : BambooMM from IN : PIM;
+
+rule Pipeline2Plan {
+	from
+		pimPipeline : PIM!Pipeline
+	to
+		bambooPlan : BambooMM!Plan(
+			name <-
+				if not pimPipeline.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(pimPipeline.name)
+				else
+					OclUndefined
+				endif,
+			stages <- thisModule.buildStageGroups(thisModule.getAllJobs(pimPipeline.jobStreams), 0)->collect(group | thisModule.JobGroup2Stage(group)),
+			triggers <- pimPipeline.triggers->select(t | not t.oclIsTypeOf(PIM!PullRequestTrigger))->select(t | not t.oclIsTypeOf(PIM!ManualTrigger)),
+			variables <- pimPipeline.environmentVariables
+		)
+}
+
+abstract rule Job2Job {
+	from
+		pimJob : PIM!Job
+	to
+		bambooJob : BambooMM!Job(
+			name <- pimJob.id,
+			key <-
+				if not pimJob.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(pimJob.name)
+				else
+					OclUndefined
+				endif,
+			requirements <-
+				if pimJob.agent.oclIsUndefined() then
+					Sequence{}
+				else
+					pimJob.agent.agentRequirementValues()->collect(val | thisModule.AgentImageRequirement(val))
+				endif
+		)
+}
+
+rule ScriptJob2Job extends Job2Job {
+	from
+		pimJob : PIM!ScriptJob
+	to
+		bambooJob : BambooMM!Job(
+			tasks <- thisModule.flattenSteps(pimJob.steps)->select(s | not s.oclIsTypeOf(PIM!Artifact)),
+			artifacts <- thisModule.flattenSteps(pimJob.steps)->select(s | s.oclIsTypeOf(PIM!Artifact))->select(s | s.isStoreArtifact()),
+			artifactSubscriptions <- thisModule.flattenSteps(pimJob.steps)->select(s | s.oclIsTypeOf(PIM!Artifact))->select(s | not s.isStoreArtifact())
+		)
+}
+
+rule PipelineCallJob2Job extends Job2Job {
+	from
+		pimJob : PIM!PipelineCallJob
+	to
+		bambooJob : BambooMM!Job(
+			tasks <- Sequence{thisModule.PipelineCallJob2GenericPluginTask(pimJob)}
+		)
+}
+
+lazy rule PipelineCallJob2GenericPluginTask {
+	from
+		pimJob : PIM!PipelineCallJob
+	to
+		bambooTask : BambooMM!GenericPluginTask(
+			moduleKey <- pimJob.pipelinePath,
+			configuration <- pimJob.args
+		)
+}
+
+abstract rule NonConditionalStep2Task {
+	from
+		pimStep : PIM!NonConditionalStep
+	to
+		bambooTask : BambooMM!Task(
+			description <-
+				if not pimStep.name.oclIsUndefined() then
+					thisModule.String2StringLiteral(pimStep.name)
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule Command2ScriptTask extends NonConditionalStep2Task {
+	from
+		pimStep : PIM!Command
+	to
+		bambooTask : BambooMM!ScriptTask(
+			interpreter <- pimStep.shell,
+			inlineBody <- pimStep.program,
+			workingSubdirectory <- pimStep.workingDirectory,
+			environmentVariables <- pimStep.environmentVariables
+		)
+}
+
+rule Plugin2GenericPluginTask extends NonConditionalStep2Task {
+	from
+		pimStep : PIM!Plugin
+	to
+		bambooTask : BambooMM!GenericPluginTask(
+			moduleKey <- thisModule.String2StringLiteral(pimStep.pluginName + ':' + pimStep.version),
+			configuration <- pimStep.kwargs
+		)
+}
+
+rule Cache2GenericPluginTask extends NonConditionalStep2Task {
+	from
+		pimStep : PIM!Cache
+	to
+		bambooTask : BambooMM!GenericPluginTask(
+			moduleKey <- thisModule.String2StringLiteral(
+					if pimStep.store = #STORE then
+						'com.atlassian.bamboo.plugins.cache:cache-save-task'
+					else if pimStep.store = #LOAD then
+						'com.atlassian.bamboo.plugins.cache:cache-restore-task'
+					else
+						'com.atlassian.bamboo.plugins.cache:cache-task'
+					endif
+					endif
+				),
+			configuration <- Sequence{}->union(
+						if pimStep.keys->notEmpty() then
+							Sequence{thisModule.VariableAssignment('key', pimStep.keys->first())}
+						else
+							Sequence{}
+						endif
+					)->union(
+						if pimStep.paths->notEmpty() then
+							Sequence{thisModule.VariableAssignment('path', pimStep.paths->first())}
+						else
+							Sequence{}
+						endif
+					)
+		)
+}
+
+rule Checkout2VcsCheckoutTask extends NonConditionalStep2Task {
+	from
+		pimStep : PIM!Checkout
+	to
+		bambooTask : BambooMM!VcsCheckoutTask(
+			checkoutItems <- Sequence{thisModule.CheckoutItemFor(pimStep)}
+		)
+}
+
+lazy rule CheckoutItemFor {
+	from
+		pimStep : PIM!Checkout
+	to
+		checkoutItem : BambooMM!CheckoutItem(
+			path <- pimStep.path,
+			defaultRepository <- true
+		)
+}
+
+rule ArtifactStore2Artifact {
+	from
+		pimStep : PIM!Artifact (pimStep.store)
+	to
+		bambooArtifact : BambooMM!Artifact(
+			name <-
+				if pimStep.artifactName.oclIsUndefined() then
+					'artifact'
+				else
+					pimStep.artifactName.toPlainString()
+				endif,
+			location <-
+				if pimStep.includePaths->notEmpty() then
+					pimStep.includePaths->first()
+				else
+					OclUndefined
+				endif,
+			shared <- true
+		)
+}
+
+rule ArtifactDownload2ArtifactSubscription {
+	from
+		pimStep : PIM!Artifact (not pimStep.store)
+	to
+		bambooSub : BambooMM!ArtifactSubscription(
+			artifactName <- pimStep.artifactName
+		)
+}
+
+abstract rule Trigger2Trigger {
+	from
+		pimTrigger : PIM!Trigger
+	to
+		bambooTrigger : BambooMM!Trigger
+}
+
+rule PushTrigger2PollingTrigger extends Trigger2Trigger {
+	from
+		pimTrigger : PIM!PushTrigger
+	to
+		bambooTrigger : BambooMM!PollingTrigger
+}
+
+rule ScheduledTrigger2ScheduledTrigger extends Trigger2Trigger {
+	from
+		pimTrigger : PIM!ScheduledTrigger
+	to
+		bambooTrigger : BambooMM!ScheduledTrigger(
+			cronExpression <-
+				if pimTrigger.crons->notEmpty() then
+					thisModule.String2StringLiteral(pimTrigger.crons->first())
+				else
+					OclUndefined
+				endif
+		)
+}
+
+rule Assignment2VariableAssignment {
+	from
+		input : PIM!Assignment
+	to
+		output : BambooMM!VariableAssignment(
+			key <- input.key,
+			value <- input.value
+		)
+}
+
+rule VariableDeclaration2VariableDeclaration {
+	from
+		input : PIM!VariableDeclaration
+	to
+		output : BambooMM!VariableDeclaration(
+			name <- input.name
+		)
+}
+
+abstract rule Expression2Expression {
+	from
+		input : PIM!Expression
+	to
+		output : BambooMM!Expression
+}
+
+rule Concat2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!Concat
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+abstract rule Value2Value extends Expression2Expression {
+	from
+		input : PIM!Value
+	to
+		output : BambooMM!Value
+}
+
+rule VariableReference2VariableReference extends Value2Value {
+	from
+		input : PIM!VariableReference
+	to
+		output : BambooMM!VariableReference(
+			reference <- input.reference
+		)
+}
+
+abstract rule Literal2Literal extends Value2Value {
+	from
+		input : PIM!Literal
+	to
+		output : BambooMM!Literal
+}
+
+rule StringLiteral2StringLiteral extends Literal2Literal {
+	from
+		input : PIM!StringLiteral
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.value
+		)
+}
+
+rule IntegerLiteral2IntegerLiteral extends Literal2Literal {
+	from
+		input : PIM!IntegerLiteral
+	to
+		output : BambooMM!IntegerLiteral(
+			value <- input.value
+		)
+}
+
+rule DoubleLiteral2DoubleLiteral extends Literal2Literal {
+	from
+		input : PIM!DoubleLiteral
+	to
+		output : BambooMM!DoubleLiteral(
+			value <- input.value
+		)
+}
+
+rule BooleanLiteral2BooleanLiteral extends Literal2Literal {
+	from
+		input : PIM!BooleanLiteral
+	to
+		output : BambooMM!BooleanLiteral(
+			value <- input.value
+		)
+}
+
+rule EqualityOp2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!EqualityOp
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+rule ComparisonOp2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!ComparisonOp
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+rule DotOp2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!DotOp
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+rule And2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!And
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+rule Or2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!Or
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+rule Negation2StringLiteral extends Expression2Expression {
+	from
+		input : PIM!Negation
+	to
+		output : BambooMM!StringLiteral(
+			value <- input.toPlainString()
+		)
+}
+
+lazy rule JobGroup2Stage {
+	from
+		jobsInGroup : Sequence(PIM!Job)
+	to
+		stage : BambooMM!Stage(
+			name <- thisModule.stageNameForGroup(jobsInGroup),
+			jobs <- jobsInGroup
+		)
+}
+
+lazy rule AgentImageRequirement {
+	from
+		value : PIM!Expression
+	to
+		requirement : BambooMM!Requirement(
+			key <- thisModule.String2StringLiteral('agent.label'),
+			matchType <- #equals,
+			matchValue <- value
+		)
+}
+
+lazy rule VariableAssignment {
+	from
+		key : String,
+		value : PIM!Expression
+	to
+		assignment : BambooMM!VariableAssignment(
+			key <- thisModule.VariableDeclaration(key),
+			value <- value
+		)
+}
+
+lazy rule VariableDeclaration {
+	from
+		input : String
+	to
+		output : BambooMM!VariableDeclaration(
+			name <- input
+		)
+}
+
+lazy rule String2StringLiteral {
+	from
+		string : String
+	to
+		stringLiteral : BambooMM!StringLiteral(
+			value <- string
+		)
+}
+
+helper context PIM!Step def: isStoreArtifact() : Boolean =
+	false;
+
+helper context PIM!Artifact def: isStoreArtifact() : Boolean =
+	self.store;
+
+helper context PIM!Step def: thenRunSteps() : Sequence(PIM!Step) =
+	Sequence{};
+
+helper context PIM!ConditionalStep def: thenRunSteps() : Sequence(PIM!Step) =
+	self.thenRun;
+
+helper def: flattenSteps(steps : Sequence(PIM!Step)) : Sequence(PIM!Step) =
+	steps->iterate(s; acc : Sequence(PIM!Step) = Sequence{} |
+		if s.oclIsTypeOf(PIM!ConditionalStep) then
+			acc->union(thisModule.flattenSteps(s.thenRunSteps()))
+		else
+			acc->union(Sequence{s})
+		endif
+	);
+
+helper context PIM!Agent def: agentRequirementValues() : Sequence(PIM!Expression) =
+	Sequence{};
+
+helper context PIM!CustomAgent def: agentRequirementValues() : Sequence(PIM!Expression) =
+	self.labels;
+
+helper context PIM!LinuxAgent def: agentRequirementValues() : Sequence(PIM!Expression) =
+	if self.container.oclIsUndefined() then
+		if self.image.oclIsUndefined() then
+			Sequence{}
+		else
+			Sequence{self.image}
+		endif
+	else
+		Sequence{self.container.image}
+	endif;
+
+helper context PIM!WindowsAgent def: agentRequirementValues() : Sequence(PIM!Expression) =
+	if self.image.oclIsUndefined() then
+		Sequence{}
+	else
+		Sequence{self.image}
+	endif;
+
+helper context PIM!MacOSAgent def: agentRequirementValues() : Sequence(PIM!Expression) =
+	if self.image.oclIsUndefined() then
+		Sequence{}
+	else
+		Sequence{self.image}
+	endif;
+
+helper context PIM!Expression def: toPlainString() : String =
+	'';
+
+helper context PIM!StringLiteral def: toPlainString() : String =
+	self.value;
+
+helper context PIM!IntegerLiteral def: toPlainString() : String =
+	self.value.toString();
+
+helper context PIM!DoubleLiteral def: toPlainString() : String =
+	self.value.toString();
+
+helper context PIM!BooleanLiteral def: toPlainString() : String =
+	self.value.toString();
+
+helper context PIM!VariableReference def: toPlainString() : String =
+	self.reference.name;
+
+helper context PIM!Concat def: toPlainString() : String =
+	self.expressions->iterate(e; acc : String = '' | acc + e.toPlainString());
+
+helper def: jobLevel(job : PIM!Job) : Integer =
+	if job.previous->isEmpty() then
+		0
+	else
+		job.previous->iterate(p; acc : Integer = 0 |
+			let pLevel : Integer = thisModule.jobLevel(p) + 1 in
+			if pLevel > acc then
+				pLevel
+			else
+				acc
+			endif
+		)
+	endif;
+
+helper def: buildStageGroups(jobs : Sequence(PIM!Job), level : Integer) : Sequence(Sequence(PIM!Job)) =
+	let jobsAtLevel : Sequence(PIM!Job) = jobs->select(j | thisModule.jobLevel(j) = level) in
+	if jobsAtLevel->isEmpty() then
+		Sequence{}
+	else
+		Sequence{jobsAtLevel}->union(thisModule.buildStageGroups(jobs, level + 1))
+	endif;
+
+helper def: stageNameForGroup(jobs : Sequence(PIM!Job)) : String =
+	'Stage-' + jobs->first().id;
+
+helper def: getAllJobs(jobStreams : Sequence(PIM!Job)) : Sequence(PIM!Job) =
+	let next : Sequence(PIM!Job) =
+		jobStreams->iterate(jobStream; acc : Sequence(Sequence(PIM!Job)) = Sequence{} |
+			acc.append(jobStream.next)
+		)->flatten()->asSet()->asSequence()
+	in
+	if next.isEmpty() then
+		jobStreams
+	else
+		thisModule.getAllJobs(next)->prepend(jobStreams)->flatten()
+	endif;

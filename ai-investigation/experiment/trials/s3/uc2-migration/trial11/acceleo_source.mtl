@@ -1,0 +1,741 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/bamboo')]
+
+[query public generateVariableReference(variableDeclaration : VariableDeclaration) : String =
+  variableDeclaration.name
+/]
+
+[query public generateLiteral(literal : Literal) : String =
+  if literal.oclIsTypeOf(StringLiteral) then literal.oclAsType(StringLiteral).value
+  else if literal.oclIsTypeOf(IntegerLiteral) then literal.oclAsType(IntegerLiteral).value.toString()
+  else if literal.oclIsTypeOf(DoubleLiteral) then literal.oclAsType(DoubleLiteral).value.toString()
+  else if literal.oclIsTypeOf(BooleanLiteral) then literal.oclAsType(BooleanLiteral).value.toString()
+  else ''
+  endif endif endif endif
+/]
+
+[query public generateBambooContext(bambooContext : BambooContext) : String =
+  '${' + bambooContext._context.toString() + '}'
+/]
+
+[template public generateExpression(expression : Expression) post (trim())]
+[if (expression.oclIsUndefined())]
+[elseif (expression.oclIsKindOf(Literal))][generateLiteral(expression.oclAsType(Literal))/][elseif (expression.oclIsTypeOf(VariableReference))][generateVariableReference(expression.oclAsType(VariableReference).reference)/][elseif (expression.oclIsTypeOf(BambooContext))][generateBambooContext(expression.oclAsType(BambooContext))/][/if]
+[/template]
+
+[template public generateVariableAssignment(variableAssignment : VariableAssignment) post (trim())]
+[variableAssignment.key.name/]: [generateExpression(variableAssignment.value)/]
+[/template]
+
+[template public generateRequirementListItem(requirement : Requirement) post (trim())]
+- key: [generateExpression(requirement.key)/]
+  match-type: [requirement.matchType.toString()/]
+[if (not requirement.matchValue.oclIsUndefined())]
+  match-value: [generateExpression(requirement.matchValue)/]
+[/if]
+[/template]
+
+[template public generateArtifactListItem(artifact : Artifact) post (trim())]
+- name: [artifact.name/]
+[if (not artifact.location.oclIsUndefined())]
+  location: [generateExpression(artifact.location)/]
+[/if]
+[if (not artifact.copyPattern.oclIsUndefined())]
+  copy-pattern: [generateExpression(artifact.copyPattern)/]
+[/if]
+[if (artifact.shared)]
+  shared: true
+[/if]
+[/template]
+
+[template public generateTaskConditionListItem(taskCondition : TaskCondition) post (trim())]
+- module: [generateExpression(taskCondition.module)/]
+[if (taskCondition.oclIsTypeOf(GenericTaskCondition))]
+[for (variableAssignment : VariableAssignment | taskCondition.oclAsType(GenericTaskCondition).configuration)]
+  [generateVariableAssignment(variableAssignment)/]
+[/for]
+[/if]
+[/template]
+
+[template public generateTaskCommon(task : Task)]
+[if (not task.description.oclIsUndefined())]
+description: [generateExpression(task.description)/]
+[/if]
+[if (not task.enabled)]
+enabled: false
+[/if]
+[if (task.conditions->notEmpty())]
+conditions:
+[for (taskCondition : TaskCondition | task.conditions)]
+  [generateTaskConditionListItem(taskCondition)/]
+[/for]
+[/if]
+[/template]
+
+[template public generateCheckoutItemListItem(checkoutItem : CheckoutItem) post (trim())]
+[if (checkoutItem.defaultRepository)]
+- default: true
+[else]
+- repository: [generateExpression(checkoutItem.repository)/]
+[/if]
+[if (not checkoutItem.path.oclIsUndefined())]
+  path: [generateExpression(checkoutItem.path)/]
+[/if]
+[/template]
+
+[template public generateDownloadItemListItem(downloadItem : DownloadItem) post (trim())]
+[if (downloadItem.allArtifacts)]
+- all: true
+[else]
+- name: [generateExpression(downloadItem.artifactName)/]
+[/if]
+[if (not downloadItem.path.oclIsUndefined())]
+  path: [generateExpression(downloadItem.path)/]
+[/if]
+[/template]
+
+[template public generateTaskListItem(task : Task)]
+[if (task.oclIsTypeOf(ScriptTask))]
+[generateScriptTaskItem(task.oclAsType(ScriptTask))/]
+[elseif (task.oclIsTypeOf(CleanWorkingDirectoryTask))]
+[generateCleanTaskItem(task.oclAsType(CleanWorkingDirectoryTask))/]
+[elseif (task.oclIsTypeOf(InjectVariablesTask))]
+[generateInjectVariablesTaskItem(task.oclAsType(InjectVariablesTask))/]
+[elseif (task.oclIsTypeOf(TestParserTask))]
+[generateTestParserTaskItem(task.oclAsType(TestParserTask))/]
+[elseif (task.oclIsTypeOf(NUnitRunnerTask))]
+[generateNUnitRunnerTaskItem(task.oclAsType(NUnitRunnerTask))/]
+[elseif (task.oclIsTypeOf(VcsCheckoutTask))]
+[generateVcsCheckoutTaskItem(task.oclAsType(VcsCheckoutTask))/]
+[elseif (task.oclIsTypeOf(VcsCommitTask))]
+[generateVcsCommitTaskItem(task.oclAsType(VcsCommitTask))/]
+[elseif (task.oclIsTypeOf(VcsTagTask))]
+[generateVcsTagTaskItem(task.oclAsType(VcsTagTask))/]
+[elseif (task.oclIsTypeOf(VcsPushTask))]
+[generateVcsPushTaskItem(task.oclAsType(VcsPushTask))/]
+[elseif (task.oclIsTypeOf(VcsBranchTask))]
+[generateVcsBranchTaskItem(task.oclAsType(VcsBranchTask))/]
+[elseif (task.oclIsTypeOf(ArtifactDownloaderTask))]
+[generateArtifactDownloaderTaskItem(task.oclAsType(ArtifactDownloaderTask))/]
+[elseif (task.oclIsTypeOf(MavenTask))]
+[generateMavenTaskItem(task.oclAsType(MavenTask))/]
+[elseif (task.oclIsTypeOf(DockerBuildImageTask))]
+[generateDockerBuildTaskItem(task.oclAsType(DockerBuildImageTask))/]
+[elseif (task.oclIsTypeOf(DockerRunContainerTask))]
+[generateDockerRunTaskItem(task.oclAsType(DockerRunContainerTask))/]
+[elseif (task.oclIsTypeOf(DockerPushImageTask))]
+[generateDockerPushTaskItem(task.oclAsType(DockerPushImageTask))/]
+[elseif (task.oclIsTypeOf(DockerPullImageTask))]
+[generateDockerPullTaskItem(task.oclAsType(DockerPullImageTask))/]
+[elseif (task.oclIsTypeOf(GenericPluginTask))]
+[generateGenericPluginTaskItem(task.oclAsType(GenericPluginTask))/]
+[/if]
+[/template]
+
+[template public generateScriptTaskItem(task : ScriptTask) post (trim())]
+- script:
+[if (not task.interpreter.oclIsUndefined())]
+    interpreter: [generateExpression(task.interpreter)/]
+[/if]
+[if (not task.inlineBody.oclIsUndefined())]
+    body: [generateExpression(task.inlineBody)/]
+[/if]
+[if (not task.fileFromPath.oclIsUndefined())]
+    file: [generateExpression(task.fileFromPath)/]
+[/if]
+[if (task.arguments->notEmpty())]
+    args:
+[for (argument : Expression | task.arguments)]
+      - [generateExpression(argument)/]
+[/for]
+[/if]
+[if (not task.workingSubdirectory.oclIsUndefined())]
+    working-directory: [generateExpression(task.workingSubdirectory)/]
+[/if]
+[if (task.environmentVariables->notEmpty())]
+    environment:
+[for (variableAssignment : VariableAssignment | task.environmentVariables)]
+      [generateVariableAssignment(variableAssignment)/]
+[/for]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateCleanTaskItem(task : CleanWorkingDirectoryTask) post (trim())]
+[if (task.description.oclIsUndefined() and task.enabled and task.conditions->isEmpty())]
+- clean
+[else]
+- clean:
+    [generateTaskCommon(task)/]
+[/if]
+[/template]
+
+[template public generateInjectVariablesTaskItem(task : InjectVariablesTask) post (trim())]
+- inject-variables:
+    path: [generateExpression(task.path)/]
+[if (not task.namespace.oclIsUndefined())]
+    namespace: [generateExpression(task.namespace)/]
+[/if]
+[if (task.scope.toString() <> 'LOCAL')]
+    scope: [task.scope.toString()/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateTestParserTaskItem(task : TestParserTask) post (trim())]
+- test-parser:
+    type: [task.parserType.toString()/]
+[if (task.resultDirectories->notEmpty())]
+    result-directories:
+[for (resultDirectory : Expression | task.resultDirectories)]
+      - [generateExpression(resultDirectory)/]
+[/for]
+[/if]
+[if (task.pickUpTestResultsCreatedOutsideOfThisBuild)]
+    pick-up-external-results: true
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateNUnitRunnerTaskItem(task : NUnitRunnerTask) post (trim())]
+- nunit:
+[if (not task.executable.oclIsUndefined())]
+    executable: [generateExpression(task.executable)/]
+[/if]
+[if (not task.testFiles.oclIsUndefined())]
+    test-files: [generateExpression(task.testFiles)/]
+[/if]
+[if (not task.resultFilename.oclIsUndefined())]
+    result-filename: [generateExpression(task.resultFilename)/]
+[/if]
+[if (not task.testsToRun.oclIsUndefined())]
+    tests-to-run: [generateExpression(task.testsToRun)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateVcsCheckoutTaskItem(task : VcsCheckoutTask) post (trim())]
+- checkout:
+    clean: [task.cleanCheckout/]
+    items:
+[for (checkoutItem : CheckoutItem | task.checkoutItems)]
+      [generateCheckoutItemListItem(checkoutItem)/]
+[/for]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateVcsCommitTaskItem(task : VcsCommitTask) post (trim())]
+- vcs-commit:
+[if (not task.repository.oclIsUndefined())]
+    repository: [generateExpression(task.repository)/]
+[/if]
+[if (not task.commitMessage.oclIsUndefined())]
+    message: [generateExpression(task.commitMessage)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateVcsTagTaskItem(task : VcsTagTask) post (trim())]
+- vcs-tag:
+[if (not task.repository.oclIsUndefined())]
+    repository: [generateExpression(task.repository)/]
+[/if]
+[if (not task.tagName.oclIsUndefined())]
+    tag: [generateExpression(task.tagName)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateVcsPushTaskItem(task : VcsPushTask) post (trim())]
+- vcs-push:
+[if (not task.repository.oclIsUndefined())]
+    repository: [generateExpression(task.repository)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateVcsBranchTaskItem(task : VcsBranchTask) post (trim())]
+- vcs-branch:
+[if (not task.repository.oclIsUndefined())]
+    repository: [generateExpression(task.repository)/]
+[/if]
+[if (not task.branchName.oclIsUndefined())]
+    branch: [generateExpression(task.branchName)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateArtifactDownloaderTaskItem(task : ArtifactDownloaderTask) post (trim())]
+- artifact-download:
+[if (not task.sourcePlan.oclIsUndefined())]
+    source-plan: [generateExpression(task.sourcePlan)/]
+[/if]
+[if (task.artifacts->notEmpty())]
+    artifacts:
+[for (downloadItem : DownloadItem | task.artifacts)]
+      [generateDownloadItemListItem(downloadItem)/]
+[/for]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateMavenTaskItem(task : MavenTask) post (trim())]
+- maven:
+[if (not task.goal.oclIsUndefined())]
+    goal: [generateExpression(task.goal)/]
+[/if]
+[if (not task.jdk.oclIsUndefined())]
+    jdk: [generateExpression(task.jdk)/]
+[/if]
+[if (not task.executableLabel.oclIsUndefined())]
+    executable: [generateExpression(task.executableLabel)/]
+[/if]
+[if (task.hasTests)]
+    has-tests: true
+[/if]
+    version: [task.mavenVersion.toString()/]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateDockerBuildTaskItem(task : DockerBuildImageTask) post (trim())]
+- docker-build:
+    image: [generateExpression(task.imageName)/]
+[if (not task.dockerfile.oclIsUndefined())]
+    dockerfile: [generateExpression(task.dockerfile)/]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateDockerRunTaskItem(task : DockerRunContainerTask) post (trim())]
+- docker-run:
+    image: [generateExpression(task.imageName)/]
+[if (not task.containerName.oclIsUndefined())]
+    container-name: [generateExpression(task.containerName)/]
+[/if]
+[if (task.detachContainer)]
+    detach: true
+[/if]
+[if (task.waitToStart)]
+    wait-to-start: true
+[/if]
+[if (not task.serviceURLPattern.oclIsUndefined())]
+    service-url-pattern: [generateExpression(task.serviceURLPattern)/]
+[/if]
+[if (task.portMappings->notEmpty())]
+    port-mappings:
+[for (portMapping : Expression | task.portMappings)]
+      - [generateExpression(portMapping)/]
+[/for]
+[/if]
+[if (task.volumeMappings->notEmpty())]
+    volume-mappings:
+[for (volumeMapping : Expression | task.volumeMappings)]
+      - [generateExpression(volumeMapping)/]
+[/for]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateDockerPushTaskItem(task : DockerPushImageTask) post (trim())]
+- docker-push:
+    image: [generateExpression(task.image)/]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateDockerPullTaskItem(task : DockerPullImageTask) post (trim())]
+- docker-pull:
+    image: [generateExpression(task.image)/]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateGenericPluginTaskItem(task : GenericPluginTask) post (trim())]
+- plugin:
+    module-key: [generateExpression(task.moduleKey)/]
+[if (task.configuration->notEmpty())]
+    configuration:
+[for (variableAssignment : VariableAssignment | task.configuration)]
+      [generateVariableAssignment(variableAssignment)/]
+[/for]
+[/if]
+    [generateTaskCommon(task)/]
+[/template]
+
+[template public generateJob(job : Job) post (trim())]
+[job.name/]:
+[if (not job.key.oclIsUndefined())]
+  key: [generateExpression(job.key)/]
+[/if]
+[if (not job.description.oclIsUndefined())]
+  description: [generateExpression(job.description)/]
+[/if]
+[if (job.cleanWorkingDirectory)]
+  clean-working-directory: true
+[/if]
+  tasks:
+[for (task : Task | job.tasks)]
+    [generateTaskListItem(task)/]
+[/for]
+[if (job.finalTasks->notEmpty())]
+  final-tasks:
+[for (task : Task | job.finalTasks)]
+    [generateTaskListItem(task)/]
+[/for]
+[/if]
+[if (job.artifacts->notEmpty())]
+  artifacts:
+[for (artifact : Artifact | job.artifacts)]
+    [generateArtifactListItem(artifact)/]
+[/for]
+[/if]
+[if (job.artifactSubscriptions->notEmpty())]
+  artifact-subscriptions:
+[for (artifactSubscription : ArtifactSubscription | job.artifactSubscriptions)]
+    - artifact-name: [generateExpression(artifactSubscription.artifactName)/]
+[/for]
+[/if]
+[if (job.requirements->notEmpty())]
+  requirements:
+[for (requirement : Requirement | job.requirements)]
+    [generateRequirementListItem(requirement)/]
+[/for]
+[/if]
+[/template]
+
+[template public generateStageListItem(stage : Stage) post (trim())]
+- [stage.name/]:
+[if (stage.manual)]
+    manual: true
+[/if]
+[if (stage.finalStage)]
+    final: true
+[/if]
+    jobs:
+[for (job : Job | stage.jobs)]
+      - [job.name/]
+[/for]
+[/template]
+
+[template public generateTriggerConditionListItem(triggerCondition : TriggerCondition) post (trim())]
+[if (triggerCondition.oclIsTypeOf(PlansGreenTriggerCondition))]
+- plans-green:
+[for (planRef : Expression | triggerCondition.oclAsType(PlansGreenTriggerCondition).plans)]
+    - [generateExpression(planRef)/]
+[/for]
+[else]
+- module: [generateExpression(triggerCondition.module)/]
+[/if]
+[/template]
+
+[template public generateTriggerConditions(trigger : Trigger)]
+[if (trigger.conditions->notEmpty())]
+conditions:
+[for (triggerCondition : TriggerCondition | trigger.conditions)]
+  [generateTriggerConditionListItem(triggerCondition)/]
+[/for]
+[/if]
+[/template]
+
+[template public generatePollingTriggerItem(trigger : PollingTrigger) post (trim())]
+[if (trigger.selectedRepositories->isEmpty())]
+- polling: [generateExpression(trigger.pollingPeriodSeconds)/]
+[else]
+- polling:
+    period: [generateExpression(trigger.pollingPeriodSeconds)/]
+    repositories:
+[for (selectedRepository : Expression | trigger.selectedRepositories)]
+      - [generateExpression(selectedRepository)/]
+[/for]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateScheduledTriggerItem(trigger : ScheduledTrigger) post (trim())]
+- cron: [generateExpression(trigger.cronExpression)/]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateRemoteTriggerItem(trigger : RemoteTrigger) post (trim())]
+[if (trigger.triggerIPAddresses->size() = 1)]
+- remote: [generateExpression(trigger.triggerIPAddresses->first())/]
+[else]
+- remote:
+[for (ipAddress : Expression | trigger.triggerIPAddresses)]
+    - [generateExpression(ipAddress)/]
+[/for]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateAfterDeploymentTriggerItem(trigger : AfterDeploymentTrigger) post (trim())]
+- after-deployment:
+    deployment-project: [generateExpression(trigger.deploymentProject)/]
+[if (not trigger.environment.oclIsUndefined())]
+    environment: [generateExpression(trigger.environment)/]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateAfterSuccessfulBuildPlanTriggerItem(trigger : AfterSuccessfulBuildPlanTrigger) post (trim())]
+- after-successful-build-plan:
+[if (not trigger.triggerByBranch.oclIsUndefined())]
+    trigger-by-branch: [generateExpression(trigger.triggerByBranch)/]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateAfterSuccessfulStageTriggerItem(trigger : AfterSuccessfulStageTrigger) post (trim())]
+- after-successful-stage:
+    stage: [generateExpression(trigger.stageName)/]
+[if (not trigger.triggerByBranch.oclIsUndefined())]
+    trigger-by-branch: [generateExpression(trigger.triggerByBranch)/]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateAfterSuccessfulDeploymentTriggerItem(trigger : AfterSuccessfulDeploymentTrigger) post (trim())]
+- after-successful-deployment:
+    environment: [generateExpression(trigger.environmentName)/]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateScheduledDeploymentTriggerItem(trigger : ScheduledDeploymentTrigger) post (trim())]
+- scheduled-deployment:
+[if (not trigger.cronExpression.oclIsUndefined())]
+    cron: [generateExpression(trigger.cronExpression)/]
+[/if]
+[if (not trigger.artifactBranch.oclIsUndefined())]
+    artifact-branch: [generateExpression(trigger.artifactBranch)/]
+[/if]
+    [generateTriggerConditions(trigger)/]
+[/template]
+
+[template public generateTriggerListItem(trigger : Trigger)]
+[if (trigger.oclIsTypeOf(PollingTrigger))]
+[generatePollingTriggerItem(trigger.oclAsType(PollingTrigger))/]
+[elseif (trigger.oclIsTypeOf(ScheduledTrigger))]
+[generateScheduledTriggerItem(trigger.oclAsType(ScheduledTrigger))/]
+[elseif (trigger.oclIsTypeOf(RemoteTrigger))]
+[generateRemoteTriggerItem(trigger.oclAsType(RemoteTrigger))/]
+[elseif (trigger.oclIsTypeOf(AfterDeploymentTrigger))]
+[generateAfterDeploymentTriggerItem(trigger.oclAsType(AfterDeploymentTrigger))/]
+[elseif (trigger.oclIsTypeOf(AfterSuccessfulBuildPlanTrigger))]
+[generateAfterSuccessfulBuildPlanTriggerItem(trigger.oclAsType(AfterSuccessfulBuildPlanTrigger))/]
+[elseif (trigger.oclIsTypeOf(AfterSuccessfulStageTrigger))]
+[generateAfterSuccessfulStageTriggerItem(trigger.oclAsType(AfterSuccessfulStageTrigger))/]
+[elseif (trigger.oclIsTypeOf(AfterSuccessfulDeploymentTrigger))]
+[generateAfterSuccessfulDeploymentTriggerItem(trigger.oclAsType(AfterSuccessfulDeploymentTrigger))/]
+[elseif (trigger.oclIsTypeOf(ScheduledDeploymentTrigger))]
+[generateScheduledDeploymentTriggerItem(trigger.oclAsType(ScheduledDeploymentTrigger))/]
+[/if]
+[/template]
+
+[template public generateGitRepositoryItem(repository : GitRepository) post (trim())]
+- [generateExpression(repository.name)/]:
+    type: git
+    url: [generateExpression(repository.url)/]
+[if (not repository.branch.oclIsUndefined())]
+    branch: [generateExpression(repository.branch)/]
+[/if]
+[/template]
+
+[template public generateBitbucketServerRepositoryItem(repository : BitbucketServerRepository) post (trim())]
+- [generateExpression(repository.name)/]:
+    type: bitbucket-server
+[if (not repository.projectKey.oclIsUndefined())]
+    project-key: [generateExpression(repository.projectKey)/]
+[/if]
+[if (not repository.repositorySlug.oclIsUndefined())]
+    repository-slug: [generateExpression(repository.repositorySlug)/]
+[/if]
+[if (not repository.sshCloneUrl.oclIsUndefined())]
+    ssh-clone-url: [generateExpression(repository.sshCloneUrl)/]
+[/if]
+[if (not repository.branch.oclIsUndefined())]
+    branch: [generateExpression(repository.branch)/]
+[/if]
+[/template]
+
+[template public generateBitbucketCloudRepositoryItem(repository : BitbucketCloudRepository) post (trim())]
+- [generateExpression(repository.name)/]:
+    type: bitbucket-cloud
+[if (not repository.workspace.oclIsUndefined())]
+    workspace: [generateExpression(repository.workspace)/]
+[/if]
+[if (not repository.repositorySlug.oclIsUndefined())]
+    repository-slug: [generateExpression(repository.repositorySlug)/]
+[/if]
+[if (not repository.branch.oclIsUndefined())]
+    branch: [generateExpression(repository.branch)/]
+[/if]
+[/template]
+
+[template public generateSvnRepositoryItem(repository : SvnRepository) post (trim())]
+- [generateExpression(repository.name)/]:
+    type: svn
+[if (not repository.repositoryRoot.oclIsUndefined())]
+    repository-root: [generateExpression(repository.repositoryRoot)/]
+[/if]
+[if (not repository.branch.oclIsUndefined())]
+    branch: [generateExpression(repository.branch)/]
+[/if]
+[/template]
+
+[template public generateRepositoryListItem(repository : Repository)]
+[if (repository.oclIsTypeOf(GitRepository))]
+[generateGitRepositoryItem(repository.oclAsType(GitRepository))/]
+[elseif (repository.oclIsTypeOf(BitbucketServerRepository))]
+[generateBitbucketServerRepositoryItem(repository.oclAsType(BitbucketServerRepository))/]
+[elseif (repository.oclIsTypeOf(BitbucketCloudRepository))]
+[generateBitbucketCloudRepositoryItem(repository.oclAsType(BitbucketCloudRepository))/]
+[elseif (repository.oclIsTypeOf(SvnRepository))]
+[generateSvnRepositoryItem(repository.oclAsType(SvnRepository))/]
+[/if]
+[/template]
+
+[template public generateDependencies(dependencies : Dependencies) post (trim())]
+require-all-stages-passing: [dependencies.requireAllStagesPassing/]
+[if (dependencies.childPlans->notEmpty())]
+child-plans:
+[for (childPlan : Expression | dependencies.childPlans)]
+  - [generateExpression(childPlan)/]
+[/for]
+[/if]
+[/template]
+
+[template public generateBranchManagement(planBranchManagement : PlanBranchManagement) post (trim())]
+[if (not planBranchManagement.createForVcsBranchMatching.oclIsUndefined())]
+create: [generateExpression(planBranchManagement.createForVcsBranchMatching)/]
+[/if]
+[if (planBranchManagement.triggerBuildsLikeParentPlan)]
+trigger-like-parent: true
+[/if]
+[if (not planBranchManagement.branchIntegration.oclIsUndefined())]
+integration:
+  branch: [generateExpression(planBranchManagement.branchIntegration.integrationBranchKey)/]
+[if (planBranchManagement.branchIntegration.gatekeeper)]
+  gatekeeper: true
+[/if]
+[if (planBranchManagement.branchIntegration.pushOnSuccessfulBuild)]
+  push-on-successful-build: true
+[/if]
+[/if]
+[if (not planBranchManagement.branchCleanup.oclIsUndefined())]
+cleanup:
+[if (not planBranchManagement.branchCleanup.whenRemovedFromRepositoryAfterDays.oclIsUndefined())]
+  removed-after-days: [generateExpression(planBranchManagement.branchCleanup.whenRemovedFromRepositoryAfterDays)/]
+[/if]
+[if (not planBranchManagement.branchCleanup.whenInactiveInRepositoryAfterDays.oclIsUndefined())]
+  inactive-after-days: [generateExpression(planBranchManagement.branchCleanup.whenInactiveInRepositoryAfterDays)/]
+[/if]
+[/if]
+[/template]
+
+[template public generateGroupRecipientItem(recipient : GroupRecipient) post (trim())]
+- group: [generateExpression(recipient.groupName)/]
+[/template]
+
+[template public generateEmailRecipientItem(recipient : EmailRecipient) post (trim())]
+- email: [generateExpression(recipient.email)/]
+[/template]
+
+[template public generateUserRecipientItem(recipient : UserRecipient) post (trim())]
+- user: [generateExpression(recipient.username)/]
+[/template]
+
+[template public generateWebhookRecipientItem(recipient : WebhookRecipient) post (trim())]
+- webhook:
+[if (not recipient.webhookName.oclIsUndefined())]
+    name: [generateExpression(recipient.webhookName)/]
+[/if]
+    url: [generateExpression(recipient.url)/]
+[/template]
+
+[template public generateRecipientListItem(recipient : Recipient)]
+[if (recipient.oclIsTypeOf(GroupRecipient))]
+[generateGroupRecipientItem(recipient.oclAsType(GroupRecipient))/]
+[elseif (recipient.oclIsTypeOf(EmailRecipient))]
+[generateEmailRecipientItem(recipient.oclAsType(EmailRecipient))/]
+[elseif (recipient.oclIsTypeOf(UserRecipient))]
+[generateUserRecipientItem(recipient.oclAsType(UserRecipient))/]
+[elseif (recipient.oclIsTypeOf(ResponsibleRecipient))]
+- responsible: true
+[elseif (recipient.oclIsTypeOf(WebhookRecipient))]
+[generateWebhookRecipientItem(recipient.oclAsType(WebhookRecipient))/]
+[/if]
+[/template]
+
+[template public generateNotificationListItem(notification : Notification) post (trim())]
+- type: [notification.notificationType.toString()/]
+  recipients:
+[for (recipient : Recipient | notification.recipients)]
+    [generateRecipientListItem(recipient)/]
+[/for]
+[/template]
+
+[template public generateElement(plan : Plan)]
+[comment @main/]
+[file ('plan.yaml', false, 'UTF-8')]
+---
+version: 2
+plan:
+  project-key: [generateExpression(plan.projectKey)/]
+  name: [generateExpression(plan.name)/]
+  key: [generateExpression(plan.planKey)/]
+[if (not plan.description.oclIsUndefined())]
+  description: [generateExpression(plan.description)/]
+[/if]
+  enabled: [plan.enabled/]
+
+[if (plan.variables->notEmpty())]
+variables:
+[for (variableAssignment : VariableAssignment | plan.variables)]
+  [generateVariableAssignment(variableAssignment)/]
+[/for]
+
+[/if]
+stages:
+[for (stage : Stage | plan.stages)]
+  [generateStageListItem(stage)/]
+[/for]
+
+[for (stage : Stage | plan.stages)]
+[for (job : Job | stage.jobs)]
+[generateJob(job)/]
+
+[/for]
+[/for]
+[if (plan.triggers->notEmpty())]
+triggers:
+[for (trigger : Trigger | plan.triggers)]
+  [generateTriggerListItem(trigger)/]
+[/for]
+
+[/if]
+[if (plan.linkedRepositories->notEmpty() or plan.planRepositories->notEmpty())]
+repositories:
+[for (repository : Repository | plan.linkedRepositories)]
+  [generateRepositoryListItem(repository)/]
+[/for]
+[for (repository : Repository | plan.planRepositories)]
+  [generateRepositoryListItem(repository)/]
+[/for]
+
+[/if]
+[if (not plan.dependencies.oclIsUndefined())]
+dependencies:
+  [generateDependencies(plan.dependencies)/]
+
+[/if]
+[if (not plan.planBranchManagement.oclIsUndefined())]
+branches:
+  [generateBranchManagement(plan.planBranchManagement)/]
+
+[/if]
+[if (plan.notifications->notEmpty())]
+notifications:
+[for (notification : Notification | plan.notifications)]
+  [generateNotificationListItem(notification)/]
+[/for]
+[/if]
+[/file]
+[/template]

@@ -1,0 +1,269 @@
+---
+version: 2
+plan:
+  project-key: 
+  name: fullstack-webapp
+  key: 
+  enabled: true
+
+variables:
+  REGISTRY: ${CI_REGISTRY}
+  APP_IMAGE: ${CI_REGISTRY_IMAGE}/fullstack-webapp
+  APP_VERSION: ${CI_COMMIT_SHORT_SHA}
+
+stages:
+  - Stage-install-deps:
+      jobs:
+        - install-deps
+  - Stage-lint:
+      jobs:
+        - lint
+        - test-unit
+        - test-integration
+        - security-scan
+  - Stage-build:
+      jobs:
+        - build
+  - Stage-docker-build:
+      jobs:
+        - docker-build
+  - Stage-docker-push:
+      jobs:
+        - docker-push
+  - Stage-deploy-staging:
+      jobs:
+        - deploy-staging
+  - Stage-e2e-test:
+      jobs:
+        - e2e-test
+  - Stage-deploy-prod:
+      jobs:
+        - deploy-prod
+
+install-deps:
+  key: install-deps
+  tasks:
+    - plugin:
+        module-key: com.atlassian.bamboo.plugins.cache:cache-task
+        configuration:
+          key: ${CI_COMMIT_REF_SLUG}-node-modules
+          path: node_modules/
+    
+    - script:
+        body: npm ci --prefer-offline
+    
+    - script:
+        body: cd frontend && npm ci --prefer-offline
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:20-alpine
+
+lint:
+  key: lint
+  tasks:
+    - plugin:
+        module-key: com.atlassian.bamboo.plugins.cache:cache-restore-task
+        configuration:
+          key: ${CI_COMMIT_REF_SLUG}-node-modules
+          path: node_modules/
+    
+    - script:
+        body: npm run lint
+    
+    - script:
+        body: npm run format:check
+    
+    - script:
+        body: cd frontend && npm run lint
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:20-alpine
+
+test-unit:
+  key: test-unit
+  tasks:
+    - plugin:
+        module-key: com.atlassian.bamboo.plugins.cache:cache-restore-task
+        configuration:
+          key: ${CI_COMMIT_REF_SLUG}-node-modules
+          path: node_modules/
+    
+    - script:
+        body: npm run test:unit -- --coverage
+    
+  artifacts:
+    - name: unit-test-coverage
+      location: coverage/
+      shared: true
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:${NODE_VERSION}-alpine
+
+test-integration:
+  key: test-integration
+  tasks:
+    - plugin:
+        module-key: com.atlassian.bamboo.plugins.cache:cache-restore-task
+        configuration:
+          key: ${CI_COMMIT_REF_SLUG}-node-modules
+          path: node_modules/
+    
+    - script:
+        body: npm run db:migrate:test
+    
+    - script:
+        body: npm run test:integration
+    
+  artifacts:
+    - name: integration-test-results
+      location: test-results/
+      shared: true
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:20-alpine
+
+security-scan:
+  key: security-scan
+  tasks:
+    - plugin:
+        module-key: snyk/actions/node:master
+        configuration:
+          args: --severity-threshold=high
+    
+    - script:
+        body: npm audit --audit-level=critical
+    
+  artifacts:
+    - name: security-report
+      location: snyk-report.sarif
+      shared: true
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:20-alpine
+
+build:
+  key: build
+  tasks:
+    - plugin:
+        module-key: com.atlassian.bamboo.plugins.cache:cache-restore-task
+        configuration:
+          key: ${CI_COMMIT_REF_SLUG}-node-modules
+          path: node_modules/
+    
+    - script:
+        body: npm run build:backend
+    
+    - script:
+        body: cd frontend && npm run build
+    
+  artifacts:
+    - name: build-output
+      location: dist/
+      shared: true
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: node:20-alpine
+
+docker-build:
+  key: docker-build
+  tasks:
+    - script:
+        body: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    
+    - script:
+        body: docker build --build-arg APP_VERSION=${APP_VERSION} -t ${APP_IMAGE}:${APP_VERSION} -t ${APP_IMAGE}:latest .
+    
+    - script:
+        body: docker tag ${APP_IMAGE}:${APP_VERSION} ${APP_IMAGE}:stable
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: docker:24-dind
+
+docker-push:
+  key: docker-push
+  tasks:
+    - script:
+        body: docker login -u ${CI_REGISTRY_USER} -p ${CI_JOB_TOKEN} ${REGISTRY}
+    
+    - script:
+        body: docker push ${APP_IMAGE}:${APP_VERSION}
+    
+    - script:
+        body: docker push ${APP_IMAGE}:latest
+    
+    - script:
+        body: docker push ${APP_IMAGE}:stable
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: docker:24-dind
+
+deploy-staging:
+  key: deploy-staging
+  tasks:
+    - script:
+        body: kubectl config use-context staging
+    
+    - script:
+        body: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n staging
+    
+    - script:
+        body: kubectl rollout status deployment/webapp -n staging --timeout=5m
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: bitnami/kubectl:latest
+
+e2e-test:
+  key: e2e-test
+  tasks:
+    - script:
+        body: npm run test:e2e -- --reporter=html
+    
+  artifacts:
+    - name: e2e-report
+      location: playwright-report/
+      shared: true
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: mcr.microsoft.com/playwright:v1.44.0-jammy
+
+deploy-prod:
+  key: deploy-prod
+  tasks:
+    - script:
+        body: kubectl config use-context production
+    
+    - script:
+        body: kubectl set image deployment/webapp app=${APP_IMAGE}:${APP_VERSION} -n production
+    
+    - script:
+        body: kubectl rollout status deployment/webapp -n production --timeout=10m
+    
+    - script:
+        body: kubectl annotate deployment/webapp version=${CI_COMMIT_TAG} -n production --overwrite
+    
+  requirements:
+    - key: agent.label
+      match-type: equals
+      match-value: bitnami/kubectl:latest
+
+triggers:
+  - polling:
+  
+  - cron: 0
+  
+
