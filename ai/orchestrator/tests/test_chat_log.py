@@ -113,6 +113,32 @@ def test_narration_history_for_each_event_excludes_events_queued_after_it(fake_r
     assert history_types == ["call_started"]
 
 
+def test_constraint_added_events_are_mirrored_but_not_narrated(fake_reactor):
+    # Regression test: the atl/acceleo repair-and-promote loop can add a run
+    # of a dozen or more constraint_added events in one go (confirmed: 20 in
+    # a single real ATL repair round) - narrating each one its own LLM call
+    # wasted a real call per entry and read as the same near-identical
+    # comment repeated over and over.
+    events = [
+        {"type": "constraint_added", "stage": "atl", "data": {"constraint": "x"}, "timestamp": 1.0},
+        {"type": "constraint_added", "stage": "atl", "data": {"constraint": "y"}, "timestamp": 2.0},
+        {"type": "call_completed", "stage": "atl", "data": {}, "timestamp": 3.0},
+    ]
+    with patch.object(integration_runner_client, "get_events", return_value=_raw_events_response("run-9", events)):
+        chat_log.get_events(run_id="run-9")
+    _wait_for_narration("run-9")
+
+    transcript = chat_log.get_chat_log("run-9").events
+    types = [e["type"] for e in transcript]
+    # Both raw constraint_added facts are still mirrored, but only
+    # call_completed earned a narration "message" turn.
+    assert types == ["constraint_added", "constraint_added", "call_completed", "message"]
+    assert transcript[3]["text"] == "Narrated: call_completed"
+    # The reactor was never called for either constraint_added event.
+    narrated_types = [call["event"]["type"] for call in fake_reactor.calls]
+    assert narrated_types == ["call_completed"]
+
+
 def test_narration_failure_falls_back_without_crashing_or_losing_the_event():
     def _broken_reactor(event, history):
         raise RuntimeError("ai-layer unreachable")

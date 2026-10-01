@@ -1,10 +1,11 @@
 """orchestrator's own chat log per run — the run's conversation transcript.
 
 integration_runner produces raw pipeline facts (call_started, call_completed,
-call_failed, review_approved, review_rejected) and knows nothing about chat
-or narration. This module is the one place that turns those facts into a
-running conversation: for each new raw event it notices, it mirrors the raw
-fact itself into this run's transcript, then asks the wired-in reactor (see
+call_failed, review_approved, review_rejected, constraint_added, ...) and
+knows nothing about chat or narration. This module is the one place that
+turns those facts into a running conversation: for each new raw event it
+notices, it mirrors the raw fact itself into this run's transcript, then
+(for every type except _NOT_NARRATED below) asks the wired-in reactor (see
 set_reactor(), same pattern integration_runner's own pipeline.py used before
 this split, just relocated) for a short comment and appends that as its own
 "message" turn, the same way send_message() (a human's own chat turn, see
@@ -48,6 +49,17 @@ logger = logging.getLogger(__name__)
 # on a model that's already not following the existing one, so this is
 # caught here too, not left to the prompt alone.
 _LEAKED_TOOL_CALL_RE = re.compile(r'["\']tool["\']\s*:')
+
+# Event types mirrored into the transcript as their own raw fact (so a human
+# browsing it can still see every one) but never narrated individually: the
+# atl/acceleo repair-and-promote loop can add a run of a dozen or more of
+# these consecutively in one go (confirmed: 20 in a single real ATL repair
+# round), and narrating each one its own LLM call wastes a real call per
+# entry for what's really one bulk, automatic bookkeeping action, not a
+# human-meaningful pipeline event - it also reads as the same near-identical
+# comment repeated over and over, since there's nothing substantively
+# different to say about constraint N versus constraint N+1.
+_NOT_NARRATED = {"constraint_added"}
 
 
 def _sanitize_narration_text(text: str) -> str:
@@ -122,6 +134,8 @@ def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict
     def _run():
         try:
             for event in new_raw_events:
+                if event.get("type") in _NOT_NARRATED:
+                    continue
                 position = next(i for i, e in enumerate(chat.events) if e is event)
                 history = summarize_history(chat.events[:position])
                 try:
