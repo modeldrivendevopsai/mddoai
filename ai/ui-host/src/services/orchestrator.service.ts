@@ -366,6 +366,20 @@ export async function removeLearnedConstraint(
   return res.json()
 }
 
+export async function reorderLearnedConstraints(
+  stage: PromptBuilderStage,
+  name: string,
+  constraints: string[]
+): Promise<LearnedConstraintsUpdate> {
+  const res = await fetch(`/orchestrator-api/${stage}/prompt-config/${name}/learned-constraints/reorder`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ constraints }),
+  })
+  if (!res.ok) throw await errorFor("Reorder learned constraints", res)
+  return res.json()
+}
+
 // Run-aware (see each stage's own stages/<stage>/actions.py promote_constraints):
 // no name here, the backend infers it from the current run's own latest,
 // real, successfully-validated result for that stage. Returns just the

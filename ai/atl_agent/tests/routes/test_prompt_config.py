@@ -18,6 +18,7 @@ from routes.prompt_config import (
     LearnedConstraintsBody,
     PromptConfigBody,
     RemoveLearnedConstraintBody,
+    ReorderLearnedConstraintsBody,
     add_learned_constraints_endpoint,
     check_references_endpoint,
     diff_endpoint,
@@ -25,6 +26,7 @@ from routes.prompt_config import (
     history_endpoint,
     preview_endpoint,
     remove_learned_constraint_endpoint,
+    reorder_learned_constraints_endpoint,
     restore_endpoint,
     save_config_endpoint,
 )
@@ -146,6 +148,17 @@ def test_add_learned_constraints_then_remove(isolated_prompt_config_dir):
         "generation", RemoveLearnedConstraintBody(constraint="Fix: use camelCase")
     )
     assert removed["learned_constraints"] == []
+
+
+def test_reorder_learned_constraints(isolated_prompt_config_dir):
+    _seed_default(isolated_prompt_config_dir)
+    add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["first", "second"]))
+
+    reordered = reorder_learned_constraints_endpoint(
+        "generation", ReorderLearnedConstraintsBody(constraints=["second", "first"])
+    )
+
+    assert reordered["learned_constraints"] == ["second", "first"]
 
 
 def test_preview_returns_real_rendered_text_and_per_attachment_content(isolated_prompt_config_dir):

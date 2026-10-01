@@ -42,6 +42,10 @@ class RemoveLearnedConstraintRequest(BaseModel):
     constraint: str
 
 
+class ReorderLearnedConstraintsRequest(BaseModel):
+    constraints: list[str]
+
+
 class PromoteConstraintsRequest(BaseModel):
     constraints: list[str]
 
@@ -89,6 +93,11 @@ def add_learned_constraints_endpoint(name: str, request: LearnedConstraintsReque
 @router.delete("/prompt-config/{name}/learned-constraints")
 def remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
     return atl_agent_client.remove_learned_constraint(name, request.constraint)
+
+
+@router.put("/prompt-config/{name}/learned-constraints/reorder")
+def reorder_learned_constraints_endpoint(name: str, request: ReorderLearnedConstraintsRequest):
+    return atl_agent_client.reorder_learned_constraints(name, request.constraints)
 
 
 @router.get("/available-files")

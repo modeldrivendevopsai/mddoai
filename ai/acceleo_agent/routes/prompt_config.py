@@ -20,6 +20,7 @@ from generation_toolkit.routes.prompt_config import (
     PromptConfigBody,
     PromptConfigRouter,
     RemoveLearnedConstraintBody,
+    ReorderLearnedConstraintsBody,
 )
 
 from generation import CONFIG_NAME
@@ -69,4 +70,5 @@ restore_endpoint = _prompt_config.restore_endpoint
 check_references_endpoint = _prompt_config.check_references_endpoint
 add_learned_constraints_endpoint = _prompt_config.add_learned_constraints_endpoint
 remove_learned_constraint_endpoint = _prompt_config.remove_learned_constraint_endpoint
+reorder_learned_constraints_endpoint = _prompt_config.reorder_learned_constraints_endpoint
 preview_endpoint = _prompt_config.preview_endpoint

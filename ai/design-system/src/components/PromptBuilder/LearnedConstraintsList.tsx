@@ -8,14 +8,11 @@ interface LearnedConstraintsListProps {
   readOnly?: boolean
   onAdd: (constraint: string) => void
   onRemove: (constraint: string) => void
-  // Pure local reorder - like attachment reordering, this only updates
-  // config.learned_constraints in memory, persisted by the existing Save
-  // button, never a network call of its own. Deliberately NOT wired
-  // through onAdd/onRemove's own backend endpoints: those two reload the
-  // config fresh from disk before writing (see
-  // generation_toolkit.prompt_config.learned_constraints), so calling them
-  // for a reorder would silently drop the very reorder it's meant to
-  // persist the next time either fires.
+  // A real, separate network call (index.tsx's own reorderConstraints),
+  // the same as onAdd/onRemove - constraints live in their own separate,
+  // never-reverted store, so a reorder needs its own real persistence, not
+  // a local-only update an autosave would never pick up (see
+  // generation_toolkit.prompt_config.learned_constraints.reorder_learned_constraints).
   onReorder: (constraints: string[]) => void
 }
 

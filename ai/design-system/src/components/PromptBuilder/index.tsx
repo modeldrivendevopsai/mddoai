@@ -117,6 +117,13 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
     setConfig((current) => current && { ...current, learned_constraints: updated.learned_constraints })
   const addConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onAddLearnedConstraints([constraint]))
   const removeConstraint = async (constraint: string) => mergeLearnedConstraints(await callbacks.onRemoveLearnedConstraint(constraint))
+  // A reorder (drag-and-drop in LearnedConstraintsList) is a real, separate
+  // network call, the same as add/remove above, not a local-only setConfig
+  // - constraints live in their own separate, never-reverted store (see
+  // types.ts's own LearnedConstraintsUpdate), entirely outside what the
+  // debounced attachments autosave (useAutoSave) ever touches, so nothing
+  // else in this component would ever persist a reorder on its own.
+  const reorderConstraints = async (constraints: string[]) => mergeLearnedConstraints(await callbacks.onReorderLearnedConstraints(constraints))
   // Same merge as add/remove above: a promotion also just changes
   // learned_constraints on this same config, so the promoted correction
   // shows up in the list immediately, in the same section, rather than
@@ -184,7 +191,7 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
         learnedConstraints={config.learned_constraints ?? []}
         onAddConstraint={addConstraint}
         onRemoveConstraint={removeConstraint}
-        onReorderConstraints={(learned_constraints) => setConfig({ ...config, learned_constraints })}
+        onReorderConstraints={reorderConstraints}
         promote={promoteConstraints ? { initialBlock: promote!.initialBlock, onPromote: promoteConstraints } : undefined}
       />
 

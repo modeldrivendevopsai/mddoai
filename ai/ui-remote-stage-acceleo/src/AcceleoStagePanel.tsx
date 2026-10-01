@@ -55,6 +55,7 @@ export function AcceleoStagePanel({
   onCheckPromptReferences,
   onAddLearnedConstraints,
   onRemoveLearnedConstraint,
+  onReorderLearnedConstraints,
   onPromoteConstraints,
   onLoadManifest,
   onLoadAttempt,
@@ -86,7 +87,8 @@ export function AcceleoStagePanel({
     onRestorePromptVersion &&
     onCheckPromptReferences &&
     onAddLearnedConstraints &&
-    onRemoveLearnedConstraint && (
+    onRemoveLearnedConstraint &&
+    onReorderLearnedConstraints && (
       <PromptBuilder
         manifest={GENERATION_MANIFEST}
         readOnly={readOnly}
@@ -102,6 +104,7 @@ export function AcceleoStagePanel({
           onCheckReferences: () => onCheckPromptReferences(GENERATION_MANIFEST.name),
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),
+          onReorderLearnedConstraints: (constraints) => onReorderLearnedConstraints(GENERATION_MANIFEST.name, constraints),
         }}
         promote={
           canPromote && onPromoteConstraints

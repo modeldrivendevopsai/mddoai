@@ -54,6 +54,7 @@ export function AtlStagePanel({
   onCheckPromptReferences,
   onAddLearnedConstraints,
   onRemoveLearnedConstraint,
+  onReorderLearnedConstraints,
   onPromoteConstraints,
   onLoadManifest,
   onLoadAttempt,
@@ -85,7 +86,8 @@ export function AtlStagePanel({
     onRestorePromptVersion &&
     onCheckPromptReferences &&
     onAddLearnedConstraints &&
-    onRemoveLearnedConstraint && (
+    onRemoveLearnedConstraint &&
+    onReorderLearnedConstraints && (
       <PromptBuilder
         manifest={GENERATION_MANIFEST}
         readOnly={readOnly}
@@ -101,6 +103,7 @@ export function AtlStagePanel({
           onCheckReferences: () => onCheckPromptReferences(GENERATION_MANIFEST.name),
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(GENERATION_MANIFEST.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(GENERATION_MANIFEST.name, constraint),
+          onReorderLearnedConstraints: (constraints) => onReorderLearnedConstraints(GENERATION_MANIFEST.name, constraints),
         }}
         promote={
           canPromote && onPromoteConstraints

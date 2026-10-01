@@ -6,14 +6,25 @@ for run_psm() (this module had none before), just real coverage for the
 stage/attempt fields it forwards for compiled-output nesting - see
 integration_runner/stages/psm/agent.py's own reserve_attempt_dir() call.
 """
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 import psm_agent_client
+from clients.agent_service_errors import AgentServiceError
 from helpers import _fake_httpx_response_raw
 
 
 def _fake_result(mode="generation", artifact="<ecore/>"):
     return {"mode": mode, "artifact": artifact}
+
+
+def _fake_error_response(status_code, detail):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.json.return_value = {"detail": detail}
+    resp.text = detail
+    return resp
 
 
 def test_run_psm_posts_the_real_payload_shape():
@@ -201,3 +212,15 @@ def test_upload_attachment_file_posts_the_real_multipart_body():
         timeout=psm_agent_client.PSM_CONFIG_TIMEOUT,
     )
     assert result == "abc123-model.ecore"
+
+
+def test_upload_attachment_file_raises_agent_service_error_for_a_real_upload_error():
+    with patch(
+        "psm_agent_client.httpx.post",
+        return_value=_fake_error_response(400, "unsupported attachment type"),
+    ):
+        with pytest.raises(AgentServiceError) as exc_info:
+            psm_agent_client.upload_attachment_file("model.ecore", b"<ecore/>")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "unsupported attachment type"

@@ -196,6 +196,12 @@ def remove_psm_learned_constraint(name: str, constraint: str) -> dict:
     ).json()
 
 
+def reorder_psm_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "PUT", f"/psm/prompt-config/{name}/learned-constraints/reorder", json={"constraints": constraints}
+    ).json()
+
+
 def list_psm_available_files() -> list[str]:
     return _request("GET", "/psm/available-files").json()["files"]
 
@@ -262,6 +268,12 @@ def remove_atl_learned_constraint(name: str, constraint: str) -> dict:
     ).json()
 
 
+def reorder_atl_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "PUT", f"/atl/prompt-config/{name}/learned-constraints/reorder", json={"constraints": constraints}
+    ).json()
+
+
 def list_atl_available_files() -> list[str]:
     return _request("GET", "/atl/available-files").json()["files"]
 
@@ -321,6 +333,12 @@ def add_acceleo_learned_constraints(name: str, constraints: list[str]) -> dict:
 def remove_acceleo_learned_constraint(name: str, constraint: str) -> dict:
     return _request(
         "DELETE", f"/acceleo/prompt-config/{name}/learned-constraints", json={"constraint": constraint}
+    ).json()
+
+
+def reorder_acceleo_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _request(
+        "PUT", f"/acceleo/prompt-config/{name}/learned-constraints/reorder", json={"constraints": constraints}
     ).json()
 
 

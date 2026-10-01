@@ -500,6 +500,7 @@ any one run), and `promote_constraints`, which IS run-aware.
 | `POST /psm/prompt-config/{name}/preview` | Proxies the exact text a real call would send the LLM, no real call spent. |
 | `POST /psm/prompt-config/{name}/learned-constraints` | Proxies adding permanent constraints. |
 | `DELETE /psm/prompt-config/{name}/learned-constraints` | Proxies removing one. |
+| `PUT /psm/prompt-config/{name}/learned-constraints/reorder` | Proxies persisting a human reordering of the list - rejects anything but a permutation of the current set. |
 | `GET /psm/available-files` | Proxies the real-file picker for a "file" attachment. |
 | `POST /psm/promote-constraints` | Promotes the current run's own latest, real, successfully-validated psm result's corrections into `psm_agent`'s permanent config — see `stages/psm/actions.py`'s own docstring for the exact gate. `400` when there's no verified result to promote from; `409` if busy. |
 

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import type { DragEvent } from "react"
 import { Button } from "../Button"
 import { PromoteConstraintsAction } from "../PromoteConstraintsAction"
@@ -95,6 +95,17 @@ export function PromptDocument({
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const brokenById = new Map(broken.map((b) => [b.id, b.error]))
 
+  // Mirrors the `attachments` prop on every render, and is also updated
+  // synchronously by insertFilesAt below as each dropped file's own upload/
+  // read resolves - concurrent files dropped in one gesture each resolve at
+  // their own pace, and reading the `attachments` prop directly from each
+  // one's own callback would close over whatever array existed when THAT
+  // file started, not whatever an earlier-resolving sibling file has since
+  // inserted, so a second file's own onAttachmentsChange would silently
+  // overwrite the first file's insertion instead of building on it.
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
+
   const update = (index: number, next: Attachment) => {
     const copy = [...attachments]
     copy[index] = next
@@ -125,8 +136,9 @@ export function PromptDocument({
         // real "file" attachment referencing it, not a client-side-only
         // copy of its content.
         onUploadFile(file).then((path) => {
-          const copy = [...attachments]
+          const copy = [...attachmentsRef.current]
           copy.splice(index + offset, 0, { id: newLocalId(), name: file.name, type: "file", path })
+          attachmentsRef.current = copy
           onAttachmentsChange(copy)
         })
         return
@@ -134,8 +146,9 @@ export function PromptDocument({
       const reader = new FileReader()
       reader.onload = () => {
         const content = typeof reader.result === "string" ? reader.result : ""
-        const copy = [...attachments]
+        const copy = [...attachmentsRef.current]
         copy.splice(index + offset, 0, { id: newLocalId(), name: file.name, type: "text", content })
+        attachmentsRef.current = copy
         onAttachmentsChange(copy)
       }
       reader.readAsText(file)

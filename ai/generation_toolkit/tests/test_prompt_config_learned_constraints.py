@@ -1,11 +1,14 @@
 import json
 import threading
 
+import pytest
+
 from generation_toolkit.prompt_config._paths import constraints_path
 from generation_toolkit.prompt_config.learned_constraints import (
     add_learned_constraints,
     load_constraints,
     remove_learned_constraint,
+    reorder_learned_constraints,
 )
 from generation_toolkit.prompt_config.storage import load_config, save_config
 
@@ -69,6 +72,30 @@ def test_remove_learned_constraint_that_is_not_present_is_a_no_op(tmp_path):
     result = remove_learned_constraint(tmp_path, "generation", "not-there")
 
     assert result == ["first"]
+
+
+def test_reorder_learned_constraints_persists_the_new_order(tmp_path):
+    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(tmp_path, "generation", ["first", "second", "third"])
+
+    result = reorder_learned_constraints(tmp_path, "generation", ["third", "first", "second"])
+
+    assert result == ["third", "first", "second"]
+    assert load_constraints(tmp_path, "generation") == ["third", "first", "second"]
+
+
+def test_reorder_learned_constraints_rejects_a_set_that_does_not_match(tmp_path):
+    """A stale client racing a concurrent add/remove elsewhere must not be
+    able to silently replace the real, current set with whatever it had on
+    screen - only a genuine reordering of the CURRENT set is accepted."""
+    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(tmp_path, "generation", ["first", "second"])
+
+    with pytest.raises(ValueError):
+        reorder_learned_constraints(tmp_path, "generation", ["first", "second", "third"])
+
+    # The real, current set on disk is untouched by the rejected call.
+    assert load_constraints(tmp_path, "generation") == ["first", "second"]
 
 
 def test_load_constraints_is_empty_when_nothing_was_ever_added(tmp_path):

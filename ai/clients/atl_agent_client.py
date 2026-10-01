@@ -109,6 +109,12 @@ def remove_learned_constraint(name: str, constraint: str) -> dict:
     return _config_request("DELETE", f"/prompt-config/{name}/learned-constraints", json={"constraint": constraint})
 
 
+def reorder_learned_constraints(name: str, constraints: list[str]) -> dict:
+    return _config_request(
+        "PUT", f"/prompt-config/{name}/learned-constraints/reorder", json={"constraints": constraints}
+    )
+
+
 def list_available_files() -> list[str]:
     return _config_request("GET", "/available-files")["files"]
 
@@ -120,5 +126,5 @@ def upload_attachment_file(filename: str, content: bytes) -> str:
     response = httpx.post(
         f"{ATL_AGENT_URL}/attachment-uploads", files={"file": (filename, content)}, timeout=ATL_CONFIG_TIMEOUT
     )
-    response.raise_for_status()
+    raise_for_business_error(response)
     return response.json()["path"]

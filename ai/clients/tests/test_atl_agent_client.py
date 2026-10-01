@@ -7,14 +7,25 @@ httpx.request call, already exhaustively proven correct by psm_agent_client's
 own tests) - just real coverage for run_atl()'s own payload shape and one
 representative config wrapper plus the real upload call.
 """
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 import atl_agent_client
+from clients.agent_service_errors import AgentServiceError
 from helpers import _fake_httpx_response_raw
 
 
 def _fake_result(artifact="module m;"):
     return {"artifact": artifact, "prompt": {}, "validation": {"valid": True}, "rounds": 1}
+
+
+def _fake_error_response(status_code, detail):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.json.return_value = {"detail": detail}
+    resp.text = detail
+    return resp
 
 
 def test_run_atl_posts_the_real_payload_shape():
@@ -70,3 +81,15 @@ def test_upload_attachment_file_posts_a_real_multipart_request():
         timeout=atl_agent_client.ATL_CONFIG_TIMEOUT,
     )
     assert result == "abc-model.atl"
+
+
+def test_upload_attachment_file_raises_agent_service_error_for_a_real_upload_error():
+    with patch(
+        "atl_agent_client.httpx.post",
+        return_value=_fake_error_response(400, "unsupported attachment type"),
+    ):
+        with pytest.raises(AgentServiceError) as exc_info:
+            atl_agent_client.upload_attachment_file("model.atl", b"module m;")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "unsupported attachment type"

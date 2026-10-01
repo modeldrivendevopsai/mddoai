@@ -17,11 +17,13 @@ from integration_runner import pipeline, runs
 from integration_runner.routes.psm import (
     LearnedConstraintsRequest,
     PromoteConstraintsRequest,
+    ReorderLearnedConstraintsRequest,
     SaveConfigRequest,
     add_learned_constraints_endpoint,
     get_prompt_config_endpoint,
     preview_prompt_config_endpoint,
     promote_constraints_endpoint,
+    reorder_learned_constraints_endpoint,
     resolve_mode_endpoint,
     save_prompt_config_endpoint,
     upload_attachment_endpoint,
@@ -97,6 +99,13 @@ def test_add_learned_constraints_endpoint_forwards_constraints():
         add_learned_constraints_endpoint("generation", LearnedConstraintsRequest(constraints=["x"]))
 
     mock_add.assert_called_once_with("generation", ["x"])
+
+
+def test_reorder_learned_constraints_endpoint_forwards_the_new_order():
+    with patch.object(psm_agent_client, "reorder_learned_constraints", return_value={}) as mock_reorder:
+        reorder_learned_constraints_endpoint("generation", ReorderLearnedConstraintsRequest(constraints=["b", "a"]))
+
+    mock_reorder.assert_called_once_with("generation", ["b", "a"])
 
 
 def test_resolve_mode_endpoint_proxies_the_real_client():
