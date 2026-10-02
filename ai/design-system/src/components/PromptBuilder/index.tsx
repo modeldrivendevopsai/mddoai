@@ -33,6 +33,7 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   const [availableFiles, setAvailableFiles] = useState<string[] | undefined>(undefined)
   const [broken, setBroken] = useState<BrokenReference[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [reorderError, setReorderError] = useState<string | null>(null)
   // A real preview response, tagged with the exact config it was resolved
   // against - not React state, since nothing here is ever rendered
   // directly, only read inside loadAttachmentPreview below. Declared
@@ -65,6 +66,7 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   useEffect(() => {
     let cancelled = false
     setLoadError(null)
+    setReorderError(null)
     previewCacheRef.current = null
     reset()
     callbacks
@@ -123,7 +125,20 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
   // types.ts's own LearnedConstraintsUpdate), entirely outside what the
   // debounced attachments autosave (useAutoSave) ever touches, so nothing
   // else in this component would ever persist a reorder on its own.
-  const reorderConstraints = async (constraints: string[]) => mergeLearnedConstraints(await callbacks.onReorderLearnedConstraints(constraints))
+  // Catches a rejection (e.g. a stale drag racing a concurrent edit to the
+  // same config) instead of leaving it unhandled: mergeLearnedConstraints
+  // is simply skipped on failure, so the list already renders back in its
+  // last-confirmed order (LearnedConstraintsList has no order state of its
+  // own) - reorderError below is only there to tell the human why the drop
+  // didn't stick, not to undo anything itself.
+  const reorderConstraints = async (constraints: string[]) => {
+    try {
+      mergeLearnedConstraints(await callbacks.onReorderLearnedConstraints(constraints))
+      setReorderError(null)
+    } catch (e) {
+      setReorderError(e instanceof Error ? e.message : "Could not reorder constraints.")
+    }
+  }
   // Same merge as add/remove above: a promotion also just changes
   // learned_constraints on this same config, so the promoted correction
   // shows up in the list immediately, in the same section, rather than
@@ -194,6 +209,11 @@ export function PromptBuilder({ manifest, callbacks, promote, readOnly = false }
         onReorderConstraints={reorderConstraints}
         promote={promoteConstraints ? { initialBlock: promote!.initialBlock, onPromote: promoteConstraints } : undefined}
       />
+      {reorderError && (
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--danger-500)", margin: 0 }}>
+          {reorderError}
+        </p>
+      )}
 
       <PreviewPane onPreview={() => callbacks.onPreview(config)} />
       <JsonView config={config} />
