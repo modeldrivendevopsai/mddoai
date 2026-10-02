@@ -130,4 +130,72 @@ describe("PromptBuilder", () => {
     // all and the new order was lost the next time the page reloaded.
     await waitFor(() => expect(onReorderLearnedConstraints).toHaveBeenCalledWith(["second", "first"]))
   })
+
+  it("shows an error when a constraint reorder is rejected by the backend, instead of failing silently", async () => {
+    const config: PromptConfig = {
+      attachments: [{ id: "g", name: "System prompt", type: "text", content: "x" }],
+      learned_constraints: ["first", "second"],
+    }
+    const onLoad = vi.fn(() => Promise.resolve(config))
+    const onReorderLearnedConstraints = vi.fn(() => Promise.reject(new Error("constraints changed concurrently")))
+
+    render(
+      <PromptBuilder
+        manifest={GENERATION_MANIFEST}
+        callbacks={{ ...baseCallbacks(), onLoad, onReorderLearnedConstraints }}
+      />
+    )
+
+    await screen.findByText("Generation prompt")
+    const firstItem = (await screen.findByText("first")).closest("li") as HTMLElement
+    const secondItem = (await screen.findByText("second")).closest("li") as HTMLElement
+    const dragHandle = firstItem.querySelector('[aria-label="Drag to reorder"]') as HTMLElement
+
+    fireEvent.dragStart(dragHandle)
+    fireEvent.dragOver(secondItem, { clientY: 1000 })
+    fireEvent.drop(secondItem, { clientY: 1000 })
+
+    // The real regression this guards: a rejected reorder used to be an
+    // unhandled promise rejection with nothing shown on screen - the drag
+    // just silently snapped back with no explanation.
+    expect(await screen.findByText("constraints changed concurrently")).toBeTruthy()
+    // The list itself stays in its last-confirmed order, since
+    // mergeLearnedConstraints is only ever called on success.
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      expect.stringContaining("first"),
+      expect.stringContaining("second"),
+    ])
+  })
+
+  it("clears a stale reorder error when switched to a different manifest while still mounted", async () => {
+    const configs: Record<string, PromptConfig> = {
+      generation: { attachments: [{ id: "g", name: "Generation system prompt", type: "text", content: "x" }], learned_constraints: ["first", "second"] },
+      comparison: { attachments: [{ id: "c", name: "Comparison system prompt", type: "text", content: "y" }], learned_constraints: ["third"] },
+    }
+    const rawOnLoad = vi.fn((name: string) => Promise.resolve(configs[name]))
+    const onReorderLearnedConstraints = vi.fn(() => Promise.reject(new Error("constraints changed concurrently")))
+    const propsFor = (manifest: PromptBuilderManifest) => ({
+      manifest,
+      callbacks: { ...baseCallbacks(), onLoad: () => rawOnLoad(manifest.name), onReorderLearnedConstraints },
+    })
+
+    const { rerender } = render(<PromptBuilder {...propsFor(GENERATION_MANIFEST)} />)
+
+    await screen.findByText("Generation prompt")
+    const firstItem = (await screen.findByText("first")).closest("li") as HTMLElement
+    const secondItem = (await screen.findByText("second")).closest("li") as HTMLElement
+    const dragHandle = firstItem.querySelector('[aria-label="Drag to reorder"]') as HTMLElement
+    fireEvent.dragStart(dragHandle)
+    fireEvent.dragOver(secondItem, { clientY: 1000 })
+    fireEvent.drop(secondItem, { clientY: 1000 })
+    expect(await screen.findByText("constraints changed concurrently")).toBeTruthy()
+
+    // The real regression this guards: switching to a different config
+    // used to leave the previous config's reorder error on screen,
+    // wrongly attributed to the new one, until the next reorder attempt.
+    rerender(<PromptBuilder {...propsFor(COMPARISON_MANIFEST)} />)
+
+    await screen.findByText("Comparison prompt")
+    expect(screen.queryByText("constraints changed concurrently")).toBeNull()
+  })
 })
