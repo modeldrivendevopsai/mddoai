@@ -72,6 +72,7 @@ export function PsmStagePanel({
   onCheckPromptReferences,
   onAddLearnedConstraints,
   onRemoveLearnedConstraint,
+  onReorderLearnedConstraints,
   onPromoteConstraints,
   onLoadManifest,
   onLoadAttempt,
@@ -135,7 +136,8 @@ export function PsmStagePanel({
     onRestorePromptVersion &&
     onCheckPromptReferences &&
     onAddLearnedConstraints &&
-    onRemoveLearnedConstraint && (
+    onRemoveLearnedConstraint &&
+    onReorderLearnedConstraints && (
       <PromptBuilder
         manifest={activeManifest}
         readOnly={readOnly}
@@ -151,6 +153,7 @@ export function PsmStagePanel({
           onCheckReferences: () => onCheckPromptReferences(activeManifest.name),
           onAddLearnedConstraints: (constraints) => onAddLearnedConstraints(activeManifest.name, constraints),
           onRemoveLearnedConstraint: (constraint) => onRemoveLearnedConstraint(activeManifest.name, constraint),
+          onReorderLearnedConstraints: (constraints) => onReorderLearnedConstraints(activeManifest.name, constraints),
         }}
         promote={
           canPromote && onPromoteConstraints

@@ -153,6 +153,24 @@ def remove_learned_constraint(config_dir: str | Path, name: str, constraint: str
         return remaining
 
 
+def reorder_learned_constraints(config_dir: str | Path, name: str, constraints: list[str]) -> list[str]:
+    """Persists a human reordering the permanent-constraints list (drag and
+    drop in the UI) - `constraints` must be exactly name's own current set,
+    just in a different order, never a way to add, remove, or rename one
+    through this call. Raises ValueError otherwise (a stale client racing a
+    concurrent add/remove elsewhere), rather than silently replacing the
+    real, current set with whatever an out-of-date client happened to have
+    on screen. Returns the full, newly-ordered list."""
+    with _write_lock:
+        existing = _load_constraints_locked(config_dir, name)
+        if sorted(constraints) != sorted(existing):
+            raise ValueError(
+                "reordered constraints must be exactly the current set, just reordered"
+            )
+        _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": constraints})
+        return constraints
+
+
 def with_current_constraints(config_dir: str | Path, name: str, config: dict) -> dict:
     """The one real "merge the current, real constraints into a config a
     human is about to see" step, shared by every caller that needs it

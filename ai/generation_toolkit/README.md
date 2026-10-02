@@ -146,11 +146,14 @@ in its own separate `config_dir/{name}/constraints.json`, see `learned_constrain
   "what would be sent" from the saved config with no retry loop at all (e.g. a knowledge-mode drift
   check).
 - **`learned_constraints.py`**: `add_learned_constraints`/`remove_learned_constraint`/
-  `load_constraints`: persist and read a config's own `learned_constraints` list from its own
-  separate `config_dir/{name}/constraints.json`, entirely outside `storage.py`/`history.py`'s
-  versioned file. Restoring any version of the prompt's own text/attachments, the shipped default
-  included, never touches this file, so a permanent constraint stays permanent through every one of
-  them.
+  `reorder_learned_constraints`/`load_constraints`: persist and read a config's own
+  `learned_constraints` list from its own separate `config_dir/{name}/constraints.json`, entirely
+  outside `storage.py`/`history.py`'s versioned file. Restoring any version of the prompt's own
+  text/attachments, the shipped default included, never touches this file, so a permanent
+  constraint stays permanent through every one of them. `reorder_learned_constraints` persists a
+  human reordering the list (drag and drop in the UI) - it only accepts a permutation of the
+  current set, raising `ValueError` otherwise, so a stale client racing a concurrent add/remove
+  elsewhere can't silently replace the real, current set with whatever it had on screen.
   `load_constraints` migrates once from an older config that still carries `learned_constraints`
   embedded in the versioned file itself (this module's shape before it got its own store), so
   adopting this never silently drops a team's already-accumulated constraints. Distinct from a
@@ -172,7 +175,8 @@ same routing/error-translation logic three times over.
 - **`prompt_config.py`** — `PromptConfigRouter(config_dir, files_root, context_for)`: builds the
   full prompt-config `APIRouter` (get/put, `history`, `diff`, `restore/{version}`, which also
   handles "revert to default" when called with `history.SHIPPED_DEFAULT_VERSION` as `version`,
-  `check-references`, `learned-constraints` GET/POST/DELETE, `preview`) as bound methods a caller
+  `check-references`, `learned-constraints` GET/POST/DELETE plus `learned-constraints/reorder` PUT,
+  `preview`) as bound methods a caller
   re-exports under the same names its own tests already import
   directly (e.g. `get_config_endpoint = router.get_config_endpoint`). `context_for(name) -> dict[str, str]`
   is the one real per-service variation: which `name`s are known and what sample context each one

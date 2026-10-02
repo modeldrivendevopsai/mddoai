@@ -167,7 +167,9 @@ on the real host git checkout, and `history/` is git-visible too.
 `learned_constraints`, applied to every future run of that `name` from then on. This is always a
 single, explicit, human-confirmed action (`integration_runner`'s own `POST
 /psm/promote-constraints`, gated on a real validated success — see `integration_runner/README.md`),
-never automatic capture of a typed correction.
+never automatic capture of a typed correction. `PUT /prompt-config/{name}/learned-constraints/reorder`
+persists a human reordering that same list - it only accepts a permutation of the current set, 400ing
+otherwise.
 
 Every other prompt-config endpoint, `history`, `diff`, `restore/{version}` (also how "revert to
 default" works, called with `version=shipped`, not a separate endpoint), `check-references`,

@@ -46,6 +46,8 @@ function promptBuilderPropsFor(stage: StageId): PromptBuilderProps {
     onAddLearnedConstraints: (name, constraints) => orchestratorService.addLearnedConstraints(stage, name, constraints),
     onRemoveLearnedConstraint: (name, constraint) =>
       orchestratorService.removeLearnedConstraint(stage, name, constraint),
+    onReorderLearnedConstraints: (name, constraints) =>
+      orchestratorService.reorderLearnedConstraints(stage, name, constraints),
     onPromoteConstraints: (constraints) => orchestratorService.promoteConstraints(stage, constraints),
   }
   return stage === "psm" ? { ...base, onResolvePsmMode: orchestratorService.resolvePsmMode } : base

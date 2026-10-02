@@ -8,14 +8,25 @@ psm_agent_client's own tests) - just real coverage for run_acceleo()'s own
 payload shape and one representative config wrapper plus the real upload
 call.
 """
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 import acceleo_agent_client
+from clients.agent_service_errors import AgentServiceError
 from helpers import _fake_httpx_response_raw
 
 
 def _fake_result(artifact="[module m('x')]"):
     return {"artifact": artifact, "prompt": {}, "validation": {"valid": True}, "rounds": 1}
+
+
+def _fake_error_response(status_code, detail):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.json.return_value = {"detail": detail}
+    resp.text = detail
+    return resp
 
 
 def test_run_acceleo_posts_the_real_payload_shape():
@@ -78,3 +89,15 @@ def test_upload_attachment_file_posts_a_real_multipart_request():
         timeout=acceleo_agent_client.ACCELEO_CONFIG_TIMEOUT,
     )
     assert result == "abc-model.mtl"
+
+
+def test_upload_attachment_file_raises_agent_service_error_for_a_real_upload_error():
+    with patch(
+        "acceleo_agent_client.httpx.post",
+        return_value=_fake_error_response(400, "unsupported attachment type"),
+    ):
+        with pytest.raises(AgentServiceError) as exc_info:
+            acceleo_agent_client.upload_attachment_file("model.mtl", b"[module m('x')]")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "unsupported attachment type"

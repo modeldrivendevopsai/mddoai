@@ -80,6 +80,11 @@ export interface StagePanelProps {
   onCheckPromptReferences?: (name: string) => Promise<BrokenReference[]>
   onAddLearnedConstraints?: (name: string, constraints: string[]) => Promise<LearnedConstraintsUpdate>
   onRemoveLearnedConstraint?: (name: string, constraint: string) => Promise<LearnedConstraintsUpdate>
+  // Persists a human reordering the permanent-constraints list (drag and
+  // drop, see design-system's own LearnedConstraintsList) - `constraints`
+  // is the full list in its new order, always exactly the same set as
+  // what's already there.
+  onReorderLearnedConstraints?: (name: string, constraints: string[]) => Promise<LearnedConstraintsUpdate>
   // Run-aware (see stages/psm/actions.py's own promote_constraints): no
   // name here, the backend infers it from the current run's own latest,
   // real, successfully-validated result.

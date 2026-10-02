@@ -54,6 +54,10 @@ class RemoveLearnedConstraintBody(BaseModel):
     constraint: str
 
 
+class ReorderLearnedConstraintsBody(BaseModel):
+    constraints: list[str]
+
+
 class PromptConfigRouter:
     def __init__(
         self,
@@ -83,6 +87,9 @@ class PromptConfigRouter:
         )
         self.router.add_api_route(
             "/{name}/learned-constraints", self.remove_learned_constraint_endpoint, methods=["DELETE"]
+        )
+        self.router.add_api_route(
+            "/{name}/learned-constraints/reorder", self.reorder_learned_constraints_endpoint, methods=["PUT"]
         )
         self.router.add_api_route("/{name}/preview", self.preview_endpoint, methods=["POST"])
 
@@ -130,6 +137,8 @@ class PromptConfigRouter:
             restored = history.restore_version(self._config_dir(), name, version, context_values, self._files_root())
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
+        except storage.PromptConfigValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         return self._with_constraints(name, restored)
 
     def check_references_endpoint(self, name: str):
@@ -154,6 +163,18 @@ class PromptConfigRouter:
             constraints = learned_constraints.remove_learned_constraint(self._config_dir(), name, body.constraint)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
+        return {"learned_constraints": constraints}
+
+    def reorder_learned_constraints_endpoint(self, name: str, body: ReorderLearnedConstraintsBody):
+        self._context_for(name)
+        try:
+            constraints = learned_constraints.reorder_learned_constraints(
+                self._config_dir(), name, body.constraints
+            )
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         return {"learned_constraints": constraints}
 
     def preview_endpoint(self, name: str, body: PromptConfigBody | None = None):

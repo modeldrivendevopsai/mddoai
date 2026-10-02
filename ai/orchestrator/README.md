@@ -10,8 +10,9 @@ HTTP call to `integration_runner`; the only thing this service adds on top is tu
 `integration_runner`'s raw, structured facts into a running chat conversation.
 
 Every real fact `integration_runner` records (a stage starting/completing/failing, a review
-decision, a constraint, a page added to the docs stage's output) gets a short narrated comment from "the Orchestrator"
-automatically, the next time something polls `GET /events`. That same reply mechanism,
+decision, a page added to the docs stage's output) gets a short narrated comment from "the Orchestrator"
+automatically, the next time something polls `GET /events` - except `constraint_added` (see
+[The chat log](#the-chat-log-chat_logpy) below for why). That same reply mechanism,
 `react_to_event()`, is also what powers `POST /message`: a free-form human message is handled by
 the exact same function, just with a set of real tools attached, so it can decide to act instead
 of only commenting. See [The reply mechanism](#the-reply-mechanism-react_to_event--send_message)
@@ -167,7 +168,11 @@ This module is the one place that turns those facts into a running conversation,
    (an ordered, append-only list) — visible on this very call, even before any comment exists.
 2. Narrating those new events (a real LLM call) happens **in the background**, one at a time, in
    order, and never blocks the request: a comment on the very latest event may only show up on
-   the next poll.
+   the next poll. `constraint_added` is mirrored like any other event but never narrated
+   (`chat_log._NOT_NARRATED`) - the atl/acceleo repair-and-promote loop can add a dozen or more of
+   these in one go, and narrating each individually wastes a real LLM call per entry for what's
+   really one bulk, automatic bookkeeping action, reading as the same comment repeated over and
+   over rather than anything human-meaningful.
 3. `send_message()`'s own turns (the human's message, each dispatched tool call, the reply) are
    appended directly to the same `ChatLog`, under the same lock — genuinely one merged, ordered
    transcript per run, not separate streams stitched together after the fact.
@@ -368,7 +373,8 @@ ASGI-routed HTTP call above, never a direct internals call.
 - **`tests/test_assistant.py`** — `react_to_event()`/`send_message()`, tool dispatch for every
   declared tool, and the multi-step `add_constraint` → `rerun_stage` sequence.
 - **`tests/test_chat_log.py`** — the narration mechanism: synchronous mirroring, background
-  narration order and history, failure fallback, per-run isolation, `since_index` slicing.
+  narration order and history, `constraint_added` mirrored but not narrated, failure fallback,
+  per-run isolation, `since_index` slicing.
 - **`tests/test_event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`'s
   own truncation contract, independent of `chat_log.py`/`assistant.py`.
 - **`tests/test_system_prompt.py`** — the system prompt template.

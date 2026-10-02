@@ -108,7 +108,9 @@ the running dev container lands on the real host git checkout, and `history/` is
 /prompt-config/generation/learned-constraints` (and its `DELETE` counterpart) persist a change to
 `learned_constraints`, applied to every future run from then on. Always a single, explicit,
 human-confirmed action (`integration_runner`'s own `POST /atl/promote-constraints`, gated on a
-real validated result), never automatic capture of a typed correction.
+real validated result), never automatic capture of a typed correction. `PUT
+/prompt-config/generation/learned-constraints/reorder` persists a human reordering that same list -
+it only accepts a permutation of the current set, 400ing otherwise.
 
 Every other prompt-config endpoint, `history`, `diff`, `restore/{version}` (also how "revert to
 default" works, called with `version=shipped`, not a separate endpoint), `check-references`,

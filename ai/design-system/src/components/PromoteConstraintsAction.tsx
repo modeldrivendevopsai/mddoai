@@ -55,6 +55,10 @@ function parseConstraintsBlock(block: string): string[] {
 // section, so it reads as an entry point into it, not a separate feature.
 export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }: PromoteConstraintsActionProps) {
   const [draft, setDraft] = useState<string | null>(null)
+  // True while a promote request is in flight - guards Confirm against a
+  // rapid double-click submitting the same constraints twice before the
+  // first request's own await resolves and clears the draft.
+  const [promoting, setPromoting] = useState(false)
 
   if (draft === null) {
     return (
@@ -62,6 +66,17 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
         Add this run's corrections to Permanent constraints
       </Button>
     )
+  }
+
+  const confirm = async () => {
+    const constraints = parseConstraintsBlock(draft)
+    setPromoting(true)
+    try {
+      if (constraints.length > 0) await onPromote(constraints)
+      setDraft(null)
+    } finally {
+      setPromoting(false)
+    }
   }
 
   return (
@@ -78,18 +93,10 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
         style={textareaStyle}
       />
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={async () => {
-            const constraints = parseConstraintsBlock(draft)
-            if (constraints.length > 0) await onPromote(constraints)
-            setDraft(null)
-          }}
-        >
-          Confirm & save permanently
+        <Button variant="primary" size="sm" onClick={confirm} disabled={promoting}>
+          {promoting ? "Saving…" : "Confirm & save permanently"}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => setDraft(null)}>
+        <Button variant="ghost" size="sm" onClick={() => setDraft(null)} disabled={promoting}>
           Cancel
         </Button>
       </div>

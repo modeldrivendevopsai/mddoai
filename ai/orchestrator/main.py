@@ -228,6 +228,10 @@ class RemoveLearnedConstraintRequest(BaseModel):
     constraint: str
 
 
+class ReorderLearnedConstraintsRequest(BaseModel):
+    constraints: list[str]
+
+
 class PromoteConstraintsRequest(BaseModel):
     constraints: list[str]
 
@@ -278,6 +282,11 @@ def psm_add_learned_constraints_endpoint(name: str, request: LearnedConstraintsR
 @app.delete("/psm/prompt-config/{name}/learned-constraints")
 def psm_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
     return integration_runner_client.remove_psm_learned_constraint(name, request.constraint)
+
+
+@app.put("/psm/prompt-config/{name}/learned-constraints/reorder")
+def psm_reorder_learned_constraints_endpoint(name: str, request: ReorderLearnedConstraintsRequest):
+    return integration_runner_client.reorder_psm_learned_constraints(name, request.constraints)
 
 
 @app.get("/psm/available-files")
@@ -349,6 +358,11 @@ def atl_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedCons
     return integration_runner_client.remove_atl_learned_constraint(name, request.constraint)
 
 
+@app.put("/atl/prompt-config/{name}/learned-constraints/reorder")
+def atl_reorder_learned_constraints_endpoint(name: str, request: ReorderLearnedConstraintsRequest):
+    return integration_runner_client.reorder_atl_learned_constraints(name, request.constraints)
+
+
 @app.get("/atl/available-files")
 def atl_available_files_endpoint():
     return {"files": integration_runner_client.list_atl_available_files()}
@@ -411,6 +425,11 @@ def acceleo_add_learned_constraints_endpoint(name: str, request: LearnedConstrai
 @app.delete("/acceleo/prompt-config/{name}/learned-constraints")
 def acceleo_remove_learned_constraint_endpoint(name: str, request: RemoveLearnedConstraintRequest):
     return integration_runner_client.remove_acceleo_learned_constraint(name, request.constraint)
+
+
+@app.put("/acceleo/prompt-config/{name}/learned-constraints/reorder")
+def acceleo_reorder_learned_constraints_endpoint(name: str, request: ReorderLearnedConstraintsRequest):
+    return integration_runner_client.reorder_acceleo_learned_constraints(name, request.constraints)
 
 
 @app.get("/acceleo/available-files")

@@ -150,6 +150,17 @@ def test_remove_psm_learned_constraint_deletes_with_the_real_body():
     assert result == {"learned_constraints": []}
 
 
+def test_reorder_psm_learned_constraints_puts_the_real_body():
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"learned_constraints": ["b", "a"]})) as mock_request:
+        result = integration_runner_client.reorder_psm_learned_constraints("generation", ["b", "a"])
+
+    mock_request.assert_called_once_with(
+        "PUT", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/psm/prompt-config/generation/learned-constraints/reorder",
+        timeout=10.0, json={"constraints": ["b", "a"]},
+    )
+    assert result == {"learned_constraints": ["b", "a"]}
+
+
 def test_list_psm_available_files():
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw({"files": ["a.ecore"]})):
         result = integration_runner_client.list_psm_available_files()

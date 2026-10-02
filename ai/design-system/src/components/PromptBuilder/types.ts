@@ -140,6 +140,11 @@ export interface PromptBuilderCallbacks {
   onCheckReferences: () => Promise<BrokenReference[]>
   onAddLearnedConstraints: (constraints: string[]) => Promise<LearnedConstraintsUpdate>
   onRemoveLearnedConstraint: (constraint: string) => Promise<LearnedConstraintsUpdate>
+  // Persists a human reordering the permanent-constraints list (drag and
+  // drop, see LearnedConstraintsList's own onReorder) - `constraints` is
+  // the full list in its new order, always exactly the same set as what's
+  // already there, never a way to add, remove, or rename one.
+  onReorderLearnedConstraints: (constraints: string[]) => Promise<LearnedConstraintsUpdate>
 }
 
 // Promoting one validated run's own live corrections into this same

@@ -18,6 +18,7 @@ from integration_runner.routes.acceleo import (
     LearnedConstraintsRequest,
     PromoteConstraintsRequest,
     RemoveLearnedConstraintRequest,
+    ReorderLearnedConstraintsRequest,
     SaveConfigRequest,
     add_learned_constraints_endpoint,
     available_files_endpoint,
@@ -25,6 +26,7 @@ from integration_runner.routes.acceleo import (
     preview_prompt_config_endpoint,
     promote_constraints_endpoint,
     remove_learned_constraint_endpoint,
+    reorder_learned_constraints_endpoint,
     save_prompt_config_endpoint,
     upload_attachment_endpoint,
 )
@@ -106,6 +108,13 @@ def test_remove_learned_constraint_endpoint_forwards_the_constraint():
         remove_learned_constraint_endpoint("generation", RemoveLearnedConstraintRequest(constraint="x"))
 
     mock_remove.assert_called_once_with("generation", "x")
+
+
+def test_reorder_learned_constraints_endpoint_forwards_the_new_order():
+    with patch.object(acceleo_agent_client, "reorder_learned_constraints", return_value={}) as mock_reorder:
+        reorder_learned_constraints_endpoint("generation", ReorderLearnedConstraintsRequest(constraints=["b", "a"]))
+
+    mock_reorder.assert_called_once_with("generation", ["b", "a"])
 
 
 def test_available_files_endpoint_proxies_the_real_client():

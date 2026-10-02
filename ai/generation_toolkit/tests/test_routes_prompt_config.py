@@ -13,7 +13,12 @@ import pytest
 from fastapi import HTTPException
 
 from generation_toolkit.prompt_config.history import SHIPPED_DEFAULT_VERSION
-from generation_toolkit.routes.prompt_config import LearnedConstraintsBody, PromptConfigBody, PromptConfigRouter
+from generation_toolkit.routes.prompt_config import (
+    LearnedConstraintsBody,
+    PromptConfigBody,
+    PromptConfigRouter,
+    ReorderLearnedConstraintsBody,
+)
 
 
 def _seed_default(config_dir, name="generation", system_prompt="sys"):
@@ -135,6 +140,32 @@ def test_get_config_endpoint_includes_current_learned_constraints(tmp_path):
     assert router.get_config_endpoint("generation")["learned_constraints"] == ["Fix: x"]
 
 
+def test_reorder_learned_constraints_persists_the_new_order(tmp_path):
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["first", "second"]))
+
+    result = router.reorder_learned_constraints_endpoint(
+        "generation", ReorderLearnedConstraintsBody(constraints=["second", "first"])
+    )
+
+    assert result["learned_constraints"] == ["second", "first"]
+    assert router.get_config_endpoint("generation")["learned_constraints"] == ["second", "first"]
+
+
+def test_reorder_learned_constraints_endpoint_400s_for_a_mismatched_set(tmp_path):
+    _seed_default(tmp_path)
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(tmp_path), _always_known)
+    router.add_learned_constraints_endpoint("generation", LearnedConstraintsBody(constraints=["first", "second"]))
+
+    with pytest.raises(HTTPException) as exc_info:
+        router.reorder_learned_constraints_endpoint(
+            "generation", ReorderLearnedConstraintsBody(constraints=["first", "second", "third"])
+        )
+
+    assert exc_info.value.status_code == 400
+
+
 def test_save_config_endpoint_does_not_let_learned_constraints_through_the_body(tmp_path):
     """PromptConfigBody has no learned_constraints field any more - Save
     only ever touches attachments. A caller's own request JSON might still
@@ -169,6 +200,34 @@ def test_restoring_the_shipped_default_preserves_learned_constraints(tmp_path):
     reverted = router.restore_endpoint("generation", SHIPPED_DEFAULT_VERSION)
 
     assert reverted["learned_constraints"] == ["Fix: keep me"]
+
+
+def test_restore_endpoint_returns_400_for_a_broken_attachment_reference(tmp_path):
+    """restore_version() re-validates the restored snapshot through the same
+    real save_config dry-run every save uses - a version saved while its
+    file attachment's target still existed can later fail that same dry-run
+    if the file has since been deleted. This must surface as a real 400
+    (matching save_config_endpoint's own PromptConfigValidationError
+    handling), not an uncaught exception FastAPI turns into a generic,
+    undiagnosable 500."""
+    _seed_default(tmp_path)
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "example.mtl").write_text("[module m('x')]", encoding="utf-8")
+    router = PromptConfigRouter(lambda: tmp_path, _fixed(root), _always_known)
+    body = PromptConfigBody(
+        attachments=[
+            {"id": "system", "name": "System prompt", "type": "text", "content": "sys"},
+            {"id": "example", "name": "Example", "type": "file", "path": "example.mtl"},
+        ]
+    )
+    saved = router.save_config_endpoint("generation", body)
+    (root / "example.mtl").unlink()
+
+    with pytest.raises(HTTPException) as exc_info:
+        router.restore_endpoint("generation", saved["_version"])
+
+    assert exc_info.value.status_code == 400
 
 
 def test_history_endpoint_includes_the_shipped_default_as_the_oldest_entry(tmp_path):

@@ -9,7 +9,7 @@
 // This is a real regression test for that: switching `manifest` while
 // mounted must load and display the NEW config, not keep showing the old
 // one under the new label.
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { PromptBuilder } from "./index"
 import type { PromptBuilderCallbacks, PromptBuilderManifest, PromptConfig } from "./types"
@@ -44,6 +44,7 @@ function baseCallbacks(): Omit<PromptBuilderCallbacks, "onLoad"> {
     onCheckReferences: vi.fn(() => Promise.resolve([])),
     onAddLearnedConstraints: vi.fn(),
     onRemoveLearnedConstraint: vi.fn(),
+    onReorderLearnedConstraints: vi.fn(),
   }
 }
 
@@ -96,5 +97,37 @@ describe("PromptBuilder", () => {
     rerender(<PromptBuilder manifest={{ ...GENERATION_MANIFEST }} callbacks={{ ...baseCallbacks(), onLoad }} />)
 
     expect(onLoad).toHaveBeenCalledTimes(1)
+  })
+
+  it("persists a permanent-constraint reorder through a real network call, not a local-only update", async () => {
+    const config: PromptConfig = {
+      attachments: [{ id: "g", name: "System prompt", type: "text", content: "x" }],
+      learned_constraints: ["first", "second"],
+    }
+    const onLoad = vi.fn(() => Promise.resolve(config))
+    const onReorderLearnedConstraints = vi.fn((constraints: string[]) =>
+      Promise.resolve({ learned_constraints: constraints })
+    )
+
+    render(
+      <PromptBuilder
+        manifest={GENERATION_MANIFEST}
+        callbacks={{ ...baseCallbacks(), onLoad, onReorderLearnedConstraints }}
+      />
+    )
+
+    await screen.findByText("Generation prompt")
+    const firstItem = (await screen.findByText("first")).closest("li") as HTMLElement
+    const secondItem = (await screen.findByText("second")).closest("li") as HTMLElement
+    const dragHandle = firstItem.querySelector('[aria-label="Drag to reorder"]') as HTMLElement
+
+    fireEvent.dragStart(dragHandle)
+    fireEvent.dragOver(secondItem, { clientY: 1000 })
+    fireEvent.drop(secondItem, { clientY: 1000 })
+
+    // The real regression this guards: a reorder used to only call
+    // setConfig locally, so onReorderLearnedConstraints was never called at
+    // all and the new order was lost the next time the page reloaded.
+    await waitFor(() => expect(onReorderLearnedConstraints).toHaveBeenCalledWith(["second", "first"]))
   })
 })
