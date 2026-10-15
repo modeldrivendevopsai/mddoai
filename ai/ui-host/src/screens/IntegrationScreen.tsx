@@ -146,7 +146,7 @@ export default function IntegrationScreen() {
     fork,
   } = useIntegration(runId)
 
-  // "Add a new platform"/"New pipeline" in the sidebar link here with
+  // "Add a new platform" in the sidebar links here with
   // ?new=1 (see App.tsx's useSidebarNavigation) — a real signal to actually
   // reset the current run, not just a route change to a URL that might
   // already be the one we're on. Deliberately a blank reset(), not

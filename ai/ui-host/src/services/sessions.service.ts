@@ -24,17 +24,18 @@ function toSession(run: RunSummary): Session {
     // IntegrationScreen's own header, "Platform integration" /
     // "Add a CI/CD platform") — 'platform', not 'pipeline', is what makes
     // SessionsList render it with the app's real purple ("platform mode")
-    // tint instead of the unimplemented "Generate a CI/CD pipeline" mode's
-    // blue one.
+    // tint instead of the blue one the "Generate a CI/CD pipeline" mode uses
+    // (that mode has no runs of its own).
     type: 'platform',
     state: run.is_current ? 'selected' : 'normal',
   };
 }
 
 // Filtered by type, not just returned wholesale: every real run is
-// 'platform' (see toSession), so the "Pipelines" tab is correctly empty
-// until "Generate a CI/CD pipeline" is a real flow with its own runs, not a
-// duplicate of "Platforms" own list.
+// 'platform' (see toSession), so the "Pipelines" tab is correctly empty:
+// the "Generate a CI/CD pipeline" mode has no runs (the pipelines it has
+// generated are listed on its own first screen), and the tab must not
+// duplicate "Platforms" own list.
 export async function getSessions(type: SessionType): Promise<Session[]> {
   const runs = await getRuns();
   return runs.map(toSession).filter((session) => session.type === type);

@@ -24,7 +24,6 @@ export const START_OPTIONS: StartOption[] = [
     description:
       'Upload a SWArch file, pick a supported CI/CD platform, get a CI/CD pipeline back.',
     cta: 'Start',
-    comingSoon: true,
   },
   {
     id: 'add-update-platform',
