@@ -25,6 +25,7 @@ LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddo
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
+SWARCH_MAIN_CLASS = "main.java.mddoai.validation.swarch.SwarchValidatorCli"
 TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
 
 
@@ -64,6 +65,12 @@ class AcceleoValidationResult(TypedDict):
     # Where AcceleoValidator persisted the compiled .emtl module, when
     # compiling actually produced one - see AtlValidationResult's own field.
     generated_source_path: str | None
+
+
+class SwarchValidationResult(TypedDict):
+    valid: bool
+    issues: list[Issue]
+    duration_ms: int
 
 
 class ValidatorInfraError(Exception):
@@ -256,4 +263,25 @@ def run_acceleo_validator(
         result["duration_ms"] = duration_ms
         result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("acceleo validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
+        return result
+
+
+def run_swarch_validator(content: str, filename: str) -> SwarchValidationResult:
+    """A .swarch model instance has no compiled output worth persisting (unlike
+    the .ecore/.atl/.mtl validators), so there's no run_id/stage/attempt
+    scoping here - just validate and report.
+
+    `filename` is only logged. The content is always written under a fixed
+    name: a caller-supplied name would otherwise become a path on disk (a
+    value such as ".." is not a usable file name) and its extension could
+    change how the content is recognised."""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / "model.swarch"
+        target.write_text(content, encoding="utf-8")
+
+        argv = ["java", "-cp", f"{LIB_DIR}/*", SWARCH_MAIN_CLASS, str(target)]
+        result, duration_ms = _run_cli(argv)
+
+        result["duration_ms"] = duration_ms
+        logger.info("swarch validation: filename=%r valid=%s duration_ms=%d", filename, result.get("valid"), duration_ms)
         return result
