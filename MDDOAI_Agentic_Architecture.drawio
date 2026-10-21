@@ -899,98 +899,100 @@
     </mxGraphModel>
   </diagram>
   <diagram id="devhost-hetzner" name="Dev Host (Hetzner)">
-    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1320" pageHeight="1480" math="0" shadow="0">
+    <mxGraphModel dx="2087" dy="932" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1320" pageHeight="1480" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="devhost-1" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#4A2D6B;" value="MDDOAI Dev Host on Hetzner" vertex="1">
-          <mxGeometry x="40" y="20" width="700" height="40" as="geometry" />
+          <mxGeometry height="40" width="700" x="40" y="20" as="geometry" />
         </mxCell>
         <mxCell id="devhost-2" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" value="V1: solo dev box, SSH only" vertex="1">
-          <mxGeometry x="40" y="80" width="600" height="30" as="geometry" />
+          <mxGeometry height="30" width="600" x="40" y="80" as="geometry" />
         </mxCell>
         <mxCell id="devhost-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;align=left;fontSize=13;fontStyle=1;spacingLeft=12;spacingTop=8;" value="Developer PC" vertex="1">
-          <mxGeometry x="40" y="120" width="300" height="340" as="geometry" />
+          <mxGeometry height="340" width="300" x="40" y="120" as="geometry" />
         </mxCell>
         <mxCell id="devhost-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;VS Code window&lt;/b&gt;&lt;br&gt;editor UI only" vertex="1">
-          <mxGeometry x="70" y="170" width="240" height="60" as="geometry" />
+          <mxGeometry height="60" width="240" x="70" y="170" as="geometry" />
         </mxCell>
         <mxCell id="devhost-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Browser&lt;/b&gt;&lt;br&gt;localhost:5173" vertex="1">
-          <mxGeometry x="70" y="270" width="240" height="60" as="geometry" />
+          <mxGeometry height="60" width="240" x="70" y="270" as="geometry" />
         </mxCell>
         <mxCell id="devhost-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;" value="&lt;b&gt;Other people&lt;/b&gt;&lt;br&gt;any other IP" vertex="1">
-          <mxGeometry x="70" y="500" width="240" height="60" as="geometry" />
+          <mxGeometry height="60" width="240" x="70" y="500" as="geometry" />
         </mxCell>
         <mxCell id="devhost-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#7a2e2b;fontSize=12;fontStyle=1;horizontal=0;" value="Hetzner firewall: 22 from developer IP only" vertex="1">
-          <mxGeometry x="400" y="120" width="50" height="460" as="geometry" />
+          <mxGeometry height="460" width="50" x="400" y="120" as="geometry" />
         </mxCell>
         <mxCell id="devhost-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;align=left;fontSize=13;fontStyle=1;spacingLeft=12;spacingTop=8;" value="Hetzner VM (Ubuntu)" vertex="1">
-          <mxGeometry x="510" y="120" width="660" height="460" as="geometry" />
+          <mxGeometry height="460" width="660" x="510" y="120" as="geometry" />
         </mxCell>
         <mxCell id="devhost-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;VS Code Server&lt;/b&gt;&lt;br&gt;terminal, extensions, git" vertex="1">
-          <mxGeometry x="540" y="170" width="260" height="60" as="geometry" />
+          <mxGeometry height="60" width="260" x="540" y="170" as="geometry" />
         </mxCell>
         <mxCell id="devhost-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8759a3;strokeColor=#5c3a72;" value="&lt;b&gt;Claude Code CLI&lt;/b&gt;&lt;br&gt;runs in that terminal" vertex="1">
-          <mxGeometry x="540" y="270" width="260" height="60" as="geometry" />
+          <mxGeometry height="60" width="260" x="540" y="270" as="geometry" />
         </mxCell>
         <mxCell id="devhost-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="&lt;b&gt;git clone of mddoai&lt;/b&gt;&lt;br&gt;any branch checked out" vertex="1">
-          <mxGeometry x="540" y="370" width="260" height="60" as="geometry" />
+          <mxGeometry height="60" width="260" x="540" y="370" as="geometry" />
         </mxCell>
         <mxCell id="devhost-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4f9768;strokeColor=#2d5c3d;align=left;spacingLeft=12;verticalAlign=top;spacingTop=10;" value="&lt;b&gt;Docker Compose stack&lt;/b&gt;&lt;br&gt;ui-host 127.0.0.1:5173&lt;br&gt;remotes 127.0.0.1:5174-5182&lt;br&gt;ai-layer 127.0.0.1:8000&lt;br&gt;engine services: internal&lt;br&gt;&lt;br&gt;keys: ai/ai-layer/.env&lt;br&gt;mode 600, never in git" vertex="1">
-          <mxGeometry x="840" y="170" width="300" height="260" as="geometry" />
+          <mxGeometry height="260" width="300" x="840" y="170" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-13" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="SSH, encrypted" edge="1" source="devhost-4" target="devhost-9">
+        <mxCell id="devhost-13" edge="1" parent="1" source="devhost-4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-9" value="SSH, encrypted">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-14" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="port 5173 forwarded inside SSH" edge="1" source="devhost-5" target="devhost-12">
+        <mxCell id="devhost-14" edge="1" parent="1" source="devhost-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-12" value="port 5173 forwarded inside SSH">
+          <mxGeometry relative="1" x="-0.5472" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="devhost-15" edge="1" parent="1" source="devhost-6" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=cross;endFill=0;strokeWidth=1.5;strokeColor=#b85450;dashed=1;fontSize=11;fontColor=#b85450;labelBackgroundColor=#ffffff;" target="devhost-7" value="blocked">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-15" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=cross;endFill=0;strokeWidth=1.5;strokeColor=#b85450;dashed=1;fontSize=11;fontColor=#b85450;labelBackgroundColor=#ffffff;" value="blocked" edge="1" source="devhost-6" target="devhost-7">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="devhost-16" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="Nothing but SSH is reachable, and only from the developer's IP. The browser on the developer's PC reaches the app through the same encrypted SSH connection VS Code uses." vertex="1">
-          <mxGeometry x="40" y="600" width="1130" height="40" as="geometry" />
+        <mxCell id="devhost-16" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="Nothing but SSH is reachable, and only from the developer&#39;s IP. The browser on the developer&#39;s PC reaches the app through the same encrypted SSH connection VS Code uses." vertex="1">
+          <mxGeometry height="40" width="1130" x="40" y="600" as="geometry" />
         </mxCell>
         <mxCell id="devhost-17" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" value="V2: visitors test, signing in with GitHub" vertex="1">
-          <mxGeometry x="40" y="680" width="600" height="30" as="geometry" />
+          <mxGeometry height="30" width="600" x="40" y="680" as="geometry" />
         </mxCell>
         <mxCell id="devhost-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Visitor&lt;/b&gt;&lt;br&gt;browser" vertex="1">
-          <mxGeometry x="40" y="800" width="200" height="70" as="geometry" />
+          <mxGeometry height="70" width="200" x="40" y="800" as="geometry" />
         </mxCell>
         <mxCell id="devhost-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#7a2e2b;fontSize=12;fontStyle=1;horizontal=0;" value="Hetzner firewall: 80, 443 open · 22 developer IP" vertex="1">
-          <mxGeometry x="290" y="720" width="50" height="300" as="geometry" />
+          <mxGeometry height="300" width="50" x="290" y="720" as="geometry" />
         </mxCell>
         <mxCell id="devhost-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;align=left;fontSize=13;fontStyle=1;spacingLeft=12;spacingTop=8;" value="Hetzner VM" vertex="1">
-          <mxGeometry x="390" y="720" width="640" height="300" as="geometry" />
+          <mxGeometry height="300" width="640" x="390" y="720" as="geometry" />
         </mxCell>
         <mxCell id="devhost-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4f9768;strokeColor=#2d5c3d;" value="&lt;b&gt;Caddy&lt;/b&gt;&lt;br&gt;https://&amp;lt;vm-ip&amp;gt;&lt;br&gt;IP certificate" vertex="1">
-          <mxGeometry x="420" y="800" width="180" height="80" as="geometry" />
+          <mxGeometry height="80" width="180" x="420" y="800" as="geometry" />
         </mxCell>
         <mxCell id="devhost-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8759a3;strokeColor=#5c3a72;" value="&lt;b&gt;oauth2-proxy&lt;/b&gt;&lt;br&gt;--github-user list" vertex="1">
-          <mxGeometry x="690" y="760" width="300" height="70" as="geometry" />
+          <mxGeometry height="70" width="300" x="690" y="760" as="geometry" />
         </mxCell>
         <mxCell id="devhost-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Test stack: ui-host, APIs, remotes&lt;/b&gt;&lt;br&gt;path prefixes · X-Forwarded-User" vertex="1">
-          <mxGeometry x="690" y="910" width="300" height="80" as="geometry" />
+          <mxGeometry height="80" width="300" x="690" y="910" as="geometry" />
         </mxCell>
         <mxCell id="devhost-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;" value="&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;OAuth, 2FA" vertex="1">
-          <mxGeometry x="1090" y="760" width="180" height="70" as="geometry" />
+          <mxGeometry height="70" width="180" x="1090" y="760" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;" value="&lt;b&gt;Let's Encrypt&lt;/b&gt;&lt;br&gt;six-day IP certificate" vertex="1">
-          <mxGeometry x="1090" y="910" width="180" height="80" as="geometry" />
+        <mxCell id="devhost-25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;" value="&lt;b&gt;Let&#39;s Encrypt&lt;/b&gt;&lt;br&gt;six-day IP certificate" vertex="1">
+          <mxGeometry height="80" width="180" x="1090" y="910" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-26" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="HTTPS" edge="1" source="devhost-18" target="devhost-21">
+        <mxCell id="devhost-26" edge="1" parent="1" source="devhost-18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-21" value="HTTPS">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-27" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="signed in?" edge="1" source="devhost-21" target="devhost-22">
+        <mxCell id="devhost-27" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-22" value="signed in?">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-28" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="login" edge="1" source="devhost-22" target="devhost-24">
+        <mxCell id="devhost-28" edge="1" parent="1" source="devhost-22" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-24" value="login">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-29" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="yes: pass through" edge="1" source="devhost-21" target="devhost-23">
+        <mxCell id="devhost-29" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="devhost-23" value="yes: pass through">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-30" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="renewed by Caddy" edge="1" source="devhost-21" target="devhost-25">
+        <mxCell id="devhost-30" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-25" value="renewed by Caddy">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="510" y="1050" />
@@ -998,38 +1000,38 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="devhost-31" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="One HTTPS address, the VM's IP. Caddy checks every request with oauth2-proxy; only GitHub users on the list get through, and the test stack receives their name in a header it trusts only from Caddy. Caddy renews the IP certificate itself." vertex="1">
-          <mxGeometry x="40" y="1080" width="1230" height="40" as="geometry" />
+        <mxCell id="devhost-31" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="One HTTPS address, the VM&#39;s IP. Caddy checks every request with oauth2-proxy; only GitHub users on the list get through, and the test stack receives their name in a header it trusts only from Caddy. Caddy renews the IP certificate itself." vertex="1">
+          <mxGeometry height="40" width="1230" x="40" y="1080" as="geometry" />
         </mxCell>
         <mxCell id="devhost-32" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" value="V4: API key lifecycle (Providers page)" vertex="1">
-          <mxGeometry x="40" y="1160" width="600" height="30" as="geometry" />
+          <mxGeometry height="30" width="600" x="40" y="1160" as="geometry" />
         </mxCell>
         <mxCell id="devhost-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8759a3;strokeColor=#5c3a72;" value="&lt;b&gt;Admin sets key&lt;/b&gt;&lt;br&gt;signed in, on allow-list" vertex="1">
-          <mxGeometry x="40" y="1210" width="220" height="70" as="geometry" />
+          <mxGeometry height="70" width="220" x="40" y="1210" as="geometry" />
         </mxCell>
         <mxCell id="devhost-34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Encrypt&lt;/b&gt;&lt;br&gt;master key on VM only" vertex="1">
-          <mxGeometry x="330" y="1210" width="220" height="70" as="geometry" />
+          <mxGeometry height="70" width="220" x="330" y="1210" as="geometry" />
         </mxCell>
         <mxCell id="devhost-35" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Store&lt;/b&gt;&lt;br&gt;per provider, versioned" vertex="1">
-          <mxGeometry x="620" y="1210" width="220" height="70" as="geometry" />
+          <mxGeometry height="70" width="220" x="620" y="1210" as="geometry" />
         </mxCell>
         <mxCell id="devhost-36" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4f9768;strokeColor=#2d5c3d;" value="&lt;b&gt;ai-layer reads it&lt;/b&gt;&lt;br&gt;per call, short cache" vertex="1">
-          <mxGeometry x="910" y="1210" width="220" height="70" as="geometry" />
+          <mxGeometry height="70" width="220" x="910" y="1210" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-37" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="" edge="1" source="devhost-33" target="devhost-34">
+        <mxCell id="devhost-37" edge="1" parent="1" source="devhost-33" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-34" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-38" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="" edge="1" source="devhost-34" target="devhost-35">
+        <mxCell id="devhost-38" edge="1" parent="1" source="devhost-34" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-35" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-39" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="" edge="1" source="devhost-35" target="devhost-36">
+        <mxCell id="devhost-39" edge="1" parent="1" source="devhost-35" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-36" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="devhost-40" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="Audit log on every change: who, when, a fingerprint of the key. Never the key. The page shows only the last four characters." vertex="1">
-          <mxGeometry x="40" y="1320" width="1090" height="50" as="geometry" />
+          <mxGeometry height="50" width="1090" x="40" y="1320" as="geometry" />
         </mxCell>
         <mxCell id="devhost-41" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="Keys can change without a restart, are unreadable at rest without the master key, and every change is attributable." vertex="1">
-          <mxGeometry x="40" y="1390" width="1090" height="30" as="geometry" />
+          <mxGeometry height="30" width="1090" x="40" y="1390" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
