@@ -971,7 +971,7 @@
         <mxCell id="devhost-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8759a3;strokeColor=#5c3a72;" value="&lt;b&gt;oauth2-proxy&lt;/b&gt;&lt;br&gt;--github-user list" vertex="1">
           <mxGeometry height="70" width="300" x="690" y="760" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;App: ui-host, APIs, remotes&lt;/b&gt;&lt;br&gt;lead developer's stack · X-Forwarded-User" vertex="1">
+        <mxCell id="devhost-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Remotes and APIs&lt;/b&gt;&lt;br&gt;lead developer's stack, Docker network only&lt;br&gt;X-Forwarded-User" vertex="1">
           <mxGeometry height="80" width="300" x="690" y="910" as="geometry" />
         </mxCell>
         <mxCell id="devhost-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#8a8a8a;strokeColor=#555555;dashed=1;" value="&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;OAuth, 2FA" vertex="1">
@@ -989,7 +989,7 @@
         <mxCell id="devhost-28" edge="1" parent="1" source="devhost-22" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-24" value="login">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-29" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="devhost-23" value="yes: pass through">
+        <mxCell id="devhost-29" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-75" value="yes: everything">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="devhost-30" edge="1" parent="1" source="devhost-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" target="devhost-25" value="renewed by Caddy">
@@ -1000,7 +1000,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="devhost-31" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="One HTTPS address, the VM's IP. Caddy checks every request with oauth2-proxy; only GitHub users on the list get through, and the test stack receives their name in a header it trusts only from Caddy. Caddy renews the IP certificate itself." vertex="1">
+        <mxCell id="devhost-31" parent="1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#555555;fontStyle=2;" value="One HTTPS address, the VM's IP. Caddy checks every request with oauth2-proxy; only GitHub users on the list get through, and the test stack receives their name in a header it trusts only from Caddy. Caddy sends everything to ui-host, whose own proxy routes each path prefix to a remote or an API, so the developer's forwarded localhost:5173 works the same way. Caddy renews the IP certificate itself." vertex="1">
           <mxGeometry height="40" width="1230" x="40" y="1080" as="geometry" />
         </mxCell>
         <mxCell id="devhost-32" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" value="Feature (from V2): API key lifecycle on the Providers page" vertex="1">
@@ -1130,6 +1130,12 @@
           <mxGeometry x="40" y="2130" width="1240" height="40" as="geometry" />
         </mxCell>
         <mxCell id="devhost-74" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" value="branch checked out here for end-to-end tests" edge="1" source="devhost-51" target="devhost-50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="devhost-75" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" vertex="1" value="&lt;b&gt;ui-host&lt;/b&gt;&lt;br&gt;one port, its own proxy">
+          <mxGeometry x="420" y="925" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="devhost-76" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;" edge="1" source="devhost-75" target="devhost-23" value="/remotes/*, /orchestrator-api,&lt;br&gt;/generator-api">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
