@@ -32,6 +32,21 @@ or an elevated shell, depending on the npm/Node version — if `npm install`
 in a consuming package fails to link this one, that's the first thing to
 check, not a real dependency problem.
 
+## Changing its dependencies
+
+In the Docker Compose stack, each UI container uses its own copy of this
+package's `node_modules`, installed into the image at build time and kept in
+an anonymous volume, not the `node_modules` on your machine. After adding,
+removing or upgrading a dependency here, rebuild and give every UI container
+a fresh copy from `ai/`:
+
+```bash
+docker compose up -d --build --renew-anon-volumes
+```
+
+Without it, the containers keep the old packages and Vite reports
+`Failed to resolve import` for the new one.
+
 ## Multi-file component groups
 
 Most components here are one flat `.tsx` file. A component whose own concerns are each real and
