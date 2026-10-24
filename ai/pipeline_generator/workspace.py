@@ -27,6 +27,11 @@ MAX_LISTED_ENTRIES = 500
 # an architecture model out of it, never an arbitrary file.
 MODEL_EXTENSION = ".swarch"
 
+# Folders never listed, read from or written to, wherever they are in the
+# workspace. The workspace is often a repository, and a generated file must
+# never land in git's own internals (hooks there run on the next git command).
+EXCLUDED_DIR_NAMES = frozenset({".git"})
+
 # What the filesystem raises for a path it cannot follow or look at. Python
 # 3.12 reports a link loop as RuntimeError, later versions as OSError, and
 # only some OS errors (a missing path, a loop) are swallowed by pathlib's own
@@ -113,6 +118,10 @@ class Workspace:
             raise WorkspaceError("That path could not be followed.")
         if not self._inside(candidate, root):
             raise WorkspaceError("That path is outside the workspace folder.")
+        # Judged on the resolved path, so a link into an excluded folder is
+        # refused the same way as naming it directly.
+        if EXCLUDED_DIR_NAMES.intersection(candidate.relative_to(root).parts):
+            raise WorkspaceError("That folder cannot be used here.")
         return candidate
 
     def display(self, path: Path) -> str:
@@ -136,7 +145,7 @@ class Workspace:
 
         The cheap name tests come first, and a link is the only thing that
         needs resolving, so a folder with very many entries stays quick."""
-        if not _is_usable_name(entry.name):
+        if not _is_usable_name(entry.name) or entry.name in EXCLUDED_DIR_NAMES:
             return None
         try:
             is_dir = entry.is_dir()
