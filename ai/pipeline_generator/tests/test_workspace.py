@@ -484,3 +484,43 @@ def test_a_save_folder_reached_through_a_link_inside_the_workspace_lands_on_the_
 
     assert saved.path == "/real/p.yml"
     assert (workspace_dir / "real" / "p.yml").read_text(encoding="utf-8") == "x"
+
+
+# --- git's own folder -----------------------------------------------------------
+
+
+def test_the_git_folder_is_never_listed(ws, workspace_dir):
+    (workspace_dir / ".git").mkdir()
+    (workspace_dir / ".github").mkdir()
+
+    names = [entry["name"] for entry in ws.browse("/", dirs_only=False)["entries"]]
+
+    assert ".git" not in names
+    assert ".github" in names
+
+
+@pytest.mark.parametrize("folder", ["/.git", "/.git/hooks", "/repos/app/.git/hooks"])
+def test_nothing_is_ever_written_into_a_git_folder(ws, workspace_dir, folder):
+    with pytest.raises(WorkspaceError):
+        ws.write_text(folder, ".gitlab-ci.yml", "stages: [build]\n")
+
+    assert not list(workspace_dir.rglob(".gitlab-ci.yml"))
+
+
+def test_a_git_folder_cannot_be_browsed_or_read_from(ws, workspace_dir):
+    hooks = workspace_dir / ".git" / "hooks"
+    hooks.mkdir(parents=True)
+    (hooks / "a.swarch").write_text("<a/>", encoding="utf-8")
+
+    with pytest.raises(WorkspaceError):
+        ws.browse("/.git/hooks", dirs_only=False)
+    with pytest.raises(WorkspaceError):
+        ws.read_text("/.git/hooks/a.swarch", 1024)
+
+
+def test_a_link_into_a_git_folder_is_refused_like_the_folder_itself(ws, workspace_dir):
+    (workspace_dir / ".git" / "hooks").mkdir(parents=True)
+    _link(workspace_dir / ".git" / "hooks", workspace_dir / "innocent")
+
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/innocent", ".gitlab-ci.yml", "stages: [build]\n")
