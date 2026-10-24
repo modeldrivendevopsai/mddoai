@@ -1,19 +1,25 @@
 """The pipelines a person has generated, kept so the "Your pipelines" screen
 can bring them back to their work.
 
-One folder per pipeline, named by a random id: a small `meta.json` (what the
-list shows) beside a `record.json` (everything needed to reopen it). The list
-reads only the small files. A pipeline is identified by its model input (the
-workspace path it was loaded from, else the file name), and the newest
-generation for an input replaces the earlier one, so the list has one row per
-input.
+One folder per pipeline, named by a random id, holding the generation as real
+files a person can open:
+
+    meta.json                          what the list shows
+    record.json                        the rest of what reopening needs, without file contents
+    model.swarch                       the model it was generated from
+    <platform-id>/<output file>        each generated pipeline
+    <platform-id>/intermediates/<file> the models the engine passed through on the way
+
+The list reads only the small files. A pipeline is identified by its model
+input (the workspace path it was loaded from, else the file name), and the
+newest generation for an input replaces the earlier one, so the list has one
+row per input.
 """
 import json
 import logging
 import os
 import re
 import shutil
-import tempfile
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -25,6 +31,20 @@ _ID_PATTERN = re.compile(r"[0-9a-f]{32}")
 
 # The text fields every list row is built from, besides its id and its lists.
 _TEXT_FIELDS = ("key", "swarch_name", "generated_at")
+
+_MODEL_FILENAME = "model.swarch"
+_INTERMEDIATES_DIR = "intermediates"
+
+# Folders that are not (yet, or any more) a pipeline. None of these prefixes
+# can start an id, so none of these folders is ever listed.
+# A generation is written into a ".writing-" folder, then renamed into place.
+_WRITING_PREFIX = ".writing-"
+# The generation it replaces is moved aside first, as ".replaced-<id>-...",
+# so a crash before the new one is in place can still put it back.
+_REPLACED_PREFIX = ".replaced-"
+# A pipeline being forgotten is moved aside as ".removing-..." before it is
+# deleted, so a deletion that stops part way never leaves a listed, broken row.
+_REMOVING_PREFIX = ".removing-"
 
 
 def _is_usable(meta: object, folder_name: str) -> bool:
@@ -42,17 +62,53 @@ def _is_usable(meta: object, folder_name: str) -> bool:
     )
 
 
+def _plain_name(name: object) -> str:
+    """`name` as one path segment. Platform ids and file names come from the
+    platform definitions, never from a request, but record.json is read back
+    from disk, so a name that would step outside its folder is refused."""
+    if not isinstance(name, str) or name in ("", ".", "..") or Path(name).name != name:
+        raise ValueError(f"not a plain file name: {name!r}")
+    return name
+
+
 def _write_json(path: Path, value: dict) -> None:
     """Written beside the target and renamed into place, so a crash part way
-    leaves the previous complete version, never a half-written one."""
-    descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".writing-")
+    leaves the previous complete version, never a half-written one. Created
+    with the ordinary file mode (the umask applies), not tempfile's private
+    one, so the history can be read from the host like the rest of the data
+    folder."""
+    temporary = path.parent / f".writing-{uuid.uuid4().hex}"
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             json.dump(value, handle)
         os.replace(temporary, path)
     except BaseException:
-        Path(temporary).unlink(missing_ok=True)
+        temporary.unlink(missing_ok=True)
         raise
+
+
+# newline="" on both sides keeps a file's line endings exactly as generated.
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(content)
+
+
+def _read_text(path: Path) -> str:
+    with open(path, encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+def _stored_result(result: dict) -> dict:
+    """A result as record.json keeps it: everything but the file contents,
+    which live in their own files."""
+    kept = {name: value for name, value in result.items() if name not in ("pipeline", "intermediates")}
+    kept["intermediates"] = [
+        {name: value for name, value in intermediate.items() if name != "content"}
+        for intermediate in result.get("intermediates", [])
+    ]
+    return kept
 
 
 class PipelineHistory:
@@ -109,14 +165,76 @@ class PipelineHistory:
         with self._lock:
             existing = next((meta["id"] for meta in self._metas() if meta["key"] == key), None)
             pipeline_id = existing or uuid.uuid4().hex
-            folder = self._directory / pipeline_id
-            folder.mkdir(parents=True, exist_ok=True)
             meta = {"id": pipeline_id, **meta_base}
-            # Record first: a list row must never point at a record that is missing.
-            _write_json(folder / "record.json", {**meta, "content": content, "save_to": save_to, "results": results})
-            _write_json(folder / "meta.json", meta)
+            self._directory.mkdir(parents=True, exist_ok=True)
+            self._remove_leftovers()
+            # The whole folder is written first and only then put in place,
+            # so the list never shows a pipeline whose files are not all there.
+            # A plain mkdir, not tempfile.mkdtemp: that one is private to the
+            # service's user, and the folder must stay readable from the host.
+            staging = self._directory / f"{_WRITING_PREFIX}{uuid.uuid4().hex}"
+            staging.mkdir()
+            try:
+                self._write_folder(staging, meta, content, save_to, results)
+                self._put_in_place(staging, self._directory / pipeline_id)
+            except BaseException:
+                shutil.rmtree(staging, ignore_errors=True)
+                raise
             self._forget_the_oldest(keep=pipeline_id)
         return pipeline_id
+
+    def _write_folder(self, folder: Path, meta: dict, content: str, save_to: str | None, results: list[dict]) -> None:
+        _write_text(folder / _MODEL_FILENAME, content)
+        for result in results:
+            # Only generations that produced a pipeline are recorded.
+            if not isinstance(result.get("pipeline"), str):
+                raise ValueError("a recorded result must carry its generated pipeline")
+            platform_dir = folder / _plain_name(result["platform"]["id"])
+            _write_text(platform_dir / _plain_name(result["output_filename"]), result["pipeline"])
+            for intermediate in result.get("intermediates", []):
+                path = platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])
+                _write_text(path, intermediate["content"])
+        stored_results = [_stored_result(result) for result in results]
+        _write_json(folder / "record.json", {**meta, "save_to": save_to, "results": stored_results})
+        _write_json(folder / "meta.json", meta)
+
+    def _put_in_place(self, staging: Path, target: Path) -> None:
+        if not target.exists():
+            os.rename(staging, target)
+            return
+        # A folder cannot be renamed over a non-empty one, so the earlier
+        # generation is moved aside first and removed once the new one is in.
+        # If the new one cannot be put in place, the earlier one goes back.
+        replaced = self._directory / f"{_REPLACED_PREFIX}{target.name}-{uuid.uuid4().hex}"
+        os.rename(target, replaced)
+        try:
+            os.rename(staging, target)
+        except BaseException:
+            os.rename(replaced, target)
+            raise
+        shutil.rmtree(replaced, ignore_errors=True)
+
+    def _remove_leftovers(self) -> None:
+        # Only this class creates these folders, under the lock, and removes
+        # them before returning, so any found here were left by a crash. A
+        # generation moved aside whose pipeline never got its new folder is
+        # the only complete copy left, so it is put back, not deleted.
+        for entry in self._directory.iterdir():
+            if not entry.is_dir():
+                continue
+            if entry.name.startswith(_REPLACED_PREFIX):
+                pipeline_id = entry.name[len(_REPLACED_PREFIX):].split("-", 1)[0]
+                target = self._folder(pipeline_id)
+                if target is not None and not target.exists():
+                    os.rename(entry, target)
+                    continue
+            if entry.name.startswith((_WRITING_PREFIX, _REPLACED_PREFIX, _REMOVING_PREFIX)):
+                shutil.rmtree(entry, ignore_errors=True)
+
+    def _remove(self, folder: Path) -> None:
+        aside = self._directory / f"{_REMOVING_PREFIX}{uuid.uuid4().hex}"
+        os.rename(folder, aside)
+        shutil.rmtree(aside, ignore_errors=True)
 
     def record_generation(
         self,
@@ -147,7 +265,7 @@ class PipelineHistory:
                 save_to=save_to,
                 results=generated,
             )
-        except OSError as e:
+        except (OSError, ValueError) as e:
             logger.error("could not record the generated pipeline: %s", e)
             return None
 
@@ -161,7 +279,10 @@ class PipelineHistory:
         # The pipeline just recorded stays whatever its timestamp says.
         others = sorted((meta for meta in metas if meta["id"] != keep), key=lambda meta: meta["generated_at"])
         for meta in others[:excess]:
-            shutil.rmtree(self._directory / meta["id"], ignore_errors=True)
+            try:
+                self._remove(self._directory / meta["id"])
+            except OSError as e:
+                logger.warning("could not forget pipeline %s: %s", meta["id"], e)
 
     def summaries(self) -> list[dict]:
         """Every pipeline, newest first, without the bulky parts."""
@@ -170,12 +291,34 @@ class PipelineHistory:
         return sorted(metas, key=lambda meta: meta["generated_at"], reverse=True)
 
     def get(self, pipeline_id: str) -> dict | None:
+        """One pipeline in full, its files read back into the record, or None
+        if it is unknown or any part of it is missing or damaged."""
         folder = self._folder(pipeline_id)
         if folder is None:
             return None
         with self._lock:
             try:
                 record = json.loads((folder / "record.json").read_text(encoding="utf-8"))
-            except (OSError, ValueError):
+                if not isinstance(record, dict):
+                    return None
+                return self._with_files(folder, record)
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
                 return None
-        return record if isinstance(record, dict) else None
+
+    def _with_files(self, folder: Path, record: dict) -> dict:
+        results = []
+        for stored in record["results"]:
+            platform_dir = folder / _plain_name(stored["platform"]["id"])
+            intermediates = [
+                {
+                    **intermediate,
+                    "content": _read_text(platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])),
+                }
+                for intermediate in stored["intermediates"]
+            ]
+            results.append({
+                **stored,
+                "pipeline": _read_text(platform_dir / _plain_name(stored["output_filename"])),
+                "intermediates": intermediates,
+            })
+        return {**record, "content": _read_text(folder / _MODEL_FILENAME), "results": results}
