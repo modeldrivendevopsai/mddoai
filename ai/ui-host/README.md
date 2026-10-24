@@ -122,14 +122,19 @@ panel/chat/stepper — everything else on the page keeps working, see this packa
 for why (`RemoteBoundary`) — rather than the rejected import taking down the whole page;
 `docker compose up --build` from `ai/` starts every remote alongside this host.
 
-**After adding a new npm dependency**, a plain `docker compose up --build` isn't enough: Compose
-reuses the container's anonymous `node_modules` volume (`docker-compose.yml`'s
-`/app/node_modules` entry) across recreation by default, so the new package won't actually be
-there even though the image rebuilt with it. Force a fresh volume with:
+**After adding a new npm dependency**, here or in `design-system` or `orchestrator-types`, a plain
+`docker compose up --build` isn't enough: Compose reuses the container's anonymous `node_modules`
+volumes (`docker-compose.yml`'s `/app/node_modules`, `/design-system/node_modules` and
+`/orchestrator-types/node_modules` entries) across recreation by default, so the new package won't
+actually be there even though the image rebuilt with it. Force fresh volumes with:
 
 ```bash
-docker compose up -d --build --renew-anon-volumes ui-host
+docker compose up -d --build --renew-anon-volumes
 ```
+
+Leave out the service name: every `ui-remote-*` container has its own copy of the
+`design-system` and `orchestrator-types` volumes, and only the UI services have anonymous volumes,
+so this renews exactly the ones that need it.
 
 Symptom if you skip this: Vite's overlay reports `Failed to resolve import "..."` for the
 package you just added, even though `npm ci` clearly succeeded during the image build.

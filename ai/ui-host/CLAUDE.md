@@ -134,8 +134,16 @@ siblings in the image the same way they are on disk (see the Dockerfile's own co
 `docker-compose.yml` bind-mounts `ai/design-system` and `ai/orchestrator-types` into the running
 container at the same paths the image build baked its `node_modules` symlinks to point at, so a
 live edit to either package's source reaches this dev server the same way an edit to this package's
-own source does, no rebuild needed. Every `ui-remote-*` service follows the exact same
-Dockerfile/bind-mount shape for the exact same reason.
+own source does, no rebuild needed. A bind mount hides the `node_modules` the image installed
+inside each package, so `docker-compose.yml` also gives each one an anonymous volume
+(`/design-system/node_modules`, `/orchestrator-types/node_modules`) that keeps the image's copy
+visible. Without them, the dev server only resolves those packages' dependencies (for example the
+design-system's icon library) on a machine that happens to have run `npm install` in them on the
+host, and fails with `Failed to resolve import` on a fresh clone. A volume is a copy of the image's
+`node_modules` taken when the container is first created, so after any of the three packages changes
+its dependencies, run `docker compose up -d --build --renew-anon-volumes` (no service name, so every
+UI service gets fresh volumes). Every `ui-remote-*` service
+follows the exact same Dockerfile/bind-mount shape for the exact same reason.
 
 Loading a `ui-remote-*` piece is not this dev server's own proxy doing the work — the **browser**
 fetches each remote's `remoteEntry.js` directly against that remote's own published port
