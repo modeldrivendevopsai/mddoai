@@ -307,6 +307,13 @@ services:
   # ui-host itself does — so live edits to their source reach the running dev
   # server without an image rebuild, matching the symlink's real target path
   # (a sibling of /app) that npm ci baked into the image at build time.
+  # Each bind mount hides whatever the image put at that path, including the
+  # node_modules npm ci installed there. The anonymous /design-system/node_modules
+  # and /orchestrator-types/node_modules volumes keep the image's copies visible,
+  # the same way /app/node_modules does for ui-host's own, so the dev server
+  # works on a fresh clone with no node_modules on the host. Each volume is a
+  # copy made when the container is first created: after a dependency change,
+  # recreate them with `docker compose up -d --build --renew-anon-volumes`.
   ui-host:
     build:
       context: .
@@ -314,6 +321,10 @@ services:
     command: npm run dev -- --host 0.0.0.0
     environment:
       - VITE_ORCHESTRATOR_PROXY_TARGET=http://orchestrator:8001
+      # The "Generate a CI/CD pipeline" mode's own backend (see
+      # pipeline-generator below), reached through its own proxy path, not
+      # via orchestrator: that mode has no pipeline run, chat, or stages.
+      - VITE_GENERATOR_PROXY_TARGET=http://pipeline-generator:8100
       # See vite.config.ts's server.watch comment: without this, edits to a
       # bind-mounted file on the host can silently stop triggering HMR.
       - CHOKIDAR_USEPOLLING=true
@@ -336,8 +347,14 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
-      - "5173:5173"
+      # This machine only. The generate mode's API, reached through this
+      # port, can read model files from and write pipeline files into the
+      # workspace folder, and like every service here it has no
+      # authentication, so it is not published on the network.
+      - "127.0.0.1:5173:5173"
     depends_on:
       orchestrator:
         condition: service_healthy
@@ -352,8 +369,9 @@ services:
   # the browser fetches a remote's remoteEntry.js, later, and can retry
   # independently — so there's no health-check ordering to get right, a
   # real simplification versus the backend chain's own depends_on graph.
-  # Each gets the sibling design-system bind mount for the same reason
-  # ui-host does (see ui-host/Dockerfile's own comment).
+  # Each gets the sibling design-system and orchestrator-types bind mounts, and
+  # the anonymous node_modules volume under each, for the same reasons ui-host does (see
+  # ui-host/Dockerfile's own comment and the comment above ui-host).
   ui-remote-chat:
     build:
       context: .
@@ -366,6 +384,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5174:5174"
 
@@ -381,6 +401,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5175:5175"
 
@@ -396,6 +418,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5176:5176"
 
@@ -411,6 +435,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5177:5177"
 
@@ -426,6 +452,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5178:5178"
 
@@ -441,6 +469,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5179:5179"
 
@@ -456,6 +486,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5180:5180"
 
@@ -471,6 +503,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5181:5181"
 
@@ -486,6 +520,8 @@ services:
       - /app/node_modules
       - ./design-system:/design-system
       - ./orchestrator-types:/orchestrator-types
+      - /design-system/node_modules
+      - /orchestrator-types/node_modules
     ports:
       - "5182:5182"
 
@@ -506,7 +542,7 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313), .atl (issue #314), and .mtl/Acceleo (issue #315).
+  # .ecore (issue #313), .atl (issue #314), .mtl/Acceleo (issue #315), and .swarch.
   # Named validator-agent, not ecore-validator: a future validator type would
   # add another sibling /validate/<type> route to this same service.
   validator-agent:
@@ -598,7 +634,57 @@ services:
     expose:
       - "8090"
 
+  # The backend of the "Generate a CI/CD pipeline" mode: runs the engine's
+  # real swarch2<platform> CLI on an uploaded Software Architecture model,
+  # and checks the model (via validator-agent) and the generated pipeline.
+  # UI-facing, the way orchestrator is for the platform-integration mode, but
+  # with no pipeline run or LLM involved. It invokes the engine's CLI directly
+  # because the engine's generator for a platform is not something
+  # execution-agent can run (the repo's documented fifth exception).
+  pipeline-generator:
+    build:
+      context: .
+      dockerfile: pipeline_generator/Dockerfile
+    env_file:
+      - path: ./pipeline_generator/.env
+        required: false
+    volumes:
+      # Read-only, same shared build-output volume validator-agent and
+      # execution-agent already mount: the real engine CLI's classpath.
+      - main-build-output:/main-build:ro
+      # The engine loads its compiled ATL transformations by a path relative
+      # to its working directory, not from the classpath, so they have to be
+      # provided as files. A real, read-only MDE data directory, the same
+      # narrow shape as the repo's documented third exception; each request
+      # copies it into its own scratch directory.
+      - ../main/src/main/resources/transformations:/engine-transformations:ro
+      # The folder the screen's "Input path" and "Save output to" fields work
+      # inside: models are picked from it and generated pipeline files are
+      # written to it. A web page cannot reach the user's disk itself, so the
+      # folder is mounted in. Point GENERATOR_WORKSPACE_HOST_DIR at a folder
+      # of your own (for example, the one holding your repositories); unset,
+      # it is ./generator-workspace next to this file.
+      - ${GENERATOR_WORKSPACE_HOST_DIR:-./generator-workspace}:/workspace
+      # The pipelines listed on "Your pipelines", kept across restarts.
+      - generator-data:/data
+    environment:
+      - LOG_LEVEL=INFO
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - GENERATOR_TIMEOUT_SECONDS=60
+      - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
+      - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
+      - GENERATOR_WORKSPACE_DIR=/workspace
+      - GENERATOR_DATA_DIR=/data
+    depends_on:
+      gradle-builder:
+        condition: service_completed_successfully
+      validator-agent:
+        condition: service_healthy
+    expose:
+      - "8100"
+
 volumes:
   main-gradle-cache:
   main-build-output:
   pipeline-runs:
+  generator-data:

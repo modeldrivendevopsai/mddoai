@@ -13,12 +13,14 @@ import at runtime rather than a source import — see Architecture below for exa
 `ui-host/src/features/integration/stages/registry.ts` plus `vite.config.ts`'s `federation()`
 `remotes` map for the current, exact list of which remote exposes what.
 
-The app is a router-based SPA with a persistent shell, `AppShell` (sidebar + top bar), wrapping two screens:
+The app is a router-based SPA with a persistent shell, `AppShell` (sidebar + top bar), wrapping the app's screens:
 
-- **`StartScreen`** (`/`, the home route) is a landing page offering two entry points: "Add or update a CI/CD platform" (real, routes to `/integration`) and "Generate a CI/CD pipeline" (not built yet, disabled — see What This Is Not below).
+- **`StartScreen`** (`/`, the home route) is a landing page offering two entry points: "Generate a CI/CD pipeline" (routes to `/generate`) and "Add or update a CI/CD platform" (routes to `/integration`).
 - **`IntegrationScreen`** (`/integration`) is the platform-integration dashboard: a human starts a run by entering a platform name, its real documentation URL, and any advanced retrieval options, then watches the run's 7-stage progress on a stepper, reviews each stage's output (approve, reject with a correction, or retry), and can nudge the Orchestrator with a free-form message at any point. Its first stage (`docs`) is a real crawl. An optional `?run=<run_id>` query param (set when a sidebar session row is clicked, see Session history below) views a past run instead of the live one, read-only.
+- **`PipelinesScreen`** (`/generate`) is the first screen of the "Generate a CI/CD pipeline" mode: the pipelines already generated (the model, the platforms, the output files and when), each with an "open" link, plus "+ New pipeline". Someone coming back to their work starts here.
+- **`GenerateScreen`** (`/generate/new`, and `/generate/<pipeline id>` to bring a saved pipeline back) is the second screen of that mode, for someone who is not a DevOps engineer. Inputs on the left: the model file (a typed or browsed workspace path, or an upload), one or more platforms, and a workspace folder to save into. The pipeline on the right. The model is checked as soon as it is loaded, and a generated pipeline can be validated. The layout and wording follow the approved wireframes (Scenario A); the "Something's not right?" feedback box and the orchestrator triage behind it (Scenarios B and C) are not built. The mode has no run, chat, stepper or stage review. Its own backend is `ai/pipeline_generator`, not `ai/orchestrator`. Its components live under `src/features/generate/`, its state hub is `useGenerate.ts` (built from `useModelSource.ts`, `useGeneration.ts` with its `useGenerationSettings.ts` and `useValidation.ts`, and `usePlatforms.ts`; `useStaleGuard.ts` is the one stale-answer guard the model, generation and validation state share, and `useWorkspaceListing.ts` and `focusTrap.ts` serve the Browse dialog), and its copy and defaults are data in `src/config/generate.config.ts`.
 
-Naming note, since it's easy to get backwards: this screen and its supporting code are named around **"integration"**, not "pipeline" — MDDOAI's other, not-yet-built mode is literally called "Generate a CI/CD pipeline" (see `startOptions.config.ts`'s `tone: 'pipeline'`), so naming this screen "pipeline" would collide with that. "Orchestrator" is reserved for the chat persona/controller (`ChatColumn`, and the real backend service `ai/orchestrator`), not the whole 7-stage screen either.
+Naming note, since it's easy to get backwards: the platform-integration screen and its supporting code are named around **"integration"**, not "pipeline", because MDDOAI's other mode is literally called "Generate a CI/CD pipeline" (see `startOptions.config.ts`'s `tone: 'pipeline'`), so naming the integration screen "pipeline" would collide with it. That other mode's screen and code are named around **"generate"** (`GenerateScreen`, `features/generate/`, `generator.service.ts`). "Orchestrator" is reserved for the chat persona/controller (`ChatColumn`, and the real backend service `ai/orchestrator`), not the whole 7-stage screen either.
 
 ---
 
@@ -46,7 +48,8 @@ Naming note, since it's easy to get backwards: this screen and its supporting co
 
 `AppShell` (`src/layout/AppShell.tsx`, plus `Sidebar.tsx`/`TopBar.tsx`) is the permanent navigation frame, mounted once in `App.tsx` around whichever screen the current route resolves to. Network calls go through `src/services/`, never directly from a component:
 
-- `src/services/orchestrator.service.ts` — the one real API client for every `ai/orchestrator` operation, hits `/orchestrator-api/*` (see `vite.config.ts`'s dev proxy; `ai/orchestrator` is internal-only in `docker-compose.yml`). This is the only service that talks to a backend agent — `ai/orchestrator` is itself the only thing that talks to `ai-layer` or `ai/retrieval` (see `ai/README.md`), ui-host never calls either directly. Its own function names (`startPipeline`, `resetPipeline`, ...) mirror `ai/orchestrator`'s real Python function/endpoint names one-to-one (`start_pipeline()`, `reset_pipeline()`, ...), that's a deliberate exception to the "integration, not pipeline" naming note above — these name the real backend calls being wrapped, not the frontend UI mode.
+- `src/services/orchestrator.service.ts` — the one real API client for every `ai/orchestrator` operation, hits `/orchestrator-api/*` (see `vite.config.ts`'s dev proxy; `ai/orchestrator` is internal-only in `docker-compose.yml`). For the platform-integration mode this is how the app reaches a backend agent — `ai/orchestrator` is itself the only thing that talks to `ai-layer` or `ai/retrieval` (see `ai/README.md`), ui-host never calls either directly. Its own function names (`startPipeline`, `resetPipeline`, ...) mirror `ai/orchestrator`'s real Python function/endpoint names one-to-one (`start_pipeline()`, `reset_pipeline()`, ...), that's a deliberate exception to the "integration, not pipeline" naming note above — these name the real backend calls being wrapped, not the frontend UI mode.
+- `src/services/generator.service.ts` — the one real API client for the "Generate a CI/CD pipeline" mode, hits `/generator-api/*` (see `vite.config.ts`'s dev proxy; `ai/pipeline_generator` is internal-only in `docker-compose.yml`). Kept separate from `orchestrator.service.ts` on purpose: that mode has no run, chat or stages, so it is not reached through `ai/orchestrator`. Its types live in that file, not in `orchestrator-types`, which is the orchestrator's own contract.
 - `src/services/sessions.service.ts` — real session history, backed by `ai/orchestrator`'s run-history endpoint (in-memory, for the life of that process; see Session history below).
 - `src/services/platforms.service.ts` — mock data backing `StartScreen`'s supported-platforms table; not yet backed by a real API.
 
@@ -104,7 +107,7 @@ across this host and every `ui-remote-*` package live there now instead of being
 package — see `ai/orchestrator-types/README.md` for why that replaced an earlier hand-synced-copy
 approach (it had already drifted once, see that README).
 
-`src/features/` holds what's still local to this host package — the chat column, the stepper, and every per-stage panel each moved out to their own `ui-remote-*` package (see below), so what's left here is cross-cutting plumbing, not UI:
+`src/features/` holds what's still local to this host package — the chat column, the stepper, and every per-stage panel each moved out to their own `ui-remote-*` package (see below), so what's left here is cross-cutting plumbing and the "Generate a CI/CD pipeline" mode's own UI (`features/generate/`):
 
 - `src/features/integration/stageEvents.ts` — `latestCallResult`/`originalDocsInput`, pure functions over the real event log `IntegrationScreen.tsx` itself calls, not tied to any one stage.
 - `src/features/integration/stages/registry.ts` — maps `StageId → ComponentType<StagePanelProps>` (both types from `orchestrator-types`), each entry a `React.lazy()` federated import into that stage's own `ui-remote-stage-*` package. The one place that knows all seven stages exist together; a stage panel's own package never imports this or another stage's package.
@@ -122,7 +125,7 @@ Component styling throughout `src/features/` and every `ui-remote-*` package use
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies `/orchestrator-api` to `ai/orchestrator` by its Compose service name; `orchestrator` is internal-only. See `ai/README.md` for the full topology.
+`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies `/orchestrator-api` to `ai/orchestrator` and `/generator-api` to `ai/pipeline_generator` by their Compose service names; both are internal-only. The UI's own port is published on this machine only. See `ai/README.md` for the full topology.
 
 Build context is `ai/`, not this folder alone — `package.json`'s `design-system` and
 `orchestrator-types` dependencies are both sibling packages (local `file:` paths), and Docker can't
@@ -131,8 +134,16 @@ siblings in the image the same way they are on disk (see the Dockerfile's own co
 `docker-compose.yml` bind-mounts `ai/design-system` and `ai/orchestrator-types` into the running
 container at the same paths the image build baked its `node_modules` symlinks to point at, so a
 live edit to either package's source reaches this dev server the same way an edit to this package's
-own source does, no rebuild needed. Every `ui-remote-*` service follows the exact same
-Dockerfile/bind-mount shape for the exact same reason.
+own source does, no rebuild needed. A bind mount hides the `node_modules` the image installed
+inside each package, so `docker-compose.yml` also gives each one an anonymous volume
+(`/design-system/node_modules`, `/orchestrator-types/node_modules`) that keeps the image's copy
+visible. Without them, the dev server only resolves those packages' dependencies (for example the
+design-system's icon library) on a machine that happens to have run `npm install` in them on the
+host, and fails with `Failed to resolve import` on a fresh clone. A volume is a copy of the image's
+`node_modules` taken when the container is first created, so after any of the three packages changes
+its dependencies, run `docker compose up -d --build --renew-anon-volumes` (no service name, so every
+UI service gets fresh volumes). Every `ui-remote-*` service
+follows the exact same Dockerfile/bind-mount shape for the exact same reason.
 
 Loading a `ui-remote-*` piece is not this dev server's own proxy doing the work — the **browser**
 fetches each remote's `remoteEntry.js` directly against that remote's own published port
@@ -148,7 +159,7 @@ remote at container-start time, only the browser does, later, and can retry inde
 ## What This Is Not
 
 - Not a generic chatbot template. Every action maps to a real `ai/orchestrator` operation, there's no conversation independent of the run.
-- Not connected to `ai-layer` or `ai/retrieval` directly from this app; always through `ai/orchestrator`.
+- Not connected to `ai-layer` or `ai/retrieval` directly from this app; always through `ai/orchestrator`. The one other backend it talks to is `ai/pipeline_generator`, for the generate mode only.
 - Not yet decided: real (persistent, cross-restart) session history. Today's session history (see Session history above) is deliberately in-memory-only, scoped to one backend process's lifetime — don't build a database/persistence layer for this ahead of a real decision. `StartScreen`'s supported-platforms table is still mock data (`platforms.service.ts`), unrelated to session history.
-- Not built: "Generate a CI/CD pipeline" (`StartScreen`'s other card, and the sidebar's "New pipeline" action) — both are rendered disabled with a "Coming soon" label rather than silently landing on `IntegrationScreen`, which is a different, real mode. When this is built, it needs its own screen/route and its own backend, not a graft onto `src/features/integration/`.
+- Not a place for generate-mode sessions: that mode has no run to resume, so the sidebar's "Pipelines" tab session list stays empty. Its history is the list of generated pipelines on `PipelinesScreen`, kept by `ai/pipeline_generator`, not by this app.
 - Not deployed to production: this `Dockerfile` (and every `ui-remote-*` package's own) builds real static assets (`npm run build`, `dist/`), but `docker-compose.yml` always overrides `command` to `npm run dev` — there's no static-file-serving stage (nginx, `vite preview`, etc.) and no separate production compose file anywhere in this repo yet. Deliberate MVP scope, not an oversight: local dev works fully via the dev server, and a real production topology (which static-file server, one compose file per environment or a shared one with overrides) is worth deciding for real when there's an actual deployment target, not guessed at ahead of one.

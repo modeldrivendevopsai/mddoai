@@ -1,4 +1,4 @@
-"""HTTP client for validator-agent: real .ecore/.atl/.mtl structural/syntax
+"""HTTP client for validator-agent: real .ecore/.atl/.mtl/.swarch structural/syntax
 validation, backed by the same Java CLIs main/'s own build produces (see
 validator_agent/README.md). Every call either returns validator-agent's own
 {"valid": bool, "issues": [...], "duration_ms": int, ...} body directly —
@@ -140,6 +140,21 @@ def validate_acceleo(
     response = httpx.post(
         f"{VALIDATOR_AGENT_URL}/validate/acceleo",
         json=payload,
+        timeout=VALIDATE_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def validate_swarch(content: str, filename: str) -> dict:
+    """POSTs to validator-agent's real /validate/swarch, returns its parsed
+    JSON response directly: {"valid": bool, "issues": [...], "duration_ms":
+    int}. A model that fails validation is still an HTTP 200 with
+    valid=false; only a request validator-agent itself rejects (413/422) or
+    a real infrastructure failure (500) raises."""
+    response = httpx.post(
+        f"{VALIDATOR_AGENT_URL}/validate/swarch",
+        json={"filename": filename, "content": content},
         timeout=VALIDATE_TIMEOUT,
     )
     response.raise_for_status()

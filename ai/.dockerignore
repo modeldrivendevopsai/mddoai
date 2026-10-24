@@ -19,3 +19,10 @@
 **/.vscode
 **/.idea
 **/.DS_Store
+# The host folder mounted into pipeline-generator as its workspace. It holds
+# the user's own files and can be large, so it must never be sent as build
+# context for any service that builds from ai/.
+**/generator-workspace
+# The same, when the service is run from its own folder and not in Docker.
+pipeline_generator/data
+pipeline_generator/workspace

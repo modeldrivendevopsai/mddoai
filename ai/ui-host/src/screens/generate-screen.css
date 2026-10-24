@@ -1,0 +1,473 @@
+/* The "Generate a CI/CD pipeline" screens: the pipelines list, and the
+   two-panel screen (inputs on the left, the pipeline on the right). */
+
+/* The app has no global box-sizing reset, and the shell clips overflow: with
+   the default content-box, a full-width block plus its padding silently runs
+   past the window's right edge. */
+.mdd-generate,
+.mdd-generate *,
+.mdd-generate *::before,
+.mdd-generate *::after {
+  box-sizing: border-box;
+}
+
+.mdd-generate {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* The band the screens open with: blue, the pipelines mode's colour. */
+.mdd-generate__band {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--tint-pipeline);
+  border-bottom: 1px solid var(--tint-pipeline-border);
+}
+.mdd-generate__band h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--neutral-950);
+}
+
+.mdd-generate__back,
+.mdd-generate__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mdd-generate__back {
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+.mdd-generate__back:hover {
+  color: var(--text-link);
+}
+.mdd-generate__link {
+  font-size: var(--text-sm);
+  color: var(--text-link);
+}
+.mdd-generate__link:hover {
+  text-decoration: underline;
+}
+.mdd-generate__back:focus-visible,
+.mdd-generate__link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.mdd-generate__body {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.mdd-generate__section-title {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--neutral-950);
+}
+
+/* --- the pipelines list ------------------------------------------------- */
+
+.mdd-generate__table-wrap {
+  overflow-x: auto;
+}
+.mdd-generate__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.mdd-generate__table th,
+.mdd-generate__table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--neutral-800);
+  font-weight: 400;
+}
+.mdd-generate__table thead th {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--neutral-600);
+  border-bottom-color: var(--border-default);
+}
+.mdd-generate__table tbody th {
+  font-weight: 500;
+  color: var(--neutral-950);
+}
+/* Read by a screen reader, not shown: a column header with no visible text. */
+.mdd-generate__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.mdd-generate__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* --- the two panels ----------------------------------------------------- */
+
+.mdd-generate__panels {
+  display: grid;
+  grid-template-columns: minmax(340px, 5fr) 6fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .mdd-generate__panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mdd-generate__panel {
+  min-width: 0;
+  min-height: 320px;
+  padding: var(--space-5);
+  background: var(--tint-pipeline);
+  border: 1px solid var(--tint-pipeline-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.mdd-generate__panel--centered {
+  align-items: center;
+  justify-content: center;
+}
+.mdd-generate__panel--results {
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+}
+.mdd-generate__placeholder {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+}
+
+.mdd-generate__spinner {
+  display: inline-flex;
+  color: var(--brand);
+  animation: mdd-generate-spin 1s linear infinite;
+}
+@keyframes mdd-generate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mdd-generate__spinner {
+    animation: none;
+  }
+}
+
+/* --- form fields -------------------------------------------------------- */
+
+.mdd-generate__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.mdd-generate__field-label {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--neutral-950);
+}
+.mdd-generate__loaded {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--success-500);
+}
+.mdd-generate__path-row {
+  display: flex;
+  gap: var(--space-2);
+}
+.mdd-generate__input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.mdd-generate__input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.mdd-generate__input:disabled {
+  background: var(--surface-sunken);
+  color: var(--neutral-500);
+}
+
+.mdd-generate__checks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-3);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.mdd-generate__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  cursor: pointer;
+}
+.mdd-generate__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand);
+}
+
+/* --- shared bits -------------------------------------------------------- */
+
+.mdd-generate__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.mdd-generate__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+}
+.mdd-generate__error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--danger-500);
+}
+
+.mdd-generate__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mdd-generate__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.mdd-generate__result + .mdd-generate__result {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+/* A long pipeline scrolls inside its own box instead of stretching the page. */
+.mdd-generate__code {
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+  overflow: auto;
+  border-radius: var(--radius-md);
+}
+
+.mdd-generate__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: var(--space-3) 0 0;
+}
+.mdd-generate__fact {
+  min-width: 0;
+}
+.mdd-generate__fact dt {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--neutral-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mdd-generate__fact dd {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  overflow-wrap: anywhere;
+}
+.mdd-generate__unset {
+  font-family: var(--font-sans);
+  font-style: italic;
+  color: var(--neutral-500);
+}
+
+.mdd-generate__issues,
+.mdd-generate__checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mdd-generate__issues li,
+.mdd-generate__check-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--neutral-800);
+}
+.mdd-generate__validation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.mdd-generate__check-details {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-6);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--danger-500);
+  overflow-wrap: anywhere;
+}
+
+.mdd-generate__details summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-link);
+}
+.mdd-generate__details[open] summary {
+  margin-bottom: var(--space-2);
+}
+.mdd-generate__details > * + * {
+  margin-top: var(--space-3);
+}
+
+/* --- the browse dialog -------------------------------------------------- */
+
+.mdd-generate__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--surface-overlay);
+}
+.mdd-generate__dialog {
+  width: min(520px, 100%);
+  max-height: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+.mdd-generate__dialog:focus {
+  outline: none;
+}
+.mdd-generate__dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.mdd-generate__dialog-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  color: var(--neutral-950);
+}
+.mdd-generate__dialog-path {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--neutral-600);
+  overflow-wrap: anywhere;
+}
+.mdd-generate__entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.mdd-generate__entries li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+.mdd-generate__entries li.mdd-generate__hint {
+  padding: var(--space-3);
+}
+.mdd-generate__entries button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  color: var(--neutral-950);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mdd-generate__entries button:hover {
+  background: var(--surface-sunken);
+}
+.mdd-generate__entries button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.mdd-generate__dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .mdd-generate__band,
+  .mdd-generate__body {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .mdd-generate__path-row {
+    flex-wrap: wrap;
+  }
+}

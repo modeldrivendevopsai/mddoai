@@ -1,6 +1,6 @@
 # validator_agent
 
-Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), and `.mtl` Acceleo templates (issue #315). The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output — see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts) — and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), `.mtl` Acceleo templates (issue #315), and `.swarch` Software Architecture models. The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output — see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts) — `pipeline_generator`, which calls `/validate/swarch` on every Software Architecture model it is given, and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
 
 Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
@@ -10,8 +10,8 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 
 ## How a request flows
 
-1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore`, `/validate/atl`, or `/validate/acceleo`.
-2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>`, `AtlValidatorCli <path>`, or `AcceleoValidatorCli <path>`).
+1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore`, `/validate/atl`, `/validate/acceleo`, or `/validate/swarch`.
+2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>`, `AtlValidatorCli <path>`, `AcceleoValidatorCli <path>`, or `SwarchValidatorCli <path>`).
 3. The Java side prints one line of JSON to stdout and exits 0, whether the input is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from an input that's simply invalid.
 4. The JSON is parsed, `duration_ms` is added, and returned as the HTTP response.
 
@@ -73,6 +73,20 @@ Since this field's content ultimately traces back to a stage-agent's own request
 `atl_source` is optional too, and only does anything alongside `metamodel_ecore`: this run's own already-generated, already-approved ATL. Given both, `AcceleoValidator` also actually **generates** real output — it first runs `atl_source` against the same fixed PIM sample `/validate/atl`'s own execution smoke test uses to produce a real PSM model instance, then runs the compiled Acceleo module against that, catching a real runtime-only Acceleo failure (a template that compiles clean but produces no real output, say) that compiling alone can never see. A real failure anywhere in that chain, including in the given `atl_source` itself, is reported as an `ERROR` issue. Without `atl_source` (or without `metamodel_ecore`), this behaves exactly as it always has.
 
 Same real-compiled-output behavior as `/validate/atl`: `generated_source_path` reports where the compiled `.emtl` module actually landed, and the same optional `run_id`/`stage`/`attempt` fields scope it.
+
+### `POST /validate/swarch`
+
+```json
+// request
+{"filename": "app.swarch", "content": "<swarch:SoftwareArchitecture .../>"}
+
+// response (200)
+{"valid": false, "issues": [{"severity": "ERROR", "message": "The required feature 'language' of 'SoftwareArchitecture' must be set", "source": "/tmp/tmpab12cd/model.swarch"}], "duration_ms": 640}
+```
+
+Validates a Software Architecture model instance: it must hold exactly one top-level element, which must load as a SWArch model, satisfy the SWArch metamodel's own constraints (the same EMF check Eclipse's own "Validate" action runs), and have no blank value for a feature the metamodel requires. Messages name the metamodel class rather than EMF's internal implementation class, and the message text carries no file path. `source` is the path of the temporary file the content was validated from, on this service, so a caller that shows issues to a person should show the message only. `filename` is only logged: the content is always written under a fixed name, so it is recognised as a model whatever the caller calls it.
+
+The content is untrusted, so it is parsed with DOCTYPE declarations rejected outright and outbound network resolution disabled, the same hardening `/validate/ecore` applies. There is no `run_id`, `stage` or `attempt`: nothing is compiled, so there is no output to persist or scope.
 
 ### `GET /health`
 
