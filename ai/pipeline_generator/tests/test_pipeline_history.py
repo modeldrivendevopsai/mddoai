@@ -1,4 +1,6 @@
 import json
+import os
+from pathlib import Path
 
 import pytest
 
@@ -109,29 +111,220 @@ def test_a_damaged_entry_is_skipped_not_fatal(history, tmp_path):
     assert history.get("1" * 32) is None
 
 
-def test_no_temporary_files_are_left_behind(history, tmp_path):
+def test_no_temporary_files_or_folders_are_left_behind(history, tmp_path):
     pipeline_id = _record(history)
+    _record(history)  # a second generation for the same input replaces the folder
 
-    names = sorted(path.name for path in (tmp_path / "data" / pipeline_id).iterdir())
+    assert [path.name for path in (tmp_path / "data").iterdir()] == [pipeline_id]
+    names = sorted(str(path.relative_to(tmp_path / "data" / pipeline_id)) for path in (tmp_path / "data" / pipeline_id).rglob("*"))
+    assert names == sorted(["meta.json", "record.json", "model.swarch", "gitlab", str(Path("gitlab") / ".gitlab-ci.yml")])
 
-    assert names == ["meta.json", "record.json"]
+
+# --- the generation as real files ----------------------------------------------
 
 
-def test_the_record_is_written_before_the_list_row_that_points_at_it(history, tmp_path, monkeypatch):
-    # If saving stops half way, a list row must never point at a missing record.
+PIM = {"id": "pim", "title": "Platform-independent model", "filename": "PipelinePIM.pimmm", "content": "<pim/>\r\n"}
+
+
+def test_the_model_each_pipeline_and_each_intermediate_are_kept_as_files(history, tmp_path):
+    pipeline_id = _record(history, results=[{**_result(), "intermediates": [PIM]}])
+    folder = tmp_path / "data" / pipeline_id
+
+    assert (folder / "model.swarch").read_text(encoding="utf-8") == "<a/>"
+    assert (folder / "gitlab" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
+    with open(folder / "gitlab" / "intermediates" / "PipelinePIM.pimmm", encoding="utf-8", newline="") as handle:
+        assert handle.read() == "<pim/>\r\n"
+
+
+def test_the_record_file_keeps_no_file_contents(history, tmp_path):
+    pipeline_id = _record(history, results=[{**_result(), "intermediates": [PIM]}])
+
+    record = json.loads((tmp_path / "data" / pipeline_id / "record.json").read_text(encoding="utf-8"))
+
+    assert "content" not in record
+    assert "pipeline" not in record["results"][0]
+    assert record["results"][0]["intermediates"] == [{"id": "pim", "title": "Platform-independent model", "filename": "PipelinePIM.pimmm"}]
+
+
+def test_reopening_returns_the_files_exactly_as_generated(history):
+    result = {**_result(pipeline="a: 1\r\nb: 2\n"), "intermediates": [PIM]}
+    pipeline_id = _record(history, results=[result])
+
+    [reopened] = history.get(pipeline_id)["results"]
+
+    assert reopened["pipeline"] == "a: 1\r\nb: 2\n"
+    assert reopened["intermediates"] == [PIM]
+
+
+def test_generating_again_removes_files_the_new_generation_did_not_produce(history, tmp_path):
+    pipeline_id = _record(history, results=[_result()])
+    _record(history, results=[_result(BAMBOO, "bamboo-spec.yml")])
+
+    folder = tmp_path / "data" / pipeline_id
+    assert not (folder / "gitlab").exists()
+    assert (folder / "bamboo" / "bamboo-spec.yml").is_file()
+
+
+@pytest.mark.parametrize("missing", [
+    Path("gitlab") / ".gitlab-ci.yml",
+    Path("gitlab") / "intermediates" / "PipelinePIM.pimmm",
+    Path("model.swarch"),
+])
+def test_a_missing_file_makes_the_pipeline_unavailable_not_a_crash(history, tmp_path, missing):
+    pipeline_id = _record(history, results=[{**_result(), "intermediates": [PIM]}])
+    (tmp_path / "data" / pipeline_id / missing).unlink()
+
+    assert history.get(pipeline_id) is None
+
+
+def test_reopening_returns_exactly_what_was_recorded(history):
+    results = [{**_result(), "intermediates": [PIM]}, _result(BAMBOO, "bamboo-spec.yml", "plan: x\n")]
+    pipeline_id = _record(history, results=results, content="<model/>\n")
+
+    record = history.get(pipeline_id)
+
+    assert record["results"] == results
+    assert record["content"] == "<model/>\n"
+    assert record["save_to"] == "./ci-output/"
+
+
+def test_a_result_without_a_pipeline_is_refused_and_record_generation_does_not_raise(history):
+    without = {**_result(), "pipeline": None}
+
+    with pytest.raises(ValueError):
+        _record(history, results=[without])
+    assert history.record_generation(
+        filename="a.swarch", content="<a/>", source_path=None, save_to=None, generated=[without]
+    ) is None
+    assert history.summaries() == []
+
+
+@pytest.mark.parametrize("field, value", [("platform", {"id": "../x", "name": "X"}), ("output_filename", "../../escape.yml")])
+def test_a_name_that_would_leave_the_pipeline_folder_is_refused(history, tmp_path, field, value):
+    with pytest.raises(ValueError):
+        _record(history, results=[{**_result(), field: value}])
+
+    assert not (tmp_path / "escape.yml").exists()
+    assert history.summaries() == []
+
+
+def test_a_tampered_record_naming_a_path_outside_its_folder_is_not_read(history, tmp_path):
+    pipeline_id = _record(history)
+    record_path = tmp_path / "data" / pipeline_id / "record.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["results"][0]["output_filename"] = "../../../secret.txt"
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+
+    assert history.get(pipeline_id) is None
+
+
+def test_if_the_new_generation_cannot_be_put_in_place_the_earlier_one_is_restored(history, monkeypatch):
     import pipeline_history
 
-    real_write = pipeline_history._write_json
-    written = []
+    pipeline_id = _record(history, content="<old/>")
+    real_rename = os.rename
 
-    def recording_write(path, value):
-        written.append(path.name)
-        real_write(path, value)
+    def failing_for_the_new_folder(source, target):
+        if Path(source).name.startswith(".writing-"):
+            raise OSError("rename failed")
+        real_rename(source, target)
 
-    monkeypatch.setattr(pipeline_history, "_write_json", recording_write)
+    monkeypatch.setattr(pipeline_history.os, "rename", failing_for_the_new_folder)
+    with pytest.raises(OSError):
+        _record(history, content="<new/>")
+    monkeypatch.setattr(pipeline_history.os, "rename", real_rename)
+
+    assert history.get(pipeline_id)["content"] == "<old/>"
+    assert [summary["id"] for summary in history.summaries()] == [pipeline_id]
+
+
+def test_a_generation_moved_aside_by_a_crash_is_put_back_not_deleted(history, tmp_path):
+    # A crash between moving the earlier generation aside and putting the new
+    # one in place leaves the earlier one as the only complete copy.
+    pipeline_id = _record(history, key="/a", content="<only copy/>")
+    folder = tmp_path / "data" / pipeline_id
+    os.rename(folder, tmp_path / "data" / f".replaced-{pipeline_id}-crashed")
+
+    _record(history, key="/another")
+
+    assert history.get(pipeline_id)["content"] == "<only copy/>"
+    assert not list((tmp_path / "data").glob(".replaced-*"))
+
+
+def test_a_generation_moved_aside_whose_replacement_is_in_place_is_cleaned_up(history, tmp_path):
+    pipeline_id = _record(history, key="/a")
+    leftover = tmp_path / "data" / f".replaced-{pipeline_id}-crashed"
+    leftover.mkdir()
+
+    _record(history, key="/another")
+
+    assert not leftover.exists()
+    assert history.get(pipeline_id) is not None
+
+
+def test_a_pipeline_being_forgotten_is_moved_aside_before_it_is_deleted(tmp_path, monkeypatch):
+    import pipeline_history
+
+    capped = PipelineHistory(tmp_path / "capped", max_entries=1)
+    oldest = _record(capped, key="/1", at="2026-01-01T10:00:00+00:00")
+    removed_in_place = []
+    real_rmtree = pipeline_history.shutil.rmtree
+
+    def watching_rmtree(path, *args, **kwargs):
+        if Path(path).name == oldest:
+            removed_in_place.append(path)
+        real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(pipeline_history.shutil, "rmtree", watching_rmtree)
+    _record(capped, key="/2", at="2026-01-02T10:00:00+00:00")
+
+    assert removed_in_place == []
+    assert not (tmp_path / "capped" / oldest).exists()
+    assert not list((tmp_path / "capped").glob(".removing-*"))
+
+
+@pytest.mark.skipif(os.name != "posix", reason="file modes are POSIX permissions")
+def test_the_files_and_folder_are_readable_by_others(history, tmp_path):
+    # The history lives in the data folder so it can be opened from the host
+    # by a user other than the one the service runs as. A private (0700/0600)
+    # mode would hide it; with the usual umask everything is world-readable.
+    previous = os.umask(0o022)
+    try:
+        pipeline_id = _record(history, results=[{**_result(), "intermediates": [PIM]}])
+    finally:
+        os.umask(previous)
+    folder = tmp_path / "data" / pipeline_id
+
+    for path in [folder, *folder.rglob("*")]:
+        assert path.stat().st_mode & 0o004, f"{path.name} is not readable by others"
+
+
+def test_a_folder_left_by_an_interrupted_write_is_never_listed_and_is_cleaned_up(history, tmp_path):
+    leftover = tmp_path / "data" / ".writing-abc"
+    leftover.mkdir(parents=True)
+    (leftover / "meta.json").write_text(_meta(".writing-abc"), encoding="utf-8")
+
+    assert history.summaries() == []
     _record(history)
+    assert not leftover.exists()
 
-    assert written == ["record.json", "meta.json"]
+
+def test_a_generation_that_fails_part_way_leaves_the_earlier_one_untouched(history, monkeypatch):
+    # If saving stops half way, the list must never show a pipeline whose
+    # files are not all there, and the earlier generation must survive.
+    import pipeline_history
+
+    pipeline_id = _record(history, content="<old/>")
+
+    def failing_write(path, value):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pipeline_history, "_write_json", failing_write)
+    with pytest.raises(OSError):
+        _record(history, content="<new/>")
+
+    assert history.get(pipeline_id)["content"] == "<old/>"
+    assert [summary["id"] for summary in history.summaries()] == [pipeline_id]
 
 
 def test_the_stored_files_are_plain_json(history, tmp_path):
