@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Icon } from 'design-system';
+import { GENERATE_COPY, MODEL_FILE_ACCEPT } from '../../config/generate.config';
 import { keepFocusInside } from './focusTrap';
 import { useWorkspaceListing } from './useWorkspaceListing';
 
@@ -53,8 +54,15 @@ export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserPr
             <Icon name="X" size={16} />
           </Button>
         </header>
+        {listing && (
+          <p className="mdd-generate__hint">
+            {kind === 'file'
+              ? `Showing ${MODEL_FILE_ACCEPT} files in ${listing.root_label}. To use a file from somewhere else, close this and choose ${GENERATE_COPY.input.upload}.`
+              : `Saves go into a folder inside ${listing.root_label}.`}
+          </p>
+        )}
         <p className="mdd-generate__dialog-path" aria-live="polite">
-          Workspace {listing ? listing.path : folder}
+          Folder {listing ? listing.path : folder}
         </p>
 
         {error && (

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from routes.dependencies import get_workspace
-from settings import MAX_MODEL_BYTES, MAX_PATH_CHARS
+from settings import MAX_MODEL_BYTES, MAX_PATH_CHARS, WORKSPACE_LABEL
 from workspace import Workspace, WorkspaceError
 
 router = APIRouter(prefix="/workspace")
@@ -13,9 +13,10 @@ def browse(
     dirs_only: bool = False,
     workspace: Workspace = Depends(get_workspace),
 ):
-    """A folder's contents, for the Browse dialogs."""
+    """A folder's contents, for the Browse dialogs, with the name of the
+    folder the paths are inside, so the dialog can say where it is looking."""
     try:
-        return workspace.browse(path, dirs_only)
+        return {**workspace.browse(path, dirs_only), "root_label": WORKSPACE_LABEL}
     except WorkspaceError as e:
         raise HTTPException(status_code=e.status, detail=e.message)
 
