@@ -26,8 +26,10 @@ Around these, two more concerns have their own modules: the **workspace** (`work
 
 A web page can neither read nor write a path on the user's machine, so the service works inside
 one folder that is mounted into it. In Docker Compose that is `GENERATOR_WORKSPACE_HOST_DIR` on
-the host (default `./generator-workspace` next to the compose file), seen as `/workspace` inside
-the container. Point it at a folder of your own, such as the one holding your repositories.
+the host (default: this repository, so its example models can be picked), seen as `/workspace`
+inside the container. Point it at a folder of your own, such as the one holding your repositories.
+The Browse dialog names the folder it is showing, from `GENERATOR_WORKSPACE_LABEL`, which compose
+sets to the host folder (`GET /workspace/browse` returns it as `root_label`).
 
 Every path a caller supplies is read as relative to that folder: `/repos/app/a.swarch`,
 `./repos/app/a.swarch` and `repos/app/a.swarch` are the same file. Whatever a path resolves to,
@@ -52,12 +54,24 @@ then used, not held open in between.
 
 ## The pipeline history
 
-Each successful generation is recorded under `GENERATOR_DATA_DIR`, one folder per pipeline named
-by a random id: a small `meta.json` (what the list shows) beside a `record.json` (everything
-needed to reopen it). A pipeline is identified by its model input, which is the workspace path it
-was loaded from or, for an upload, its file name. Generating again for the same input replaces the
-earlier record, so the list has one row per input. A record is the latest generation: the model as
-it was then and the platforms generated then.
+Each successful generation is recorded under `GENERATOR_DATA_DIR/pipelines` (in Docker, the data
+folder's `pipelines/`, see [ai/README.md](../README.md)'s "Where files live"), one folder per
+pipeline named by a random id, holding the generation as real files:
+
+```
+<pipeline-id>/
+  meta.json                          what the list shows
+  record.json                        the rest of what reopening needs, without file contents
+  model.swarch                       the model it was generated from
+  <platform-id>/<output file>        each generated pipeline
+  <platform-id>/intermediates/<file> the models the engine passed through on the way
+```
+
+A pipeline is identified by its model input, which is the workspace path it was loaded from or,
+for an upload, its file name. Generating again for the same input replaces the earlier folder, so
+the list has one row per input. The new generation is written into a temporary folder and only
+then put in place, so the list never shows a pipeline whose files are not all there.
+`GET /pipelines/{id}` reads the files back into one response.
 
 ## Why it runs the real engine command
 
@@ -138,7 +152,8 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `GENERATOR_TIMEOUT_SECONDS` | How long one engine run may take. |
 | `LOG_LEVEL` | Logging verbosity. |
 | `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
-| `GENERATOR_DATA_DIR` | Where the pipeline history is kept. In Docker it is `/data`, a named volume. |
+| `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder (`GENERATOR_WORKSPACE_HOST_DIR`, or a description of the default); set it yourself to show something clearer than a relative path. Unset, the folder's own path is shown. |
+| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it. In Docker it is `/data`, with the data folder's `pipelines/` mounted at `/data/pipelines`. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest file read back from the engine, and the largest pipeline `/validate` accepts. One setting, so a pipeline the engine can write can always be validated. |

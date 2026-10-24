@@ -116,8 +116,9 @@ this endpoint simply skips execution and falls back to compile-only checking.
 `VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator`/`AtlValidator`/
 `AcceleoValidator` directly, not by this Python service) is the base directory every real
 compiled artifact these three validators produce gets persisted under, instead of being deleted
-after the check. In Docker this is the same `pipeline-runs` volume `integration_runner` itself
-mounts, at `/app/integration_runner/runs` there and at `/runs` here: one shared volume, two
+after the check. In Docker this is the same data-folder `runs/` (see
+[ai/README.md](../README.md)'s "Where files live") that `integration_runner` itself
+mounts, at `/app/integration_runner/runs` there and at `/runs` here: one shared folder, two
 different mount paths, each matching what that service's own code actually reads. See
 `ai/docker-compose.yml`'s own comments on both mounts before changing either. A request may
 include a validated `run_id`, in which case the compiled output is scoped under a subfolder

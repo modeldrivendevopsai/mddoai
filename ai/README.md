@@ -40,7 +40,39 @@ docker compose up --build
 
 Starts every service in `docker-compose.yml`. `ai-layer` at [http://localhost:8000](http://localhost:8000), `ui-host` at [http://localhost:5173](http://localhost:5173), and every `ui-remote-*` on its own port (see `ui-host/vite.config.ts`'s `federation()` `remotes` map for the current, exact list) are published to the host; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
 
-The "Generate a CI/CD pipeline" mode works inside one host folder, its workspace: models are picked from it and generated pipeline files are saved into it. By default that is `ai/generator-workspace` (created on first start); set `GENERATOR_WORKSPACE_HOST_DIR` in the shell or in `ai/.env` to use another. See [pipeline_generator/README.md](./pipeline_generator/README.md#the-workspace).
+The "Generate a CI/CD pipeline" mode works inside one host folder, its workspace: models are picked from it and generated pipeline files are saved into it. By default that is this repository itself, so the example models already in it can be picked straight away; set `GENERATOR_WORKSPACE_HOST_DIR` in the shell or in `ai/.env` to use another folder, such as the one holding your repositories. See [pipeline_generator/README.md](./pipeline_generator/README.md#the-workspace).
+
+## Where files live
+
+Everything the stack generates and keeps is in one host folder, the data folder: `ai/data/` by default, or wherever `MDDOAI_DATA_DIR` points (set it in the shell or in `ai/.env`). It is gitignored, and Docker creates it on first start.
+
+```
+ai/data/
+  runs/<run_id>/<stage>/attempt_N/   platform integration runs: each attempt's artifact, result.json,
+                                     prompt.json, and the validators' compiled output; manifest.json per run
+  pipelines/<pipeline-id>/           the generator's "Your pipelines": meta.json, record.json,
+                                     model.swarch, <platform>/<pipeline file>,
+                                     <platform>/intermediates/<models the engine passed through>
+```
+
+| Folder | Written by | Read by others through |
+|---|---|---|
+| `runs/` | `integration_runner` and `validator_agent` (the shared-folder exception in [CLAUDE.md](./CLAUDE.md)) | `integration_runner`'s attempts API |
+| `pipelines/` | `pipeline_generator` | `pipeline_generator`'s `/pipelines` API |
+
+Other files, and why they are not in the data folder:
+
+- **Your own files**, the workspace above: models you generate from and the pipeline files you save. They belong to your project, not to the stack.
+- **Prompt edits and uploaded attachments**, in each agent's own folder (`ai/<agent>/prompts/`, `ai/<agent>/attachments/`): user-authored configuration whose defaults are committed next to the agent that uses them.
+- **Scratch files** the engine, validators and executors write while working: per call, in temporary folders, deleted afterwards. Anything worth keeping is copied into the data folder.
+
+Why a bind-mounted folder and not named Docker volumes: Docker's own guidance prefers volumes for container data, but recommends bind mounts when files generated in a container must be reachable from the host ([volumes](https://docs.docker.com/engine/storage/volumes/), [bind mounts](https://docs.docker.com/engine/storage/bind-mounts/)). These files are meant to be opened, compared and copied from the host, for example in an editor, so they are bind-mounted.
+
+Things to know about that choice:
+
+- **Root-owned files.** The services write as root inside their containers, so on Linux the files in `ai/data/` and anything saved into the workspace are owned by root. Use `sudo` to delete them by hand.
+- **Host write access.** A bind mount lets a container write to the host. Each service only writes inside its own folders above, and `pipeline_generator` only writes pipeline files under their platform's file name, inside the workspace folder a person chose.
+- **Cleanup risk.** `git clean -x` in this repository deletes the data folder along with other ignored files.
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 

@@ -62,9 +62,10 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   and does not license any other future `ai/` service to reach into `main/` without the same
   explicit justification.
 - Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
-- **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one Docker
-  volume (`pipeline-runs` in `ai/docker-compose.yml`) for real, on-disk pipeline artifacts. This
-  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, and,
+- **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one host
+  folder, the data folder's `runs/` (bind-mounted from `${MDDOAI_DATA_DIR:-./data}/runs` in
+  `ai/docker-compose.yml`; see [ai/README.md](./README.md)'s "Where files live"), for real, on-disk
+  pipeline artifacts. This covers every stage's own `persist_attempt()` output (the artifact plus its validation result, and,
   for a stage with a real, UI-editable prompt config, a third file, `prompt.json`, recording the
   exact prompt and config version that produced this attempt — see
   `integration_runner/stages/_validation.py`) and every real compiled artifact `validator_agent`'s
@@ -102,7 +103,7 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   Whoever changes either container's mount path must re-derive it from that service's own code
   (`integration_runner`'s `RUNS_DIR`, `validator_agent`'s `VALIDATOR_OUTPUT_DIR` usage), not just
   copy the other container's mount string, since the two Dockerfiles have different `WORKDIR`s, so
-  the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
+  the same folder is deliberately mounted at different absolute paths in each (see both mounts' own
   comments in `ai/docker-compose.yml`).
 - **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
   pre-existing MDE-engine data (a metamodel, a real model instance) it doesn't own gets a read-only

@@ -210,8 +210,8 @@ file, not a restructuring.
   for either) and its own recorded constraints, forwarding them to `atl_agent_client.run_atl()`,
   which runs a real generate-validate-retry loop against `atl_agent`'s own real `/generate`
   capability, forwarding `run_id` so the real compiled `.asm` bytecode that call produces lands
-  scoped under this run (see [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `pipeline-runs`
-  volume). Returns `(artifact, extra)`, the same shape `psm_stage` does and for the same reason.
+  scoped under this run (see [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `runs/` folder in
+  the data folder). Returns `(artifact, extra)`, the same shape `psm_stage` does and for the same reason.
 - **`acceleo_stage(context)`** — reads `context["psm_output"]` (no fallback) and the labeled
   platform docs (preferring `context["serialization_output"]`, then `context["docs_output"]`, then
   `context["platform_description"]`), forwarding them to `acceleo_agent_client.run_acceleo()`,
