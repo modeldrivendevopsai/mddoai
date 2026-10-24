@@ -368,12 +368,14 @@ describe("GenerateScreen: browsing the workspace", () => {
       { name: "top.swarch", kind: "file" as const },
     ],
     truncated: false,
+    root_label: "the MDDOAI repository",
   }
   const REPOS = {
     path: "/repos",
     parent: "/",
     entries: [{ name: "a.swarch", kind: "file" as const }],
     truncated: false,
+    root_label: "the MDDOAI repository",
   }
 
   it("opens a dialog listing the workspace and loads the file that is clicked", async () => {
@@ -391,6 +393,21 @@ describe("GenerateScreen: browsing the workspace", () => {
     expect(service.readWorkspaceFile).toHaveBeenCalledWith("/repos/a.swarch")
     expect(service.browseWorkspace).toHaveBeenCalledWith("/", false)
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("says which folder it is showing files from, and where else a file can come from", async () => {
+    vi.mocked(service.browseWorkspace).mockImplementation(async (path) => (path === "/repos" ? REPOS : ROOT))
+    renderScreen()
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[0])
+    const dialog = await screen.findByRole("dialog", { name: "Choose an architecture file" })
+
+    expect(
+      await within(dialog).findByText(
+        "Showing .swarch files in the MDDOAI repository. To use a file from somewhere else, close this and choose Upload."
+      )
+    ).toBeTruthy()
+    expect(within(dialog).getByText("Folder /")).toBeTruthy()
   })
 
   it("can go back up a folder", async () => {
@@ -413,6 +430,7 @@ describe("GenerateScreen: browsing the workspace", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[1])
     const dialog = await screen.findByRole("dialog", { name: "Choose a folder to save into" })
+    expect(await within(dialog).findByText("Saves go into a folder inside the MDDOAI repository.")).toBeTruthy()
     fireEvent.click(await within(dialog).findByRole("button", { name: "repos" }))
     await within(dialog).findByText("No folders here.")
     fireEvent.click(within(dialog).getByRole("button", { name: "Select this folder" }))
@@ -971,8 +989,9 @@ describe("GenerateScreen: the browse dialog's keyboard and focus", () => {
       { name: "top.swarch", kind: "file" as const },
     ],
     truncated: false,
+    root_label: "the MDDOAI repository",
   }
-  const REPOS = { path: "/repos", parent: "/", entries: [{ name: "a.swarch", kind: "file" as const }], truncated: false }
+  const REPOS = { path: "/repos", parent: "/", entries: [{ name: "a.swarch", kind: "file" as const }], truncated: false, root_label: "the MDDOAI repository" }
 
   beforeEach(() => {
     vi.mocked(service.browseWorkspace).mockImplementation(async (path) => (path === "/repos" ? REPOS : ROOT))

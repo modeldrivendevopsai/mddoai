@@ -16,6 +16,11 @@ MAX_FILENAME_CHARS = 255
 # The folder models are picked from and pipeline files are saved to.
 WORKSPACE_DIR = Path(os.environ.get("GENERATOR_WORKSPACE_DIR", "./workspace"))
 
+# What that folder is called where the person can see it, shown in the Browse
+# dialog. Inside a container WORKSPACE_DIR is only a mount point, so compose
+# passes the host folder's name; run directly, the folder's own path is it.
+WORKSPACE_LABEL = os.environ.get("GENERATOR_WORKSPACE_LABEL") or str(WORKSPACE_DIR)
+
 # Where generated pipelines are kept so they can be reopened later.
 DATA_DIR = Path(os.environ.get("GENERATOR_DATA_DIR", "./data"))
 
