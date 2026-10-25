@@ -51,6 +51,48 @@ Ubuntu installs its own security updates automatically, but not updates from
 the Docker and Claude Code repositories. Re-running the setup script (stage
 10) or `sudo apt update && sudo apt upgrade` applies them.
 
+## Access control
+
+Who can reach the VM, and what each kind of access allows.
+
+**Network.** The Hetzner firewall lets in one thing: SSH (TCP 22) from the
+addresses in `ssh_allowed_cidrs`. It filters in Hetzner's network, before
+traffic reaches the VM, so it also blocks ports that Docker publishes on the
+VM. The app is never reachable directly; developers reach it through SSH port
+forwarding (see "Opening the app"). Outbound traffic is not restricted.
+
+**SSH login.** Keys only, for every user: the setup script turns password login
+off, and Hetzner issues no root password because a key is given.
+
+| Account | Logs in with | Can do |
+|---|---|---|
+| `root` | the key Terraform registered | Everything. It keeps key login because a new or rebuilt server starts with only `root`, and the first setup run needs it. |
+| `dev` | the same key, copied from root by the setup script | Everything as well: it has passwordless sudo, and it is in the `docker` group, which is equivalent to root. |
+
+So anyone who can log in to the VM controls it completely. Only give access to
+people you would give root.
+
+**Who controls what.**
+
+| Role | Has | Can |
+|---|---|---|
+| Terraform owner | the Hetzner API token and the Terraform state, on their own PC | Create, resize and delete the server; change the firewall. |
+| Developer with a key for `dev` | an SSH key and an allowed address | Log in, develop, run the stack, and use root through sudo or Docker. |
+| Anyone else | nothing | Nothing: the firewall drops their traffic. |
+
+**Secrets and where they live.**
+
+- **Hetzner API token:** only in the environment of the terminal that runs Terraform (see "Before you start"). It is never written to this folder, to the server, or to the server's start-up data. It can manage every resource in its Hetzner project, not just this VM, so it stays with the Terraform owner.
+- **Terraform state:** on the Terraform owner's PC, gitignored (see "Terraform state").
+- **GitHub access:** no GitHub key is stored on the VM. Git uses the developer's own key through SSH agent forwarding, only while they are connected (see "Working on the VM"). While a developer is connected, anyone with root on the VM can use their forwarded agent.
+- **LLM API keys:** in the clone's `ai/ai-layer/.env` on the VM, which is gitignored. Keep it readable by its owner only (`chmod 600`). Anyone with root can still read it.
+- **Claude Code:** each developer signs in on the VM themselves. The stack's `ai-layer` reads the `~/.claude` folder of the user who starts it, so sign in with a Claude Console account, not a personal subscription.
+
+**Adding and removing access.** A developer gets access when the Terraform
+owner adds their address to `ssh_allowed_cidrs` and their public key to `dev`'s
+`authorized_keys` (see "Another developer" under "Day-to-day changes"). To
+remove someone, delete their key line and their address, then apply.
+
 ## Server size
 
 The default is `cx43`, on Hetzner's cost-optimized line. It is the cheapest
