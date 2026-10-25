@@ -410,11 +410,12 @@ Progress through `STAGES` is tracked by an `IntegrationRun` instance
 backs the REST API.
 
 1. **`run_stage(context)`** — looks up the current stage's agent, calls it, and returns
-   `{"stage": ..., "output": ...}`. Only on success does it set `last_completed_stage` to this
-   stage — `/review`'s approval path checks that field and refuses to approve a stage whose last
-   real attempt failed or is still running, so a failure can never silently forward the previous
-   stage's stale output onward under the failed stage's own name. Doesn't advance the pipeline;
-   the current stage stays pending until a human reviews it.
+   `{"stage": ..., "output": ...}`. It clears `last_completed_stage` when the attempt starts and
+   sets it to this stage only on success. `/review`'s approval path checks that field and
+   refuses to approve a stage whose last real attempt failed or is still running. So a failure
+   can never silently forward stale output onward: neither the previous stage's output under the
+   failed stage's own name, nor this stage's own earlier output after a retry of it failed.
+   Doesn't advance the pipeline; the current stage stays pending until a human reviews it.
 2. A human reviews the stage's `output` (via `POST /review/{stage_id}`, below) — optionally
    after adding one more known page via `POST /docs/extend` first, on the docs stage.
 3. **Approve** → `record_review()` advances `current_stage_index` and, if there's a next stage,
