@@ -17,6 +17,10 @@ import java.nio.file.Path;
  * model, XMI text) is written to a given output file rather than printed,
  * for the same reason.
  *
+ * Two forms: the default runs a PIM model through a transformation into a
+ * target platform's PSM; {@code --from-swarch} runs a Software Architecture
+ * model through a transformation into a PIM (see {@link #FROM_SWARCH_FLAG}).
+ *
  * Exit codes:
  *   0 - the executor ran to completion; stdout is one line of JSON,
  *       {@code {"success":true}} with the real output written to
@@ -29,6 +33,10 @@ import java.nio.file.Path;
  */
 public final class AtlExecutorCli {
 
+    // Selects AtlExecutor.executeFromSwarch: a Software Architecture model in,
+    // a PIM out, so no target metamodel or output model name is passed.
+    public static final String FROM_SWARCH_FLAG = "--from-swarch";
+
     private AtlExecutorCli() {
     }
 
@@ -40,30 +48,22 @@ public final class AtlExecutorCli {
     // AtlValidatorCli.run: this repo's test packages don't share a package
     // with main.java.mddoai..., so package-private would be untestable.
     public static int run(String[] args, PrintStream out, PrintStream err) {
-        if (args.length != 5) {
+        boolean fromSwarch = args.length == 4 && FROM_SWARCH_FLAG.equals(args[0]);
+        if (!fromSwarch && args.length != 5) {
             err.println("usage: AtlExecutorCli <atl-file> <pim-model-file> <target-ecore-file> <output-model-name> <output-file>");
+            err.println("   or: AtlExecutorCli " + FROM_SWARCH_FLAG + " <atl-file> <swarch-model-file> <output-file>");
             return 2;
         }
-        String atlFilePath = args[0];
-        String pimModelFilePath = args[1];
-        String targetEcoreFilePath = args[2];
-        String outputModelName = args[3];
-        String outputFilePath = args[4];
 
         try {
-            String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
-            String pimModelXmi = Files.readString(Path.of(pimModelFilePath), StandardCharsets.UTF_8);
-            String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
-
             String outputXmi;
             try {
-                outputXmi = AtlExecutor.execute(atlSource, pimModelXmi, targetEcore, outputModelName);
-            } catch (IllegalArgumentException | IOException e) {
-                out.println("{\"success\":false,\"error\":\"" + escape(String.valueOf(e.getMessage())) + "\"}");
-                return 0;
+                outputXmi = fromSwarch ? runFromSwarch(args) : runFromPim(args);
+            } catch (ReportedFailure failure) {
+                return reportFailure(out, (Exception) failure.getCause());
             }
-
-            Files.writeString(Path.of(outputFilePath), outputXmi, StandardCharsets.UTF_8);
+            // Both forms name the output file last.
+            Files.writeString(Path.of(args[args.length - 1]), outputXmi, StandardCharsets.UTF_8);
             out.println("{\"success\":true}");
             return 0;
         } catch (Exception e) {
@@ -85,6 +85,45 @@ public final class AtlExecutorCli {
             }
             return 1;
         }
+    }
+
+    // Both forms read their inputs before the executor runs, outside its own
+    // failure handling: an unreadable input file is the tool breaking (exit
+    // 1), not a describable failure of the transformation. Only what the
+    // executor itself throws becomes a ReportedFailure.
+    private static String runFromPim(String[] args) throws IOException, ReportedFailure {
+        String atlSource = Files.readString(Path.of(args[0]), StandardCharsets.UTF_8);
+        String pimModelXmi = Files.readString(Path.of(args[1]), StandardCharsets.UTF_8);
+        String targetEcore = Files.readString(Path.of(args[2]), StandardCharsets.UTF_8);
+        try {
+            return AtlExecutor.execute(atlSource, pimModelXmi, targetEcore, args[3]);
+        } catch (IllegalArgumentException | IOException e) {
+            throw new ReportedFailure(e);
+        }
+    }
+
+    private static String runFromSwarch(String[] args) throws IOException, ReportedFailure {
+        String atlSource = Files.readString(Path.of(args[1]), StandardCharsets.UTF_8);
+        String swarchModelXmi = Files.readString(Path.of(args[2]), StandardCharsets.UTF_8);
+        try {
+            return AtlExecutor.executeFromSwarch(atlSource, swarchModelXmi);
+        } catch (IllegalArgumentException | IOException e) {
+            throw new ReportedFailure(e);
+        }
+    }
+
+    // The executor's own describable failure, carried out of the helpers above.
+    private static final class ReportedFailure extends Exception {
+        ReportedFailure(Exception cause) {
+            super(cause);
+        }
+    }
+
+    // A real, describable failure (bad input, a genuine ATL compile or
+    // runtime failure): reported on stdout, with exit code 0.
+    private static int reportFailure(PrintStream out, Exception e) {
+        out.println("{\"success\":false,\"error\":\"" + escape(String.valueOf(e.getMessage())) + "\"}");
+        return 0;
     }
 
     // Same rationale as AtlValidatorCli.escape: handle every JSON-illegal

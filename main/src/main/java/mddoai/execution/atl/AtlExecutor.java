@@ -2,8 +2,12 @@ package main.java.mddoai.execution.atl;
 
 import com.mddoai.metamodel.pim.pimMM.Pipeline;
 import com.mddoai.metamodel.pim.pimMM.PimMMPackage;
+import com.mddoai.metamodel.swarch.SoftwareArchitecture;
+import com.mddoai.metamodel.swarch.SwarchPackage;
 import main.java.mddoai.loaders.ModelLoader;
 import main.java.mddoai.transformers.FromPIMAbstractTransformer;
+import main.java.mddoai.transformers.FromSWArchAbstractTransformer;
+import main.java.mddoai.transformers.Transformer;
 import main.java.mddoai.utils.EMFUtils;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
@@ -42,21 +46,36 @@ import java.util.stream.Collectors;
  * so a dynamically loaded one works exactly like the compiled ones every
  * existing hand-authored transformation (e.g. pim2gitlabmodel.atl) already
  * uses it with.
+ *
+ * <p>It also runs the step before that, a Software Architecture model to a
+ * PIM ({@link #executeFromSwarch}), where both metamodels are MDDOAI's own
+ * compiled ones and only the transformation itself is given as source.
  */
 public final class AtlExecutor {
 
-    // atl_agent's own generation prompt forces every generated ATL's output
-    // model name into this exact shape: "create OUT : <ModelName> from IN :
-    // PIM;", with a matching "-- @nsURI <ModelName>=<platform>MM=..." header
-    // line just above it (mirrored independently in ai/integration_runner's
-    // own Python stage/generation/agent.py, which needs the same name for
-    // its own, separate call into execution_agent - that duplication is
-    // across a language boundary, not something either side can import from
-    // the other). Comments are stripped first so a header line merely
-    // mentioning this convention is never mistaken for the real declaration.
+    // Every transformation this class runs declares its models in one line,
+    // "create OUT : <OutputModel> from IN : <InputModel>;". atl_agent's own
+    // generation prompt forces that shape on every generated PIM-to-PSM
+    // transformation, with a matching "-- @nsURI <ModelName>=<platform>MM=..."
+    // header line just above it (mirrored independently in
+    // ai/integration_runner's own Python stage/generation/agent.py, which
+    // needs the same name for its own, separate call into execution_agent -
+    // that duplication is across a language boundary, not something either
+    // side can import from the other), and the engine's own hand-written
+    // transformations use it too. Comments are stripped first so a header
+    // line merely mentioning this convention is never mistaken for the real
+    // declaration.
     private static final Pattern OUTPUT_MODEL_NAME_PATTERN =
             Pattern.compile("create\\s+OUT\\s*:\\s*(\\w+)\\s+from");
+    // The same declaration's input side, checked only where the input name
+    // is fixed by the transformer (see SWARCH_INPUT_MODEL_NAME).
+    private static final Pattern INPUT_MODEL_NAME_PATTERN =
+            Pattern.compile("create\\s+OUT\\s*:\\s*\\w+\\s+from\\s+IN\\s*:\\s*(\\w+)");
     private static final Pattern ATL_LINE_COMMENT_PATTERN = Pattern.compile("--.*$", Pattern.MULTILINE);
+
+    // The name FromSWArchAbstractTransformer binds the input model to, so the
+    // name a SWArch-to-PIM transformation must read its input as.
+    static final String SWARCH_INPUT_MODEL_NAME = "SWArchMM";
 
     private AtlExecutor() {
     }
@@ -65,20 +84,37 @@ public final class AtlExecutor {
      * Parses the real output model name out of {@code atlSource} itself
      * (see {@link #OUTPUT_MODEL_NAME_PATTERN}'s own comment for the exact
      * convention), so a caller that only has the ATL source, not a
-     * separately-computed name, can still call {@link #execute} - used by
+     * separately-computed name, can still run it - used by
      * {@link main.java.mddoai.validation.atl.AtlValidator}'s own real
-     * execution smoke test. Throws IllegalArgumentException, matching this
-     * class's own "bad input" contract, when the source doesn't declare one.
+     * execution smoke test and by {@link #executeFromSwarch}. Throws
+     * IllegalArgumentException, matching this class's own "bad input"
+     * contract, when the source doesn't declare one.
      */
     public static String parseOutputModelName(String atlSource) {
-        String codeOnly = ATL_LINE_COMMENT_PATTERN.matcher(atlSource).replaceAll("");
-        Matcher matcher = OUTPUT_MODEL_NAME_PATTERN.matcher(codeOnly);
+        Matcher matcher = OUTPUT_MODEL_NAME_PATTERN.matcher(withoutComments(atlSource));
         if (!matcher.find()) {
             throw new IllegalArgumentException(
-                    "Could not find a real output model name in the generated ATL source "
-                            + "(expected \"create OUT : <Name> from IN : PIM;\")");
+                    "Could not find a real output model name in the ATL source "
+                            + "(expected \"create OUT : <Name> from IN : <InputModel>;\")");
         }
         return matcher.group(1);
+    }
+
+    // A SWArch-to-PIM transformation must read its input under the name the
+    // transformer binds it to; any other name would fail deep inside ATL with
+    // a message that does not say why.
+    private static void requireSwarchInputName(String atlSource) {
+        Matcher matcher = INPUT_MODEL_NAME_PATTERN.matcher(withoutComments(atlSource));
+        String found = matcher.find() ? matcher.group(1) : null;
+        if (!SWARCH_INPUT_MODEL_NAME.equals(found)) {
+            throw new IllegalArgumentException("A SWArch-to-PIM transformation must read its input as "
+                    + SWARCH_INPUT_MODEL_NAME + " (\"create OUT : <Name> from IN : " + SWARCH_INPUT_MODEL_NAME
+                    + ";\"), found: " + found);
+        }
+    }
+
+    private static String withoutComments(String atlSource) {
+        return ATL_LINE_COMMENT_PATTERN.matcher(atlSource).replaceAll("");
     }
 
     /**
@@ -107,32 +143,72 @@ public final class AtlExecutor {
             ResourceSet resourceSet = new ResourceSetImpl();
             FromPIMAbstractTransformer<EObject, EPackage> transformer = new FromPIMAbstractTransformer<>(
                     resourceSet, targetPackage, asmFile.getAbsolutePath(), outputModelName);
-            EObject outputModel;
-            try {
-                outputModel = transformer.transform(pimModel);
-            } catch (org.eclipse.m2m.atl.common.ATLExecutionException e) {
-                // A real ATL runtime failure (e.g. "The class 'X' is not a
-                // valid classifier") - genuinely different from a compile
-                // error above, but just as real and describable, so it gets
-                // the same IOException treatment this method already
-                // documents. getMessage() is safe here even though
-                // VMException's own printStackTrace() isn't (confirmed via
-                // javap against the real vendored jar: it overrides only
-                // the two printStackTrace overloads, whose own pretty-print
-                // path can NPE on an invalid classifier - see
-                // AtlExecutorCli's own catch-all for why that matters too).
-                throw new IOException("ATL runtime failure: " + e.getMessage(), e);
-            }
-            if (outputModel == null) {
-                throw new IOException("ATL transformation produced no output model");
-            }
-
-            File outputFile = new File(workDir, "output.xmi");
-            EMFUtils.serializeModel(outputModel, outputFile.getAbsolutePath(), resourceSet);
-            return Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+            return transformToXmi(transformer, pimModel, resourceSet, workDir);
         } finally {
             deleteRecursively(workDir);
         }
+    }
+
+    /**
+     * Compiles {@code atlSource} and runs it against {@code swarchModelXmi}
+     * (a real Software Architecture model, a .swarch file's XMI text) to
+     * produce a real PIM model instance, returned as XMI text. The other
+     * direction from {@link #execute}: here both sides are MDDOAI's own fixed,
+     * compiled metamodels, {@link SwarchPackage} in and {@link PimMMPackage}
+     * out, the same pair the engine's own swarch2pim step uses. Taking the
+     * transformation as source text, not a precompiled .asm, lets a caller run
+     * the current SWArch-to-PIM transformation or an improved one without a
+     * Java change. The output model name is read from the source itself (see
+     * {@link #parseOutputModelName}); the input must be named
+     * {@value #SWARCH_INPUT_MODEL_NAME}, or IllegalArgumentException says so.
+     * Same error contract as {@link #execute}.
+     */
+    public static String executeFromSwarch(String atlSource, String swarchModelXmi) throws IOException {
+        EMFUtils.init();
+        String outputModelName = parseOutputModelName(atlSource);
+        requireSwarchInputName(atlSource);
+
+        File workDir = Files.createTempDirectory("atl-execute-swarch-").toFile();
+        try {
+            File asmFile = compileToAsm(atlSource, workDir);
+            SoftwareArchitecture swarchModel = loadSwarchModel(swarchModelXmi, workDir);
+
+            ResourceSet resourceSet = new ResourceSetImpl();
+            FromSWArchAbstractTransformer<EObject, PimMMPackage> transformer = new FromSWArchAbstractTransformer<>(
+                    resourceSet, PimMMPackage.eINSTANCE, asmFile.getAbsolutePath(), outputModelName);
+            return transformToXmi(transformer, swarchModel, resourceSet, workDir);
+        } finally {
+            deleteRecursively(workDir);
+        }
+    }
+
+    // Runs an already-built transformer and returns its output model as XMI
+    // text, with every real ATL failure turned into an IOException.
+    private static <I> String transformToXmi(Transformer<EObject, I> transformer, I input,
+            ResourceSet resourceSet, File workDir) throws IOException {
+        EObject outputModel;
+        try {
+            outputModel = transformer.transform(input);
+        } catch (org.eclipse.m2m.atl.common.ATLExecutionException e) {
+            // A real ATL runtime failure (e.g. "The class 'X' is not a
+            // valid classifier") - genuinely different from a compile
+            // error, but just as real and describable, so it gets
+            // the same IOException treatment both public methods
+            // document. getMessage() is safe here even though
+            // VMException's own printStackTrace() isn't (confirmed via
+            // javap against the real vendored jar: it overrides only
+            // the two printStackTrace overloads, whose own pretty-print
+            // path can NPE on an invalid classifier - see
+            // AtlExecutorCli's own catch-all for why that matters too).
+            throw new IOException("ATL runtime failure: " + e.getMessage(), e);
+        }
+        if (outputModel == null) {
+            throw new IOException("ATL transformation produced no output model");
+        }
+
+        File outputFile = new File(workDir, "output.xmi");
+        EMFUtils.serializeModel(outputModel, outputFile.getAbsolutePath(), resourceSet);
+        return Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
     }
 
     // ATL's own EMFVMLauncher (AbstractTransformer.runATLTransformation)
@@ -191,6 +267,24 @@ public final class AtlExecutor {
             throw new IllegalArgumentException("Input model is not a real PIM Pipeline instance");
         }
         return (Pipeline) model;
+    }
+
+    private static SoftwareArchitecture loadSwarchModel(String swarchModelXmi, File workDir) throws IOException {
+        File modelFile = new File(workDir, "input.swarch");
+        Files.writeString(modelFile.toPath(), swarchModelXmi, StandardCharsets.UTF_8);
+
+        ResourceSet resourceSet = new ResourceSetImpl();
+        EObject model;
+        try {
+            model = ModelLoader.loadModel(modelFile.getAbsolutePath(), resourceSet, EObject.class);
+        } catch (Exception e) {
+            throw new IOException("Failed to load Software Architecture model: " + e.getMessage(), e);
+        }
+        if (model == null || model.eClass().getEPackage() != SwarchPackage.eINSTANCE
+                || !(model instanceof SoftwareArchitecture)) {
+            throw new IllegalArgumentException("Input model is not a real Software Architecture model");
+        }
+        return (SoftwareArchitecture) model;
     }
 
     private static void deleteRecursively(File file) {
