@@ -164,7 +164,9 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   intermediate files are also written to fixed relative paths, which is why no two calls may share a
   working directory. This exception does not extend to any `ui-*` package, `design-system`, or
   `ai-layer`, and does not license any other future `ai/` service to run the engine's command or
-  reach into `main/` without the same explicit justification.
+  reach into `main/` without the same explicit justification. A platform published from an
+  integration run is generated differently, and needs no exception: `pipeline_generator` asks
+  `swarch_agent` and `execution_agent` over HTTP, like any other cross-service call.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

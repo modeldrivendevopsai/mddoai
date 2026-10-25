@@ -73,6 +73,8 @@ services:
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
+      # Where an approved run's platform is published (POST /publish).
+      - PIPELINE_GENERATOR_URL=http://pipeline-generator:8100
       - PIM_METAMODEL_PATH=/pim_metamodel.ecore
       - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
     volumes:
@@ -703,9 +705,17 @@ services:
       # The data folder's pipelines/: what "Your pipelines" lists, kept
       # across restarts, next to runs/ in the same host data folder.
       - ${MDDOAI_DATA_DIR:-./data}/pipelines:/data/pipelines
+      # The data folder's platforms/: platforms published from integration
+      # runs, which this service generates for next to its built-in ones.
+      - ${MDDOAI_DATA_DIR:-./data}/platforms:/data/platforms
     environment:
       - LOG_LEVEL=INFO
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      # A published platform is generated through these two: swarch-agent
+      # turns the model into a PIM, execution-agent runs the platform's own
+      # transformation and template.
+      - SWARCH_AGENT_URL=http://swarch-agent:8110
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_TIMEOUT_SECONDS=60
       - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
@@ -719,6 +729,10 @@ services:
       gradle-builder:
         condition: service_completed_successfully
       validator-agent:
+        condition: service_healthy
+      swarch-agent:
+        condition: service_healthy
+      execution-agent:
         condition: service_healthy
     expose:
       - "8100"
