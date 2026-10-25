@@ -1,6 +1,6 @@
 /**
  * The one API client for the "Generate a CI/CD pipeline" mode's own backend
- * (ai/pipeline_generator), reached through the `/generator-api` dev proxy.
+ * (ai/pipeline_generator), reached through ui-host's `/generator-api` proxy.
  * Separate from orchestrator.service.ts on purpose:
  * that mode has no pipeline run, chat or stages, so it is not reached
  * through ai/orchestrator. Its types live here rather than in

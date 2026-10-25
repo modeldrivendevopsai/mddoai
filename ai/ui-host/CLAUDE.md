@@ -49,8 +49,8 @@ Naming note, since it's easy to get backwards: the platform-integration screen a
 
 `AppShell` (`src/layout/AppShell.tsx`, plus `Sidebar.tsx`/`TopBar.tsx`) is the permanent navigation frame, mounted once in `App.tsx` around whichever screen the current route resolves to. Network calls go through `src/services/`, never directly from a component:
 
-- `src/services/orchestrator.service.ts` — the one real API client for every `ai/orchestrator` operation, hits `/orchestrator-api/*` (see `vite.config.ts`'s dev proxy; `ai/orchestrator` is internal-only in `docker-compose.yml`). For the platform-integration mode this is how the app reaches a backend agent — `ai/orchestrator` is itself the only thing that talks to `ai-layer` or `ai/retrieval` (see `ai/README.md`), ui-host never calls either directly. Its own function names (`startPipeline`, `resetPipeline`, ...) mirror `ai/orchestrator`'s real Python function/endpoint names one-to-one (`start_pipeline()`, `reset_pipeline()`, ...), that's a deliberate exception to the "integration, not pipeline" naming note above — these name the real backend calls being wrapped, not the frontend UI mode.
-- `src/services/generator.service.ts` — the one real API client for the "Generate a CI/CD pipeline" mode, hits `/generator-api/*` (see `vite.config.ts`'s dev proxy; `ai/pipeline_generator` is internal-only in `docker-compose.yml`). Kept separate from `orchestrator.service.ts` on purpose: that mode has no run, chat or stages, so it is not reached through `ai/orchestrator`. Its types live in that file, not in `orchestrator-types`, which is the orchestrator's own contract.
+- `src/services/orchestrator.service.ts` — the one real API client for every `ai/orchestrator` operation, hits `/orchestrator-api/*` on this app's own origin, which ui-host's proxy forwards (`ai/orchestrator` is internal-only in `docker-compose.yml`). For the platform-integration mode this is how the app reaches a backend agent — `ai/orchestrator` is itself the only thing that talks to `ai-layer` or `ai/retrieval` (see `ai/README.md`), ui-host never calls either directly. Its own function names (`startPipeline`, `resetPipeline`, ...) mirror `ai/orchestrator`'s real Python function/endpoint names one-to-one (`start_pipeline()`, `reset_pipeline()`, ...), that's a deliberate exception to the "integration, not pipeline" naming note above — these name the real backend calls being wrapped, not the frontend UI mode.
+- `src/services/generator.service.ts` — the one real API client for the "Generate a CI/CD pipeline" mode, hits `/generator-api/*` on this app's own origin, which ui-host's proxy forwards (`ai/pipeline_generator` is internal-only in `docker-compose.yml`). Kept separate from `orchestrator.service.ts` on purpose: that mode has no run, chat or stages, so it is not reached through `ai/orchestrator`. Its types live in that file, not in `orchestrator-types`, which is the orchestrator's own contract.
 - `src/services/sessions.service.ts` — real session history, backed by `ai/orchestrator`'s run-history endpoint (in-memory, for the life of that process; see Session history below).
 - `src/services/platforms.service.ts` — mock data backing `StartScreen`'s supported-platforms table; not yet backed by a real API.
 
@@ -127,34 +127,26 @@ Component styling throughout `src/features/` and every `ui-remote-*` package use
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not the static-build `Dockerfile` in this folder, that's for an actual deployment target later), published at `http://localhost:5173`. Proxies `/orchestrator-api` to `ai/orchestrator` and `/generator-api` to `ai/pipeline_generator` by their Compose service names; both are internal-only. The UI's own port is published on this machine only. See `ai/README.md` for the full topology.
+`docker compose up --build` from `ai/` builds this app into static files and serves them with nginx, published at `http://localhost:5173` on this machine only. That server is the one origin the browser uses (`nginx/default.conf.template`): it serves the app, forwards `/remotes/<name>/` to each `ui-remote-*` container, `/orchestrator-api` to `ai/orchestrator` and `/generator-api` to `ai/pipeline_generator` (writes only for `/inspect`, `/generate` and `/validate`). Both backends are internal-only. See `ai/README.md` for the full topology.
 
 Build context is `ai/`, not this folder alone — `package.json`'s `design-system` and
 `orchestrator-types` dependencies are both sibling packages (local `file:` paths), and Docker can't
 `COPY` from outside its build context, so the Dockerfile copies all three packages in, keeping them
-siblings in the image the same way they are on disk (see the Dockerfile's own comment).
-`docker-compose.yml` bind-mounts `ai/design-system` and `ai/orchestrator-types` into the running
-container at the same paths the image build baked its `node_modules` symlinks to point at, so a
-live edit to either package's source reaches this dev server the same way an edit to this package's
-own source does, no rebuild needed. A bind mount hides the `node_modules` the image installed
-inside each package, so `docker-compose.yml` also gives each one an anonymous volume
-(`/design-system/node_modules`, `/orchestrator-types/node_modules`) that keeps the image's copy
-visible. Without them, the dev server only resolves those packages' dependencies (for example the
-design-system's icon library) on a machine that happens to have run `npm install` in them on the
-host, and fails with `Failed to resolve import` on a fresh clone. A volume is a copy of the image's
-`node_modules` taken when the container is first created, so after any of the three packages changes
-its dependencies, run `docker compose up -d --build --renew-anon-volumes` (no service name, so every
-UI service gets fresh volumes). Every `ui-remote-*` service
-follows the exact same Dockerfile/bind-mount shape for the exact same reason.
+siblings in the image the same way they are on disk (see the Dockerfile's own comment). The
+Dockerfile builds in a Node stage and keeps only `dist/` plus nginx in the final image. Every
+`ui-remote-*` package follows the same Dockerfile shape, with the stock nginx configuration.
 
-Loading a `ui-remote-*` piece is not this dev server's own proxy doing the work — the **browser**
-fetches each remote's `remoteEntry.js` directly against that remote's own published port
-(`vite.config.ts`'s `remote()` helper builds each URL from a `VITE_REMOTE_*_URL` env var,
-`docker-compose.yml` sets these to real `localhost:xxxx` addresses, matching each remote's own
-`ports:` entry there), after this page has already loaded. That's a real, different mechanism from
-`VITE_ORCHESTRATOR_PROXY_TARGET` above (a Docker service name only this dev *server* ever resolves,
-never the browser). No `depends_on` between `ui-host` and any `ui-remote-*`: nothing here calls a
-remote at container-start time, only the browser does, later, and can retry independently.
+A change to code here or in either shared package takes `docker compose up -d --build` of the
+services that use it; there is no hot reloading in Docker.
+
+Loading a `ui-remote-*` piece: the **browser** fetches each remote's `remoteEntry.js` at runtime
+from `/remotes/<name>/` on this origin, and the proxy forwards it to that remote's container.
+`vite.config.ts`'s `remote()` helper builds each URL from a `VITE_REMOTE_*_URL` variable, which
+`docker-compose.yml` passes as a build argument; each remote is built with the matching path as its
+Vite `base` (its `PUBLIC_PATH` build argument), so its own files are requested under it too.
+`remoteEntry.js` is served uncached, so a remote rebuilt on its own is picked up on the next page
+load without rebuilding this app. No `depends_on` between `ui-host` and anything else: the proxy
+resolves names per request, and a remote that is down only affects its own piece of the screen.
 
 ---
 
@@ -164,4 +156,4 @@ remote at container-start time, only the browser does, later, and can retry inde
 - Not connected to `ai-layer` or `ai/retrieval` directly from this app; always through `ai/orchestrator`. The one other backend it talks to is `ai/pipeline_generator`, for the generate mode only.
 - Not yet decided: real (persistent, cross-restart) session history. Today's session history (see Session history above) is deliberately in-memory-only, scoped to one backend process's lifetime — don't build a database/persistence layer for this ahead of a real decision. `StartScreen`'s supported-platforms table is still mock data (`platforms.service.ts`), unrelated to session history.
 - Not a place for generate-mode sessions: that mode has no run to resume, so the sidebar's "Pipelines" tab session list stays empty. Its history is the list of generated pipelines on `PipelinesScreen`, kept by `ai/pipeline_generator`, not by this app.
-- Not deployed to production: this `Dockerfile` (and every `ui-remote-*` package's own) builds real static assets (`npm run build`, `dist/`), but `docker-compose.yml` always overrides `command` to `npm run dev` — there's no static-file-serving stage (nginx, `vite preview`, etc.) and no separate production compose file anywhere in this repo yet. Deliberate MVP scope, not an oversight: local dev works fully via the dev server, and a real production topology (which static-file server, one compose file per environment or a shared one with overrides) is worth deciding for real when there's an actual deployment target, not guessed at ahead of one.
+- Not a production deployment: the stack runs on one machine for development and review, with no TLS and no authentication in front of it (see `ai/README.md`).

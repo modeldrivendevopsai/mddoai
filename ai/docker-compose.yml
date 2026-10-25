@@ -174,9 +174,8 @@ services:
       # Dockerfile's own final WORKDIR, /app/psm_agent, not /app). Read-write
       # and scoped to just this directory, not the whole psm_agent/ source
       # tree: a Save through the running dev container needs to land on the
-      # host's real git checkout (these files are committed, not gitignored)
-      # the same way ui-host/ui-remote-* already bind-mount their own
-      # live-editable source, applied here to backend config instead.
+      # host's real git checkout (these files are committed, not
+      # gitignored).
       - ./psm_agent/prompts:/app/psm_agent/prompts
       # Real human-uploaded "file" attachments (routes/uploads.py) - a
       # separate, writable directory from both the read-only meta_models
@@ -303,231 +302,126 @@ services:
       ai-layer:
         condition: service_healthy
 
-  # Overrides the Dockerfile's static build with Vite's own dev server.
-  # Build context is ai/, not ai/ui-host/: package.json depends on
-  # design-system and orchestrator-types via local "file:../..." paths, and
-  # Docker can't COPY from outside its build context (see ui-host/Dockerfile's
-  # own comment). Both get their own bind mount below for the same reason
-  # ui-host itself does — so live edits to their source reach the running dev
-  # server without an image rebuild, matching the symlink's real target path
-  # (a sibling of /app) that npm ci baked into the image at build time.
-  # Each bind mount hides whatever the image put at that path, including the
-  # node_modules npm ci installed there. The anonymous /design-system/node_modules
-  # and /orchestrator-types/node_modules volumes keep the image's copies visible,
-  # the same way /app/node_modules does for ui-host's own, so the dev server
-  # works on a fresh clone with no node_modules on the host. Each volume is a
-  # copy made when the container is first created: after a dependency change,
-  # recreate them with `docker compose up -d --build --renew-anon-volumes`.
+  # The UI is built into static files, served by nginx. Build context is ai/,
+  # not ai/ui-host/: package.json depends on design-system and
+  # orchestrator-types via local "file:../..." paths, and Docker can't COPY
+  # from outside its build context (see ui-host/Dockerfile's own comment). A
+  # change to the UI's code takes `docker compose up -d --build` of the
+  # service it is in.
   ui-host:
     build:
       context: .
       dockerfile: ui-host/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
+      args:
+        # Where the browser loads each remote below from: this service's own
+        # proxy, which forwards /remotes/<name>/ to ui-remote-<name>. Built
+        # into the app, so changing one means rebuilding this image.
+        - VITE_REMOTE_CHAT_URL=/remotes/chat
+        - VITE_REMOTE_STEPPER_URL=/remotes/stepper
+        - VITE_REMOTE_STAGE_DOCS_URL=/remotes/stage-docs
+        - VITE_REMOTE_STAGE_SERIALIZATION_URL=/remotes/stage-serialization
+        - VITE_REMOTE_STAGE_PIM_URL=/remotes/stage-pim
+        - VITE_REMOTE_STAGE_PSM_URL=/remotes/stage-psm
+        - VITE_REMOTE_STAGE_ATL_URL=/remotes/stage-atl
+        - VITE_REMOTE_STAGE_ACCELEO_URL=/remotes/stage-acceleo
+        - VITE_REMOTE_STAGE_GENERATION_URL=/remotes/stage-generation
     environment:
-      - VITE_ORCHESTRATOR_PROXY_TARGET=http://orchestrator:8001
+      # Filled into the proxy's configuration when the container starts.
+      # The host names the app may be opened under. Any other Host header is
+      # refused, so a page using DNS rebinding cannot reach the APIs. Add a
+      # name here if the app is opened under one.
+      - UI_ALLOWED_HOSTS=localhost 127.0.0.1
+      # Above the largest attachment upload the stage agents accept (5 MiB by
+      # default, *_MAX_UPLOAD_BYTES). Raise it with them.
+      - UI_MAX_BODY_SIZE=6m
+      # Above the longest single request the UI makes: a chat message, whose
+      # LLM call may take LLM_CHAT_TIMEOUT (900s) and whose tool call may then
+      # fetch a docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them.
+      - UI_PROXY_READ_TIMEOUT=1900s
+      - ORCHESTRATOR_UPSTREAM=orchestrator:8001
       # The "Generate a CI/CD pipeline" mode's own backend (see
       # pipeline-generator below), reached through its own proxy path, not
       # via orchestrator: that mode has no pipeline run, chat, or stages.
-      - VITE_GENERATOR_PROXY_TARGET=http://pipeline-generator:8100
-      # See vite.config.ts's server.watch comment: without this, edits to a
-      # bind-mounted file on the host can silently stop triggering HMR.
-      - CHOKIDAR_USEPOLLING=true
-      # Browser-resolvable URLs for each Module Federation remote below —
-      # see vite.config.ts's own remote() helper for why these have to be
-      # real localhost:xxxx addresses rather than Docker service names
-      # (unlike VITE_ORCHESTRATOR_PROXY_TARGET above, the browser itself
-      # fetches these directly, not this container's own dev server).
-      - VITE_REMOTE_CHAT_URL=http://localhost:5174
-      - VITE_REMOTE_STEPPER_URL=http://localhost:5175
-      - VITE_REMOTE_STAGE_DOCS_URL=http://localhost:5176
-      - VITE_REMOTE_STAGE_SERIALIZATION_URL=http://localhost:5177
-      - VITE_REMOTE_STAGE_PIM_URL=http://localhost:5178
-      - VITE_REMOTE_STAGE_PSM_URL=http://localhost:5179
-      - VITE_REMOTE_STAGE_ATL_URL=http://localhost:5180
-      - VITE_REMOTE_STAGE_ACCELEO_URL=http://localhost:5181
-      - VITE_REMOTE_STAGE_GENERATION_URL=http://localhost:5182
-    volumes:
-      - ./ui-host:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
+      - GENERATOR_UPSTREAM=pipeline-generator:8100
     ports:
+      # The one port the browser uses: the app, every remote and both APIs.
       # This machine only. The generate mode's API, reached through this
       # port, can read model files from and write pipeline files into the
       # workspace folder, and like every service here it has no
       # authentication, so it is not published on the network.
-      - "127.0.0.1:5173:5173"
-    depends_on:
-      orchestrator:
-        condition: service_healthy
+      - "127.0.0.1:5173:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
-  # Federation remote, own container, own port, exposing one piece of the
+  # Federation remote, its own image and container, exposing one piece of the
   # integration screen for ui-host to load as a federated import (see
   # ui-host/src/features/integration/stages/registry.ts and
-  # IntegrationScreen.tsx for where each one is actually consumed). No
-  # depends_on chain to ui-host or each other: unlike the backend services
-  # above, nothing here calls another service at container-start time, only
-  # the browser fetches a remote's remoteEntry.js, later, and can retry
-  # independently — so there's no health-check ordering to get right, a
-  # real simplification versus the backend chain's own depends_on graph.
-  # Each gets the sibling design-system and orchestrator-types bind mounts, and
-  # the anonymous node_modules volume under each, for the same reasons ui-host does (see
-  # ui-host/Dockerfile's own comment and the comment above ui-host).
+  # IntegrationScreen.tsx for where each one is actually consumed). Each is
+  # built into static files served by nginx, reached only through ui-host's
+  # proxy under /remotes/<name>/, so it publishes no port. PUBLIC_PATH must
+  # match that path. A remote can be rebuilt and restarted on its own; the
+  # page picks it up on its next load.
   ui-remote-chat:
     build:
       context: .
       dockerfile: ui-remote-chat/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-chat:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5174:5174"
+      args:
+        - PUBLIC_PATH=/remotes/chat/
 
   ui-remote-stepper:
     build:
       context: .
       dockerfile: ui-remote-stepper/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stepper:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5175:5175"
+      args:
+        - PUBLIC_PATH=/remotes/stepper/
 
   ui-remote-stage-docs:
     build:
       context: .
       dockerfile: ui-remote-stage-docs/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-docs:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5176:5176"
+      args:
+        - PUBLIC_PATH=/remotes/stage-docs/
 
   ui-remote-stage-serialization:
     build:
       context: .
       dockerfile: ui-remote-stage-serialization/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-serialization:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5177:5177"
+      args:
+        - PUBLIC_PATH=/remotes/stage-serialization/
 
   ui-remote-stage-pim:
     build:
       context: .
       dockerfile: ui-remote-stage-pim/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-pim:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5178:5178"
+      args:
+        - PUBLIC_PATH=/remotes/stage-pim/
 
   ui-remote-stage-psm:
     build:
       context: .
       dockerfile: ui-remote-stage-psm/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-psm:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5179:5179"
+      args:
+        - PUBLIC_PATH=/remotes/stage-psm/
 
   ui-remote-stage-atl:
     build:
       context: .
       dockerfile: ui-remote-stage-atl/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-atl:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5180:5180"
+      args:
+        - PUBLIC_PATH=/remotes/stage-atl/
 
   ui-remote-stage-acceleo:
     build:
       context: .
       dockerfile: ui-remote-stage-acceleo/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-acceleo:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5181:5181"
+      args:
+        - PUBLIC_PATH=/remotes/stage-acceleo/
 
   ui-remote-stage-generation:
     build:
       context: .
       dockerfile: ui-remote-stage-generation/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-generation:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5182:5182"
+      args:
+        - PUBLIC_PATH=/remotes/stage-generation/
 
   # One-shot: builds main/'s Gradle distribution into the main-build-output
   # volume, so validator-agent doesn't need its own Gradle toolchain.
