@@ -32,20 +32,19 @@ or an elevated shell, depending on the npm/Node version — if `npm install`
 in a consuming package fails to link this one, that's the first thing to
 check, not a real dependency problem.
 
-## Changing its dependencies
+## Changing it
 
-In the Docker Compose stack, each UI container uses its own copy of this
-package's `node_modules`, installed into the image at build time and kept in
-an anonymous volume, not the `node_modules` on your machine. After adding,
-removing or upgrading a dependency here, rebuild and give every UI container
-a fresh copy from `ai/`:
+In the Docker Compose stack, this package is built into every UI image
+(`ui-host` and each `ui-remote-*`) when that image is built, together with its
+own `node_modules`. The running containers only serve the built files. After
+any change here, to its code or to its dependencies, rebuild every UI image
+from `ai/`:
 
 ```bash
-docker compose up -d --build --renew-anon-volumes
+docker compose up -d --build
 ```
 
-Without it, the containers keep the old packages and Vite reports
-`Failed to resolve import` for the new one.
+Until then the containers keep serving what was built before.
 
 ## Multi-file component groups
 

@@ -88,56 +88,37 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (`npm run dev --
---host 0.0.0.0`, source volume-mounted in), published at `http://localhost:5173`, proxying
-`/orchestrator-api/*` to `ai/orchestrator` by its Docker Compose service name. Not the
-`Dockerfile` in this folder, that one builds static assets only (`npm run build`, no server) and
-is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full
-compose setup.
+`docker compose up --build` from `ai/` builds this app into static files (`npm run build`) and
+serves them with nginx, published at `http://localhost:5173` on this machine only. The same
+server is the one origin the browser uses for everything else (`nginx/default.conf.template`):
 
-Build context is `ai/`, not this folder alone, and the sibling `design-system` and
-`orchestrator-types` packages each get their own bind mount too — see this package's own
-`CLAUDE.md`'s Docker section for why (both come from `package.json` depending on them via a local
-`file:` path).
+- `/remotes/<name>/` is forwarded to the `ui-remote-<name>` container. Only the remotes listed
+  there are forwarded.
+- `/orchestrator-api/*` is forwarded to `ai/orchestrator`.
+
+The backend is named by its Compose service name through an environment variable
+(`ORCHESTRATOR_UPSTREAM`), filled into the configuration when the container starts. Names are
+resolved per request, so this starts even while the backend or a remote is not up yet. See `ai/README.md` for the full compose setup.
+
+Build context is `ai/`, not this folder alone — see this package's own `CLAUDE.md`'s Docker
+section for why (`package.json` depends on the sibling `design-system` and `orchestrator-types`
+packages via a local `file:` path).
+
+**A change to the code** here, or in `design-system` or `orchestrator-types`, takes a rebuild:
+`docker compose up -d --build ui-host`. There is no hot reloading in Docker. A change to a shared
+package also needs a rebuild of every `ui-remote-*` that uses it (`docker compose up -d --build`).
 
 This is also the Module Federation host: it loads the chat column, the stepper, and each pipeline
-stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.md`'s services list
-for the current set and their ports). Each remote's `remoteEntry.js` is fetched by the **browser**
-directly against that remote's own published port, not proxied by this dev server — see this
-package's own `CLAUDE.md`'s Docker section for the full mechanics. If a remote's container isn't
-running, its piece of the screen shows a small "couldn't load" fallback instead of the real
-panel/chat/stepper — everything else on the page keeps working, see this package's own `CLAUDE.md`
-for why (`RemoteBoundary`) — rather than the rejected import taking down the whole page;
-`docker compose up --build` from `ai/` starts every remote alongside this host.
-
-**After adding a new npm dependency**, here or in `design-system` or `orchestrator-types`, a plain
-`docker compose up --build` isn't enough: Compose reuses the container's anonymous `node_modules`
-volumes (`docker-compose.yml`'s `/app/node_modules`, `/design-system/node_modules` and
-`/orchestrator-types/node_modules` entries) across recreation by default, so the new package won't
-actually be there even though the image rebuilt with it. Force fresh volumes with:
-
-```bash
-docker compose up -d --build --renew-anon-volumes
-```
-
-Leave out the service name: every `ui-remote-*` container has its own copy of the
-`design-system` and `orchestrator-types` volumes, and only the UI services have anonymous volumes,
-so this renews exactly the ones that need it.
-
-Symptom if you skip this: Vite's overlay reports `Failed to resolve import "..."` for the
-package you just added, even though `npm ci` clearly succeeded during the image build.
-
-**If an edit to a source file doesn't show up in the browser** (no `[vite] hmr update` line in
-`docker compose logs ui-host`, page keeps serving the old version even after a hard refresh):
-Docker Desktop on Windows doesn't always forward native filesystem change events through the
-bind mount into the Linux container, so Vite's watcher silently misses the edit. `vite.config.ts`
-enables polling (`server.watch.usePolling`) whenever `CHOKIDAR_USEPOLLING=true` is set, which
-`docker-compose.yml` sets for exactly this reason, if you still hit this, confirm that env var
-made it into the running container (`docker compose exec ui-host printenv CHOKIDAR_USEPOLLING`).
+stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.md`'s services
+list). The browser fetches each remote's `remoteEntry.js` from `/remotes/<name>/` on this same
+origin. Where each remote lives is set at build time: `docker-compose.yml` passes each
+`VITE_REMOTE_*_URL` as a build argument. If a remote's container isn't running, its piece of the
+screen shows a small "couldn't load" fallback instead of the real panel/chat/stepper. Everything
+else on the page keeps working; see this package's own `CLAUDE.md` for why (`RemoteBoundary`).
 
 ## Project structure
 
-Everything lives under `src/`: `screens/` holds the app's two screens, `layout/` holds the
+The app's code lives under `src/` (and the Docker proxy's configuration under `nginx/`): `screens/` holds the app's screens, `layout/` holds the
 persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
 host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
 ambient TypeScript declarations for every federated import, `services/` holds the files that call
