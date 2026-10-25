@@ -32,6 +32,7 @@ Naming note, since it's easy to get backwards: the platform-integration screen a
 4. The Orchestrator narrates what's happening in the chat column after every real action, automatically.
 5. The human can also type a free-form message ("the ATL output is wrong, use kebab-case names") into the "Nudge the Orchestrator.." input; an LLM decides which of the actions above it maps to.
 6. This repeats until the last stage (`generation`) is approved.
+7. The finished run offers **Publish**: it stores the platform the run built as a new version in the pipeline generator, so the "Generate a CI/CD pipeline" mode can generate pipelines for it. The request carries the run on screen, and the backend refuses if that is no longer the current run.
 
 ---
 
@@ -110,6 +111,7 @@ approach (it had already drifted once, see that README).
 `src/features/` holds what's still local to this host package — the chat column, the stepper, and every per-stage panel each moved out to their own `ui-remote-*` package (see below), so what's left here is cross-cutting plumbing and the "Generate a CI/CD pipeline" mode's own UI (`features/generate/`):
 
 - `src/features/integration/stageEvents.ts` — `latestCallResult`/`originalDocsInput`, pure functions over the real event log `IntegrationScreen.tsx` itself calls, not tied to any one stage.
+- `src/features/integration/CompletePanel.tsx` — what a completed run shows instead of a stage panel: the publish form, prefilled from `GET /publish`, and the published version once it succeeds.
 - `src/features/integration/stages/registry.ts` — maps `StageId → ComponentType<StagePanelProps>` (both types from `orchestrator-types`), each entry a `React.lazy()` federated import into that stage's own `ui-remote-stage-*` package. The one place that knows all seven stages exist together; a stage panel's own package never imports this or another stage's package.
 - `src/federated/remotes.d.ts` — ambient TypeScript declarations for every federated import specifier used above and in `IntegrationScreen.tsx` (`uiRemoteChat/ChatColumn`, `uiRemoteStepper/Stepper`, `uiRemoteStageDocs/DocsStagePanel`, etc.), referencing `orchestrator-types` for the prop shapes themselves.
 

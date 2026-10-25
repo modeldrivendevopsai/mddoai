@@ -61,11 +61,18 @@ export function PlatformResult({ result, validation, validating, validateError, 
         </Button>
       </div>
 
-      {savedAs !== result.output_filename && (
+      {result.output_filename.includes('/') ? (
         <p className="mdd-generate__hint">
-          {platform.name} needs this file to be named {result.output_filename}. Your browser may save a download
-          without the leading dot; rename it if it does.
+          {platform.name} reads this file from {result.output_filename}. The download is the file on its own; put it
+          there.
         </p>
+      ) : (
+        savedAs !== result.output_filename && (
+          <p className="mdd-generate__hint">
+            {platform.name} needs this file to be named {result.output_filename}. Your browser may save a download
+            without the leading dot; rename it if it does.
+          </p>
+        )
       )}
       {result.saved_to && (
         <p className="mdd-generate__hint">

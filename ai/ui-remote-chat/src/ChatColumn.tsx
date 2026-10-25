@@ -269,6 +269,9 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   // config's own "Permanent constraints" list - distinct from
   // constraint_added's own per-run, ephemeral correction above.
   constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Added to Permanent constraints" },
+  // The completed run's platform stored as a new version in the pipeline
+  // generator, so pipelines can be generated for it.
+  platform_published: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Platform published" },
   // A dispatched tool call's own real arguments/result (see assistant.py's
   // send_message()) — distinct from the "message" turn right after it,
   // which is just the AI's own prose summary of what it just did.

@@ -35,12 +35,13 @@ export type OrchestratorEventType =
   | "constraint_added"
   | "documentation_extended"
   | "constraints_promoted"
+  | "platform_published"
   | "tool_called"
   | "user_message"
   | "message"
 
-// The 8 types integration_runner itself reports as raw pipeline facts — a
-// real signal that a run has actually started. The other 3 (tool_called,
+// The types integration_runner itself reports as raw pipeline facts — a
+// real signal that a run has actually started. The others (tool_called,
 // user_message, message) are chat-layer-only: send_message() appends them
 // for a plain conversational turn too, even when the LLM decides not to
 // call any tool, so their presence alone doesn't mean a real run exists.
@@ -53,6 +54,7 @@ export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
   "constraint_added",
   "documentation_extended",
   "constraints_promoted",
+  "platform_published",
 ]
 
 export interface OrchestratorEvent {
@@ -121,6 +123,22 @@ export interface ResumeResponse {
 export interface ForkResponse {
   run_id: string
   stage: StageId
+}
+
+// GET /publish: what POST /publish uses for the current run when given
+// nothing. output_filename is null when the generation stage produced more
+// than one file, so the person has to say which one is the pipeline file.
+export interface PublishDefaults {
+  name: string | null
+  output_filename: string | null
+}
+
+// POST /publish: the platform as the pipeline generator now offers it.
+export interface PublishedPlatform {
+  id: string
+  name: string
+  version: number
+  output_filename: string
 }
 
 export interface RerunStatusResponse {
