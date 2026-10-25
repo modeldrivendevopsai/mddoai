@@ -1,5 +1,5 @@
 """
-tools/ package unit tests: get_tools() assembles pipeline_control.py's 5
+tools/ package unit tests: get_tools() assembles pipeline_control.py's
 generic tools and docs.py's 1 docs-only tool into one list; stage_metadata()
 caches integration_runner's real GET /stages response. No real API calls —
 clients/integration_runner_client's functions are mocked.
@@ -7,7 +7,7 @@ clients/integration_runner_client's functions are mocked.
 Tests verify:
   1. load_tools() (tool_calling.py's generic filter, exercised here against
      tools.get_tools()'s real, declared shape) scopes add_page_to_docs to
-     the docs stage only, while the five pipeline-control tools are
+     the docs stage only, while the pipeline-control tools are
      available regardless of stage.
   2. add_page_to_docs points directly at integration_runner_client's own
      function — no local wrapper needed here, that logic lives server-side,
@@ -115,3 +115,27 @@ def test_stage_metadata_caches_across_calls():
 
     assert first is second
     mock_get_stages.assert_called_once()
+
+
+def test_publish_platform_tool_is_the_same_real_action_as_post_publish_and_works_after_the_last_stage():
+    publish_tool = next(t for t in tools.get_tools() if t.name == "publish_platform")
+
+    assert publish_tool.impl is integration_runner_client.publish
+    # A completed run has no current stage; the tool must still be offered then.
+    assert "publish_platform" in {t.name for t in tool_calling.load_tools(None, tools.get_tools())}
+    assert publish_tool.parameters["required"] == []
+
+
+def test_dispatching_publish_platform_sends_the_real_publish_request():
+    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
+    response = type("Response", (), {"status_code": 200, "json": lambda self: published, "raise_for_status": lambda self: None})()
+
+    with patch("clients.integration_runner_client.httpx.request", return_value=response) as request:
+        result = tool_calling.dispatch_tool(
+            "publish_platform", {"name": "Woodpecker CI", "output_filename": "ci.yml"}, tools.get_tools()
+        )
+
+    assert result == published
+    method, url = request.call_args.args
+    assert (method, url) == ("POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/publish")
+    assert request.call_args.kwargs["json"] == {"name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": None}

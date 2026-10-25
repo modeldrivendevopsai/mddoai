@@ -129,6 +129,9 @@ stage. The docs-specific one is scoped to `stages: [docs]`, wrapping `integratio
   `POST /start` has always accepted, assembled from the tool's own flat arguments by
   `tools/pipeline_control.py`'s `_start_pipeline_tool` wrapper, the same pattern
   `_rerun_stage_tool` uses.
+- **`publish_platform(name=None, output_filename=None)`** — publish the completed run's platform
+  to the pipeline generator, the same action as `POST /publish`. Both arguments default as
+  `GET /publish` describes.
 - **`add_page_to_docs(url, force_refresh=False)`** (`docs` only) — fetch one specific page the
   human already knows the URL of, and APPEND its real content onto the docs stage's current
   pending output, for when the crawl mostly succeeded but missed one known page. Does not
@@ -313,6 +316,18 @@ options.
 ### `POST /model`
 
 Changes the model for the rest of the run, not just what `/start` chose.
+
+### `GET /publish` and `POST /publish`
+
+`POST /publish` publishes the current, completed run's approved platform to the pipeline
+generator, so pipelines can be generated for it next to the built-in platforms; the
+`publish_platform` chat tool takes the same action. Its optional `name` and `output_filename`
+default to what `GET /publish` returns: the run's platform description, and the one file its
+generation stage produced. An optional `run_id`, which the UI sends with the run on screen,
+refuses the publish if that run is no longer the current one. `409` while the run is not complete
+or `run_id` is not the current run, `400` when the pipeline generator refuses what was sent, each
+with the reason in `detail`. `502` when the pipeline generator or `integration_runner` cannot be
+reached.
 
 ## Prompt-config and attempt-introspection endpoints
 

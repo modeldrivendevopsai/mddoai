@@ -955,3 +955,46 @@ def test_message_endpoint_has_no_busy_guard_but_a_dispatched_mutation_still_gets
     body = response.json()
     assert body["tool_called"] == "rerun_stage"
     assert "still running" in body["result"]["error"]
+
+
+# --- /publish ------------------------------------------------------------------
+
+
+def test_publish_refuses_a_run_that_is_not_complete_with_the_reason():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.post("/publish", json={})
+
+    assert response.status_code == 409
+    assert "not complete" in response.json()["detail"]
+
+
+def test_publish_refuses_a_page_showing_a_run_that_is_no_longer_current():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.post("/publish", json={"run_id": "0" * 32})
+
+    assert response.status_code == 409
+    assert "no longer the current run" in response.json()["detail"]
+
+
+def test_a_publish_name_over_the_limit_is_a_bad_request_not_an_outage():
+    response = client.post("/publish", json={"name": "x" * 101})
+
+    assert response.status_code == 422
+
+
+def test_publish_is_502_when_integration_runner_cannot_be_reached():
+    with patch("main.integration_runner_client.publish", side_effect=httpx.ConnectError("refused")):
+        response = client.post("/publish", json={})
+
+    assert response.status_code == 502
+
+
+def test_publish_defaults_show_the_runs_platform_description():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.get("/publish")
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "A GitLab CI platform"
