@@ -43,7 +43,9 @@ def test_health():
 def test_platforms_lists_what_the_engine_can_generate():
     body = client.get("/platforms").json()
 
-    assert body == {"platforms": [{"id": "gitlab", "name": "GitLab CI", "output_filename": ".gitlab-ci.yml"}]}
+    assert body == {"platforms": [
+        {"id": "gitlab", "name": "GitLab CI", "output_filename": ".gitlab-ci.yml", "source": "engine", "version": None}
+    ]}
 
 
 def test_inspect_returns_the_attributes_and_a_passing_model_check():

@@ -7,8 +7,12 @@ files a person can open:
     meta.json                          what the list shows
     record.json                        the rest of what reopening needs, without file contents
     model.swarch                       the model it was generated from
-    <platform-id>/<output file>        each generated pipeline
-    <platform-id>/intermediates/<file> the models the engine passed through on the way
+    <platform-id>/pipeline/<output file>  each generated pipeline (a relative path, so
+                                          it can sit in a subfolder)
+    <platform-id>/intermediates/<file>    the models the engine passed through on the way
+
+The pipeline and the intermediates sit in separate folders, so no output path
+can collide with an intermediate file.
 
 The list reads only the small files. A pipeline is identified by its model
 input (the workspace path it was loaded from, else the file name), and the
@@ -25,6 +29,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from platforms import check_output_filename
+
 logger = logging.getLogger(__name__)
 
 _ID_PATTERN = re.compile(r"[0-9a-f]{32}")
@@ -33,6 +39,7 @@ _ID_PATTERN = re.compile(r"[0-9a-f]{32}")
 _TEXT_FIELDS = ("key", "swarch_name", "generated_at")
 
 _MODEL_FILENAME = "model.swarch"
+_PIPELINE_DIR = "pipeline"
 _INTERMEDIATES_DIR = "intermediates"
 
 # Folders that are not (yet, or any more) a pipeline. None of these prefixes
@@ -93,6 +100,15 @@ def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as handle:
         handle.write(content)
+
+
+def _pipeline_path(platform_dir: Path, output_filename: str) -> Path:
+    """Where a recorded pipeline file is. Pipelines recorded before the
+    pipeline/ folder existed sit directly in the platform's folder, and are
+    read from there."""
+    path = platform_dir / _PIPELINE_DIR / output_filename
+    earlier = platform_dir / output_filename
+    return earlier if not path.is_file() and earlier.is_file() else path
 
 
 def _read_text(path: Path) -> str:
@@ -190,7 +206,7 @@ class PipelineHistory:
             if not isinstance(result.get("pipeline"), str):
                 raise ValueError("a recorded result must carry its generated pipeline")
             platform_dir = folder / _plain_name(result["platform"]["id"])
-            _write_text(platform_dir / _plain_name(result["output_filename"]), result["pipeline"])
+            _write_text(platform_dir / _PIPELINE_DIR / check_output_filename(result["output_filename"]), result["pipeline"])
             for intermediate in result.get("intermediates", []):
                 path = platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])
                 _write_text(path, intermediate["content"])
@@ -318,7 +334,7 @@ class PipelineHistory:
             ]
             results.append({
                 **stored,
-                "pipeline": _read_text(platform_dir / _plain_name(stored["output_filename"])),
+                "pipeline": _read_text(_pipeline_path(platform_dir, check_output_filename(stored["output_filename"]))),
                 "intermediates": intermediates,
             })
         return {**record, "content": _read_text(folder / _MODEL_FILENAME), "results": results}

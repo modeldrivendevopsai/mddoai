@@ -117,7 +117,7 @@ def test_no_temporary_files_or_folders_are_left_behind(history, tmp_path):
 
     assert [path.name for path in (tmp_path / "data").iterdir()] == [pipeline_id]
     names = sorted(str(path.relative_to(tmp_path / "data" / pipeline_id)) for path in (tmp_path / "data" / pipeline_id).rglob("*"))
-    assert names == sorted(["meta.json", "record.json", "model.swarch", "gitlab", str(Path("gitlab") / ".gitlab-ci.yml")])
+    assert names == sorted(["meta.json", "record.json", "model.swarch", "gitlab", str(Path("gitlab") / "pipeline"), str(Path("gitlab") / "pipeline" / ".gitlab-ci.yml")])
 
 
 # --- the generation as real files ----------------------------------------------
@@ -131,7 +131,7 @@ def test_the_model_each_pipeline_and_each_intermediate_are_kept_as_files(history
     folder = tmp_path / "data" / pipeline_id
 
     assert (folder / "model.swarch").read_text(encoding="utf-8") == "<a/>"
-    assert (folder / "gitlab" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
+    assert (folder / "gitlab" / "pipeline" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
     with open(folder / "gitlab" / "intermediates" / "PipelinePIM.pimmm", encoding="utf-8", newline="") as handle:
         assert handle.read() == "<pim/>\r\n"
 
@@ -156,17 +156,38 @@ def test_reopening_returns_the_files_exactly_as_generated(history):
     assert reopened["intermediates"] == [PIM]
 
 
+def test_an_output_path_named_like_the_intermediates_folder_does_not_collide_with_one(history):
+    result = {**_result(filename="intermediates/PipelinePIM.pimmm", pipeline="the pipeline"), "intermediates": [PIM]}
+    pipeline_id = _record(history, results=[result])
+
+    [reopened] = history.get(pipeline_id)["results"]
+
+    assert reopened["pipeline"] == "the pipeline"
+    assert reopened["intermediates"] == [PIM]
+
+
+def test_a_pipeline_recorded_directly_in_its_platforms_folder_still_reopens(history, tmp_path):
+    pipeline_id = _record(history, results=[_result()])
+    platform_dir = tmp_path / "data" / pipeline_id / "gitlab"
+    (platform_dir / "pipeline" / ".gitlab-ci.yml").replace(platform_dir / ".gitlab-ci.yml")
+    (platform_dir / "pipeline").rmdir()
+
+    [reopened] = history.get(pipeline_id)["results"]
+
+    assert reopened["pipeline"] == "stages: [build]\n"
+
+
 def test_generating_again_removes_files_the_new_generation_did_not_produce(history, tmp_path):
     pipeline_id = _record(history, results=[_result()])
     _record(history, results=[_result(BAMBOO, "bamboo-spec.yml")])
 
     folder = tmp_path / "data" / pipeline_id
     assert not (folder / "gitlab").exists()
-    assert (folder / "bamboo" / "bamboo-spec.yml").is_file()
+    assert (folder / "bamboo" / "pipeline" / "bamboo-spec.yml").is_file()
 
 
 @pytest.mark.parametrize("missing", [
-    Path("gitlab") / ".gitlab-ci.yml",
+    Path("gitlab") / "pipeline" / ".gitlab-ci.yml",
     Path("gitlab") / "intermediates" / "PipelinePIM.pimmm",
     Path("model.swarch"),
 ])

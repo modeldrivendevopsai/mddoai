@@ -3,18 +3,19 @@ import pytest
 from platforms import PLATFORMS, Platform
 
 
-def test_a_platform_whose_output_is_one_plain_file_name_is_accepted():
-    assert Platform("x", "X CI", "swarch2x", ".x-ci.yml", ()).output_filename == ".x-ci.yml"
+@pytest.mark.parametrize("name", [".x-ci.yml", "bamboo-specs/bamboo.yaml", ".woodpecker/pipeline.yaml"])
+def test_a_platform_whose_output_is_a_relative_path_inside_the_folder_is_accepted(name):
+    # Some CI systems read their file from a subfolder.
+    assert Platform("x", "X CI", "swarch2x", name, ()).output_filename == name
 
 
-@pytest.mark.parametrize("name", ["bamboo-specs/bamboo.yaml", "../x.yml", "/abs.yml"])
-def test_a_platform_whose_output_has_a_folder_in_it_is_refused_when_it_is_defined(name):
-    # The workspace saves it under exactly one file name, so such a platform
-    # would fail on every save: better to fail when it is defined.
-    with pytest.raises(ValueError, match="plain file name"):
+@pytest.mark.parametrize("name", ["../x.yml", "/abs.yml", "a/../../x.yml", "a//x.yml", "a\\x.yml", "", "./x.yml"])
+def test_a_platform_whose_output_would_leave_its_folder_is_refused_when_it_is_defined(name):
+    # Better to fail when the platform is defined than on every save.
+    with pytest.raises(ValueError, match="relative path"):
         Platform("x", "X CI", "swarch2x", name, ())
 
 
-def test_every_platform_the_service_offers_passes_that_rule():
+def test_every_built_in_platform_passes_that_rule():
     for platform in PLATFORMS.values():
-        assert "/" not in platform.output_filename
+        assert platform.runner == "engine" and platform.version is None

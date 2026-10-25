@@ -60,12 +60,15 @@ pipeline named by a random id, holding the generation as real files:
 
 ```
 <pipeline-id>/
-  meta.json                          what the list shows
-  record.json                        the rest of what reopening needs, without file contents
-  model.swarch                       the model it was generated from
-  <platform-id>/<output file>        each generated pipeline
-  <platform-id>/intermediates/<file> the models the engine passed through on the way
+  meta.json                             what the list shows
+  record.json                           the rest of what reopening needs, without file contents
+  model.swarch                          the model it was generated from
+  <platform-id>/pipeline/<output file>  each generated pipeline
+  <platform-id>/intermediates/<file>    the models the engine passed through on the way
 ```
+
+The pipeline and the intermediates get separate folders. An output file name can include
+subfolders, so in a shared folder it could collide with an intermediate.
 
 A pipeline is identified by its model input, which is the workspace path it was loaded from or,
 for an upload, its file name. Generating again for the same input replaces the earlier folder, so
@@ -100,7 +103,8 @@ is the one place a caller's path reaches the disk, and it is confined.)
 | Endpoint | Purpose |
 |---|---|
 | `GET /health` | Used by the Dockerfile's `HEALTHCHECK`. |
-| `GET /platforms` | The platforms the engine can generate for end to end. |
+| `GET /platforms` | The platforms a pipeline can be generated for: the built-in ones, then the latest version of each published one. Each has `id`, `name`, `output_filename`, `source` (`engine` or `published`) and `version` (null for a built-in one). |
+| `POST /platforms` | Publishes a platform approved in an integration run, as its next version. Body: `name`, `output_filename` (a relative path), `output_model_name`, `metamodel`, `transformation`, `template`, optional `source_run_id`. Returns `id`, `name`, `version`, `output_filename`. `422` with the reason when it cannot be published (for example a name that would take a built-in platform's id), `413` for an artifact over the size limit. |
 | `POST /inspect` | Body: `filename`, `content`. Returns `element`, `attributes` (name and value, in file order) and `model_validation` (`valid` plus `issues`). An invalid model is a normal `200` answer. |
 | `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path` and `save_to`. Returns `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms`, `saved_to`, `replaced`, `save_error` and `error`. An empty `save_to` is refused; omit it to save nothing. One platform failing is reported in its own entry and does not discard the others. |
 | `GET /pipelines` | The generated pipelines, newest first: `id`, `swarch_name`, `source_path`, `platforms`, `outputs`, `generated_at`. |
@@ -139,6 +143,32 @@ severity and message are returned, never the server-side file path.
 The schema cannot see cross-references, which is why checks 4 and 5 exist. If the YAML itself is
 broken, the later checks are reported as skipped rather than failed.
 
+A published platform has no schema this service knows, so its one check is that the file is valid
+YAML when its name ends in `.yml` or `.yaml`; any other kind of file is reported as having nothing to
+check.
+
+## Published platforms
+
+A platform built and approved in an integration run can be published to this service (by
+`integration_runner`'s `POST /publish`, which calls `POST /platforms` here) and is then offered next
+to the built-in platforms.
+
+- **Where:** `GENERATOR_DATA_DIR/platforms` (in Docker, the data folder's `platforms/`), one folder
+  per platform and one subfolder per version, holding `metamodel.ecore`, `transformation.atl`,
+  `template.mtl` and `platform.json`. Publishing the same platform again adds the next version and
+  keeps the earlier ones; generation uses the latest. A version is listed only once its
+  `platform.json` is written, so one still being written is never offered.
+- **How it is generated** (`published_runner.py`): `swarch_agent` turns the model into a PIM,
+  `execution_agent` runs the platform's transformation on it and then its template on the result.
+  The PIM and the platform's model are returned as intermediates, and saved in the history like a
+  built-in platform's. No engine command or Java change is involved.
+- **Its pipeline file** may sit in a subfolder (a relative path such as
+  `.woodpecker/pipeline.yaml`), and is saved under that path inside the chosen workspace folder.
+  No part of the path may be `.git`, in any letter case, so a published platform can never write
+  into a repository's git folder.
+- **Which version a generation uses:** the latest when the request arrives. A version published
+  while a generation runs does not change it, since versions are never changed or removed.
+
 ## Configuration
 
 Every setting has a default. For a local run the defaults name a `./workspace` and a `./data`
@@ -153,7 +183,10 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `LOG_LEVEL` | Logging verbosity. |
 | `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
 | `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder (`GENERATOR_WORKSPACE_HOST_DIR`, or a description of the default); set it yourself to show something clearer than a relative path. Unset, the folder's own path is shown. |
-| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it. In Docker it is `/data`, with the data folder's `pipelines/` mounted at `/data/pipelines`. |
+| `GENERATOR_DATA_DIR` | Where the pipeline history (`pipelines/`) and the published platforms (`platforms/`) are kept. In Docker it is `/data`, with the data folder's `pipelines/` and `platforms/` mounted inside it. |
+| `GENERATOR_MAX_ARTIFACT_BYTES` | The largest metamodel, transformation or template `POST /platforms` accepts, each. |
+| `SWARCH_AGENT_URL` | Where `swarch_agent` is reached, to turn a model into a PIM for a published platform. |
+| `EXECUTION_AGENT_URL` | Where `execution_agent` is reached, to run a published platform's transformation and template. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest file read back from the engine, and the largest pipeline `/validate` accepts. One setting, so a pipeline the engine can write can always be validated. |
@@ -175,9 +208,10 @@ pytest
 `pytest` alone runs the fast suite on any machine. The real-engine tests start a real JVM and
 skip themselves unless a JDK and the built engine are present.
 
-## Adding a platform
+## Adding a built-in platform
 
-A platform is supported when the engine has an end-to-end command for it. To add one:
+Platforms published from integration runs need none of this. A built-in platform is one the engine
+has an end-to-end command for. To add one:
 
 1. Wire the engine command (a `swarch2<platform>` case in the engine's `Main`).
 2. Add a `Platform` entry in `platforms.py`.
@@ -189,9 +223,17 @@ The workspace folder is the part of the host's disk this service reads or writes
 authentication, like the other services, so what protects the workspace is who can reach the UI:
 `docker-compose.yml` publishes the UI's port on this machine only. Anyone who can reach it can list
 the workspace's folders and `.swarch` files, read those files, and have pipeline files written into
-it, so mount a folder you are comfortable exposing that way.
+it, so mount a folder you are comfortable exposing that way. Nothing is ever listed, read or
+written inside a `.git` folder, under any spelling the disk accepts for it.
+
+`POST /platforms` stores a transformation and a template that `execution_agent` then runs on every
+generation for that platform. It is meant for `integration_runner` only, which publishes only a
+completed run whose stages a person approved. The service itself listens only inside the Compose
+network (`expose`, not `ports`), and the UI's proxy passes the browser only the writes the
+"Generate a CI/CD pipeline" mode makes, so a browser cannot publish a platform directly.
 
 This is the service that runs the engine's own command, a deliberate exception described in
 `ai/CLAUDE.md` (the fifth exception). It never imports Java code: it starts the engine as a
-subprocess and reads files back. It reaches `validator_agent` through the shared `clients/`
-package, like every other service.
+subprocess and reads files back. It reaches `validator_agent`, and for published platforms
+`swarch_agent` and `execution_agent`, through the shared `clients/` package, like every other
+service.
