@@ -19,7 +19,8 @@ routed automatically by platform — see [`ai/psm_agent`](../psm_agent)), `valid
 real validation of their DSL output, and internally by `psm_agent` itself when generating a new
 metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, for the
 `generation` stage's own real ATL/Acceleo execution against a real PIM model instance — see
-[`ai/execution_agent`](../execution_agent)).
+[`ai/execution_agent`](../execution_agent)), and `pipeline_generator` (`POST /platforms`, to
+publish a completed run's platform — see [`ai/pipeline_generator`](../pipeline_generator)).
 
 ## Module layout
 
@@ -44,6 +45,12 @@ metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, 
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
+- **`publishing.py`** — publishing a completed run's platform to `pipeline_generator`. It takes
+  the metamodel, transformation and template from the recorded events of the generation attempt
+  behind the approved pipeline, not from the run's latest context, which a later failed attempt
+  or a context override can have changed.
+- **`atl_source.py`** — reads facts out of a generated ATL transformation's text (its output model
+  name), shared by the generation stage and `publishing.py`.
 - **`stages/`** — one folder per stage, plus the `STAGE_DESCRIPTIONS`/`stage_agents` lookups
   `IntegrationRun.run_stage()` and orchestrator's system prompt read from. See
   [Stage-based pipeline generation](#stage-based-pipeline-generation) below for the full layout
@@ -64,7 +71,8 @@ metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, 
 
 ```
 main.py ──imports──> routes/
-routes/core.py ──imports──> runs.py, pipeline.py, stages/
+routes/core.py ──imports──> runs.py, pipeline.py, publishing.py, stages/
+publishing.py ──imports──> runs.py, atl_source.py, clients.pipeline_generator_client
 routes/docs.py ──imports──> runs.py, stages/docs/
 routes/psm.py ──imports──> runs.py, stages/psm/actions.py, clients.psm_agent_client
 routes/attempts.py ──imports──> stages/_attempts_read.py
@@ -74,7 +82,7 @@ stages/__init__.py ──imports──> stages/<stage>/
 stages/pim/, atl/, acceleo/ (agent.py)
     ──imports──> clients.validator_agent_client, stages/_validation.py
 stages/psm/ (agent.py, actions.py) ──imports──> clients.psm_agent_client, stages/_validation.py
-stages/generation/ (agent.py) ──imports──> clients.execution_agent_client
+stages/generation/ (agent.py) ──imports──> clients.execution_agent_client, atl_source.py
 stages/docs/ (agent.py, actions.py) ──imports──> clients.retrieval_client
 stages/serialization/ (agent.py) ──imports──> clients.serialization_agent_client
 stages/_attempts_read.py ──imports──> generation_toolkit.attachments.files
@@ -468,6 +476,8 @@ The service starts at `http://localhost:8050`.
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run this process has seen, newest first. |
+| `GET /publish` | What `POST /publish` would use for the current run when given nothing: `name` (the run's platform description) and `output_filename` (the one file its generation stage produced, or null when it produced several). |
+| `POST /publish` | Body: optional `name`, `output_filename`, `run_id`. Publishes the current, completed run's PSM metamodel, ATL transformation and Acceleo template, as the approved generation attempt ran with them, to `pipeline_generator` (`publishing.py`), records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. Claims the run busy while it runs, so two publishes cannot race. `409` while busy, when `run_id` is not the current run, or when the run cannot be published (not complete, or its transformation declares no output model; the reason in `detail`). `400` when the pipeline generator refuses what was sent, including files over its size limit. `502` when it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
 | `POST /reset` | Replaces the current run with a fresh, blank one. `409` if busy. |
 | `POST /resume/{run_id}` | Makes a past run current again. `404` unknown run, `409` if busy. |

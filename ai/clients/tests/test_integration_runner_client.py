@@ -271,3 +271,30 @@ def test_promote_acceleo_constraints_hits_the_real_endpoint():
         timeout=10.0, json={"constraints": ["x"]},
     )
     assert result == {"learned_constraints": ["x"]}
+
+
+def test_publish_posts_the_name_and_output_file_and_returns_the_published_version():
+    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(published)) as mock_request:
+        result = integration_runner_client.publish("Woodpecker CI", "ci.yml", "run1")
+
+    mock_request.assert_called_once_with(
+        "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/publish",
+        timeout=integration_runner_client.PUBLISH_TIMEOUT,
+        json={"name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": "run1"},
+    )
+    assert result == published
+
+
+def test_publish_waits_longer_than_integration_runner_waits_on_the_pipeline_generator():
+    import pipeline_generator_client
+
+    assert integration_runner_client.PUBLISH_TIMEOUT > pipeline_generator_client.PUBLISH_TIMEOUT
+
+
+def test_get_publish_defaults_hits_the_real_endpoint():
+    with patch("integration_runner_client.httpx.request",
+               return_value=_fake_httpx_response_raw({"name": "X", "output_filename": "x.yml"})) as mock_request:
+        assert integration_runner_client.get_publish_defaults() == {"name": "X", "output_filename": "x.yml"}
+
+    mock_request.assert_called_once_with("GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/publish", timeout=10.0)

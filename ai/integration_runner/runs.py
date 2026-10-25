@@ -75,7 +75,7 @@ def _reject_if_busy(run: "IntegrationRun") -> None:
     run.release_busy()
 
 
-def _platform_name(run: "IntegrationRun") -> str | None:
+def platform_name(run: "IntegrationRun") -> str | None:
     for event in run.events:
         data = event.get("data") or {}
         if "platform_description" in data:
@@ -101,7 +101,7 @@ def list_runs() -> list[dict]:
     return [
         {
             "run_id": run.run_id,
-            "platform_name": _platform_name(run),
+            "platform_name": platform_name(run),
             "current_stage": run.current_stage,
             "busy": run.busy,
             "is_current": run.run_id == current_id,
