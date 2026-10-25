@@ -1,6 +1,6 @@
 # execution_agent
 
-Wraps `main/`'s new headless model/code executors as an HTTP service, so other `ai/` services can actually *run* a real ATL transformation or Acceleo template without needing a JVM of their own: `/execute/atl` runs a real `.atl` transformation against a real model instance and returns the real transformed output; `/execute/acceleo` runs a real `.mtl` template against a real model instance and returns the real generated file(s). The real caller today is `integration_runner`'s own `generation` stage (`clients/execution_agent_client.py`), which needs the real final CI/CD YAML, not a summary of one.
+Wraps `main/`'s new headless model/code executors as an HTTP service, so other `ai/` services can actually *run* a real ATL transformation or Acceleo template without needing a JVM of their own: `/execute/atl` runs a real `.atl` transformation against a real model instance and returns the real transformed output; `/execute/acceleo` runs a real `.mtl` template against a real model instance and returns the real generated file(s). Its callers are `integration_runner`'s own `generation` stage (`clients/execution_agent_client.py`), which needs the real final CI/CD YAML, not a summary of one, and `swarch_agent`, which runs the SWArch-to-PIM step through `/execute/atl/swarch` (below).
 
 ## Why a separate service, not new routes on `validator_agent`
 
@@ -23,6 +23,8 @@ Same reasoning as `validator_agent`'s own README: a fresh `java` process per cal
 2. `execution_runner.py` writes each of those to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ExecutorCli> ...` as a subprocess, along with a temp output file (ATL) or output directory (Acceleo, which can legitimately generate more than one file).
 3. The Java side prints one line of JSON to stdout: `{"success":true}` (ATL) or `{"success":true,"files":[...]}` (Acceleo) with the real output already written to the given output path, or `{"success":false,"error":"..."}` for a real, describable failure (bad input, a genuine ATL/Acceleo compile or runtime error), never an infrastructure problem, since a nonzero exit code is reserved for that instead.
 4. `execution_runner.py` reads the real output back off disk, and the response is built from that content, not from re-parsing the subprocess's own stdout.
+
+`/execute/atl/swarch` runs the step before that: a Software Architecture model into a PIM. Its body is the `.atl` source (`atl_source`) and the model (`swarch_model_xmi`, a `.swarch` file's XMI text); it returns the PIM as `output_xmi`. Both metamodels are MDDOAI's own compiled ones, so no target metamodel or output model name is sent: the name is read from the transformation's own `create OUT : <Name> from IN : <InputModel>;` line. It runs the same CLI as `/execute/atl`, in its `--from-swarch` form. Its caller is `swarch_agent`, which owns which SWArch-to-PIM transformation is run.
 
 | Outcome | HTTP status |
 |---|---|

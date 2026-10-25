@@ -64,6 +64,32 @@ def test_execute_atl_raises_agent_service_error_for_a_real_execution_failure():
     assert exc_info.value.detail == "not a real Pipeline instance"
 
 
+def test_execute_atl_from_swarch_posts_the_real_payload_shape_and_returns_the_pim():
+    with patch(
+        "execution_agent_client.httpx.post",
+        return_value=_fake_httpx_response_raw({"output_xmi": "<pim/>"}),
+    ) as mock_post:
+        result = execution_agent_client.execute_atl_from_swarch("atl source", "<swarch/>")
+
+    mock_post.assert_called_once_with(
+        f"{execution_agent_client.EXECUTION_AGENT_URL}/execute/atl/swarch",
+        json={"atl_source": "atl source", "swarch_model_xmi": "<swarch/>"},
+        timeout=execution_agent_client.EXECUTE_TIMEOUT,
+    )
+    assert result == "<pim/>"
+
+
+def test_execute_atl_from_swarch_raises_agent_service_error_for_a_real_execution_failure():
+    with patch(
+        "execution_agent_client.httpx.post",
+        return_value=_fake_error_response(422, "not a real Software Architecture model"),
+    ):
+        with pytest.raises(AgentServiceError) as exc_info:
+            execution_agent_client.execute_atl_from_swarch("atl source", "<pim/>")
+
+    assert exc_info.value.status_code == 422
+
+
 def test_execute_acceleo_posts_the_real_payload_shape_and_returns_the_generated_files():
     with patch(
         "execution_agent_client.httpx.post",

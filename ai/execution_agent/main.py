@@ -11,6 +11,7 @@ from execution_runner import (
     ExecutionInfraError,
     run_acceleo_executor,
     run_atl_executor,
+    run_atl_from_swarch_executor,
 )
 
 logging.basicConfig(
@@ -31,6 +32,13 @@ class AtlExecuteRequest(BaseModel):
         ..., min_length=1, description="The target platform's own real PSM metamodel, Ecore text."
     )
     output_model_name: str = Field(default="OUT", description="ATL's own output model name for this transformation.")
+
+
+class AtlFromSwarchExecuteRequest(BaseModel):
+    atl_source: str = Field(..., min_length=1, description="Real .atl SWArch-to-PIM transformation source.")
+    swarch_model_xmi: str = Field(
+        ..., min_length=1, description="A real Software Architecture model, a .swarch file's XMI text."
+    )
 
 
 class AcceleoExecuteRequest(BaseModel):
@@ -71,6 +79,24 @@ def execute_atl_endpoint(request: AtlExecuteRequest) -> AtlExecutionResult:
         logger.error("POST /execute/atl infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /execute/atl done output_bytes=%d", len(result["output_xmi"].encode("utf-8")))
+    return result
+
+
+@app.post("/execute/atl/swarch", response_model=AtlExecutionResult)
+def execute_atl_from_swarch_endpoint(request: AtlFromSwarchExecuteRequest) -> AtlExecutionResult:
+    """Runs a SWArch-to-PIM transformation: `output_xmi` is the PIM."""
+    _check_size("atl_source", request.atl_source)
+    _check_size("swarch_model_xmi", request.swarch_model_xmi)
+
+    logger.info("POST /execute/atl/swarch")
+    try:
+        result = run_atl_from_swarch_executor(request.atl_source, request.swarch_model_xmi)
+    except ExecutionFailedError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ExecutionInfraError as e:
+        logger.error("POST /execute/atl/swarch infra failure: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("POST /execute/atl/swarch done output_bytes=%d", len(result["output_xmi"].encode("utf-8")))
     return result
 
 
