@@ -15,6 +15,7 @@ from execution_runner import (
     ExecutionInfraError,
     run_acceleo_executor,
     run_atl_executor,
+    run_atl_from_swarch_executor,
 )
 
 
@@ -103,3 +104,39 @@ def test_run_acceleo_executor_raises_infra_error_for_unparseable_stdout():
     ):
         with pytest.raises(ExecutionInfraError, match="unparseable stdout"):
             run_acceleo_executor("mtl source", "<psm/>", "<ecore/>")
+
+
+# --- SWArch to PIM -----------------------------------------------------------
+
+
+def test_run_atl_from_swarch_executor_calls_the_cli_in_its_swarch_form_and_reads_the_pim_back():
+    seen = {}
+
+    def fake_run(argv, **kwargs):
+        seen["argv"] = argv
+        Path(argv[-1]).write_text("<pim/>", encoding="utf-8")
+        return fake_completed_process(stdout='{"success":true}\n')
+
+    with patch("execution_runner.subprocess.run", side_effect=fake_run):
+        result = run_atl_from_swarch_executor("atl source", "<swarch/>")
+
+    assert result == {"output_xmi": "<pim/>"}
+    argv = seen["argv"]
+    assert argv[argv.index("main.java.mddoai.execution.atl.AtlExecutorCli") + 1] == "--from-swarch"
+    assert len(argv[argv.index("--from-swarch") + 1:]) == 3
+    assert Path(argv[-2]).suffix == ".swarch"
+
+
+def test_run_atl_from_swarch_executor_raises_execution_failed_for_a_real_reported_failure():
+    with patch(
+        "execution_runner.subprocess.run",
+        return_value=fake_completed_process(stdout='{"success":false,"error":"not a real Software Architecture model"}\n'),
+    ):
+        with pytest.raises(ExecutionFailedError, match="not a real Software Architecture model"):
+            run_atl_from_swarch_executor("atl source", "<pim/>")
+
+
+def test_run_atl_from_swarch_executor_raises_infra_error_for_a_nonzero_exit():
+    with patch("execution_runner.subprocess.run", return_value=fake_completed_process(returncode=1, stderr="boom")):
+        with pytest.raises(ExecutionInfraError, match="boom"):
+            run_atl_from_swarch_executor("atl source", "<swarch/>")
