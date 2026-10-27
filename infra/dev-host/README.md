@@ -69,9 +69,6 @@ off, and Hetzner issues no root password because a key is given.
 | `root` | the key Terraform registered | Everything. It keeps key login because a new or rebuilt server starts with only `root`, and the first setup run needs it. |
 | `dev` | the same key, copied from root by the setup script | Everything as well: it has passwordless sudo, and it is in the `docker` group, which is equivalent to root. |
 
-So anyone who can log in to the VM controls it completely. Only give access to
-people you would give root.
-
 **Who controls what.**
 
 | Role | Has | Can |
