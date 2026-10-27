@@ -59,8 +59,8 @@ ai/acceleo_agent/prompts/*/*.json
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
 
-# The default host folder mounted into ai/pipeline_generator as its workspace
-# (the user's own models and the pipeline files saved there)
-ai/generator-workspace/
+# The stack's data folder: everything the services generate and keep (see
+# ai/README.md's "Where files live")
+ai/data/
 # Read by docker compose itself for ${VAR} values in ai/docker-compose.yml
 ai/.env

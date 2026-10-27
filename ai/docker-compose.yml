@@ -90,12 +90,14 @@ services:
       # via execution-agent (see the fourth exception in ai/CLAUDE.md's
       # folder-boundaries section).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # Mounted at the exact path integration_runner/stages/_validation.py's
+      # The data folder's runs/ (the one host folder that holds everything
+      # the stack generates and keeps, MDDOAI_DATA_DIR, ./data by default),
+      # mounted at the exact path integration_runner/stages/_validation.py's
       # own RUNS_DIR resolves to inside this container (this Dockerfile's own
       # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
       # relative to that, not to the repo-relative path it looks like in the
       # Python source). Shared with validator-agent's own mount of the same
-      # volume below: this is where every stage's persist_attempt() writes
+      # folder below: this is where every stage's persist_attempt() writes
       # (the real artifact + result.json + manifest.json), and where
       # validator-agent's own compiled output (Ecore's codegen classes, ATL's
       # .asm, Acceleo's .emtl - all real, reusable pipeline artifacts per
@@ -115,7 +117,7 @@ services:
       # run_id, stage, or attempt at all. Get this path wrong and the two
       # services silently write to different, unrelated directories -
       # verify it against RUNS_DIR itself before changing either side.
-      - pipeline-runs:/app/integration_runner/runs
+      - ${MDDOAI_DATA_DIR:-./data}/runs:/app/integration_runner/runs
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -554,7 +556,7 @@ services:
     volumes:
       - main-build-output:/main-build:ro
       # Writable, shared with integration-runner's own runs/ mount above (the
-      # same named volume, mounted at each service's own real path - see that
+      # same data folder, mounted at each service's own real path - see that
       # mount's own comment for why the paths differ but the storage doesn't).
       # EcoreValidator's codegen path, AtlValidator, and AcceleoValidator all
       # persist their real compiled output here instead of deleting it (see
@@ -570,12 +572,12 @@ services:
       # integration_runner's own persist_attempt() writes its artifact and
       # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
       # <uuid>/), not beside it. Separate from the read-only main-build-output mount above
-      # (unrelated build artifacts) - a distinct volume, not a subpath of it,
+      # (unrelated build artifacts) - a distinct folder, not a subpath of it,
       # so a bad write here can never touch the real build output. No
       # automatic expiry/cleanup of old validation runs yet - a known,
       # documented limitation, not attempted here since nobody's asked for a
       # retention policy.
-      - pipeline-runs:/runs
+      - ${MDDOAI_DATA_DIR:-./data}/runs:/runs
       # The same real, rich PIM model instance integration-runner's own
       # generation-stage mount above already uses (see its own comment) -
       # AtlValidator's/AcceleoValidator's own real execution smoke test reads
@@ -618,7 +620,7 @@ services:
     volumes:
       # Read-only, same shared build-output volume validator-agent already
       # mounts (see its own comment) - no second Gradle build needed. No
-      # pipeline-runs mount, unlike validator-agent: the real output here
+      # data-folder runs/ mount, unlike validator-agent: the real output here
       # (a transformed model instance, or generated CI/CD text) is exactly
       # what a caller needs back, not a debug-only compiled artifact worth
       # persisting for its own sake, so it's returned inline over HTTP
@@ -658,15 +660,17 @@ services:
       # narrow shape as the repo's documented third exception; each request
       # copies it into its own scratch directory.
       - ../main/src/main/resources/transformations:/engine-transformations:ro
-      # The folder the screen's "Input path" and "Save output to" fields work
-      # inside: models are picked from it and generated pipeline files are
-      # written to it. A web page cannot reach the user's disk itself, so the
-      # folder is mounted in. Point GENERATOR_WORKSPACE_HOST_DIR at a folder
-      # of your own (for example, the one holding your repositories); unset,
-      # it is ./generator-workspace next to this file.
-      - ${GENERATOR_WORKSPACE_HOST_DIR:-./generator-workspace}:/workspace
-      # The pipelines listed on "Your pipelines", kept across restarts.
-      - generator-data:/data
+      # The workspace: the folder the screen's "Input path" and "Save output
+      # to" fields work inside. Models are picked from it and generated
+      # pipeline files are written to it. A web page cannot reach the user's
+      # disk itself, so the folder is mounted in. It holds the person's own
+      # project files, so by default it is this repository (where the
+      # example models live); point GENERATOR_WORKSPACE_HOST_DIR at another
+      # folder, such as the one holding your repositories, to use that.
+      - ${GENERATOR_WORKSPACE_HOST_DIR:-..}:/workspace
+      # The data folder's pipelines/: what "Your pipelines" lists, kept
+      # across restarts, next to runs/ in the same host data folder.
+      - ${MDDOAI_DATA_DIR:-./data}/pipelines:/data/pipelines
     environment:
       - LOG_LEVEL=INFO
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
@@ -674,6 +678,10 @@ services:
       - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
       - GENERATOR_WORKSPACE_DIR=/workspace
+      # How the Browse dialog names the workspace to the person.
+      # Set GENERATOR_WORKSPACE_LABEL yourself when the host folder is a
+      # relative path that would read poorly there.
+      - GENERATOR_WORKSPACE_LABEL=${GENERATOR_WORKSPACE_LABEL:-${GENERATOR_WORKSPACE_HOST_DIR:-the MDDOAI repository}}
       - GENERATOR_DATA_DIR=/data
     depends_on:
       gradle-builder:
@@ -686,5 +694,3 @@ services:
 volumes:
   main-gradle-cache:
   main-build-output:
-  pipeline-runs:
-  generator-data:

@@ -39,6 +39,14 @@ def test_browse_lists_the_workspace(workspace_dir):
     assert body["entries"] == [{"name": "repos", "kind": "dir"}, {"name": "a.swarch", "kind": "file"}]
 
 
+def test_browse_names_the_folder_it_is_looking_in(monkeypatch):
+    monkeypatch.setattr("routes.workspace.WORKSPACE_LABEL", "the MDDOAI repository")
+
+    body = client.get("/workspace/browse").json()
+
+    assert body["root_label"] == "the MDDOAI repository"
+
+
 def test_browse_can_be_limited_to_folders(workspace_dir):
     (workspace_dir / "repos").mkdir()
     (workspace_dir / "a.swarch").write_text("<a/>", encoding="utf-8")
@@ -278,3 +286,20 @@ def test_a_body_not_sent_as_json_is_refused_and_nothing_is_saved(workspace_dir):
 def test_an_id_that_is_not_an_id_is_simply_not_found():
     for bad in ("abc", "G" * 32, "0" * 31, "%2e%2e"):
         assert client.get(f"/pipelines/{bad}").status_code == 404
+
+
+def test_the_workspace_label_falls_back_to_the_folders_own_path(monkeypatch):
+    import importlib
+
+    import settings
+
+    monkeypatch.delenv("GENERATOR_WORKSPACE_LABEL", raising=False)
+    monkeypatch.setenv("GENERATOR_WORKSPACE_DIR", "/some/workspace")
+    try:
+        reloaded = importlib.reload(settings)
+        assert reloaded.WORKSPACE_LABEL == str(reloaded.WORKSPACE_DIR)
+        monkeypatch.setenv("GENERATOR_WORKSPACE_LABEL", "the MDDOAI repository")
+        assert importlib.reload(settings).WORKSPACE_LABEL == "the MDDOAI repository"
+    finally:
+        monkeypatch.undo()
+        importlib.reload(settings)

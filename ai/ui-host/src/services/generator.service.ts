@@ -105,6 +105,9 @@ export interface WorkspaceListing {
   parent: string | null
   entries: WorkspaceEntry[]
   truncated: boolean
+  // The folder every path above is inside, as the person knows it (for
+  // example the repository's name), so the dialog can say where it looks.
+  root_label: string
 }
 
 export interface WorkspaceFile {
