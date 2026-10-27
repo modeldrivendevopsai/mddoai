@@ -87,3 +87,42 @@ def test_execute_acceleo_returns_500_for_an_infra_failure():
 
     assert response.status_code == 500
     assert response.json()["detail"] == "subprocess timed out"
+
+
+_ATL_FROM_SWARCH_REQUEST = {"atl_source": "-- atl source", "swarch_model_xmi": "<swarch/>"}
+
+
+def test_execute_atl_from_swarch_returns_200_with_the_pim():
+    with patch("main.run_atl_from_swarch_executor", return_value={"output_xmi": "<pim/>"}) as run:
+        response = client.post("/execute/atl/swarch", json=_ATL_FROM_SWARCH_REQUEST)
+
+    assert response.status_code == 200
+    assert response.json() == {"output_xmi": "<pim/>"}
+    run.assert_called_once_with("-- atl source", "<swarch/>")
+
+
+def test_execute_atl_from_swarch_returns_422_for_a_real_execution_failure():
+    with patch("main.run_atl_from_swarch_executor", side_effect=ExecutionFailedError("not a real Software Architecture model")):
+        response = client.post("/execute/atl/swarch", json=_ATL_FROM_SWARCH_REQUEST)
+
+    assert response.status_code == 422
+    assert "not a real Software Architecture model" in response.json()["detail"]
+
+
+def test_execute_atl_from_swarch_returns_500_for_an_infra_failure():
+    with patch("main.run_atl_from_swarch_executor", side_effect=ExecutionInfraError("subprocess timed out")):
+        response = client.post("/execute/atl/swarch", json=_ATL_FROM_SWARCH_REQUEST)
+
+    assert response.status_code == 500
+
+
+def test_execute_atl_from_swarch_rejects_content_over_the_configured_max(monkeypatch):
+    monkeypatch.setattr(main, "MAX_CONTENT_BYTES", 10)
+
+    response = client.post("/execute/atl/swarch", json={**_ATL_FROM_SWARCH_REQUEST, "swarch_model_xmi": "x" * 11})
+
+    assert response.status_code == 413
+
+
+def test_execute_atl_from_swarch_requires_both_fields():
+    assert client.post("/execute/atl/swarch", json={"atl_source": "x"}).status_code == 422

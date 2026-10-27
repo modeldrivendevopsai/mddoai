@@ -636,6 +636,38 @@ services:
     expose:
       - "8090"
 
+  # SWArch-level capabilities, starting with turning a Software Architecture
+  # model into a PIM: it checks the model with validator-agent, then has
+  # execution-agent run the SWArch-to-PIM transformation on it. It owns which
+  # transformation that is (an .atl source file it reads on every request),
+  # so an improved transformation is a file swap here, with no Java change.
+  swarch-agent:
+    build:
+      context: .
+      dockerfile: swarch_agent/Dockerfile
+    env_file:
+      - path: ./swarch_agent/.env
+        required: false
+    volumes:
+      # The folder holding the engine's own SWArch-to-PIM transformation,
+      # read-only: real MDE data this service runs, not code it links
+      # against. The folder, not the single file: a file mount keeps pointing
+      # at the original file even after a checkout or an editor's save
+      # replaces it, so a new transformation would not be seen.
+      - ../main/src/main/resources/transformations/swarch2pim:/swarch2pim:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - SWARCH2PIM_ATL_PATH=/swarch2pim/swarch2pim.atl
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
+    depends_on:
+      validator-agent:
+        condition: service_healthy
+      execution-agent:
+        condition: service_healthy
+    expose:
+      - "8110"
+
   # The backend of the "Generate a CI/CD pipeline" mode: runs the engine's
   # real swarch2<platform> CLI on an uploaded Software Architecture model,
   # and checks the model (via validator-agent) and the generated pipeline.

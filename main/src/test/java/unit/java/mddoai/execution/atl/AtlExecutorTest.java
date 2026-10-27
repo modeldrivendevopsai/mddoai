@@ -44,4 +44,17 @@ public class AtlExecutorTest {
                 () -> AtlExecutor.parseOutputModelName(atlSource));
         assertEquals(true, e.getMessage().contains("output model name"));
     }
+
+    @Test
+    public void aSwarchToPimTransformationThatNamesItsInputOtherwiseIsRefusedWithAClearMessage() {
+        // Refused before anything is compiled or loaded: the transformer binds
+        // the input model to SWArchMM, so any other name could never run.
+        String atlSource = "-- create OUT : PIMMM from IN : SWArchMM;\n"
+                + "create OUT : PIMMM from IN : SWARCH;\n";
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> AtlExecutor.executeFromSwarch(atlSource, "<not read/>"));
+        assertEquals(true, e.getMessage().contains("SWArchMM"));
+        assertEquals(true, e.getMessage().contains("found: SWARCH"));
+    }
 }

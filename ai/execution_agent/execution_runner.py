@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 # main/ checkout already built via `cd main && ./gradlew installDist`.
 LIB_DIR = os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")
 ATL_MAIN_CLASS = "main.java.mddoai.execution.atl.AtlExecutorCli"
+# AtlExecutorCli's own switch for its SWArch-in, PIM-out form.
+ATL_FROM_SWARCH_FLAG = "--from-swarch"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.execution.acceleo.AcceleoExecutorCli"
 TIMEOUT_SECONDS = float(os.environ.get("EXECUTION_TIMEOUT_SECONDS", "60"))
 
@@ -114,6 +116,30 @@ def run_atl_executor(
         if not result.get("success"):
             raise ExecutionFailedError(result.get("error") or "ATL execution failed with no detail")
         logger.info("atl execution: success duration_ms=%d", duration_ms)
+        return {"output_xmi": output_file.read_text(encoding="utf-8")}
+
+
+def run_atl_from_swarch_executor(atl_source: str, swarch_model_xmi: str) -> AtlExecutionResult:
+    """Runs a SWArch-to-PIM transformation: a Software Architecture model in,
+    a PIM out. Both metamodels are MDDOAI's own compiled ones, so unlike
+    run_atl_executor no target metamodel or output model name is passed."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        atl_file = tmp_path / "transformation.atl"
+        atl_file.write_text(atl_source, encoding="utf-8")
+        swarch_model_file = tmp_path / "input.swarch"
+        swarch_model_file.write_text(swarch_model_xmi, encoding="utf-8")
+        output_file = tmp_path / "output.pimmm"
+
+        argv = [
+            "java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, ATL_FROM_SWARCH_FLAG,
+            str(atl_file), str(swarch_model_file), str(output_file),
+        ]
+        result, duration_ms = _run_cli(argv)
+
+        if not result.get("success"):
+            raise ExecutionFailedError(result.get("error") or "ATL execution failed with no detail")
+        logger.info("atl execution from swarch: success duration_ms=%d", duration_ms)
         return {"output_xmi": output_file.read_text(encoding="utf-8")}
 
 

@@ -45,6 +45,20 @@ def execute_atl(atl_source: str, pim_model_xmi: str, target_ecore: str, output_m
     return result["output_xmi"]
 
 
+def execute_atl_from_swarch(atl_source: str, swarch_model_xmi: str) -> str:
+    """POSTs to execution-agent's /execute/atl/swarch: runs atl_source (a
+    SWArch-to-PIM transformation's .atl text) against swarch_model_xmi (a
+    Software Architecture model, a .swarch file's XMI text). Returns the PIM
+    it produced, as XMI text. Raises AgentServiceError for a real,
+    describable execution failure (not a SWArch model, a genuine ATL
+    compile or runtime error)."""
+    result = _execute_request("/execute/atl/swarch", {
+        "atl_source": atl_source,
+        "swarch_model_xmi": swarch_model_xmi,
+    })
+    return result["output_xmi"]
+
+
 def execute_acceleo(mtl_source: str, psm_model_xmi: str, target_ecore: str) -> dict[str, str]:
     """POSTs to execution-agent's real /execute/acceleo: runs mtl_source
     (real .mtl Acceleo template text) against psm_model_xmi (a real PSM
