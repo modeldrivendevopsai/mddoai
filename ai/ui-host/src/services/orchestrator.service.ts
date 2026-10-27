@@ -23,8 +23,8 @@ import type {
   StartedResponse,
 } from "orchestrator-types"
 
-// Talks to ai/orchestrator (a separate internal-only service, see
-// vite.config.ts's /orchestrator-api proxy) — never ai-layer directly.
+// Talks to ai/orchestrator (a separate internal-only service, reached
+// through ui-host's /orchestrator-api proxy) — never ai-layer directly.
 // ai/orchestrator itself is the only thing that talks to ai-layer/retrieval
 // (see its own README), this service layer has no other client to defer to.
 
