@@ -20,6 +20,9 @@ INTEGRATION_RUNNER_URL = os.environ.get("INTEGRATION_RUNNER_URL", "http://localh
 # for /docs/extend specifically — see add_page_to_docs's own docstring for
 # why that one endpoint needs more than the fast-bookkeeping default below.
 DOCS_EXTEND_TIMEOUT = float(os.environ.get("DOCS_EXTEND_TIMEOUT", "960.0"))
+# Above integration_runner's own wait on the pipeline generator for a publish
+# (the pipeline-generator client's PUBLISH_TIMEOUT, 30s by default).
+PUBLISH_TIMEOUT = float(os.environ.get("INTEGRATION_RUNNER_PUBLISH_TIMEOUT", "60.0"))
 
 _BUSINESS_ERROR_CODES = (400, 404, 409)
 
@@ -131,6 +134,27 @@ def add_page_to_docs(url: str, force_refresh: bool = False) -> dict:
     that inner budget rather than a quick-response default."""
     return _request(
         "POST", "/docs/extend", timeout=DOCS_EXTEND_TIMEOUT, json={"url": url, "force_refresh": force_refresh}
+    ).json()
+
+
+def get_publish_defaults() -> dict:
+    """What publish() uses for the current run when given nothing: the run's
+    platform description and the one file its generation stage produced."""
+    return _request("GET", "/publish").json()
+
+
+def publish(name: str | None = None, output_filename: str | None = None, run_id: str | None = None) -> dict:
+    """Publishes the current, completed run's approved platform to the
+    pipeline generator, so pipelines can be generated for it. With run_id,
+    only if that run is still the current one. Returns the published version:
+    {"id", "name", "version", "output_filename"}. Waits longer than
+    integration_runner waits on the pipeline generator, so a slow publish is
+    never reported as failed while it still completes."""
+    return _request(
+        "POST",
+        "/publish",
+        timeout=PUBLISH_TIMEOUT,
+        json={"name": name, "output_filename": output_filename, "run_id": run_id},
     ).json()
 
 

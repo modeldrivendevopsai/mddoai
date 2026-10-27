@@ -1,3 +1,4 @@
+import httpx
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -120,6 +121,12 @@ def resume_endpoint(run_id: str):
     return integration_runner_client.resume_run(run_id)
 
 
+# integration_runner's PublishRequest limits, which match what the pipeline
+# generator accepts for a platform name and an output file path.
+PUBLISH_NAME_MAX_CHARS = 100
+PUBLISH_OUTPUT_FILENAME_MAX_CHARS = 255
+
+
 class ForkRequest(BaseModel):
     source_run_id: str
     from_stage: str
@@ -135,6 +142,36 @@ def fork_endpoint(request: ForkRequest):
     that isn't real or that source_run never actually reached, both
     surfaced via IntegrationRunnerError."""
     return integration_runner_client.fork_run(request.source_run_id, request.from_stage)
+
+
+class PublishRequest(BaseModel):
+    # The same limits integration_runner sets, so a value too long is refused
+    # here as a bad request, not passed on and reported as an outage.
+    name: str | None = Field(default=None, max_length=PUBLISH_NAME_MAX_CHARS)
+    output_filename: str | None = Field(default=None, max_length=PUBLISH_OUTPUT_FILENAME_MAX_CHARS)
+    # The run the page is showing: publishing is refused if it is no longer
+    # the current one.
+    run_id: str | None = None
+
+
+@app.get("/publish")
+def publish_defaults_endpoint():
+    """What /publish would use for the current run when given nothing."""
+    return integration_runner_client.get_publish_defaults()
+
+
+@app.post("/publish")
+def publish_endpoint(request: PublishRequest):
+    """Publishes the current, completed run's approved platform to the
+    pipeline generator: the same real action the publish_platform chat tool
+    takes. 409 while the run is not complete or run_id is not the current
+    run, 400 when the pipeline generator refuses what was sent, both surfaced
+    via IntegrationRunnerError. 502 when integration_runner reports the
+    pipeline generator unavailable, or cannot be reached itself."""
+    try:
+        return integration_runner_client.publish(request.name, request.output_filename, request.run_id)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Publishing is unavailable right now, try again shortly.")
 
 
 @app.get("/providers")

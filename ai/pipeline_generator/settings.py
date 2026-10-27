@@ -24,6 +24,11 @@ WORKSPACE_LABEL = os.environ.get("GENERATOR_WORKSPACE_LABEL") or str(WORKSPACE_D
 # Where generated pipelines are kept so they can be reopened later.
 DATA_DIR = Path(os.environ.get("GENERATOR_DATA_DIR", "./data"))
 
+# The largest published metamodel, transformation or template accepted, each.
+# Engineering guess: far above any real one, and below what execution-agent
+# itself accepts per field.
+MAX_ARTIFACT_BYTES = int(os.environ.get("GENERATOR_MAX_ARTIFACT_BYTES", str(1024 * 1024)))
+
 # How many generated pipelines are kept; the oldest are forgotten beyond this.
 # Engineering guess: far more than anyone reopens, small enough that the list
 # and the folder stay small.

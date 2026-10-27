@@ -14,16 +14,19 @@ the busy guard and the /rerun stage-mismatch check both live here, since a
 check made in one process before a mutating call to a different process is
 a real race, not just a relocation.
 """
+import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from integration_runner import pipeline, runs, stages
+from clients.agent_service_errors import AgentServiceError
+from integration_runner import pipeline, publishing, runs, stages
 from integration_runner.pipeline import BusyError
 
 router = APIRouter()
 
 _BUSY_DETAIL = "A stage is still running, try again shortly."
+_NOT_CURRENT_RUN_DETAIL = "This is no longer the current run. Resume it to publish its platform."
 
 
 class StartRequest(BaseModel):
@@ -67,6 +70,17 @@ class RerunRequest(BaseModel):
 
 class ConstraintRequest(BaseModel):
     constraint: str
+
+
+class PublishRequest(BaseModel):
+    """All optional. name and output_filename unset: the run's own platform
+    description and the one file its generation stage produced are used (see
+    GET /publish). run_id set: publish only if that run is still the current
+    one, so a page showing an older run cannot publish a different one."""
+
+    name: str | None = Field(default=None, max_length=100)
+    output_filename: str | None = Field(default=None, max_length=255)
+    run_id: str | None = None
 
 
 class StageRunRequest(BaseModel):
@@ -279,3 +293,41 @@ def stage_run_endpoint(request: StageRunRequest):
         return runs.current().start_stage_run(request.context)
     except BusyError:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+
+
+@router.get("/publish")
+def publish_defaults_endpoint():
+    """What POST /publish would use for the current run when given nothing,
+    so a form can show it before anyone presses Publish."""
+    return publishing.defaults(runs.current())
+
+
+@router.post("/publish")
+def publish_endpoint(request: PublishRequest):
+    """Publishes the current, completed run's approved platform to the
+    pipeline generator. 409 while a stage is running or another publish is,
+    when run_id is not the current run, or when the run cannot be published
+    (not complete, or what it produced cannot be; the reason in detail). 400
+    when the pipeline generator refuses what was sent (its reason in detail),
+    502 when it cannot be reached or fails.
+
+    The run is claimed busy for the whole publish, like every other mutating
+    path, so a double click or a chat tool call racing a button press cannot
+    publish two versions, and no stage can start in between."""
+    run = runs.current()
+    if request.run_id is not None and request.run_id != run.run_id:
+        raise HTTPException(status_code=409, detail=_NOT_CURRENT_RUN_DETAIL)
+    try:
+        run.claim_busy()
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+    try:
+        return publishing.publish(run, request.name, request.output_filename)
+    except publishing.NotPublishableError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except AgentServiceError as e:
+        raise HTTPException(status_code=400, detail=e.detail)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="The pipeline generator is unavailable, try again shortly.")
+    finally:
+        run.release_busy()

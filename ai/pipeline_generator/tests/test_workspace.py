@@ -329,9 +329,21 @@ def test_write_refuses_a_folder_outside_the_workspace(ws, outside, folder):
     assert not (outside / "p.yml").exists()
 
 
-@pytest.mark.parametrize("name", ["../p.yml", "sub/p.yml", "", ".", ".."])
-def test_write_refuses_a_file_name_that_is_not_a_plain_name(ws, name):
+@pytest.mark.parametrize("name", ["../p.yml", "sub/../../p.yml", "a//p.yml", "a\\p.yml", "", ".", "..", "sub/"])
+def test_write_refuses_a_file_name_that_would_leave_its_folder(ws, name):
     assert "valid file name" in _refused(lambda: ws.write_text("/out", name, "x")).message
+
+
+def test_write_saves_a_file_name_with_subfolders_inside_the_chosen_folder(ws, workspace_dir):
+    saved = ws.write_text("/out", ".woodpecker/pipeline.yaml", "steps: []\n")
+
+    assert saved.path == "/out/.woodpecker/pipeline.yaml"
+    assert (workspace_dir / "out" / ".woodpecker" / "pipeline.yaml").read_text(encoding="utf-8") == "steps: []\n"
+
+
+def test_a_subfolder_named_like_git_is_refused_too(ws, workspace_dir):
+    assert _refused(lambda: ws.write_text("/out", ".git/hooks/pre-commit", "x"))
+    assert not (workspace_dir / "out" / ".git").exists()
 
 
 def test_a_link_in_the_way_is_replaced_never_written_through(ws, workspace_dir, outside):
@@ -516,6 +528,73 @@ def test_a_git_folder_cannot_be_browsed_or_read_from(ws, workspace_dir):
         ws.browse("/.git/hooks", dirs_only=False)
     with pytest.raises(WorkspaceError):
         ws.read_text("/.git/hooks/a.swarch", 1024)
+
+
+@pytest.mark.parametrize("name", [".GIT/config", ".Git/hooks/pre-commit", ".git./config", "sub/.git"])
+def test_git_names_are_refused_in_any_spelling_a_disk_may_read_as_git(ws, workspace_dir, name):
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/", name, "x")
+
+    assert list(workspace_dir.rglob("*")) == []
+
+
+@pytest.mark.parametrize("folder", ["/.GIT", "/repos/.Git/hooks"])
+def test_a_git_folder_spelled_another_way_is_refused_as_a_save_folder(ws, folder):
+    with pytest.raises(WorkspaceError):
+        ws.write_text(folder, ".gitlab-ci.yml", "x")
+
+
+def test_a_git_folder_reached_under_another_name_for_the_same_folder_is_refused(ws, workspace_dir, monkeypatch):
+    # "alias" stands in for a second name the disk resolves to the same folder
+    # as .git, such as a Windows short name.
+    (workspace_dir / ".git").mkdir()
+    (workspace_dir / "alias").mkdir()
+    real_samefile = os.path.samefile
+
+    def samefile(a, b):
+        if {os.path.basename(str(a)), os.path.basename(str(b))} == {"alias", ".git"}:
+            return True
+        return real_samefile(a, b)
+
+    monkeypatch.setattr(workspace_module.os.path, "samefile", samefile)
+
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/alias", "config", "x")
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/", "alias/config", "x")
+    assert list((workspace_dir / "alias").iterdir()) == []
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows short names exist only on Windows disks")
+def test_the_git_folders_real_windows_short_name_is_refused(ws, workspace_dir):
+    (workspace_dir / ".git").mkdir()
+    if not (workspace_dir / "GIT~1").exists():
+        pytest.skip("short names are turned off on this disk")
+
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/GIT~1", "config", "x")
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/", "GIT~1/config", "x")
+    assert list((workspace_dir / ".git").iterdir()) == []
+
+
+def test_a_git_pointer_file_reached_under_another_name_is_not_replaced(ws, workspace_dir):
+    (workspace_dir / "sub").mkdir()
+    (workspace_dir / "sub" / ".git").write_text("gitdir: ../.git/modules/sub\n", encoding="utf-8")
+    try:
+        os.link(workspace_dir / "sub" / ".git", workspace_dir / "sub" / "alias")
+    except (OSError, NotImplementedError):
+        pytest.skip("this machine does not allow hard links here")
+
+    with pytest.raises(WorkspaceError):
+        ws.write_text("/sub", "alias", "x")
+    assert (workspace_dir / "sub" / ".git").read_text(encoding="utf-8") == "gitdir: ../.git/modules/sub\n"
+
+
+def test_a_folder_named_like_git_in_another_case_is_not_listed(ws, workspace_dir):
+    (workspace_dir / ".GIT").mkdir()
+
+    assert ws.browse("/", dirs_only=False)["entries"] == []
 
 
 def test_a_link_into_a_git_folder_is_refused_like_the_folder_itself(ws, workspace_dir):

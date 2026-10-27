@@ -2,6 +2,7 @@ import { lazy, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useIntegration } from "@/hooks/useIntegration"
 import { STAGE_PANELS } from "@/features/integration/stages/registry"
+import { CompletePanel } from "@/features/integration/CompletePanel"
 import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
@@ -64,32 +65,6 @@ const DocsStartForm = lazy(() =>
   import("uiRemoteStageDocs/DocsStartForm").then((m) => ({ default: m.DocsStartForm }))
 )
 
-// "Nothing left to review" is a screen-level state (the whole run finished),
-// not any one stage's concern — kept here rather than duplicated across
-// every stage panel's own ui-remote-stage-* package.
-function CompletePanel() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-3)",
-        height: "100%",
-        padding: "var(--space-4)",
-        background: "var(--brand-faint)",
-        border: "1px solid var(--border-default)",
-        borderRadius: "var(--radius-md)",
-        boxSizing: "border-box",
-        minHeight: 0,
-      }}
-    >
-      <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-sans)" }}>
-        Integration complete. All stages approved.
-      </p>
-    </div>
-  )
-}
-
 // A past, non-current run that never got a platform name/URL submitted —
 // e.g. created by Restart or "Add a new platform" and then abandoned before
 // filling the form. Real, possible state, not a bug on its own. Shown
@@ -144,6 +119,8 @@ export default function IntegrationScreen() {
     reset,
     resume,
     fork,
+    loadPublishDefaults,
+    publish,
   } = useIntegration(runId)
 
   // "Add a new platform" in the sidebar links here with
@@ -255,7 +232,7 @@ export default function IntegrationScreen() {
       )
     }
     if (!currentStage) {
-      return <CompletePanel />
+      return <CompletePanel canPublish={isCurrent} loadDefaults={loadPublishDefaults} onPublish={publish} />
     }
     const ActivePanel = STAGE_PANELS[currentStage]
     return (

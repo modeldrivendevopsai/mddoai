@@ -2,11 +2,13 @@
 Routes ask for them through FastAPI's dependency injection, so a test can
 swap in a temporary folder."""
 from pipeline_history import PipelineHistory
+from platform_registry import PlatformRegistry
 from settings import DATA_DIR, MAX_PIPELINES, WORKSPACE_DIR
 from workspace import Workspace
 
 _workspace = Workspace(WORKSPACE_DIR)
 _history = PipelineHistory(DATA_DIR / "pipelines", max_entries=MAX_PIPELINES)
+_registry = PlatformRegistry(DATA_DIR / "platforms")
 
 
 def get_workspace() -> Workspace:
@@ -15,3 +17,7 @@ def get_workspace() -> Workspace:
 
 def get_history() -> PipelineHistory:
     return _history
+
+
+def get_registry() -> PlatformRegistry:
+    return _registry

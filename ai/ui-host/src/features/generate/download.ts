@@ -2,9 +2,12 @@
 // (observed: `.gitlab-ci.yml` saves as `gitlab-ci.yml`), and the platform
 // needs the dotted name exactly. The file is therefore always offered without
 // the dot, so what gets saved is the same in every browser, and the screen
-// says what to rename it to.
+// says what to rename it to. A download is one file, never a folder, so an
+// output file in a subfolder (".woodpecker/pipeline.yaml") is offered under
+// its own name, and the screen says where it goes.
 export function downloadName(outputFilename: string): string {
-  return outputFilename.replace(/^\.+/, '');
+  const name = outputFilename.split('/').pop() ?? outputFilename;
+  return name.replace(/^\.+/, '');
 }
 
 // Long enough for the browser to have started reading the blob; revoking in

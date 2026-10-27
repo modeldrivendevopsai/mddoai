@@ -27,9 +27,10 @@ MAX_LISTED_ENTRIES = 500
 # an architecture model out of it, never an arbitrary file.
 MODEL_EXTENSION = ".swarch"
 
-# Folders never listed, read from or written to, wherever they are in the
+# Names never listed, read from or written to, wherever they are in the
 # workspace. The workspace is often a repository, and a generated file must
-# never land in git's own internals (hooks there run on the next git command).
+# never land in git's own internals (hooks there run on the next git command),
+# nor replace a ".git" file (git reads one as a pointer to its internals).
 EXCLUDED_DIR_NAMES = frozenset({".git"})
 
 # What the filesystem raises for a path it cannot follow or look at. Python
@@ -37,6 +38,30 @@ EXCLUDED_DIR_NAMES = frozenset({".git"})
 # only some OS errors (a missing path, a loop) are swallowed by pathlib's own
 # is_dir/is_file, so a permission error would otherwise escape.
 _UNFOLLOWABLE = (OSError, RuntimeError)
+
+
+def is_excluded_name(name: str) -> bool:
+    """Whether `name` is one of EXCLUDED_DIR_NAMES as the disk may read it. The
+    workspace can be a case-insensitive Windows or macOS folder mounted into
+    the container, where ".GIT" is the same folder as ".git", and Windows also
+    ignores trailing dots and spaces."""
+    return name.rstrip(". ").casefold() in EXCLUDED_DIR_NAMES
+
+
+def _is_git_internals(path: Path, root: Path) -> bool:
+    """Whether `path`, or a folder it sits in below `root`, is the same folder
+    on disk as its parent's ".git", under whatever other spelling (a Windows
+    short name, say) the disk accepts for it."""
+    for folder in [path, *path.parents]:
+        if folder == root or not folder.is_relative_to(root):
+            return False
+        sibling_git = folder.parent / ".git"
+        try:
+            if folder.name != ".git" and sibling_git.exists() and folder.exists() and os.path.samefile(folder, sibling_git):
+                return True
+        except _UNFOLLOWABLE:
+            return True
+    return False
 
 
 def _is_model_file(path: Path) -> bool:
@@ -120,7 +145,8 @@ class Workspace:
             raise WorkspaceError("That path is outside the workspace folder.")
         # Judged on the resolved path, so a link into an excluded folder is
         # refused the same way as naming it directly.
-        if EXCLUDED_DIR_NAMES.intersection(candidate.relative_to(root).parts):
+        parts = candidate.relative_to(root).parts
+        if any(is_excluded_name(part) for part in parts) or _is_git_internals(candidate, root):
             raise WorkspaceError("That folder cannot be used here.")
         return candidate
 
@@ -145,7 +171,7 @@ class Workspace:
 
         The cheap name tests come first, and a link is the only thing that
         needs resolving, so a folder with very many entries stays quick."""
-        if not _is_usable_name(entry.name) or entry.name in EXCLUDED_DIR_NAMES:
+        if not _is_usable_name(entry.name) or is_excluded_name(entry.name):
             return None
         try:
             is_dir = entry.is_dir()
@@ -215,14 +241,22 @@ class Workspace:
 
     def write_text(self, relative_dir: str, filename: str, content: str) -> SavedFile:
         """Saves `content` as `filename` inside the folder `relative_dir`
-        (created if needed). `filename` is one plain file name, never a path.
-        An existing file of that name is replaced, and the result says so. A
-        link of that name is replaced by the new file, never written through
-        to whatever it points at."""
-        if Path(filename).name != filename or filename in ("", ".", ".."):
+        (created if needed). `filename` is a relative path: usually one file
+        name, sometimes with subfolders a CI system expects (such as
+        ".woodpecker/pipeline.yaml"), and every part of it is held to the same
+        confinement as the folder. An existing file of that name is replaced,
+        and the result says so. A link of that name is replaced by the new
+        file, never written through to whatever it points at."""
+        parts = filename.split("/")
+        if "\\" in filename or any(part in ("", ".", "..") for part in parts):
             raise WorkspaceError("That is not a valid file name.")
-        directory = self._resolve(relative_dir)
+        if any(is_excluded_name(part) for part in parts):
+            raise WorkspaceError("That file name cannot be used here.")
+        *subfolders, filename = parts
+        directory = self._resolve("/".join([relative_dir, *subfolders]) if subfolders else relative_dir)
         target = directory / filename
+        if _is_git_internals(target, self._root_resolved()):
+            raise WorkspaceError("That file name cannot be used here.")
         replaced = os.path.lexists(target)
         try:
             directory.mkdir(parents=True, exist_ok=True)

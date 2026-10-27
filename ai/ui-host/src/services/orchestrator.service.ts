@@ -7,10 +7,12 @@ import type {
   LearnedConstraintsUpdate,
   ManifestEntry,
   MessageResponse,
-  Provider,
   PromptConfig,
   PromptDiff,
   PromptPreview,
+  Provider,
+  PublishDefaults,
+  PublishedPlatform,
   RerunOverrides,
   ResetResponse,
   ResumeResponse,
@@ -100,6 +102,40 @@ export async function resumeRun(runId: string): Promise<ResumeResponse> {
 
   if (!res.ok) {
     throw await errorFor("Resume", res)
+  }
+
+  return res.json()
+}
+
+// Publishes the current, completed run's approved platform to the pipeline
+// generator. Empty name or output file means "use the defaults" (see
+// getPublishDefaults). runId is the run the page shows: the backend refuses
+// with 409 if it is no longer the current one, as it does while the run is
+// not complete; 400 when the pipeline generator refuses what was sent. Each
+// comes with a real detail message.
+export async function publishPlatform(
+  name: string,
+  outputFilename: string,
+  runId: string | null
+): Promise<PublishedPlatform> {
+  const res = await fetch(`/orchestrator-api/publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: name || null, output_filename: outputFilename || null, run_id: runId }),
+  })
+
+  if (!res.ok) {
+    throw await errorFor("Publish", res)
+  }
+
+  return res.json()
+}
+
+export async function getPublishDefaults(): Promise<PublishDefaults> {
+  const res = await fetch(`/orchestrator-api/publish`)
+
+  if (!res.ok) {
+    throw await errorFor("Publish defaults", res)
   }
 
   return res.json()

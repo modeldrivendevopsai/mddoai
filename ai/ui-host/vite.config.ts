@@ -25,6 +25,14 @@ function remote(envVar: string, defaultPort: number, name: string) {
   }
 }
 
+// The pipeline generator's write endpoints the "Generate a CI/CD pipeline"
+// mode calls. Any other write through the proxy gets a 404.
+const GENERATOR_WRITES_FROM_BROWSER = new Set([
+  '/generator-api/inspect',
+  '/generator-api/generate',
+  '/generator-api/validate',
+])
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -115,6 +123,16 @@ export default defineConfig({
       '/generator-api': {
         target: process.env.VITE_GENERATOR_PROXY_TARGET || 'http://localhost:8100',
         rewrite: (path) => path.replace(/^\/generator-api/, ''),
+        // Reads pass through; a write only when it is one this mode makes.
+        // Publishing a platform (POST /platforms) stores code that is run on
+        // every later generation, so only integration_runner may do it, from
+        // inside the Compose network, for a run whose stages were approved.
+        // Matched on the raw path, so an encoded spelling is refused too.
+        bypass: (req) => {
+          if (req.method === 'GET' || req.method === 'HEAD') return undefined
+          const path = (req.url ?? '').split('?')[0]
+          return GENERATOR_WRITES_FROM_BROWSER.has(path) ? undefined : false
+        },
       },
     },
   },

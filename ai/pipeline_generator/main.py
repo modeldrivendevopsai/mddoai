@@ -10,12 +10,15 @@ from pydantic import BaseModel, Field
 from clients import validator_agent_client
 from engine_runner import MAX_PIPELINE_BYTES
 from generation import generate_one
-from pipeline_checks import CHECKERS, PipelineValidation
+from pipeline_checks import PipelineValidation, check_pipeline
 from pipeline_history import PipelineHistory
-from platforms import PLATFORMS, Platform, get_platform
+from platform_catalog import all_platforms, get_platform
+from platform_registry import PlatformRegistry
+from platforms import Platform
 from routes import pipelines as pipelines_routes
+from routes import platforms as platforms_routes
 from routes import workspace as workspace_routes
-from routes.dependencies import get_history, get_workspace
+from routes.dependencies import get_history, get_registry, get_workspace
 from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS
 from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
@@ -34,6 +37,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
 app.include_router(workspace_routes.router)
 app.include_router(pipelines_routes.router)
+app.include_router(platforms_routes.router)
 
 # What the validator is always told the model is called. The caller's own
 # filename never reaches it: there it would become a file name on disk, and
@@ -85,17 +89,17 @@ def _require_size(content: str, limit: int, what: str) -> None:
         raise HTTPException(status_code=413, detail=f"{what} exceeds {limit} bytes")
 
 
-def _require_platform(platform_id: str) -> Platform:
-    platform = get_platform(platform_id)
+def _require_platform(platform_id: str, registry: PlatformRegistry) -> Platform:
+    platform = get_platform(platform_id, registry)
     if platform is None:
-        supported = ", ".join(sorted(PLATFORMS))
+        supported = ", ".join(sorted(p.id for p in all_platforms(registry)))
         raise HTTPException(status_code=422, detail=f"Unsupported platform '{platform_id}'. Supported: {supported}")
     return platform
 
 
-def _require_platforms(platform_ids: list[str]) -> list[Platform]:
+def _require_platforms(platform_ids: list[str], registry: PlatformRegistry) -> list[Platform]:
     """Each named platform once, in the order given."""
-    return [_require_platform(platform_id) for platform_id in dict.fromkeys(platform_ids)]
+    return [_require_platform(platform_id, registry) for platform_id in dict.fromkeys(platform_ids)]
 
 
 def _check_model(request: ModelRequest) -> dict:
@@ -118,15 +122,6 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/platforms")
-def list_platforms():
-    return {
-        "platforms": [
-            {"id": p.id, "name": p.name, "output_filename": p.output_filename} for p in PLATFORMS.values()
-        ]
-    }
-
-
 @app.post("/inspect")
 def inspect_endpoint(request: ModelRequest):
     """What the uploaded model says, plus whether the real validator accepts
@@ -147,11 +142,12 @@ def generate_endpoint(
     request: GenerateRequest,
     workspace: Workspace = Depends(get_workspace),
     history: PipelineHistory = Depends(get_history),
+    registry: PlatformRegistry = Depends(get_registry),
 ):
     """Generates a pipeline for each requested platform, saves each one into
     `save_to` when given, and records the result so it can be reopened."""
     _require_size(request.content, MAX_MODEL_BYTES, "content")
-    platforms = _require_platforms(request.platforms)
+    platforms = _require_platforms(request.platforms, registry)
     logger.info("POST /generate filename=%r platforms=%s", request.filename, [p.id for p in platforms])
 
     # Re-checked here, not trusted from an earlier /inspect: this endpoint is
@@ -163,7 +159,7 @@ def generate_endpoint(
             detail={"message": "The model is not valid, so no pipeline was generated.", "issues": model_validation["issues"]},
         )
 
-    results = [generate_one(request.content, platform, workspace, request.save_to) for platform in platforms]
+    results = [generate_one(request.content, platform, workspace, request.save_to, registry) for platform in platforms]
     generated = [result for result in results if result["error"] is None]
     pipeline_id = history.record_generation(
         filename=request.filename,
@@ -176,10 +172,12 @@ def generate_endpoint(
 
 
 @app.post("/validate")
-def validate_endpoint(request: PipelineRequest) -> PipelineValidation:
+def validate_endpoint(
+    request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)
+) -> PipelineValidation:
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
-    platform = _require_platform(request.platform)
+    platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
-    result = CHECKERS[platform.id](request.content)
+    result = check_pipeline(platform, request.content)
     logger.info("POST /validate done platform=%s valid=%s", platform.id, result["valid"])
     return result

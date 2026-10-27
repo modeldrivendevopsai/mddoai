@@ -2,7 +2,8 @@ import pytest
 
 import main
 from pipeline_history import PipelineHistory
-from routes.dependencies import get_history, get_workspace
+from platform_registry import PlatformRegistry
+from routes.dependencies import get_history, get_registry, get_workspace
 from workspace import Workspace
 
 
@@ -18,11 +19,17 @@ def history(tmp_path):
     return PipelineHistory(tmp_path / "data")
 
 
+@pytest.fixture
+def registry(tmp_path):
+    return PlatformRegistry(tmp_path / "platforms")
+
+
 @pytest.fixture(autouse=True)
-def isolated_storage(workspace_dir, history):
-    """Every test gets its own workspace folder and history, so none of them
-    reads or writes the service's real ones."""
+def isolated_storage(workspace_dir, history, registry):
+    """Every test gets its own workspace folder, history and published
+    platforms, so none of them reads or writes the service's real ones."""
     main.app.dependency_overrides[get_workspace] = lambda: Workspace(workspace_dir)
     main.app.dependency_overrides[get_history] = lambda: history
+    main.app.dependency_overrides[get_registry] = lambda: registry
     yield
     main.app.dependency_overrides.clear()

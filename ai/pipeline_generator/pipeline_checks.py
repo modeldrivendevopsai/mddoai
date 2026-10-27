@@ -19,6 +19,8 @@ import yaml
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 
+from platforms import PUBLISHED
+
 _SCHEMA_PATH = Path(__file__).parent / "schemas" / "gitlab-ci.schema.json"
 _GITLAB_VALIDATOR = Draft7Validator(json.loads(_SCHEMA_PATH.read_text(encoding="utf-8")))
 
@@ -205,5 +207,30 @@ def check_gitlab_pipeline(content: str) -> PipelineValidation:
     return {"valid": all(check["status"] != "fail" for check in checks), "checks": checks}
 
 
-# Platform id (see platforms.PLATFORMS) -> its pipeline checker.
+# The file endings a platform's pipeline can be checked as YAML for, when the
+# platform has no checker of its own.
+_YAML_SUFFIXES = (".yml", ".yaml")
+
+
+def check_generic_pipeline(content: str, output_filename: str) -> PipelineValidation:
+    """For a platform with no checker of its own, such as one published from
+    an integration run: no schema is known, so the one check is that a YAML
+    file parses. Any other kind of file has nothing to check."""
+    title = "The file is valid YAML"
+    if not output_filename.lower().endswith(_YAML_SUFFIXES):
+        return {"valid": True, "checks": [_skipped("yaml", title)]}
+    _document, problems = _load_document(content)
+    return {"valid": not problems, "checks": [_check("yaml", title, problems)]}
+
+
+# Built-in platform id (see platforms.PLATFORMS) -> its pipeline checker.
 CHECKERS: dict[str, Callable[[str], PipelineValidation]] = {"gitlab": check_gitlab_pipeline}
+
+
+def check_pipeline(platform, content: str) -> PipelineValidation:
+    """A built-in platform's own checker, or the generic check for a published
+    platform. A built-in platform without a checker raises KeyError: adding
+    one needs a checker too."""
+    if platform.runner == PUBLISHED:
+        return check_generic_pipeline(content, platform.output_filename)
+    return CHECKERS[platform.id](content)

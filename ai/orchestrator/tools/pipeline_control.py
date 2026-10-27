@@ -261,4 +261,33 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
             },
             impl=_start_pipeline_tool,
         ),
+        tool_calling.Tool(
+            name="publish_platform",
+            description=(
+                "Publish the platform this run built, so pipelines can be generated for it in the "
+                "'Generate a CI/CD pipeline' mode next to the built-in platforms. Only works once "
+                "every stage of the run is approved; publishing the same platform again adds a new "
+                "version. Use this when the human asks to publish, release or make the platform "
+                "available, e.g. 'publish it' or 'make this platform usable in the generator'. Do "
+                "NOT use it to approve a stage (that is stage_result)."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The platform's display name. Omit to use the run's own platform description.",
+                    },
+                    "output_filename": {
+                        "type": "string",
+                        "description": (
+                            "Which generated file is the pipeline file, as a relative path. Omit when the "
+                            "generation stage produced exactly one file."
+                        ),
+                    },
+                },
+                "required": [],
+            },
+            impl=integration_runner_client.publish,
+        ),
     ]

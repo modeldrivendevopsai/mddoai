@@ -37,10 +37,10 @@ into output) - the chat-ui's own "what generation actually produced" needs
 both, not just the joined text.
 """
 import os
-import re
 from pathlib import Path
 
 from clients import execution_agent_client
+from integration_runner.atl_source import output_model_name as _output_model_name
 from integration_runner.stages._validation import persist_attempt, reserved_attempt
 
 # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's own
@@ -62,35 +62,6 @@ PIM_SAMPLE_INSTANCE_PATH = Path(
         ),
     )
 )
-
-# atl_agent's own generation prompt forces every generated ATL's output
-# model name into this exact shape: "create OUT : <ModelName> from IN :
-# PIM;", with a matching "-- @nsURI <ModelName>=<platform>MM=..." header
-# line just above it. Parsed directly out of the real generated source
-# rather than reconstructed from a platform name string this stage doesn't
-# otherwise have: the ATL source itself is the one place that name is
-# declared, and it must match exactly for AtlExecutor's own output model
-# to resolve.
-_OUTPUT_MODEL_NAME_PATTERN = re.compile(r"create\s+OUT\s*:\s*(\w+)\s+from")
-
-# ATL's own line-comment marker (matching this project's real, existing
-# .atl files' own "-- @nsURI ..."/"-- Main pipeline transformation"-style
-# lines). Stripped before searching for the real output model name so a
-# comment merely mentioning the "create OUT : ... from" convention (in an
-# LLM-generated header, say) can never be mistaken for the actual
-# declaration.
-_ATL_LINE_COMMENT_PATTERN = re.compile(r"--.*$", re.MULTILINE)
-
-
-def _output_model_name(atl_source: str) -> str:
-    code_only = _ATL_LINE_COMMENT_PATTERN.sub("", atl_source)
-    match = _OUTPUT_MODEL_NAME_PATTERN.search(code_only)
-    if not match:
-        raise ValueError(
-            "Could not find a real output model name in the generated ATL source "
-            '(expected "create OUT : <Name> from IN : PIM;")'
-        )
-    return match.group(1)
 
 
 # The primary artifact persist_attempt() writes for this stage, matching

@@ -11,6 +11,10 @@ export interface GeneratorPlatform {
   id: string
   name: string
   output_filename: string
+  // "engine" for a built-in platform, "published" for one published from an
+  // integration run, which also has the version used.
+  source: "engine" | "published"
+  version: number | null
 }
 
 export interface ModelAttribute {

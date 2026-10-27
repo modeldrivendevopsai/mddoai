@@ -59,8 +59,8 @@ vi.mock("@/services/generator.service", async (importOriginal) => {
 
 afterEach(cleanup)
 
-const GITLAB = { id: "gitlab", name: "GitLab CI", output_filename: ".gitlab-ci.yml" }
-const BAMBOO = { id: "bamboo", name: "Bamboo", output_filename: "bamboo-specs/bamboo.yaml" }
+const GITLAB = { id: "gitlab", name: "GitLab CI", output_filename: ".gitlab-ci.yml", source: "engine" as const, version: null }
+const BAMBOO = { id: "bamboo", name: "Bamboo", output_filename: "bamboo-specs/bamboo.yaml", source: "published" as const, version: 1 }
 
 const VALID: Inspection = {
   element: "SoftwareArchitecture",

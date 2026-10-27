@@ -119,3 +119,39 @@ def test_details_are_capped_so_a_systemic_mistake_does_not_flood_the_reader():
     result = check_gitlab_pipeline("stages: [build]\n" + jobs)
 
     assert len(_status(result, "schema")["details"]) == MAX_DETAILS
+
+
+# --- the generic check, for platforms without a checker of their own ----------
+
+
+def test_the_generic_check_passes_valid_yaml_and_fails_broken_yaml():
+    from pipeline_checks import check_generic_pipeline
+
+    assert check_generic_pipeline("steps:\n  - build\n", "pipeline.yaml")["valid"] is True
+    broken = check_generic_pipeline("steps: [\n", ".ci.yml")
+    assert broken["valid"] is False
+    assert broken["checks"][0]["details"]
+
+
+def test_the_generic_check_has_nothing_to_check_for_a_file_that_is_not_yaml():
+    from pipeline_checks import check_generic_pipeline
+
+    result = check_generic_pipeline("pipeline { }", "Jenkinsfile")
+
+    assert result == {"valid": True, "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "skipped", "details": []}]}
+
+
+def test_a_built_in_platform_keeps_its_own_checker():
+    from pipeline_checks import check_pipeline
+    from platforms import PLATFORMS
+
+    result = check_pipeline(PLATFORMS["gitlab"], "stages: [build]\nj:\n  stage: build\n  script: [echo hi]\n")
+
+    assert {check["id"] for check in result["checks"]} == {"yaml", "schema", "jobs", "stages", "needs"}
+
+
+def test_every_built_in_platform_has_a_checker():
+    from pipeline_checks import CHECKERS
+    from platforms import PLATFORMS
+
+    assert set(PLATFORMS) <= set(CHECKERS)

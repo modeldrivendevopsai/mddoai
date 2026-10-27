@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   forkRun,
   getEvents,
+  getPublishDefaults,
   getProviders,
   getStageMetadata,
+  publishPlatform,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -344,6 +346,23 @@ export function useIntegration(runId?: string) {
     [viewedRunId]
   )
 
+  // Publishing reports its own outcome to the caller (the complete-run panel
+  // shows it in place), unlike the actions above, which use the shared error
+  // banner. A successful publish adds a platform_published event, so the
+  // run's events are refreshed too.
+  const loadPublishDefaults = useCallback(() => getPublishDefaults(), [])
+  // Sends the run on screen, so the backend refuses rather than publishing
+  // another run that became current since (polling stops once a run
+  // completes, so isCurrent alone can be stale).
+  const publish = useCallback(
+    async (name: string, outputFilename: string) => {
+      const published = await publishPlatform(name, outputFilename, viewedRunId)
+      await fetchFull()
+      return published
+    },
+    [fetchFull, viewedRunId]
+  )
+
   return {
     events,
     currentStage,
@@ -363,5 +382,7 @@ export function useIntegration(runId?: string) {
     reset,
     resume,
     fork,
+    loadPublishDefaults,
+    publish,
   }
 }
