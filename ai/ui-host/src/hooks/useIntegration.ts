@@ -39,6 +39,7 @@ export function useIntegration(runId?: string) {
   const [events, setEvents] = useState<OrchestratorEvent[]>([])
   const [currentStage, setCurrentStage] = useState<StageId | null>(null)
   const [busy, setBusy] = useState(false)
+  const [replying, setReplying] = useState(false)
   const [started, setStarted] = useState(false)
   const [model, setModelState] = useState<string | null>(null)
   // Fetched once, not polled — ChatColumn's own model picker used to fetch
@@ -75,6 +76,10 @@ export function useIntegration(runId?: string) {
   // never check this, they always fetch, since they just did something
   // that can legitimately change state.
   const doneRef = useRef(false)
+  // The run the accumulated log belongs to. A chat answer can start a new run
+  // in the background (the start_pipeline tool), after which an incremental
+  // slice would be the new run's events appended to the old run's log.
+  const runIdRef = useRef<string | null>(null)
 
   // Providers don't depend on runId (it's a global, not a per-run list), so
   // this fetches once per mount rather than re-running alongside the
@@ -95,9 +100,11 @@ export function useIntegration(runId?: string) {
 
   const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
     allEventsRef.current = replace ? body.events : [...allEventsRef.current, ...body.events]
+    runIdRef.current = body.run_id
     setEvents(allEventsRef.current)
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
+    setReplying(body.replying)
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
@@ -106,36 +113,38 @@ export function useIntegration(runId?: string) {
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
     // only real signal that /start has actually been called — plain chat
-    // events (user_message/message/tool_called) can exist with zero real
+    // events (user_message/message/message_failed/tool_called) can exist with zero real
     // pipeline activity, e.g. the LLM just asking a clarifying question, so
     // events.length alone isn't enough (a false positive here shows the
     // Stepper as "reviewing" and enables Retry for a stage that never ran).
     setStarted(allEventsRef.current.some((e) => PIPELINE_EVENT_TYPES.includes(e.type)))
-    doneRef.current = !body.busy && (body.current_stage === null || allEventsRef.current.length === 0)
+    doneRef.current =
+      !body.busy && !body.replying && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
-  // Used by the interval poll and by approve/retry, neither of which can
-  // ever change which run is current (only /start and /reset do that), so
-  // asking for since_index=<what we already have> is always safe.
+  // What's new since the accumulated log, or the whole log again when the
+  // run changed underneath it (see runIdRef). Returns whether it replaced.
+  const fetchNewEvents = useCallback(async () => {
+    const body = await getEvents(allEventsRef.current.length, runId)
+    if (runIdRef.current === null || body.run_id === runIdRef.current) return { body, replace: false }
+    return { body: await getEvents(0, runId), replace: true }
+  }, [runId])
+
+  // Used by the interval poll and by approve/retry.
   const fetchIncremental = useCallback(async () => {
     if (pollingRef.current) return
     pollingRef.current = true
     try {
-      applyEvents(await getEvents(allEventsRef.current.length, runId), false)
+      const { body, replace } = await fetchNewEvents()
+      applyEvents(body, replace)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
       pollingRef.current = false
     }
-  }, [applyEvents, runId])
+  }, [applyEvents, fetchNewEvents])
 
-  // Used after start/reset (which already clear allEventsRef themselves) and
-  // after sending a chat message, since its tool-calling can itself call
-  // start_pipeline (see tools/pipeline_control.py's start_pipeline tool),
-  // resetting the backend's own event indices in a way this hook can't
-  // predict in advance, there's no run identity yet to detect that safely,
-  // so sending a message always does a full refetch rather than risk
-  // merging two different runs' events together.
+  // Used after start/reset, which already clear allEventsRef themselves.
   const fetchFull = useCallback(async () => {
     if (pollingRef.current) return
     pollingRef.current = true
@@ -157,6 +166,7 @@ export function useIntegration(runId?: string) {
     // Switching which run is viewed (including live -> history or back) is a
     // fresh start: the previous run's accumulated event indices don't apply.
     allEventsRef.current = []
+    runIdRef.current = null
     doneRef.current = false
     isCurrentRef.current = true
 
@@ -169,8 +179,8 @@ export function useIntegration(runId?: string) {
       if (pollingRef.current) return
       pollingRef.current = true
       try {
-        const body = await getEvents(allEventsRef.current.length, runId)
-        if (!cancelled) applyEvents(body, false)
+        const { body, replace } = await fetchNewEvents()
+        if (!cancelled) applyEvents(body, replace)
       } catch {
         // Transient network hiccup, the next tick retries.
       } finally {
@@ -184,7 +194,7 @@ export function useIntegration(runId?: string) {
       cancelled = true
       clearInterval(id)
     }
-  }, [applyEvents, runId])
+  }, [applyEvents, fetchNewEvents, runId])
 
   const start = useCallback(
     async (platformDescription: string, seedUrl: string, model?: string, docsOptions?: DocsOptions) => {
@@ -243,14 +253,27 @@ export function useIntegration(runId?: string) {
   const sendMessage = useCallback(
     async (message: string) => {
       setError(null)
+      // Set before sending, so the input waits from the first keypress. The
+      // answer arrives through the events poll, which keeps running until
+      // it does.
+      setReplying(true)
       try {
         await sendMessageApi(message)
-        await fetchFull()
+        doneRef.current = false
+        await fetchIncremental()
       } catch (err) {
+        // A 409 means an earlier message is still being answered (perhaps
+        // from another tab): keep waiting for that answer instead.
+        if ((err as { status?: number }).status === 409) {
+          doneRef.current = false
+          await fetchIncremental()
+        } else {
+          setReplying(false)
+        }
         setError(messageFor(err, "Could not reach the Orchestrator."))
       }
     },
-    [fetchFull]
+    [fetchIncremental]
   )
 
   // Changes the model for the rest of the run (every subsequent stage run,
@@ -348,6 +371,7 @@ export function useIntegration(runId?: string) {
     events,
     currentStage,
     busy,
+    replying,
     started,
     model,
     providers,

@@ -15,7 +15,7 @@ automatically, the next time something polls `GET /events` - except `constraint_
 [The chat log](#the-chat-log-chat_logpy) below for why). That same reply mechanism,
 `react_to_event()`, is also what powers `POST /message`: a free-form human message is handled by
 the exact same function, just with a set of real tools attached, so it can decide to act instead
-of only commenting. See [The reply mechanism](#the-reply-mechanism-react_to_event--send_message)
+of only commenting. See [The reply mechanism](#the-reply-mechanism-react_to_event--accept_message)
 below.
 
 For MVP, every stage transition is human-driven: a client calls `POST /start`, then reviews
@@ -41,14 +41,14 @@ the Orchestrator to eventually drive the pipeline autonomously.
   `clients/integration_runner_client.py` — see [`ai/integration_runner`](../integration_runner)'s
   own README for what each proxied endpoint actually does.
 - **`assistant.py`** — the one reply mechanism: `react_to_event()` (narration) and
-  `send_message()` (a human's free-form message, the tools-enabled path through the same
+  `accept_message()` (a human's free-form message, the tools-enabled path through the same
   function).
 - **`chat_log.py`** — this run's chat transcript: mirrors `integration_runner`'s raw events in
-  immediately, narrates them in the background, and holds `send_message()`'s own turns. See
+  immediately, narrates them in the background, and holds `accept_message()`'s own turns. See
   [The chat log](#the-chat-log-chat_logpy) below.
 - **`event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`: truncating
   long event fields before they're fed into an LLM prompt. Its own module, not part of
-  `chat_log.py`, because both `chat_log.py`'s own narration and `assistant.py`'s `send_message()`
+  `chat_log.py`, because both `chat_log.py`'s own narration and `assistant.py`'s `accept_message()`
   need the identical truncation, and neither one owns "how we build a prompt from event history"
   more than the other.
 - **`system_prompt.py`** — the Orchestrator's system prompt template.
@@ -85,12 +85,12 @@ No import at all, in this production module graph, on `ai/integration_runner`'s 
 directly to reset its run registry between tests — see [Test](#test) below for why that's a
 test-only convenience, not a production dependency.
 
-## The reply mechanism (`react_to_event()` / `send_message()`)
+## The reply mechanism (`react_to_event()` / `accept_message()`)
 
 There's one reply function, not a separate "narrator" and "judge": `assistant.react_to_event(event,
 history, use_tools=False)`. With no tools it can only comment on what happened (what
 `chat_log.py` calls automatically for every new raw event it notices from `integration_runner`);
-given tools, it can also decide to act (what `send_message()` calls for a human's free-form
+given tools, it can also decide to act (what `accept_message()` calls for a human's free-form
 message). Giving it tools is the *only* difference between narrating and acting, same function,
 same system prompt, same dispatch code.
 
@@ -136,25 +136,40 @@ stage. The docs-specific one is scoped to `stages: [docs]`, wrapping `integratio
   pending, not yet approved.
 
 Because every tool that starts a stage running goes through `integration_runner`'s own REST
-endpoints, the same background-thread path a direct REST call uses, `send_message()` itself only
-ever makes one `chat()` call, the routing decision. It never blocks for a stage's duration.
+endpoints, the same background-thread path a direct REST call uses, answering a message never
+blocks for a stage's duration. It can still take minutes: the model may call several tools in a
+row, and `add_page_to_docs` fetches a whole page. So `POST /message` does not wait for the answer.
 
-`send_message(user_message)` records the human's message as a `user_message` turn, calls
-`react_to_event(..., use_tools=True)`, records each dispatched tool call as its own
-`tool_called` turn (see [The chat log](#the-chat-log-chat_logpy) below for why), records the
-reply as its own `"message"` turn, and returns:
+Answering a message has two steps, both in `assistant.py`:
+
+1. **`accept_message(user_message)`** records the human's message as a `user_message` turn and
+   marks the run as replying. It refuses a second message while one is still being answered
+   (`ReplyInProgressError`, a `409` on `POST /message`). It returns the second step.
+2. **The answer step** calls `react_to_event(..., use_tools=True)`. It records each dispatched
+   tool call as its own `tool_called` turn (see [The chat log](#the-chat-log-chat_logpy) below for
+   why), then the reply as a `"message"` turn. If the model call fails, it records a
+   `message_failed` turn with the error instead. Either way it then clears the replying flag.
+
+`POST /message` runs step 1, answers `202`, and runs step 2 after the response has gone out. The
+UI sees the answer, and whether one is still coming (`replying`), through `GET /events`. The
+answer and the cleared flag are recorded together, so a poll never sees `replying: false`
+without the answer. While an answer runs, the run takes no other message and there is no way to
+cancel it. It can last up to the LLM call's timeout (`LLM_CHAT_TIMEOUT`) plus that of any tool it
+calls, such as `DOCS_EXTEND_TIMEOUT` for a docs page. The answer step returns:
 
 - **One or more tool calls** → `{"tool_called": <last tool's name>, "result": <last tool's
   result>, "steps": [{"tool", "arguments", "result"}, ...]}`. For a tool that starts a stage
   running, `result` is `{"status": "started", "stage": ...}`; the stage's actual output shows up
-  in `GET /events` once `integration_runner`'s background thread finishes, not in this response.
+  in `GET /events` once `integration_runner`'s background thread finishes.
 - **No tool call** → `{"tool_called": None, "result": None, "message": <the model's own
   clarifying question, or a generic fallback>}`. No state is mutated.
+- **Anything failing while answering** (the model call, or reading the run's status) →
+  `{"error": <the reason>}`, also recorded as a `message_failed` turn.
 
-A hallucinated/unknown tool name doesn't crash `send_message()`, that step's `"result"` becomes
+A hallucinated/unknown tool name doesn't crash the answer, that step's `"result"` becomes
 `{"error": "Unknown tool: <name>"}` instead. A tool call that WOULD mutate state while
 `integration_runner` is busy gets the real `409` surfaced the same way, in that step's own
-`"result"` — `/message` itself has no busy guard (unlike every other mutating endpoint below): a
+`"result"`. `/message` itself has no stage-busy guard (unlike every other mutating endpoint below): a
 message that doesn't need a tool should still get a reply even while a stage is running.
 
 ## The chat log (`chat_log.py`)
@@ -173,7 +188,7 @@ This module is the one place that turns those facts into a running conversation,
    these in one go, and narrating each individually wastes a real LLM call per entry for what's
    really one bulk, automatic bookkeeping action, reading as the same comment repeated over and
    over rather than anything human-meaningful.
-3. `send_message()`'s own turns (the human's message, each dispatched tool call, the reply) are
+3. `accept_message()`'s own turns (the human's message, each dispatched tool call, the reply) are
    appended directly to the same `ChatLog`, under the same lock — genuinely one merged, ordered
    transcript per run, not separate streams stitched together after the fact.
 
@@ -196,8 +211,9 @@ The service starts at [http://localhost:8001](http://localhost:8001) (port 8000 
 Every endpoint below that runs a stage returns `202` and starts the work running in the
 background on `integration_runner`'s side, it does not wait for the stage to finish. Poll
 `GET /events` to see progress. A downstream failure surfaces as a `call_failed` event via
-`GET /events`, not an HTTP `500` — `500` is reserved for a genuine unhandled server bug (or, for
-`/message`, a failure in its own synchronous routing call).
+`GET /events`, not an HTTP `500`. `500` is reserved for a genuine unhandled server bug. A chat
+message is answered the same way: `POST /message` returns `202`, and the answer, or a
+`message_failed` event, arrives through `GET /events`.
 
 ### `POST /start`
 
@@ -232,8 +248,9 @@ Makes a past run current again, picking up exactly where it left off. `404` for 
 
 ### `GET /events`
 
-Returns this run's merged chat log (mirrored raw events, their narration, and `send_message()`
-turns). `?since_index=N` returns only entries from index `N` onward, for incremental polling.
+Returns this run's merged chat log (mirrored raw events, their narration, and chat message
+turns), plus `replying`: true while a chat message is still being answered.
+`?since_index=N` returns only entries from index `N` onward, for incremental polling.
 `?run_id=` reads a specific (possibly past) run instead of the current one.
 
 Response:
@@ -248,6 +265,7 @@ Response:
   ],
   "current_stage": "docs",
   "busy": false,
+  "replying": false,
   "model": null,
   "is_current": true
 }
@@ -285,24 +303,29 @@ override key the current stage doesn't recognize (`integration_runner`'s own
 ### `POST /message`
 
 Lets an LLM decide which pipeline action a free-form human message maps to (see
-[The reply mechanism](#the-reply-mechanism-react_to_event--send_message) above), executes it,
-and returns whatever `send_message()` returns directly. No busy guard (see above for why).
+[The reply mechanism](#the-reply-mechanism-react_to_event--accept_message) above) and executes it.
+Returns `202` as soon as the message is recorded; the answer arrives through `GET /events`.
+`409` while this run's previous message is still being answered. No stage-busy guard (see above
+for why).
 
 Request:
 ```json
 { "message": "the ATL stage output is wrong, please redo it with a lint step added" }
 ```
 
-Response — here the model called `add_constraint` then `rerun_stage`:
+Response:
 ```json
-{
-  "tool_called": "rerun_stage",
-  "result": { "status": "started", "stage": "atl" },
-  "steps": [
-    { "tool": "add_constraint", "arguments": { "stage": "atl", "constraint": "Add a lint step to validate the ATL transformation rules" }, "result": null },
-    { "tool": "rerun_stage", "arguments": {}, "result": { "status": "started", "stage": "atl" } }
-  ]
-}
+{ "status": "accepted" }
+```
+
+Then, through `GET /events`, here the model called `add_constraint` then `rerun_stage`:
+```json
+[
+  { "type": "user_message", "stage": "atl", "data": { "message": "the ATL stage output is wrong, please redo it with a lint step added" }, "timestamp": 1234.5 },
+  { "type": "tool_called", "stage": "atl", "data": { "tool": "add_constraint", "arguments": { "stage": "atl", "constraint": "Add a lint step to validate the ATL transformation rules" }, "result": null }, "timestamp": 1236.1 },
+  { "type": "tool_called", "stage": "atl", "data": { "tool": "rerun_stage", "arguments": {}, "result": { "status": "started", "stage": "atl" } }, "timestamp": 1236.1 },
+  { "type": "message", "stage": "atl", "text": "Added the lint step and started ATL again.", "model": "gemini-flash", "timestamp": 1236.2 }
+]
 ```
 
 ### `GET /providers`
@@ -337,7 +360,7 @@ cp .env.example .env
 
 This service's production code has no import on `ai-layer`'s or `integration_runner`'s source,
 only real HTTP calls to each (see [Test](#test) below for the one test-only exception). It does
-need both actually *running* and reachable: narration, `send_message()`'s
+need both actually *running* and reachable: narration, `accept_message()`'s
 routing decision, and `/providers` all call `ai-layer`'s `/chat`/`/providers` directly; every
 other real capability (running a stage, reviewing it, adding a page to the docs stage's output)
 is a real HTTP call to `integration_runner`.
@@ -370,7 +393,7 @@ place this service's test code imports `integration_runner`'s Python internals: 
 to give each test a clean run registry, every actual assertion still goes through the real
 ASGI-routed HTTP call above, never a direct internals call.
 
-- **`tests/test_assistant.py`** — `react_to_event()`/`send_message()`, tool dispatch for every
+- **`tests/test_assistant.py`** — `react_to_event()`/`accept_message()`, tool dispatch for every
   declared tool, and the multi-step `add_constraint` → `rerun_stage` sequence.
 - **`tests/test_chat_log.py`** — the narration mechanism: synchronous mirroring, background
   narration order and history, `constraint_added` mirrored but not narrated, failure fallback,

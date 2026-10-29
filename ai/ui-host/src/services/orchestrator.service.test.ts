@@ -235,8 +235,8 @@ describe("orchestratorService", () => {
     await expect(getRuns()).rejects.toThrow("Runs request failed: 500")
   })
 
-  it("sendMessage posts the message and returns the reply", async () => {
-    const payload = { tool_called: "rerun_stage", result: { status: "started", stage: "psm" } }
+  it("sendMessage posts the message and returns the acceptance", async () => {
+    const payload = { status: "accepted" }
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
     vi.stubGlobal("fetch", mockFetch)
 

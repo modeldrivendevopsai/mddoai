@@ -38,11 +38,12 @@ export type OrchestratorEventType =
   | "tool_called"
   | "user_message"
   | "message"
+  | "message_failed"
 
-// The 8 types integration_runner itself reports as raw pipeline facts — a
-// real signal that a run has actually started. The other 3 (tool_called,
-// user_message, message) are chat-layer-only: send_message() appends them
-// for a plain conversational turn too, even when the LLM decides not to
+// The types integration_runner itself reports as raw pipeline facts — a
+// real signal that a run has actually started. The others (tool_called,
+// user_message, message, message_failed) are chat-layer-only: a chat message
+// adds them for a plain conversational turn too, even when the LLM decides not to
 // call any tool, so their presence alone doesn't mean a real run exists.
 export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
   "call_started",
@@ -83,6 +84,9 @@ export interface EventsResponse {
   // is the live run or a past one being viewed read-only. The attempts
   // browser needs this real id to know which run's own attempt tree to read.
   run_id: string
+  // True while a chat message sent to this run is still being answered. The
+  // answer arrives as later events, since POST /message returns at once.
+  replying: boolean
 }
 
 // One entry per run the backend has seen (in-memory only) — the sidebar's
@@ -152,17 +156,10 @@ export interface RerunOverrides {
   mock?: boolean
 }
 
-export interface MessageStep {
-  tool: string
-  arguments: Record<string, unknown>
-  result: unknown
-}
-
+// POST /message only accepts the message; the answer arrives through
+// GET /events.
 export interface MessageResponse {
-  tool_called: string | null
-  result: unknown
-  message?: string
-  steps?: MessageStep[]
+  status: "accepted"
 }
 
 export interface Provider {

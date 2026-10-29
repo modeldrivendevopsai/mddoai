@@ -58,7 +58,7 @@ chat_log.set_reactor(assistant.react_to_event)
 def reset_chat_logs():
     """Each test starts with a clean chat_log._chat_logs, so one test's
     mirrored events/narration/messages can't leak into another's
-    assertions, every test that touches GET /events or send_message()
+    assertions, every test that touches GET /events or accept_message()
     writes into this same process-wide dict."""
     original = dict(chat_log._chat_logs)
     chat_log._chat_logs.clear()
@@ -100,7 +100,7 @@ def _isolated_validation_runs_dir(tmp_path, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def fake_stage_metadata():
-    """Every test that calls send_message()/react_to_event() needs a real
+    """Every test that calls accept_message()/react_to_event() needs a real
     stage list/descriptions to build the system prompt and tool schemas
     from (see tools.stage_metadata()), patched here once, for the whole
     suite, rather than every test file repeating the same mock."""

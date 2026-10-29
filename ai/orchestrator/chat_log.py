@@ -8,7 +8,7 @@ notices, it mirrors the raw fact itself into this run's transcript, then
 (for every type except _NOT_NARRATED below) asks the wired-in reactor (see
 set_reactor(), same pattern integration_runner's own pipeline.py used before
 this split, just relocated) for a short comment and appends that as its own
-"message" turn, the same way send_message() (a human's own chat turn, see
+"message" turn, the same way accept_message() (a human's own chat turn, see
 assistant.py) appends directly. All three append to the exact same list, in
 real arrival order, so this is genuinely one merged, ordered chat transcript
 per run, not separate streams stitched together after the fact.
@@ -24,7 +24,7 @@ process that now needs it to hold the conversation.
 
 Prompt-building (event_summarization.py's summarize_for_reaction()/
 summarize_history()) is a separate concern from this transcript, imported
-in, not defined here: send_message() (assistant.py) needs the exact same
+in, not defined here: accept_message() (assistant.py) needs the exact same
 truncation this module's own narration does, and neither module owns that
 concern more than the other.
 """
@@ -71,7 +71,7 @@ def _sanitize_narration_text(text: str) -> str:
 
 # Late-bound: this module and assistant.py would otherwise need to import
 # each other (this module calls react_to_event() for narration, assistant.py
-# calls into this module to append send_message()'s own turns) — main.py
+# calls into this module to append accept_message()'s own turns) — main.py
 # wires the real one in explicitly at startup instead.
 _reactor: Callable[[dict, list[dict] | None], dict] | None = None
 
@@ -84,13 +84,14 @@ def set_reactor(reactor: Callable[[dict, list[dict] | None], dict]) -> None:
 class ChatLog:
     """One run's chat transcript: the AI's comments on what
     integration_runner reported, plus the human's own messages and replies
-    from send_message(), one ordered, append-only list."""
+    from accept_message(), one ordered, append-only list."""
 
     def __init__(self):
         self.events: list[dict] = []
         self.raw_seen: int = 0   # how many of integration_runner's raw events are already reflected here
         self.lock = threading.Lock()
         self.narrating = False   # true while a background thread is writing a new comment in
+        self.replying = False    # true while a human's chat message is being answered
         # The most recently started narration thread, if any. Not used by
         # the API itself (a real client polls GET /events instead), only
         # exposed so tests can deterministically join() it rather than
@@ -100,6 +101,10 @@ class ChatLog:
     def append(self, event: dict) -> None:
         with self.lock:
             self.events.append(event)
+
+    def append_all(self, events: list[dict]) -> None:
+        with self.lock:
+            self.events.extend(events)
 
 
 # One chat log per run, keyed by integration_runner's real run_id, kept for
@@ -115,7 +120,7 @@ _chat_logs: dict[str, ChatLog] = {}
 
 def get_chat_log(run_id: str) -> ChatLog:
     """The real ChatLog for a run, creating one if this process hasn't seen
-    it yet. Used by send_message() to append the human's own turn and its
+    it yet. Used by accept_message() to append the human's own turn and its
     reply directly, without going through get_events()'s integration_runner
     round-trip first."""
     return _chat_logs.setdefault(run_id, ChatLog())
@@ -129,7 +134,7 @@ def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict
     on the very next poll even if its comment takes a moment longer. history
     for each event is looked up by identity (`is`, not position), not a
     captured index, since chat.events keeps growing (both from narration
-    appended here and, concurrently, from a real send_message() call) while
+    appended here and, concurrently, from a real accept_message() call) while
     this loop runs; an index captured up front would silently drift."""
     def _run():
         try:
@@ -163,7 +168,8 @@ def get_events(run_id: str | None = None, since_index: int = 0) -> dict:
     """The merged view GET /events actually returns: integration_runner's
     real current state (current_stage/busy/model/run_id) plus this run's
     full chat transcript (mirrored raw events, their narration, and
-    send_message() turns), sliced from since_index. Any newly-noticed raw
+    chat message turns), sliced from since_index, plus whether a chat
+    message is still being answered. Any newly-noticed raw
     event is mirrored into the transcript immediately, synchronously, right
     here — so it's visible on this very call — while narrating it (a real
     LLM call) happens in the background and never blocks this call; a
@@ -175,6 +181,8 @@ def get_events(run_id: str | None = None, since_index: int = 0) -> dict:
         new_raw = raw["events"][chat.raw_seen:]
         chat.raw_seen = len(raw["events"])
         chat.events.extend(new_raw)
+        # Read together, so "not replying" never comes without the reply.
+        events, replying = chat.events[since_index:], chat.replying
     if new_raw and not chat.narrating:
         _narrate_in_background(chat, raw["run_id"], new_raw)
-    return {**raw, "events": chat.events[since_index:]}
+    return {**raw, "events": events, "replying": replying}
