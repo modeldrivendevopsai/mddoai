@@ -20,8 +20,9 @@ Tests verify:
      doesn't crash on a hallucinated/unknown tool name.
   2. The human's message is recorded when it is accepted; each dispatched
      tool call and the reply, or a message_failed entry, when it is
-     answered. The run counts as replying in between, refuses a second
-     message, and is never left replying after a failure.
+     answered. A reply counts as in progress in between, a second message
+     is refused (on any run), nothing is left in progress after a failure,
+     and an answer is copied into a new run only when it started that run.
   3. react_to_event() with use_tools=False only narrates, it never passes
      tools= at all, so there's nothing for the LLM to dispatch even if it tried.
 """
@@ -242,13 +243,13 @@ def test_accept_message_records_the_turn_and_waits_to_answer_until_called():
             chat = chat_log.get_chat_log("run-1")
 
             assert [e["type"] for e in chat.events] == ["user_message"]
-            assert chat.replying is True
+            assert chat_log.replying() is True
             mock_chat.assert_not_called()
 
             answer()
 
     assert [e["type"] for e in chat.events] == ["user_message", "message"]
-    assert chat.replying is False
+    assert chat_log.replying() is False
 
 
 def test_accept_message_refuses_a_second_message_until_the_first_is_answered():
@@ -256,13 +257,25 @@ def test_accept_message_refuses_a_second_message_until_the_first_is_answered():
     with patch.object(integration_runner_client, "get_status", return_value=_status(run_id="run-1")):
         with patch.object(ai_layer_client, "chat", return_value=response):
             answer = assistant.accept_message("first")
-            with pytest.raises(assistant.ReplyInProgressError):
+            with pytest.raises(chat_log.ReplyInProgressError):
                 assistant.accept_message("second")
             answer()
             assistant.accept_message("third")()
 
     messages = [e["data"]["message"] for e in chat_log.get_chat_log("run-1").events if e["type"] == "user_message"]
     assert messages == ["first", "third"]
+
+
+def test_a_second_message_is_refused_even_on_another_run():
+    # The answer's tools act on whichever run is current, so the guard is
+    # for the whole Orchestrator, not per run.
+    statuses = iter([_status(run_id="run-1"), _status(run_id="run-2")])
+    with patch.object(integration_runner_client, "get_status", side_effect=lambda: next(statuses)):
+        assistant.accept_message("first")
+        with pytest.raises(chat_log.ReplyInProgressError):
+            assistant.accept_message("second")
+
+    assert chat_log.get_chat_log("run-2").events == []
 
 
 def test_accept_message_records_a_failed_answer_and_frees_the_run_for_the_next_message():
@@ -274,14 +287,14 @@ def test_accept_message_records_a_failed_answer_and_frees_the_run_for_the_next_m
     assert result == {"error": "all providers exhausted"}
     assert chat.events[-1]["type"] == "message_failed"
     assert chat.events[-1]["data"] == {"error": "all providers exhausted"}
-    assert chat.replying is False
+    assert chat_log.replying() is False
 
 
 def test_the_run_reports_replying_through_events_while_the_answer_runs():
     seen = []
 
     def chat_while_watching(*_args, **_kwargs):
-        seen.append(chat_log.get_chat_log("run-1").replying)
+        seen.append(chat_log.replying())
         return tool_response(None, content="Done.")
 
     with patch.object(integration_runner_client, "get_status", return_value=_status(run_id="run-1")):
@@ -289,28 +302,45 @@ def test_the_run_reports_replying_through_events_while_the_answer_runs():
             _send("hello")
 
     assert seen == [True]
-    assert chat_log.get_chat_log("run-1").replying is False
+    assert chat_log.replying() is False
 
 
 def test_a_message_that_cannot_be_recorded_does_not_leave_the_run_replying():
     with patch.object(integration_runner_client, "get_status", return_value=_status(run_id="run-1")):
-        with patch.object(assistant, "summarize_history", side_effect=RuntimeError("bad history")):
+        with patch.object(chat_log, "summarize_history", side_effect=RuntimeError("bad history")):
             with pytest.raises(RuntimeError):
                 assistant.accept_message("hello")
 
-    chat = chat_log.get_chat_log("run-1")
-    assert chat.replying is False
-    assert chat.events == []
+    assert chat_log.replying() is False
+    assert chat_log.get_chat_log("run-1").events == []
 
 
 def test_an_answer_that_started_a_new_run_is_also_recorded_in_that_run():
+    stub = tool_response([tool_call("start_pipeline", {
+        "platform_description": "GitLab CI", "seed_url": "https://docs.gitlab.com/ee/ci/",
+    })], content="Started a new run.")
     statuses = iter([_status(run_id="old-run"), _status(run_id="old-run"), _status(run_id="new-run")])
     with patch.object(integration_runner_client, "get_status", side_effect=lambda: next(statuses)):
-        with patch.object(ai_layer_client, "chat", return_value=tool_response(None, content="Started a new run.")):
-            _send("start over for GitLab")
+        with patch.object(ai_layer_client, "chat", return_value=stub):
+            with patch.object(
+                integration_runner_client, "start_pipeline", return_value={"status": "started", "stage": "docs"},
+            ):
+                _send("start over for GitLab")
 
     for run in ("old-run", "new-run"):
-        assert [e["type"] for e in chat_log.get_chat_log(run).events] == ["user_message", "message"]
+        assert [e["type"] for e in chat_log.get_chat_log(run).events] == ["user_message", "tool_called", "message"]
+
+
+def test_an_answer_is_not_copied_into_a_run_it_did_not_start():
+    # The run changed while the answer ran (someone pressed Restart), but the
+    # answer itself started nothing: the new run's chat stays its own.
+    statuses = iter([_status(run_id="old-run"), _status(run_id="old-run"), _status(run_id="restarted-run")])
+    with patch.object(integration_runner_client, "get_status", side_effect=lambda: next(statuses)):
+        with patch.object(ai_layer_client, "chat", return_value=tool_response(None, content="Here's the status.")):
+            _send("how is it going?")
+
+    assert [e["type"] for e in chat_log.get_chat_log("old-run").events] == ["user_message", "message"]
+    assert chat_log.get_chat_log("restarted-run").events == []
 
 
 def test_a_failure_after_the_model_answered_is_recorded_and_frees_the_run():
@@ -322,4 +352,4 @@ def test_a_failure_after_the_model_answered_is_recorded_and_frees_the_run():
     chat = chat_log.get_chat_log("run-1")
     assert result == {"error": "bad reply"}
     assert chat.events[-1]["type"] == "message_failed"
-    assert chat.replying is False
+    assert chat_log.replying() is False

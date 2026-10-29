@@ -941,6 +941,31 @@ def test_message_endpoint_answers_only_after_responding():
     assert client.get("/events").json()["replying"] is False
 
 
+def test_a_message_that_starts_a_new_run_is_recorded_in_both_runs():
+    """End to end through the real integration_runner: the answer's
+    start_pipeline call replaces the finished run with a new one, which the
+    UI then shows, so the message and the answer appear in both."""
+    start_pipeline()
+    old_run = ir_runs.current_run_id()
+    arguments = '{"platform_description": "GitHub Actions", "seed_url": "https://example.com/gha"}'
+    tool_calls = [{"function": {"name": "start_pipeline", "arguments": arguments}}]
+    with patch.object(ai_layer_client, "httpx") as mock_httpx, patch.object(retrieval_client, "httpx") as mock_retrieval:
+        mock_retrieval.post.return_value = _fake_fetch_response()
+        mock_httpx.post.return_value = _fake_httpx_response(None, tool_calls=tool_calls)
+        response = client.post("/message", json={"message": "start over for GitHub Actions"})
+        ir_runs.wait_for_idle()
+
+    assert response.status_code == 202
+    new_run = ir_runs.current_run_id()
+    assert new_run != old_run
+    for run in (old_run, new_run):
+        events = chat_log.get_chat_log(run).events
+        assert any(e["type"] == "user_message" and e["data"]["message"] == "start over for GitHub Actions" for e in events)
+        assert any(e["type"] == "tool_called" and e["data"]["tool"] == "start_pipeline" for e in events)
+        assert any(e.get("text") == "Called start_pipeline." for e in events)
+    assert client.get("/events").json()["replying"] is False
+
+
 def test_message_endpoint_records_the_clarification_when_no_tool_called():
     start_pipeline()
 
@@ -979,7 +1004,7 @@ def test_message_endpoint_returns_500_when_the_message_cannot_be_recorded():
 
 def test_message_endpoint_refuses_a_second_message_while_one_is_being_answered():
     start_pipeline()
-    chat_log.get_chat_log(ir_runs.current_run_id()).replying = True
+    chat_log._reply_slot.acquire()
 
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         response = client.post("/message", json={"message": "and another thing"})

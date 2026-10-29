@@ -208,7 +208,9 @@ def rerun_endpoint(stage_id: str, request: RerunRequest | None = None):
 def message_endpoint(request: MessageRequest, background_tasks: BackgroundTasks):
     # Answered after this response goes out, since an answer can outlast
     # any proxy's request timeout; the reply arrives through GET /events.
-    # 409 while this run's previous message is still being answered.
+    # FastAPI's BackgroundTasks is enough here: one answer runs at a time, so
+    # it holds at most one of Starlette's shared request threads.
+    # 409 while the previous message is still being answered.
     #
     # Deliberately no stage-busy pre-check here, unlike every endpoint above:
     # a message that doesn't need a tool (a status question, small talk)
@@ -219,7 +221,7 @@ def message_endpoint(request: MessageRequest, background_tasks: BackgroundTasks)
     # message.
     try:
         answer = assistant.accept_message(request.message)
-    except assistant.ReplyInProgressError as e:
+    except chat_log.ReplyInProgressError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
