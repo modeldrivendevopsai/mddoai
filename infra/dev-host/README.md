@@ -20,7 +20,7 @@ The design is the "Dev Host (Hetzner)" page of the
 It grows in versions, each adding to the one before:
 
 1. **V1, solo dev box:** the VM, reached over SSH only. Done.
-2. **V2, Test environment:** a second copy of the stack on the same VM, for reviewing branches in a browser, behind a Cloudflare tunnel and GitHub login. Done; this is the current version.
+2. **V2, Test environment:** a second copy of the stack on the same VM, for reviewing branches in a browser, behind a Cloudflare tunnel and GitHub login. The branch it runs is picked with a GitHub workflow. Done; this is the current version.
 3. **V3, public demo:** a demo of `main` that people outside the project can open.
 4. **V4, other developers:** their own accounts and copies of the app on the same VM.
 
