@@ -1,7 +1,9 @@
-"""Generating a pipeline for one platform, as the entry /generate reports it."""
+"""Generating pipelines from a model: each platform's entry, and a whole
+generation as /generate's job reports it."""
 import logging
 
 from engine_runner import EngineError, run_engine
+from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from platforms import ENGINE, Platform
 from published_runner import PublishedRunError, run_published
@@ -54,3 +56,28 @@ def generate_one(
         except WorkspaceError as e:
             entry["save_error"] = e.message
     return entry
+
+
+def generate_all(
+    content: str,
+    filename: str,
+    source_path: str | None,
+    save_to: str | None,
+    platforms: list[Platform],
+    workspace: Workspace,
+    history: PipelineHistory,
+    registry: PlatformRegistry,
+) -> dict:
+    """Generates a pipeline for each platform, saves each one into save_to
+    when given, and records the result in the history so it can be
+    reopened. Returns what the finished job reports."""
+    results = [generate_one(content, platform, workspace, save_to, registry) for platform in platforms]
+    generated = [result for result in results if result["error"] is None]
+    pipeline_id = history.record_generation(
+        filename=filename,
+        content=content,
+        source_path=workspace.normalize(source_path) if source_path else None,
+        save_to=save_to,
+        generated=generated,
+    )
+    return {"pipeline_id": pipeline_id, "results": results}

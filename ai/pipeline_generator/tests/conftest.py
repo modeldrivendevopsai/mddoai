@@ -32,7 +32,8 @@ def isolated_storage(workspace_dir, history, registry):
     main.app.dependency_overrides[get_workspace] = lambda: Workspace(workspace_dir)
     main.app.dependency_overrides[get_history] = lambda: history
     main.app.dependency_overrides[get_registry] = lambda: registry
-    jobs = GenerationJobs()
+    # Runs each generation at once, so a test's GET finds it finished.
+    jobs = GenerationJobs(max_finished=10, run=lambda task: task())
     main.app.dependency_overrides[get_jobs] = lambda: jobs
     yield
     main.app.dependency_overrides.clear()

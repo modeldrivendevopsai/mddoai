@@ -2,9 +2,9 @@
 
 
 def generate(client, body: dict):
-    """POST /generate, then GET the job it started. The test client runs the
-    generation (a background task) before the POST returns, so the job is
-    already finished. A refused request returns the POST's own response."""
+    """POST /generate, then GET the job it started. The tests' job store
+    runs a generation at once, so the job is already finished. A refused
+    request returns the POST's own response."""
     started = client.post("/generate", json=body)
     if started.status_code != 202:
         return started

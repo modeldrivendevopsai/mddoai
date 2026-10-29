@@ -194,6 +194,8 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `SWARCH_AGENT_URL` | Where `swarch_agent` is reached, to turn a model into a PIM for a published platform. |
 | `EXECUTION_AGENT_URL` | Where `execution_agent` is reached, to run a published platform's transformation and template. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
+| `GENERATOR_MAX_FINISHED_JOBS` | How many finished generation jobs are kept for `GET /generate/{job_id}`. The oldest are forgotten beyond it; running jobs never are. |
+| `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn, reported as running. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest file read back from the engine, and the largest pipeline `/validate` accepts. One setting, so a pipeline the engine can write can always be validated. |
 

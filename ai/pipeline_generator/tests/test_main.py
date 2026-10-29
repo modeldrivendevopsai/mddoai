@@ -1,7 +1,6 @@
 """FastAPI endpoint tests. Mocks only the real boundaries: the call to
 validator-agent and the engine subprocess. Request validation, error mapping
 and response shaping all run for real."""
-import asyncio
 from unittest.mock import patch
 
 import httpx
@@ -142,24 +141,23 @@ def test_generate_answers_at_once_with_a_job_to_fetch():
     assert job.json()["pipeline_id"]
 
 
-def test_generate_runs_only_after_responding(workspace_dir, history, registry):
-    """Called directly, so nothing runs the background step until the test
-    does: the job is reported running first, finished after it."""
-    from fastapi import BackgroundTasks
-
+def test_generate_answers_before_generating(workspace_dir, history, registry):
+    """With a job store that holds work back, the endpoint has answered and
+    the job is running before the engine is ever called."""
     from generation_jobs import GenerationJobs
     from workspace import Workspace
 
-    jobs, tasks = GenerationJobs(), BackgroundTasks()
+    pending = []
+    jobs = GenerationJobs(max_finished=10, run=pending.append)
     request = main.GenerateRequest(**MODEL, platforms=["gitlab"])
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
             patch("generation.run_engine", return_value=_engine_result()) as engine:
-        started = main.generate_endpoint(request, tasks, Workspace(workspace_dir), history, registry, jobs)
+        started = main.generate_endpoint(request, Workspace(workspace_dir), history, registry, jobs)
 
         assert jobs.get(started["job_id"]) == {"state": "running"}
         engine.assert_not_called()
 
-        asyncio.run(tasks())
+        pending[0]()
 
     assert jobs.get(started["job_id"])["state"] == "done"
 

@@ -1,15 +1,16 @@
+import functools
 import logging
 import os
 
 import httpx
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
 from engine_runner import MAX_PIPELINE_BYTES
-from generation import GENERATION_FAILED, generate_one
+from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
 from pipeline_checks import PipelineValidation, check_pipeline
 from pipeline_history import PipelineHistory
@@ -141,7 +142,6 @@ def inspect_endpoint(request: ModelRequest):
 @app.post("/generate", status_code=202)
 def generate_endpoint(
     request: GenerateRequest,
-    background_tasks: BackgroundTasks,
     workspace: Workspace = Depends(get_workspace),
     history: PipelineHistory = Depends(get_history),
     registry: PlatformRegistry = Depends(get_registry),
@@ -163,37 +163,18 @@ def generate_endpoint(
             detail={"message": "The model is not valid, so no pipeline was generated.", "issues": model_validation["issues"]},
         )
 
-    job_id = jobs.create()
-    background_tasks.add_task(_generate, job_id, request, platforms, workspace, history, registry, jobs)
-    return {"job_id": job_id}
-
-
-def _generate(
-    job_id: str,
-    request: GenerateRequest,
-    platforms: list[Platform],
-    workspace: Workspace,
-    history: PipelineHistory,
-    registry: PlatformRegistry,
-    jobs: GenerationJobs,
-) -> None:
-    """Generates a pipeline for each requested platform, saves each one into
-    `save_to` when given, and records the result so it can be reopened."""
-    try:
-        results = [generate_one(request.content, platform, workspace, request.save_to, registry) for platform in platforms]
-        generated = [result for result in results if result["error"] is None]
-        pipeline_id = history.record_generation(
-            filename=request.filename,
-            content=request.content,
-            source_path=workspace.normalize(request.source_path) if request.source_path else None,
-            save_to=request.save_to,
-            generated=generated,
-        )
-    except Exception:
-        logger.exception("generation job %s failed", job_id)
-        jobs.fail(job_id, GENERATION_FAILED)
-        return
-    jobs.finish(job_id, {"pipeline_id": pipeline_id, "results": results})
+    work = functools.partial(
+        generate_all,
+        content=request.content,
+        filename=request.filename,
+        source_path=request.source_path,
+        save_to=request.save_to,
+        platforms=platforms,
+        workspace=workspace,
+        history=history,
+        registry=registry,
+    )
+    return {"job_id": jobs.start(work, GENERATION_FAILED)}
 
 
 @app.get("/generate/{job_id}")
