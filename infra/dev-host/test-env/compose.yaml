@@ -12,7 +12,7 @@ services:
     environment:
       OAUTH2_PROXY_PROVIDER: github
       # Never empty: an empty list would let any GitHub account in.
-      OAUTH2_PROXY_GITHUB_USERS: ${GITHUB_USERS:?set GITHUB_USERS in /opt/mddoai-test/.env}
+      OAUTH2_PROXY_GITHUB_USERS: ${GITHUB_USERS:?set GITHUB_USERS in the Test environment's .env}
       # Any address: the user list decides who gets in.
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
       OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_CLIENT_ID:?}

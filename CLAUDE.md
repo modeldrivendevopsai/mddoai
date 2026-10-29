@@ -13,7 +13,8 @@ MDDOAI (Model-Driven DevOps AI) generates CI/CD pipeline configs from software a
 - `ai/` — the AI product: multiple services (chat UI, backend API, and supporting agents) built on top of the transformation chain. Mostly separate from the Java/Eclipse engine, with a few narrow, explicitly documented exceptions. See `ai/CLAUDE.md` for the documented folder boundaries and each exception's exact scope.
 - `mddoai-design-system/` — the on-brand component library and Claude Design skill (`/mddoai-design`). Read `mddoai-design-system/project/SKILL.md` before doing UI work.
 - `docs/` — misc project docs.
-- `infra/` — infrastructure as code for the remote machines used to develop the project. Each subfolder covers one machine and has a README explaining what it creates and how to use it.
+- `infra/` — infrastructure as code for the remote machines used to develop and review the project. Each subfolder covers one machine, including what runs on it, and has a README explaining what it creates and how to use it.
+- `.github/` — GitHub configuration: Actions workflows (`workflows/`) and the Copilot agent definitions described under [Agents in `.github/agents/`](#agents-in-githubagents).
 - `pipeline_tests/`, `install_necessary_packages/`, `viewpointrepresentations/` — supporting material for the MDE engine; match a new file's placement to the existing sibling closest to its purpose.
 - `logo/` and top-level project docs — general project branding and documentation, shared across the MDE engine and the AI product.
 - If a directory doesn't appear anywhere in this list, that's a gap in this section to flag and fix, not a signal that a file placed there is automatically wrong.

@@ -16,7 +16,7 @@ $original = [IO.File]::ReadAllText($TfvarsFile)
 $line = [regex]::Match($original, '(?m)^ssh_allowed_cidrs\s*=\s*\[[^\]\r\n]*\]')
 if (-not $line.Success) { throw "No one-line ssh_allowed_cidrs = [...] in $TfvarsFile." }
 if ($line.Value.Contains("`"$cidr`"")) {
-  Write-Log "terraform.tfvars already lists $cidr."
+  Write-Host "terraform.tfvars already lists $cidr."
   return
 }
 # Replacing the only address is safe. With several, one may be another
@@ -35,14 +35,14 @@ try {
     $env:HCLOUD_TOKEN = $tokenLine.Matches[0].Groups[1].Value.Trim('"', "'")
   }
   [IO.File]::WriteAllText($TfvarsFile, $updated)
-  Write-Log "Allowing $cidr. The plan should only update hcloud_firewall.dev."
+  Write-Host "Allowing $cidr. The plan should only update hcloud_firewall.dev."
   Invoke-Native { terraform "-chdir=$TerraformDir" apply } 'terraform apply'
   $applied = $true
 } finally {
   # finally, not catch, so this also runs after Ctrl+C at the prompt.
   if (-not $applied) {
     [IO.File]::WriteAllText($TfvarsFile, $original)
-    Write-Log 'The firewall was not updated, so terraform.tfvars was put back as it was.'
+    Write-Host 'The firewall was not updated, so terraform.tfvars was put back as it was.'
   }
   # Leave the terminal's token as it was before this step.
   $env:HCLOUD_TOKEN = $previousToken

@@ -1,7 +1,7 @@
 # Opens VS Code connected to the VM, in the developer's home folder.
 . (Join-Path $PSScriptRoot '..\lib\common.ps1')
 
-$target = Get-SshTarget
-$folder = "/home/$($target.User)"
-Write-Log "Opening VS Code on $($target.Host):$folder"
-Invoke-Native { code --remote "ssh-remote+$($target.Host)" $folder } 'Opening VS Code'
+$sshHost = Get-TerraformOutput 'ssh_host'
+$folder = "/home/$(Get-TerraformOutput 'dev_user')"
+Write-Host "Opening VS Code on ${sshHost}:$folder"
+Invoke-Native { code --remote "ssh-remote+$sshHost" $folder } 'Opening VS Code'

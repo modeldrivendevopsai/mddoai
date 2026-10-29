@@ -37,12 +37,6 @@ jobs:
             echo "::error::'$BRANCH' is not a branch name, or there is no such branch."
             exit 1
           fi
-          # The default shell has no pipefail, so grep alone decides here.
-          if ! curl -fsS "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/refs/heads/$BRANCH/ai/docker-compose.yml" | grep -q UI_PORT; then
-            echo "::error::Could not read '$BRANCH', or it does not have the configurable stack ports, so it cannot run in the Test environment."
-            exit 1
-          fi
-
           # The first run ever creates the config branch.
           git clone --quiet --depth 1 --branch test-env-config "$REPO" config || git init --quiet --initial-branch test-env-config config
           cd config

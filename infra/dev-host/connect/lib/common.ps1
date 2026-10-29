@@ -6,12 +6,9 @@ $ConnectDir = Split-Path -Parent $PSScriptRoot
 $DevHostDir = Split-Path -Parent $ConnectDir
 $TerraformDir = Join-Path $DevHostDir 'terraform'
 $SetupDir = Join-Path $DevHostDir 'setup'
+$TestEnvDir = Join-Path $DevHostDir 'test-env'
 $TfvarsFile = Join-Path $TerraformDir 'terraform.tfvars'
 $SshConfigFile = Join-Path $HOME '.ssh\config'
-
-function Write-Log([string]$Message) {
-  Write-Host $Message
-}
 
 # Runs a native command and stops on a non-zero exit code, which PowerShell
 # 5.1 otherwise ignores. Success is judged by the exit code alone: when the
@@ -37,14 +34,4 @@ function Get-TerraformOutput([string]$Name) {
   $value = & terraform "-chdir=$TerraformDir" output -raw $Name
   if ($LASTEXITCODE -ne 0) { throw "terraform output $Name failed. Has terraform apply run?" }
   return ($value -join "`n")
-}
-
-# The Host alias and user from the ssh_config output, so later steps use the
-# same names Terraform was given.
-function Get-SshTarget {
-  $config = Get-TerraformOutput 'ssh_config'
-  $hostAlias = [regex]::Match($config, '(?m)^\s*Host\s+(\S+)').Groups[1].Value
-  $user = [regex]::Match($config, '(?m)^\s*User\s+(\S+)').Groups[1].Value
-  if (-not $hostAlias -or -not $user) { throw 'Could not read Host and User from the ssh_config output.' }
-  return [pscustomobject]@{ Host = $hostAlias; User = $user; Config = $config }
 }

@@ -1,3 +1,0 @@
-# Everything here runs on the Linux VM. Keep LF line endings even on Windows
-# checkouts with core.autocrlf, or bash fails on the carriage returns.
-* text eol=lf

@@ -13,7 +13,7 @@ if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
 
 $installed = & code --list-extensions
 if ($installed -contains $extension) {
-  Write-Log "VS Code extension $extension is installed."
+  Write-Host "VS Code extension $extension is installed."
   return
 }
 Invoke-Native { code --install-extension $extension } "Installing $extension"
