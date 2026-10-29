@@ -62,11 +62,13 @@ variable "dev_user" {
   }
 }
 
-# The default matches UI_PORT's default in the ai/ Docker Compose stack.
-variable "ui_port" {
-  description = "Port of the app's UI on the VM, forwarded to the same port on the developer's PC by the ssh_config output."
-  type        = number
-  default     = 5173
+# The UI is a host page plus remote panels that the browser loads from their
+# own ports, so every one of them must be forwarded, not only the host's.
+# The defaults match the ports the ai/ Docker Compose stack publishes.
+variable "ui_ports" {
+  description = "Ports of the app's UI on the VM (the ui-host page and each UI remote), forwarded to the same ports on the developer's PC by the ssh_config output."
+  type        = list(number)
+  default     = [5173, 5174, 5175, 5176, 5177, 5178, 5179, 5180, 5181, 5182]
 }
 
 # Hetzner refuses to delete a protected resource, and Terraform does not lift

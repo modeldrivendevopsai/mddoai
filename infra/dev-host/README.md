@@ -217,7 +217,7 @@ Notes:
 - The firewall step needs `ssh_allowed_cidrs` on one line, as in `terraform.tfvars.example`. It replaces the address only when that line lists exactly one. With several, one may be another developer's, so it stops and asks you to edit the list by hand.
 - If `~/.ssh/config` has another `Host mddoai-dev` entry, delete it. ssh ignores its settings, except `LocalForward` lines, which add to the ones in the included file.
 - The script needs the `code` command on your PATH. VS Code's Windows setup adds it; restart the terminal after installing. With `-NoOpen`, a missing `code` is only a warning.
-- The SSH config comes from Terraform's state. After changing a variable that affects it (for example `ui_port`), run `terraform apply` before the connect script.
+- The SSH config comes from Terraform's state. After changing a variable that affects it (for example `ui_ports`), run `terraform apply` before the connect script.
 - On the first connection, VS Code installs its server on the VM, which takes about a minute. It may also ask for the remote platform once: pick Linux.
 
 Other developers without the Terraform state can connect by hand: the Terraform
@@ -226,10 +226,11 @@ owner adds their address to `ssh_allowed_cidrs` and sends them the
 
 ### Opening the app
 
-The SSH config forwards `ui_port` (5173 by default) from the VM to the same
-port on your PC. While you are connected, open `http://localhost:<ui_port>`
-in your browser. If that port is already in use on your PC, ssh warns and skips the
-forward; stop the local program using it.
+The SSH config forwards every port in `ui_ports` from the VM to the same port
+on your PC: the UI's host page and each UI remote it loads. While you are
+connected, open the host page's port (the first in `ui_ports`) on `localhost`
+in your browser. If one of those ports is already in use on your PC, ssh warns
+and skips that forward; stop the local program using it.
 
 ## Working on the VM
 
