@@ -13,6 +13,17 @@ The work is split in four:
 - `connect/` connects your PC to it: firewall address, VS Code extension, SSH config. It is safe to run again whenever you want to connect.
 - `test-env/` is the Test environment that setup installs on the VM (see "Test environment").
 
+## Versions
+
+The design is the "Dev Host (Hetzner)" page of the
+[architecture diagram](https://app.diagrams.net/#Hmodeldrivendevopsai%2Fmddoai%2Fdraw.io-diagrams%2FMDDOAI_Agentic_Architecture.drawio#%7B%22pageId%22%3A%22devhost-hetzner%22%7D).
+It grows in versions, each adding to the one before:
+
+1. **V1, solo dev box:** the VM, reached over SSH only. Done.
+2. **V2, Test environment:** a second copy of the stack on the same VM, for reviewing branches in a browser, behind a Cloudflare tunnel and GitHub login. Done; this is the current version.
+3. **V3, public demo:** a demo of `main` that people outside the project can open.
+4. **V4, other developers:** their own accounts and copies of the app on the same VM.
+
 ## What Terraform creates
 
 - **Firewall:** one inbound rule, TCP 22 from `ssh_allowed_cidrs`. Hetzner drops every other inbound packet.
