@@ -1,0 +1,14 @@
+[Unit]
+Description=Check the MDDOAI Test environment's branch for new commits
+
+[Timer]
+# Starts the stack again after a reboot, since its containers do not restart
+# on their own. Two minutes leaves Docker and the network time to come up
+# (engineering guess).
+OnBootSec=2min
+# Five minutes after the previous run finished, so runs never overlap
+# (engineering guess for how soon a push should show up).
+OnUnitInactiveSec=5min
+
+[Install]
+WantedBy=timers.target
