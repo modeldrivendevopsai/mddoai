@@ -339,10 +339,11 @@ services:
       # default, *_MAX_UPLOAD_BYTES). Raise it with them.
       - UI_MAX_BODY_SIZE=6m
       # Above the longest single request the UI makes: a model check, which
-      # may take VALIDATE_TIMEOUT (90s). Raise it with that. Anything slower
-      # (a stage, a chat answer, a generation) answers at once and runs in
-      # the background, so no request outlasts a proxy in front of this one.
-      - UI_PROXY_READ_TIMEOUT=120s
+      # may take VALIDATE_TIMEOUT (90s). Raise it with that, but keep it under
+      # the limit of any proxy in front of this one: Cloudflare ends a request
+      # after 125s. Anything slower (a stage, a chat answer, a generation)
+      # answers at once and runs in the background.
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-120s}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
       # The "Generate a CI/CD pipeline" mode's own backend (see
       # pipeline-generator below), reached through its own proxy path, not
