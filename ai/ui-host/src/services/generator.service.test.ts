@@ -137,6 +137,23 @@ describe("generatorService", () => {
     expect(mock).toHaveBeenCalledTimes(1)
   })
 
+  it("generatePipelines stops at once when aborted while waiting between checks", async () => {
+    vi.useFakeTimers()
+    try {
+      const mock = stubFetchSequence({ job_id: "j1" }, { state: "running" })
+      const controller = new AbortController()
+      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+
+      const settled = expect(generatePipelines(request, controller.signal)).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(0)
+      controller.abort()
+      await settled
+      expect(mock).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("validatePipeline posts the platform and the pipeline text", async () => {
     const mock = stubFetch({ ok: true, json: async () => ({ valid: true, checks: [] }) })
 
@@ -151,7 +168,7 @@ describe("generatorService", () => {
     const mock = stubFetch({ ok: true, json: async () => ({ pipelines }) })
 
     expect(await listPipelines()).toEqual(pipelines)
-    expect(mock).toHaveBeenCalledWith("/generator-api/pipelines")
+    expect(mock.mock.calls[0][0]).toBe("/generator-api/pipelines")
   })
 
   it("getPipeline asks for one pipeline by id, encoded", async () => {
@@ -159,7 +176,7 @@ describe("generatorService", () => {
 
     await getPipeline("a/b")
 
-    expect(mock).toHaveBeenCalledWith("/generator-api/pipelines/a%2Fb")
+    expect(mock.mock.calls[0][0]).toBe("/generator-api/pipelines/a%2Fb")
   })
 
   it("browseWorkspace sends the path and whether to list folders only, encoded", async () => {

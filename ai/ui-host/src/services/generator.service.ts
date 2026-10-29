@@ -86,10 +86,10 @@ const GENERATION_POLL_MS = 1000
 // guess, a few seconds of outage).
 const GENERATION_POLL_RETRIES = 3
 
-interface GenerationJob extends Partial<GenerateResponse> {
-  state: "running" | "done" | "failed"
-  error?: string
-}
+type GenerationJob =
+  | { state: "running" }
+  | ({ state: "done" } & GenerateResponse)
+  | { state: "failed"; error: string }
 
 export interface GenerateResponse {
   // null when nothing was generated or the result could not be kept.
@@ -186,9 +186,13 @@ async function post<T>(path: string, label: string, payload: unknown): Promise<T
   return res.json()
 }
 
-async function get<T>(path: string, label: string, query?: Record<string, string>): Promise<T> {
+async function get<T>(
+  path: string,
+  label: string,
+  { query, signal }: { query?: Record<string, string>; signal?: AbortSignal } = {}
+): Promise<T> {
   const search = query ? `?${new URLSearchParams(query)}` : ""
-  const res = await fetch(`/generator-api${path}${search}`)
+  const res = await fetch(`/generator-api${path}${search}`, { signal })
   if (!res.ok) throw await errorFor(label, res)
   return res.json()
 }
@@ -214,18 +218,25 @@ export async function generatePipelines(request: GenerateRequest, signal?: Abort
     signal?.throwIfAborted()
     let job: GenerationJob
     try {
-      job = await get<GenerationJob>(`/generate/${encodeURIComponent(job_id)}`, "Generate")
+      job = await get<GenerationJob>(`/generate/${encodeURIComponent(job_id)}`, "Generate", { signal })
       failures = 0
     } catch (err) {
       if (!isTransient(err) || ++failures > GENERATION_POLL_RETRIES) throw err
-      await sleep(GENERATION_POLL_MS)
+      await sleep(GENERATION_POLL_MS, signal)
       continue
     }
     // The job's own outcome, not an HTTP error, so it carries no status.
-    if (job.state === "done") return { pipeline_id: job.pipeline_id ?? null, results: job.results ?? [] }
-    if (job.state === "failed") throw new GeneratorError(job.error ?? "The generation failed.", 0)
-    if (job.state !== "running") throw new GeneratorError("The pipeline generator gave an unexpected answer.", 0)
-    await sleep(GENERATION_POLL_MS)
+    switch (job.state) {
+      case "done":
+        return { pipeline_id: job.pipeline_id, results: job.results }
+      case "failed":
+        throw new GeneratorError(job.error, 0)
+      case "running":
+        await sleep(GENERATION_POLL_MS, signal)
+        break
+      default:
+        throw new GeneratorError("The pipeline generator gave an unexpected answer.", 0)
+    }
   }
 }
 
@@ -234,8 +245,19 @@ function isTransient(err: unknown): boolean {
   return err instanceof TypeError || (err instanceof GeneratorError && err.status >= 500)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+// Ends early, rejecting, when signal is aborted.
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 export function validatePipeline(platform: string, content: string): Promise<PipelineValidation> {
@@ -251,9 +273,9 @@ export function getPipeline(id: string): Promise<PipelineRecord> {
 }
 
 export function browseWorkspace(path: string, dirsOnly: boolean): Promise<WorkspaceListing> {
-  return get("/workspace/browse", "Browse", { path, dirs_only: String(dirsOnly) })
+  return get("/workspace/browse", "Browse", { query: { path, dirs_only: String(dirsOnly) } })
 }
 
 export function readWorkspaceFile(path: string): Promise<WorkspaceFile> {
-  return get("/workspace/file", "Open file", { path })
+  return get("/workspace/file", "Open file", { query: { path } })
 }

@@ -61,9 +61,15 @@ export function useIntegration(runId?: string) {
   // id regardless of which case it is.
   const [viewedRunId, setViewedRunId] = useState<string | null>(null)
   const pollingRef = useRef(false)
-  // Mirrors isCurrent for the interval poll below, which can't depend on the
-  // state value directly without re-subscribing the effect every tick.
+  // Set when a fetch is asked for while another is in flight. That one may
+  // have been sent before the action that asked, so its answer can be stale:
+  // the fetch in flight runs once more when it ends.
+  const followUpRef = useRef(false)
+  // Mirror isCurrent and replying for the interval poll below, which can't
+  // depend on the state values directly without re-subscribing the effect
+  // every tick.
   const isCurrentRef = useRef(true)
+  const replyingRef = useRef(false)
   // The real accumulated log. GET /events?since_index=N exists specifically
   // "for incremental polling" (see main.py), so each fetch only asks for
   // what's new since this and gets appended, rather than re-fetching and
@@ -107,6 +113,7 @@ export function useIntegration(runId?: string) {
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
     setReplying(body.replying)
+    replyingRef.current = body.replying
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
@@ -132,32 +139,28 @@ export function useIntegration(runId?: string) {
     return { body: await getEvents(0, runId), replace: true }
   }, [runId])
 
-  // Used by the interval poll and by approve/retry.
+  // Used by every action. After start/reset/fork, which empty the
+  // accumulated log first, this fetches the whole log.
   const fetchIncremental = useCallback(async () => {
-    if (pollingRef.current) return
+    if (pollingRef.current) {
+      followUpRef.current = true
+      return
+    }
     pollingRef.current = true
     try {
-      const { body, replace } = await fetchNewEvents()
-      applyEvents(body, replace)
+      do {
+        followUpRef.current = false
+        const { body, replace } = await fetchNewEvents()
+        // Asked for again while this one was out, so its answer may be
+        // stale; the next round applies a fresh one.
+        if (!followUpRef.current) applyEvents(body, replace)
+      } while (followUpRef.current)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
       pollingRef.current = false
     }
   }, [applyEvents, fetchNewEvents])
-
-  // Used after start/reset, which already clear allEventsRef themselves.
-  const fetchFull = useCallback(async () => {
-    if (pollingRef.current) return
-    pollingRef.current = true
-    try {
-      applyEvents(await getEvents(0, runId), true)
-    } catch {
-      // Transient network hiccup, the next poll tick or manual action retries.
-    } finally {
-      pollingRef.current = false
-    }
-  }, [applyEvents, runId])
 
   // The interval poll is defined and called entirely inside this effect
   // (not via the fetch callbacks above) so state updates stay scoped to
@@ -171,18 +174,24 @@ export function useIntegration(runId?: string) {
     runIdRef.current = null
     doneRef.current = false
     isCurrentRef.current = true
+    replyingRef.current = false
 
     async function poll() {
       if (doneRef.current) return
       // A past, non-current run is a frozen log (see main.py's /events?run_id=
       // — "read-only, no polling loop needed"): once the first fetch confirms
-      // that, every later tick is a no-op instead of a wasted request.
-      if (runId && !isCurrentRef.current) return
+      // that, every later tick is a no-op instead of a wasted request. The
+      // exception is a chat answer still coming: when it starts a new run,
+      // the run on screen stops being current before the answer lands in it.
+      if (runId && !isCurrentRef.current && !replyingRef.current) return
       if (pollingRef.current) return
       pollingRef.current = true
       try {
-        const { body, replace } = await fetchNewEvents()
-        if (!cancelled) applyEvents(body, replace)
+        do {
+          followUpRef.current = false
+          const { body, replace } = await fetchNewEvents()
+          if (!cancelled && !followUpRef.current) applyEvents(body, replace)
+        } while (followUpRef.current && !cancelled)
       } catch {
         // Transient network hiccup, the next tick retries.
       } finally {
@@ -210,12 +219,12 @@ export function useIntegration(runId?: string) {
         allEventsRef.current = []
         doneRef.current = false
         setStarted(true)
-        await fetchFull()
+        await fetchIncremental()
       } catch (err) {
         setError(messageFor(err, "Could not start the integration. Is the orchestrator running?"))
       }
     },
-    [fetchFull]
+    [fetchIncremental]
   )
 
   const approve = useCallback(
@@ -267,11 +276,12 @@ export function useIntegration(runId?: string) {
         // A 409 means an earlier message is still being answered (perhaps
         // from another tab): keep waiting for that answer instead.
         if ((err as { status?: number }).status === 409) {
+          setError("Your message was not sent: the previous one is still being answered.")
           doneRef.current = false
           await fetchIncremental()
-        } else {
-          setReplying(false)
+          return
         }
+        setReplying(false)
         setError(messageFor(err, "Could not reach the Orchestrator."))
       }
     },
@@ -305,11 +315,11 @@ export function useIntegration(runId?: string) {
       await resetPipeline()
       allEventsRef.current = []
       doneRef.current = false
-      await fetchFull()
+      await fetchIncremental()
     } catch (err) {
       setError(messageFor(err, "Could not restart, a stage may still be running."))
     }
-  }, [fetchFull])
+  }, [fetchIncremental])
 
   // The counterpart to reset: makes this hook's own runId current again
   // instead of replacing it with a blank one. Only meaningful for a past,
@@ -325,11 +335,11 @@ export function useIntegration(runId?: string) {
     setError(null)
     try {
       await resumeRun(runId)
-      await fetchFull()
+      await fetchIncremental()
     } catch (err) {
       setError(messageFor(err, "Could not resume, another stage may still be running."))
     }
-  }, [runId, fetchFull])
+  }, [runId, fetchIncremental])
 
   // Starts a genuinely new run seeded with the currently-viewed run's own
   // real output up to (not including) fromStage, then pauses there - the
@@ -345,7 +355,7 @@ export function useIntegration(runId?: string) {
   // that hands the caller a DIFFERENT run than whichever one this hook is
   // currently keyed to (runId is a fixed, URL-derived parameter this hook
   // never changes itself - see IntegrationScreen.tsx's own component,
-  // which owns the URL). A bare fetchFull() here would still ask for
+  // which owns the URL). A bare fetchIncremental() here would still ask for
   // *this* hook's own fixed runId, landing back on the now-non-current
   // source run instead of the new one - IntegrationScreen.tsx's own
   // onForkFrom is what actually navigates to the new id, this just reports
@@ -380,10 +390,10 @@ export function useIntegration(runId?: string) {
   const publish = useCallback(
     async (name: string, outputFilename: string) => {
       const published = await publishPlatform(name, outputFilename, viewedRunId)
-      await fetchFull()
+      await fetchIncremental()
       return published
     },
-    [fetchFull, viewedRunId]
+    [fetchIncremental, viewedRunId]
   )
 
   return {
