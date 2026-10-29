@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the Test environment: a second copy of the ai/ stack that follows
-# one branch, behind GitHub organization login and a Cloudflare tunnel. It
+# one branch, behind a GitHub login and a Cloudflare tunnel. It
 # does not start it. That waits for the secrets in /opt/mddoai-test/.env and
 #
 #   sudo systemctl enable --now mddoai-test-update.timer
@@ -25,5 +25,5 @@ if [[ ! -f "$TEST_DIR/.env" ]]; then
   # oauth2-proxy's documented way to make one.
   cookie_secret="$(openssl rand -base64 32 | tr -- '+/' '-_')"
   sed -i "s|^OAUTH2_COOKIE_SECRET=.*|OAUTH2_COOKIE_SECRET=$cookie_secret|" "$TEST_DIR/.env"
-  log "Created $TEST_DIR/.env. Fill in its secrets, then: sudo systemctl enable --now mddoai-test-update.timer"
+  log "Created $TEST_DIR/.env. Fill in its users and secrets, then: sudo systemctl enable --now mddoai-test-update.timer"
 fi

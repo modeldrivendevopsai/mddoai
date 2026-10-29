@@ -3,7 +3,7 @@
 Infrastructure for the remote development VM on Hetzner Cloud. Developers edit
 with VS Code Remote-SSH and reach the app through SSH port forwarding. The only
 inbound port is SSH, and only from listed developer addresses. Members of the
-project's GitHub organization can also open a Test environment in the browser,
+project on a list of GitHub users can also open a Test environment in the browser,
 through an outbound Cloudflare tunnel (see "Test environment").
 
 The work is split in three:
@@ -80,9 +80,9 @@ off, and Hetzner issues no root password because a key is given.
 |---|---|---|
 | Terraform owner | the Hetzner API token and the Terraform state, on their own PC | Create, resize and delete the server; change the firewall. |
 | Developer with a key for `dev` | an SSH key and an allowed address | Log in, develop, run the stack, and use root through sudo or Docker. |
-| Member of the GitHub organization | a GitHub account in the organization | Use the Test environment in a browser, spending the stack's LLM credentials. No shell on the VM. |
+| GitHub user on the Test environment's list | a GitHub account named in `GITHUB_USERS` | Use the Test environment in a browser, spending the stack's LLM credentials. No shell on the VM. |
 | Anyone with write access to the repository | push access on GitHub | Run any code on the VM, as root in effect: they can push a branch and point the Test environment at it with the workflow, and the updater builds and starts whatever that branch's compose file says, as a user in the `docker` group. |
-| Anyone else | nothing | Nothing: the firewall drops their traffic, and `oauth2-proxy` refuses a GitHub account outside the organization. |
+| Anyone else | nothing | Nothing: the firewall drops their traffic, and `oauth2-proxy` refuses a GitHub account that is not on the list. |
 
 **Secrets and where they live.**
 
@@ -273,15 +273,15 @@ palette, then connect again.
 ## Test environment
 
 A second copy of the `ai/` stack on the same VM, for reviewing work in a
-browser without SSH. It runs the newest commit of one branch, and members of
-the project's GitHub organization open it at `TEST_HOSTNAME` (set in
+browser without SSH. It runs the newest commit of one branch, and the GitHub
+users listed in `GITHUB_USERS` open it at `TEST_HOSTNAME` (both set in
 `/opt/mddoai-test/.env`). Nobody else gets past the login.
 
 How a request reaches it:
 
 1. The browser goes to Cloudflare, which owns the name.
 2. Cloudflare sends it down a tunnel that `cloudflared` on the VM opened outward, so no port is open on the VM.
-3. `oauth2-proxy` checks the login cookie. Without one it sends the visitor to GitHub, and lets them in only if GitHub says they are a member of the organization.
+3. `oauth2-proxy` checks the login cookie. Without one it sends the visitor to GitHub to log in, and lets them in only if their GitHub username is on the list.
 4. The test stack's `ui-host` serves the app, the same way the dev stack's does.
 
 What runs:
@@ -290,7 +290,7 @@ What runs:
   - the repository's `ai/` stack, with its UI and `ai-layer` ports on `127.0.0.1` only, next to the dev stack's;
   - the gateway, `cloudflared` and `oauth2-proxy`, from `/opt/mddoai-test/compose.yaml`. Neither publishes a port.
 
-  All its settings and secrets are in `/opt/mddoai-test/.env`, linked as the clone's `ai/.env`. So any `docker compose` command run in `/home/dev/mddoai-test/ai` acts on the Test environment, never on the dev stack. It has its own data folder in the clone. It shares the dev clone's `ai/ai-layer/.env`, and like the dev stack it reads `dev`'s `~/.claude` folder, so organization members spend the same LLM credentials.
+  All its settings and secrets are in `/opt/mddoai-test/.env`, linked as the clone's `ai/.env`. So any `docker compose` command run in `/home/dev/mddoai-test/ai` acts on the Test environment, never on the dev stack. It has its own data folder in the clone. It shares the dev clone's `ai/ai-layer/.env`, and like the dev stack it reads `dev`'s `~/.claude` folder, so everyone on the list spends the same LLM credentials.
 - **The updater:** `mddoai-test-update.timer` runs `/opt/mddoai-test/update.sh` as `dev` shortly after boot, then a few minutes after each run ends. Each run:
   1. fetches the repository and reads which branch to run (see "Day-to-day");
   2. stops there if that branch has no new commit and the stack is up;
@@ -298,7 +298,7 @@ What runs:
 
   A run that cannot reach GitHub changes nothing. A commit that fails to build leaves the previous containers running. Every run after that tries the build again until a new commit arrives, which costs CPU on the shared VM.
 
-Everyone in the organization shares this one stack: they see the same runs,
+Everyone on the list shares this one stack: they see the same runs,
 pipelines and platforms.
 
 The tunnel's routes are set in the Cloudflare dashboard, not in this folder,
@@ -315,8 +315,8 @@ mattering:
 Done once, by people with access to each service. Steps 1 and 2 can happen in
 either order.
 
-1. **GitHub** (an owner of the organization). Create an OAuth app that the organization owns:
-   1. In the organization's Settings, open Developer settings, then OAuth Apps, and register a new app. Create it there, not under a personal account. GitHub lets apps the organization owns read its data. New organizations block other OAuth apps by default, and then `oauth2-proxy` cannot see who is a member.
+1. **GitHub** (anyone with a GitHub account). Create an OAuth app:
+   1. On GitHub, open your profile picture, then Settings, then Developer settings, then OAuth Apps, and register a new app. It can belong to a personal account, and no organization has to approve it. At login it asks each user for their email address and read-only access to their organizations, which `oauth2-proxy` always reads.
    2. Homepage URL: `https://<TEST_HOSTNAME>`. Authorization callback URL: `https://<TEST_HOSTNAME>/oauth2/callback`.
    3. Generate a client secret. Keep the client ID and the secret for step 3; the secret is shown only once.
 2. **Cloudflare** (someone who manages the domain's zone). Create a tunnel:
@@ -326,7 +326,7 @@ either order.
    4. Under the domain's DNS records, check that there is a CNAME record for that name pointing to `<tunnel ID>.cfargotunnel.com`, and add it if not. Do not change any other record.
 3. **On the VM** (`dev`):
    1. Open `/opt/mddoai-test/.env` with `nano /opt/mddoai-test/.env` (`dev` owns it). Fill in the three values: `TUNNEL_TOKEN`, `OAUTH2_CLIENT_ID`, `OAUTH2_CLIENT_SECRET`. The setup stage already filled in `OAUTH2_COOKIE_SECRET`.
-   2. Check the fallback branch (`TEST_BRANCH`), the host name and the organization. The fallback branch must have the configurable stack ports (see "Day-to-day").
+   2. Fill in `GITHUB_USERS`: the GitHub usernames that may log in, exactly as on their profiles (same capitals), separated by commas without spaces. Check the fallback branch (`TEST_BRANCH`) and the host name. The fallback branch must have the configurable stack ports (see "Day-to-day").
    3. Put `AI_LAYER_PORT=127.0.0.1:8000` in the dev clone's `ai/.env`, then restart the dev stack. Otherwise the dev stack's `ai-layer` listens on all addresses, where `cloudflared` could reach it. Tools on the VM still reach it on `localhost:8000`. This needs a dev clone branch that has the configurable stack ports.
 4. Start it:
 
@@ -335,7 +335,7 @@ either order.
    journalctl -fu mddoai-test-update     # the first build takes several minutes
    ```
 
-5. Open `https://<TEST_HOSTNAME>` in a private window. GitHub asks you to authorize the app once. A GitHub account outside the organization must be refused.
+5. Open `https://<TEST_HOSTNAME>` in a private window. GitHub asks you to authorize the app once. A GitHub account that is not on the list must be refused.
 
 ### Day-to-day
 
@@ -358,7 +358,11 @@ either order.
 
   Start it again with `sudo systemctl enable --now mddoai-test-update.timer`. Running the setup script again never switches it on or off.
 - **Rotate a secret:** replace it in `/opt/mddoai-test/.env`, then run `cd ~/mddoai-test/ai && docker compose up -d`, which recreates the containers that use it. Get a new tunnel token from the tunnel's page in the Cloudflare dashboard, and a new client secret from the OAuth app's page on GitHub. Make a new cookie secret with `openssl rand -base64 32 | tr -- '+/' '-_'`; it logs everyone out. The LLM API keys are the dev clone's: change them there, then run the same `docker compose up -d`.
-- **Someone leaves the organization:** `oauth2-proxy` checks membership at login only, so their login lasts until the cookie expires (`OAUTH2_PROXY_COOKIE_EXPIRE` in `compose.yaml`). Rotate the cookie secret to end it at once.
+- **Add or remove a user:** edit `GITHUB_USERS` in `/opt/mddoai-test/.env`, then run `cd ~/mddoai-test/ai && docker compose up -d`.
+  - `oauth2-proxy` checks the list at login only, so someone removed keeps access until their cookie expires (`OAUTH2_PROXY_COOKIE_EXPIRE` in `compose.yaml`). Rotate the cookie secret to end it at once.
+  - Access is by username. When someone on the list renames or deletes their GitHub account, remove the old name at once: GitHub lets anyone claim a freed name.
+  - A user needs a verified primary email address on GitHub, or the login refuses them.
+  - Whoever owns the OAuth app can rotate or delete its secret, which stops all logins until `.env` has the new one. They cannot let anyone in.
 - **Memory:** the test stack needs about as much as the dev stack at idle; check with `docker stats`.
 - **Disk:** after each build, `update.sh` removes the untagged images that rebuilds leave behind, the dev stack's too. Docker's build cache, shared with the dev stack, still grows; check with `docker system df`.
 

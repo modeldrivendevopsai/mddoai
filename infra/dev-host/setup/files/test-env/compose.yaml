@@ -4,22 +4,23 @@
 #   browser -> Cloudflare -> cloudflared -> oauth2-proxy -> ui-host
 #
 # cloudflared connects out to Cloudflare, so no port opens on the VM.
-# oauth2-proxy lets in only members of one GitHub organization.
+# oauth2-proxy lets in only the GitHub users listed in GITHUB_USERS.
 services:
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5
     restart: unless-stopped
     environment:
       OAUTH2_PROXY_PROVIDER: github
-      OAUTH2_PROXY_GITHUB_ORG: ${GITHUB_ORG:?}
-      # Any address: the organization decides who gets in.
+      # Never empty: an empty list would let any GitHub account in.
+      OAUTH2_PROXY_GITHUB_USERS: ${GITHUB_USERS:?set GITHUB_USERS in /opt/mddoai-test/.env}
+      # Any address: the user list decides who gets in.
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
       OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_CLIENT_ID:?}
       OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_CLIENT_SECRET:?}
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_COOKIE_SECRET:?}
       OAUTH2_PROXY_REDIRECT_URL: https://${TEST_HOSTNAME:?}/oauth2/callback
-      # Membership is checked at login, so this is how long someone removed
-      # from the organization keeps access (the default is a week).
+      # The list is checked at login, so this is how long someone removed
+      # from it keeps access (the default is a week).
       OAUTH2_PROXY_COOKIE_EXPIRE: 24h
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_UPSTREAMS: http://ui-host:80/
