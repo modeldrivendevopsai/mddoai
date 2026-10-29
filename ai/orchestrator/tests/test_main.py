@@ -51,6 +51,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
+from fastapi import BackgroundTasks
 from fastapi.testclient import TestClient
 
 import chat_log
@@ -886,63 +887,117 @@ def test_rerun_endpoint_returns_409_while_busy():
 
 # --- POST /message ------------------------------------------------------------------
 #
-# A tool that starts a stage running (rerun_stage, run_stage, stage_result-
-# approve, start_pipeline) does so via integration_runner's own REST
-# endpoints, the same background-thread path a direct REST call uses, so
-# /message's own response only ever carries {"status": "started", ...},
-# never the finished stage's output, that shows up via GET /events once
-# integration_runner's thread completes.
+# /message answers 202 at once and answers the message after the response
+# has gone out (TestClient runs that background step before returning), so
+# each test reads the outcome from the run's chat log, where GET /events
+# serves it from. A tool that starts a stage running (rerun_stage,
+# run_stage, stage_result-approve, start_pipeline) does so via
+# integration_runner's own REST endpoints, so the recorded step result is
+# only ever {"status": "started", ...}, never the finished stage's output.
 
 
-def test_message_endpoint_dispatches_rerun_stage_and_returns_started_status():
+def _chat_events() -> list[dict]:
+    return chat_log.get_chat_log(ir_runs.current_run_id()).events
+
+
+def _tool_steps() -> list[dict]:
+    return [e["data"] for e in _chat_events() if e["type"] == "tool_called"]
+
+
+def test_message_endpoint_accepts_at_once_and_records_the_dispatched_rerun_stage():
     _advance_to_psm()
 
     tool_calls = [{"function": {"name": "rerun_stage", "arguments": "{}"}}]
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         mock_httpx.post.side_effect = [
-            _fake_httpx_response(None, tool_calls=tool_calls),  # send_message()'s own routing call
+            _fake_httpx_response(None, tool_calls=tool_calls),  # the answer's own routing call
         ]
         response = client.post("/message", json={"message": "redo the psm stage"})
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["tool_called"] == "rerun_stage"
-    assert body["result"] == {"status": "started", "stage": "psm"}
+    assert response.status_code == 202
+    assert response.json() == {"status": "accepted"}
+    [step] = _tool_steps()
+    assert step["tool"] == "rerun_stage"
+    assert step["result"] == {"status": "started", "stage": "psm"}
 
 
-def test_message_endpoint_returns_clarification_when_no_tool_called():
+def test_message_endpoint_answers_only_after_responding():
+    """Called directly, so nothing runs the background step until the test
+    does: the response comes first, the answer after it."""
+    start_pipeline()
+    tasks = BackgroundTasks()
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        mock_httpx.post.return_value = _fake_httpx_response("Here you go.")
+        response = main.message_endpoint(main.MessageRequest(message="hello"), tasks)
+
+        assert response == {"status": "accepted"}
+        assert len(tasks.tasks) == 1
+        mock_httpx.post.assert_not_called()
+        assert client.get("/events").json()["replying"] is True
+
+        asyncio.run(tasks())
+
+    assert _chat_events()[-1]["text"] == "Here you go."
+    assert client.get("/events").json()["replying"] is False
+
+
+def test_message_endpoint_records_the_clarification_when_no_tool_called():
     start_pipeline()
 
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         mock_httpx.post.return_value = _fake_httpx_response("Could you clarify which stage you mean?")
         response = client.post("/message", json={"message": "hello there"})
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "tool_called": None,
-        "result": None,
-        "message": "Could you clarify which stage you mean?",
-        "model": "gemini/gemini-2.5-flash",
-    }
+    assert response.status_code == 202
+    user_turn, reply = _chat_events()[-2:]
+    assert user_turn["type"] == "user_message"
+    assert user_turn["data"] == {"message": "hello there"}
+    assert reply["type"] == "message"
+    assert reply["text"] == "Could you clarify which stage you mean?"
+    assert reply["model"] == "gemini/gemini-2.5-flash"
 
 
-def test_message_endpoint_returns_500_on_downstream_error():
+def test_message_endpoint_records_a_failed_answer_in_the_chat_log():
     with patch.object(ai_layer_client, "httpx") as mock_httpx:
         mock_httpx.post.side_effect = RuntimeError("all providers exhausted")
         response = client.post("/message", json={"message": "redo the psm stage"})
 
+    assert response.status_code == 202
+    failed = _chat_events()[-1]
+    assert failed["type"] == "message_failed"
+    assert failed["data"] == {"error": "all providers exhausted"}
+    assert client.get("/events").json()["replying"] is False
+
+
+def test_message_endpoint_returns_500_when_the_message_cannot_be_recorded():
+    with patch.object(integration_runner_client, "get_status", side_effect=RuntimeError("runner down")):
+        response = client.post("/message", json={"message": "hello"})
+
     assert response.status_code == 500
-    assert response.json()["detail"] == "all providers exhausted"
+    assert response.json()["detail"] == "runner down"
 
 
-def test_message_endpoint_has_no_busy_guard_but_a_dispatched_mutation_still_gets_the_real_409():
+def test_message_endpoint_refuses_a_second_message_while_one_is_being_answered():
+    start_pipeline()
+    chat_log.get_chat_log(ir_runs.current_run_id()).replying = True
+
+    with patch.object(ai_layer_client, "httpx") as mock_httpx:
+        response = client.post("/message", json={"message": "and another thing"})
+
+    assert response.status_code == 409
+    assert client.get("/events").json()["replying"] is True
+    assert not any(e["type"] == "user_message" for e in _chat_events())
+    mock_httpx.post.assert_not_called()
+
+
+def test_message_endpoint_has_no_stage_busy_guard_but_a_dispatched_mutation_still_gets_the_real_409():
     """Deliberately different from every mutating endpoint above: a message
     that doesn't need a tool (a status question, small talk) should still
-    get a reply even while a stage is busy, so /message itself never 409s.
-    A tool call that WOULD mutate state still hits integration_runner's
-    real busy guard, surfaced as that step's own {"error": ...} result
-    rather than blocking the whole message (see main.py's own docstring
-    for this endpoint)."""
+    get a reply even while a stage is busy, so /message itself never 409s
+    on that. A tool call that WOULD mutate state still hits
+    integration_runner's real busy guard, surfaced as that step's own
+    {"error": ...} result rather than blocking the whole message (see
+    main.py's own comment on this endpoint)."""
     start_pipeline()
     ir_runs.current().busy = True
 
@@ -951,10 +1006,10 @@ def test_message_endpoint_has_no_busy_guard_but_a_dispatched_mutation_still_gets
         mock_httpx.post.return_value = _fake_httpx_response(None, tool_calls=tool_calls)
         response = client.post("/message", json={"message": "redo it"})
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["tool_called"] == "rerun_stage"
-    assert "still running" in body["result"]["error"]
+    assert response.status_code == 202
+    [step] = _tool_steps()
+    assert step["tool"] == "rerun_stage"
+    assert "still running" in step["result"]["error"]
 
 
 # --- /publish ------------------------------------------------------------------
