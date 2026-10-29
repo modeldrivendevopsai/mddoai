@@ -146,6 +146,20 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   Java/Eclipse work, not by `execution_agent`. This exception does not extend to any `ui-*` package,
   `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
   `main/` without the same explicit justification.
+- **Fifth exception, deliberate and narrow**: `pipeline_generator/` runs the engine's own end-to-end
+  command (`main/`'s `Main`, e.g. `swarch2gitlab`) as a subprocess, to back the "Generate a CI/CD
+  pipeline" mode, and checks the generated pipeline file in plain Python. A genuinely separate
+  service from `execution_agent`, not new routes there: the real code generator for a platform is a
+  multi-module Acceleo plugin compiled into the engine's jar, which a single-file `/execute/acceleo`
+  call cannot run, so the only faithful way to reuse the real chain is the engine's own command.
+  Its Python code lives in `ai/pipeline_generator/` and it owns no Java code. The engine command
+  loads its compiled ATL transformations from a path relative to its working directory, so the
+  service gets a read-only bind mount of that one real data directory (the same narrow shape as the
+  third exception), and copies it into a per-request scratch directory. The engine's own
+  intermediate files are also written to fixed relative paths, which is why no two calls may share a
+  working directory. This exception does not extend to any `ui-*` package, `design-system`, or
+  `ai-layer`, and does not license any other future `ai/` service to run the engine's command or
+  reach into `main/` without the same explicit justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

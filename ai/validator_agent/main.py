@@ -8,10 +8,12 @@ from validator_runner import (
     AcceleoValidationResult,
     AtlValidationResult,
     EcoreValidationResult,
+    SwarchValidationResult,
     ValidatorInfraError,
     run_acceleo_validator,
     run_atl_validator,
     run_ecore_validator,
+    run_swarch_validator,
 )
 
 logging.basicConfig(
@@ -158,6 +160,11 @@ class AcceleoValidateRequest(BaseModel):
     _validate_attempt = field_validator("attempt")(classmethod(lambda cls, v: _reject_dot_segments(v)))
 
 
+class SwarchValidateRequest(BaseModel):
+    filename: str = Field(..., description="Original filename, used only for the temp file suffix/logging.")
+    content: str = Field(..., min_length=1, description="Raw .swarch (XMI) content.")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -233,5 +240,22 @@ def validate_acceleo_endpoint(request: AcceleoValidateRequest) -> AcceleoValidat
         logger.error("POST /validate/acceleo infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /validate/acceleo done filename=%s valid=%s duration_ms=%d",
+                request.filename, result["valid"], result["duration_ms"])
+    return result
+
+
+@app.post("/validate/swarch", response_model=SwarchValidationResult)
+def validate_swarch_endpoint(request: SwarchValidateRequest) -> SwarchValidationResult:
+    content_bytes = len(request.content.encode("utf-8"))
+    if content_bytes > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+
+    logger.info("POST /validate/swarch filename=%s bytes=%d", request.filename, content_bytes)
+    try:
+        result = run_swarch_validator(request.content, request.filename)
+    except ValidatorInfraError as e:
+        logger.error("POST /validate/swarch infra failure: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("POST /validate/swarch done filename=%s valid=%s duration_ms=%d",
                 request.filename, result["valid"], result["duration_ms"])
     return result

@@ -186,3 +186,16 @@ def test_validate_atl_raises_on_an_infra_failure_status():
     with patch("validator_agent_client.httpx.post", return_value=resp):
         with pytest.raises(httpx.HTTPStatusError):
             validator_agent_client.validate_atl("module M; ...", "sample.atl")
+
+
+def test_validate_swarch_posts_filename_and_content():
+    result = {"valid": True, "issues": [], "duration_ms": 5}
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:
+        response = validator_agent_client.validate_swarch("<swarch/>", "model.swarch")
+
+    mock_post.assert_called_once_with(
+        f"{validator_agent_client.VALIDATOR_AGENT_URL}/validate/swarch",
+        json={"filename": "model.swarch", "content": "<swarch/>"},
+        timeout=validator_agent_client.VALIDATE_TIMEOUT,
+    )
+    assert response == result

@@ -16,6 +16,7 @@ from validator_runner import (
     run_acceleo_validator,
     run_atl_validator,
     run_ecore_validator,
+    run_swarch_validator,
 )
 
 
@@ -466,3 +467,59 @@ def test_acceleo_scopes_java_output_directory_to_run_id_stage_and_attempt_when_a
 
     output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
     assert output_dir.as_posix() == "/validator-output/run-123/acceleo/attempt_4"
+
+
+def test_swarch_builds_expected_argv_and_invokes_correct_class():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+        run_swarch_validator("<swarch/>", "model.swarch")
+
+    argv = mock_run.call_args.args[0]
+    assert argv[0] == "java"
+    assert argv[1] == "-cp"
+    assert argv[2].endswith("/*")
+    assert argv[3] == "main.java.mddoai.validation.swarch.SwarchValidatorCli"
+    assert argv[4].endswith("model.swarch")
+    assert len(argv) == 5
+
+
+def test_swarch_writes_content_to_temp_file_and_cleans_up_afterward():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    written_path_holder = {}
+
+    def capture_and_respond(argv, **kwargs):
+        written_path_holder["path"] = Path(argv[4])
+        assert written_path_holder["path"].read_text(encoding="utf-8") == "<swarch/>"
+        return fake_completed_process(stdout=valid_json)
+
+    with patch("validator_runner.subprocess.run", side_effect=capture_and_respond):
+        run_swarch_validator("<swarch/>", "model.swarch")
+
+    assert not written_path_holder["path"].exists()
+
+
+def test_swarch_never_uses_the_callers_filename_as_the_temp_file_name():
+    # filename is caller-supplied: whatever it is (a traversal, a bare "..",
+    # an unusual extension) must not decide the temp file's name.
+    valid_json = json.dumps({"valid": True, "issues": []})
+    for hostile in ("../../etc/evil.swarch", "..", "notes.txt", "A.SWARCH", ""):
+        with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
+            run_swarch_validator("<swarch/>", hostile)
+
+        assert Path(mock_run.call_args.args[0][4]).name == "model.swarch", hostile
+
+
+def test_swarch_nonzero_exit_becomes_infra_error_with_stderr():
+    with patch("validator_runner.subprocess.run",
+               return_value=fake_completed_process(returncode=1, stderr="boom")):
+        with pytest.raises(ValidatorInfraError, match="boom"):
+            run_swarch_validator("<swarch/>", "model.swarch")
+
+
+def test_swarch_duration_ms_is_injected_into_successful_result():
+    valid_json = json.dumps({"valid": True, "issues": []})
+    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)):
+        result = run_swarch_validator("<swarch/>", "model.swarch")
+
+    assert result["duration_ms"] >= 0
+    assert result["valid"] is True

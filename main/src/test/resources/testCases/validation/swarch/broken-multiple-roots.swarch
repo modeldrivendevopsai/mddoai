@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch">
+  <swarch:SoftwareArchitecture name="first" type="framework" build_system="docker" language="python" unit_test="test/run_unit_tests.py" health_check="./scripts/health_check.sh" lint_check=""/>
+  <swarch:SoftwareArchitecture name="second" type="framework" build_system="docker" language="python" unit_test="test/run_unit_tests.py" health_check="./scripts/health_check.sh" lint_check=""/>
+</xmi:XMI>

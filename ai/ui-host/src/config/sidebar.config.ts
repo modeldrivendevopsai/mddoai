@@ -27,7 +27,7 @@ export const SIDEBAR_TABS: SidebarTab[] = [
 ];
 
 export const SIDEBAR_ACTIONS: Record<SessionType, SidebarAction[]> = {
-  pipeline: [{ id: 'new-pipeline', label: 'New pipeline', icon: 'Plus', comingSoon: true }],
+  pipeline: [{ id: 'new-pipeline', label: 'New pipeline', icon: 'Plus' }],
   platform: [
     { id: 'add-platform', label: 'Add a new platform', icon: 'Plus' },
     { id: 'copy-platform', label: 'Copy a platform', icon: 'Plus' },

@@ -20,18 +20,19 @@ export function Sidebar({ onAction }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { pathname } = useLocation();
 
-  // Landing on /integration (today, only ever reached via the StartScreen's
-  // "Add or update a CI/CD platform" card, or a sidebar action that's
-  // already on this tab) makes it obvious which tab you actually want to
-  // see - switch to it once, the same way opening a document switches
-  // focus to it, without fighting a later manual tab click on this same
-  // visit. useLayoutEffect, not useState's own lazy initializer: App.tsx's
-  // routing keeps this component mounted across "/" <-> "/integration"
-  // navigation (same position in the tree both times), so activeTab only
-  // ever gets set once at mount otherwise and never reacts to a later
-  // route change.
+  // Landing on /integration (reached via the StartScreen's "Add or update
+  // a CI/CD platform" card, or a sidebar action on that tab) or anywhere
+  // under /generate (the "Generate a CI/CD pipeline" card, or "New
+  // pipeline") makes it obvious which tab you actually want to see - switch to it
+  // once, the same way opening a document switches focus to it, without
+  // fighting a later manual tab click on this same visit. useLayoutEffect,
+  // not useState's own lazy initializer: App.tsx's routing keeps this
+  // component mounted across route changes (same position in the tree every
+  // time), so activeTab only ever gets set once at mount otherwise and never
+  // reacts to a later route change.
   useLayoutEffect(() => {
     if (pathname === '/integration') setActiveTab('platform');
+    if (pathname === '/generate' || pathname.startsWith('/generate/')) setActiveTab('pipeline');
   }, [pathname]);
 
   return (
