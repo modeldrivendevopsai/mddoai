@@ -43,6 +43,14 @@ URL directly loads a plain placeholder page (`index.html`/`src/main.tsx`), not a
 actual runtime consumer is `ai/ui-host`, loading this package's exposed component(s) into its own
 page. That placeholder exists only because a plain `vite build` needs an HTML entry point.
 
+## Test
+
+```bash
+npm test
+```
+
+Runs the component tests in jsdom, a browser-like DOM for Node.
+
 ## Build
 
 ```bash
