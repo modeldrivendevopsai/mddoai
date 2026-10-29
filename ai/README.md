@@ -39,6 +39,14 @@ docker compose up --build
 
 Starts every service in `docker-compose.yml`. `ai-layer` at [http://localhost:8000](http://localhost:8000), and `ui-host` at [http://localhost:5173](http://localhost:5173) (the whole UI, every remote included) are published to the host; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
 
+Three settings change how the stack is reached. Set them in the shell or in `ai/.env`:
+
+- `UI_PORT` is the port `ui-host` is published on, `5173` by default. It always listens on this machine only.
+- `AI_LAYER_PORT` is the port `ai-layer` is published on, `8000` by default. Put an address in front to listen on that address only, for example `127.0.0.1:8100`.
+- `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces, `localhost 127.0.0.1` by default. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
+
+Change the two ports to run a second copy of the stack on the same machine. Give that copy its own Compose project name too (`COMPOSE_PROJECT_NAME` in its `ai/.env`, or `docker compose -p <name>`), so its containers, networks and volumes are separate from the first copy's. Its data folder is separate too, since it sits next to its own compose file, unless `MDDOAI_DATA_DIR` is set. Both copies still read the same `~/.claude` folder (see `ai-layer` below).
+
 The "Generate a CI/CD pipeline" mode works inside one host folder, its workspace: models are picked from it and generated pipeline files are saved into it. By default that is this repository itself, so the example models already in it can be picked straight away; set `GENERATOR_WORKSPACE_HOST_DIR` in the shell or in `ai/.env` to use another folder, such as the one holding your repositories. See [pipeline_generator/README.md](./pipeline_generator/README.md#the-workspace).
 
 ## Where files live
