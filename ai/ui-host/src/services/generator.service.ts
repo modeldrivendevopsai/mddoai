@@ -77,6 +77,20 @@ export interface GenerateRequest {
   save_to: string | null
 }
 
+// How often a running generation is checked. Each platform takes seconds
+// to minutes, so a second's delay in noticing it finished is unnoticeable
+// (engineering guess).
+const GENERATION_POLL_MS = 1000
+// Checks in a row that may fail (no answer, or a 5xx from a proxy restarting)
+// before giving up on a job that is probably still running (engineering
+// guess, a few seconds of outage).
+const GENERATION_POLL_RETRIES = 3
+
+interface GenerationJob extends Partial<GenerateResponse> {
+  state: "running" | "done" | "failed"
+  error?: string
+}
+
 export interface GenerateResponse {
   // null when nothing was generated or the result could not be kept.
   pipeline_id: string | null
@@ -189,8 +203,39 @@ export function inspectModel(filename: string, content: string): Promise<Inspect
   return post("/inspect", "Inspect", { filename, content })
 }
 
-export function generatePipelines(request: GenerateRequest): Promise<GenerateResponse> {
-  return post("/generate", "Generate", request)
+// The generator answers POST /generate at once with a job and generates
+// afterwards, since a generation can outlast a proxy's request timeout. This
+// waits for the job, so callers get the finished results either way. Aborting
+// `signal` stops the waiting; the job itself still finishes on the server.
+export async function generatePipelines(request: GenerateRequest, signal?: AbortSignal): Promise<GenerateResponse> {
+  const { job_id } = await post<{ job_id: string }>("/generate", "Generate", request)
+  let failures = 0
+  for (;;) {
+    signal?.throwIfAborted()
+    let job: GenerationJob
+    try {
+      job = await get<GenerationJob>(`/generate/${encodeURIComponent(job_id)}`, "Generate")
+      failures = 0
+    } catch (err) {
+      if (!isTransient(err) || ++failures > GENERATION_POLL_RETRIES) throw err
+      await sleep(GENERATION_POLL_MS)
+      continue
+    }
+    // The job's own outcome, not an HTTP error, so it carries no status.
+    if (job.state === "done") return { pipeline_id: job.pipeline_id ?? null, results: job.results ?? [] }
+    if (job.state === "failed") throw new GeneratorError(job.error ?? "The generation failed.", 0)
+    if (job.state !== "running") throw new GeneratorError("The pipeline generator gave an unexpected answer.", 0)
+    await sleep(GENERATION_POLL_MS)
+  }
+}
+
+// No answer at all, or one from a server error rather than about the job.
+function isTransient(err: unknown): boolean {
+  return err instanceof TypeError || (err instanceof GeneratorError && err.status >= 500)
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export function validatePipeline(platform: string, content: string): Promise<PipelineValidation> {

@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+from helpers import generate
 
 client = TestClient(main.app)
 
@@ -70,7 +71,7 @@ def test_a_published_platform_can_be_generated_saved_into_its_subfolder_and_reop
 
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_published", return_value=_published_result()) as run:
-        response = client.post("/generate", json={**MODEL, "platforms": ["woodpecker-ci"], "save_to": "/ci"})
+        response = generate(client, {**MODEL, "platforms": ["woodpecker-ci"], "save_to": "/ci"})
 
     body = response.json()
     [result] = body["results"]
@@ -88,7 +89,7 @@ def test_gitlab_and_a_published_platform_generate_side_by_side():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", return_value={"pipeline": "stages: [build]\n", "intermediates": [], "duration_ms": 1}), \
             patch("generation.run_published", return_value=_published_result()):
-        results = client.post("/generate", json={**MODEL, "platforms": ["gitlab", "woodpecker-ci"]}).json()["results"]
+        results = generate(client, {**MODEL, "platforms": ["gitlab", "woodpecker-ci"]}).json()["results"]
 
     assert [(r["platform"]["id"], r["error"]) for r in results] == [("gitlab", None), ("woodpecker-ci", None)]
 
@@ -99,7 +100,7 @@ def test_a_published_platform_that_fails_is_reported_in_its_own_entry_without_de
     client.post("/platforms", json=PUBLISH)
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_published", side_effect=PublishedRunError("execution-agent said /tmp/secret")):
-        [result] = client.post("/generate", json={**MODEL, "platforms": ["woodpecker-ci"]}).json()["results"]
+        [result] = generate(client, {**MODEL, "platforms": ["woodpecker-ci"]}).json()["results"]
 
     assert result["pipeline"] is None
     assert "/tmp/" not in result["error"]

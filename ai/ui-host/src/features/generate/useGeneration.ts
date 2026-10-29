@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { generatePipelines } from '@/services/generator.service';
 import type { GenerationResult, GeneratorPlatform } from '@/services/generator.service';
 import { toStepError } from './stepError';
@@ -35,9 +35,14 @@ export function useGeneration({ guard, source, platforms }: Options) {
   const [generateError, setGenerateError] = useState<StepError | null>(null);
   const validation = useValidation({ guard, results });
   const resetValidation = validation.reset;
+  // Stops waiting for a generation nobody will see: one replaced by a new
+  // file or a new Generate, or still running when the screen closes.
+  const waiting = useRef<AbortController | null>(null);
+  useEffect(() => () => waiting.current?.abort(), []);
 
   // Everything downstream of the loaded model. The settings stay.
   const reset = useCallback(() => {
+    waiting.current?.abort();
     setResults(null);
     setPipelineId(null);
     setGenerating(false);
@@ -52,19 +57,25 @@ export function useGeneration({ guard, source, platforms }: Options) {
     reset();
     setGenerating(true);
     setGeneratingNames(chosen.map((platform) => platform.name));
+    const controller = new AbortController();
+    waiting.current = controller;
     try {
-      const response = await generatePipelines({
-        filename: source.filename,
-        content: source.content,
-        platforms: chosen.map((platform) => platform.id),
-        source_path: source.path,
-        save_to: saveTo.trim() === '' ? null : saveTo.trim(),
-      });
+      const response = await generatePipelines(
+        {
+          filename: source.filename,
+          content: source.content,
+          platforms: chosen.map((platform) => platform.id),
+          source_path: source.path,
+          save_to: saveTo.trim() === '' ? null : saveTo.trim(),
+        },
+        controller.signal
+      );
       if (guard.isCurrent(current)) {
         setResults(response.results);
         setPipelineId(response.pipeline_id);
       }
     } catch (err) {
+      if (controller.signal.aborted) return;
       if (guard.isCurrent(current)) setGenerateError(toStepError(err, 'Could not generate the pipeline.'));
     } finally {
       if (guard.isCurrent(current)) setGenerating(false);

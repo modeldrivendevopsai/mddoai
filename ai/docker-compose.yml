@@ -32,7 +32,7 @@ services:
         required: false
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
-      # send_message()'s own tool-routing decision, see assistant.py), and
+      # accept_message()'s own tool-routing decision, see assistant.py), and
       # main.py's /providers proxies ai_layer_client.list_providers() too —
       # orchestrator is still the LLM-chat layer. It has no import on
       # clients/retrieval_client.py at all anymore, though: the
@@ -334,10 +334,11 @@ services:
       # Above the largest attachment upload the stage agents accept (5 MiB by
       # default, *_MAX_UPLOAD_BYTES). Raise it with them.
       - UI_MAX_BODY_SIZE=6m
-      # Above the longest single request the UI makes: a chat message, whose
-      # LLM call may take LLM_CHAT_TIMEOUT (900s) and whose tool call may then
-      # fetch a docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them.
-      - UI_PROXY_READ_TIMEOUT=1900s
+      # Above the longest single request the UI makes: a model check, which
+      # may take VALIDATE_TIMEOUT (90s). Raise it with that. Anything slower
+      # (a stage, a chat answer, a generation) answers at once and runs in
+      # the background, so no request outlasts a proxy in front of this one.
+      - UI_PROXY_READ_TIMEOUT=120s
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
       # The "Generate a CI/CD pipeline" mode's own backend (see
       # pipeline-generator below), reached through its own proxy path, not

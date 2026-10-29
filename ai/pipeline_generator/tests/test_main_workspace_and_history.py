@@ -9,6 +9,7 @@ import main
 import platforms
 from engine_runner import EngineError
 from platforms import Platform
+from helpers import generate
 
 client = TestClient(main.app)
 
@@ -23,7 +24,7 @@ def _engine_result(text="stages: [build]\n"):
 def _generate(**overrides):
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", return_value=_engine_result()):
-        return client.post("/generate", json={**MODEL, "platforms": ["gitlab"], **overrides})
+        return generate(client, {**MODEL, "platforms": ["gitlab"], **overrides})
 
 
 # --- /workspace -------------------------------------------------------------
@@ -133,7 +134,7 @@ def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_
     with patch.dict(platforms.PLATFORMS, {"other": other}), \
             patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", side_effect=engine):
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab", "other"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab", "other"]})
 
     results = response.json()["results"]
     assert [r["platform"]["id"] for r in results] == ["gitlab", "other"]
@@ -145,20 +146,20 @@ def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_
 def test_naming_a_platform_twice_generates_it_once():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", return_value=_engine_result()) as engine:
-        results = client.post("/generate", json={**MODEL, "platforms": ["gitlab", "gitlab"]}).json()["results"]
+        results = generate(client, {**MODEL, "platforms": ["gitlab", "gitlab"]}).json()["results"]
 
     assert len(results) == 1
     assert engine.call_count == 1
 
 
 def test_generate_needs_at_least_one_platform():
-    assert client.post("/generate", json={**MODEL, "platforms": []}).status_code == 422
+    assert generate(client, {**MODEL, "platforms": []}).status_code == 422
 
 
 def test_one_unsupported_platform_refuses_the_whole_request_before_anything_runs():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine") as engine:
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab", "jenkins"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab", "jenkins"]})
 
     assert response.status_code == 422
     engine.assert_not_called()
@@ -208,7 +209,7 @@ def test_a_source_path_outside_the_workspace_is_not_stored():
 def test_a_failed_generation_is_not_recorded():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", side_effect=EngineError("boom")):
-        body = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]}).json()
+        body = generate(client, {**MODEL, "platforms": ["gitlab"]}).json()
 
     assert body["pipeline_id"] is None
     assert client.get("/pipelines").json()["pipelines"] == []
@@ -217,7 +218,7 @@ def test_a_failed_generation_is_not_recorded():
 def test_a_refused_model_is_not_recorded():
     invalid = {"valid": False, "issues": [{"severity": "ERROR", "message": "bad", "source": "x"}], "duration_ms": 1}
     with patch("main.validator_agent_client.validate_swarch", return_value=invalid):
-        client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert client.get("/pipelines").json()["pipelines"] == []
 
