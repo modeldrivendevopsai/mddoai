@@ -65,6 +65,10 @@ def reset_chat_logs():
     yield
     chat_log._chat_logs.clear()
     chat_log._chat_logs.update(original)
+    # A test that accepted a message without answering it leaves the
+    # process-wide reply slot held.
+    if chat_log.replying():
+        chat_log._reply_slot.release()
 
 
 @pytest.fixture(autouse=True)

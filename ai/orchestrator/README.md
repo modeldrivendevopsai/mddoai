@@ -143,28 +143,28 @@ row, and `add_page_to_docs` fetches a whole page. So `POST /message` does not wa
 Answering a message has two steps, both in `assistant.py`:
 
 1. **`accept_message(user_message)`** records the human's message as a `user_message` turn and
-   marks the run as replying. It refuses a second message while one is still being answered
-   (`ReplyInProgressError`, a `409` on `POST /message`). It returns the second step.
+   marks a reply as in progress. It refuses a second message while one is still being answered
+   (`chat_log.ReplyInProgressError`, a `409` on `POST /message`). It returns the second step.
 2. **The answer step** calls `react_to_event(..., use_tools=True)`. It records each dispatched
    tool call as its own `tool_called` turn (see [The chat log](#the-chat-log-chat_logpy) below for
-   why), then the reply as a `"message"` turn. If the model call fails, it records a
-   `message_failed` turn with the error instead. Either way it then clears the replying flag.
+   why), then the reply as a `"message"` turn. For a tool that starts a stage running, the call's
+   result is `{"status": "started", "stage": ...}`; the stage's output shows up in `GET /events`
+   once `integration_runner`'s background thread finishes. If answering fails, it records a
+   `message_failed` turn with the error instead. Either way it then marks the reply as done.
 
 `POST /message` runs step 1, answers `202`, and runs step 2 after the response has gone out. The
 UI sees the answer, and whether one is still coming (`replying`), through `GET /events`. The
-answer and the cleared flag are recorded together, so a poll never sees `replying: false`
-without the answer. While an answer runs, the run takes no other message and there is no way to
-cancel it. It can last up to the LLM call's timeout (`LLM_CHAT_TIMEOUT`) plus that of any tool it
-calls, such as `DOCS_EXTEND_TIMEOUT` for a docs page. The answer step returns:
+answer is recorded before the reply is marked as done, so a poll never sees `replying: false`
+without the answer. There is no way to cancel an answer. It can last up to the LLM call's timeout
+(`LLM_CHAT_TIMEOUT`) plus that of any tool it calls, such as `DOCS_EXTEND_TIMEOUT` for a docs page.
 
-- **One or more tool calls** → `{"tool_called": <last tool's name>, "result": <last tool's
-  result>, "steps": [{"tool", "arguments", "result"}, ...]}`. For a tool that starts a stage
-  running, `result` is `{"status": "started", "stage": ...}`; the stage's actual output shows up
-  in `GET /events` once `integration_runner`'s background thread finishes.
-- **No tool call** → `{"tool_called": None, "result": None, "message": <the model's own
-  clarifying question, or a generic fallback>}`. No state is mutated.
-- **Anything failing while answering** (the model call, or reading the run's status) →
-  `{"error": <the reason>}`, also recorded as a `message_failed` turn.
+- **One message at a time, for the whole Orchestrator.** The answer's tools act on whichever run is
+  current, so while an answer runs, no message is accepted on any run, and `replying` is true in
+  every run's `GET /events`.
+- **A message that starts a new run.** When the answer's `start_pipeline` call starts a new run,
+  the message and the answer are also recorded at the end of the new run's chat. The UI's live view
+  moves on to the new run; a run opened by its id shows the answer and becomes read-only. A run
+  that changes for any other reason while an answer runs (Restart, Resume) gets nothing copied.
 
 A hallucinated/unknown tool name doesn't crash the answer, that step's `"result"` becomes
 `{"error": "Unknown tool: <name>"}` instead. A tool call that WOULD mutate state while
@@ -188,9 +188,9 @@ This module is the one place that turns those facts into a running conversation,
    these in one go, and narrating each individually wastes a real LLM call per entry for what's
    really one bulk, automatic bookkeeping action, reading as the same comment repeated over and
    over rather than anything human-meaningful.
-3. `accept_message()`'s own turns (the human's message, each dispatched tool call, the reply) are
-   appended directly to the same `ChatLog`, under the same lock — genuinely one merged, ordered
-   transcript per run, not separate streams stitched together after the fact.
+3. `accept_message()`'s own turns (the human's message, and the answer step's tool calls and
+   reply) are appended directly to the same `ChatLog`, under the same lock. That makes it one merged,
+   ordered transcript per run, not separate streams stitched together after the fact.
 
 An earlier design considered merging `integration_runner`'s raw events with locally generated
 narration by sorting on `timestamp`. Rejected: a narration's timestamp comes from this process's
@@ -305,7 +305,7 @@ override key the current stage doesn't recognize (`integration_runner`'s own
 Lets an LLM decide which pipeline action a free-form human message maps to (see
 [The reply mechanism](#the-reply-mechanism-react_to_event--accept_message) above) and executes it.
 Returns `202` as soon as the message is recorded; the answer arrives through `GET /events`.
-`409` while this run's previous message is still being answered. No stage-busy guard (see above
+`409` while the previous message is still being answered. No stage-busy guard (see above
 for why).
 
 Request:

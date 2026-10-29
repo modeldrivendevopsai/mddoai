@@ -24,7 +24,7 @@ import system_prompt
 import tool_calling
 import tools
 from clients import ai_layer_client, integration_runner_client
-from event_summarization import summarize_for_reaction, summarize_history
+from event_summarization import summarize_for_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +51,6 @@ def react_to_event(event: dict, history: list[dict] | None = None, use_tools: bo
     )
 
 
-class ReplyInProgressError(Exception):
-    """A chat message arrived while this run's previous one is still being
-    answered."""
-
-
 def accept_message(user_message: str) -> Callable[[], dict]:
     """Records a human's free-form chat message as this run's newest chat
     turn and returns the step that answers it. The caller runs that step
@@ -63,8 +58,9 @@ def accept_message(user_message: str) -> Callable[[], dict]:
     an answer can take minutes: the model may call several tools, and one
     of them fetches a whole documentation page. The reply, each dispatched
     tool call and any failure all land in the chat log, where the UI's
-    GET /events poll picks them up. One message is answered at a time per
-    run, so a second one is refused until the first is done."""
+    GET /events poll picks them up. One message is answered at a time, so a
+    second one raises chat_log.ReplyInProgressError until the first is
+    done."""
     status = integration_runner_client.get_status()
     stage = status["current_stage"]
     chat = chat_log.get_chat_log(status["run_id"])
@@ -74,19 +70,7 @@ def accept_message(user_message: str) -> Callable[[], dict]:
         "data": {"message": user_message},
         "timestamp": time.time(),
     }
-    with chat.lock:
-        if chat.replying:
-            raise ReplyInProgressError("The previous message is still being answered.")
-        # Summarized before either is used to build a prompt (see
-        # event_summarization.summarize_for_reaction()'s own docstring for why
-        # history specifically can't skip this): chat_log's own narration
-        # already does the same for every other event, this is the other
-        # place that builds a prompt from real events, so it needs the same
-        # truncation, not just the current event.
-        history = summarize_history(chat.events)
-        # Last, so nothing that can fail leaves the run marked as replying.
-        chat.events.append(event)
-        chat.replying = True
+    history = chat_log.begin_reply(chat, event)
     return functools.partial(_answer, chat, status["run_id"], stage, event, history)
 
 
@@ -97,36 +81,41 @@ def _answer(chat: chat_log.ChatLog, run_id: str, stage: str | None, event: dict,
     approve, start_pipeline) does so via integration_runner's own REST
     endpoints, the same ones a direct REST call would use, so it returns once
     the stage has started, not finished. Returns the reply, or {"error": ...}
-    when answering failed."""
+    when answering failed; only tests read it, everything else reads the
+    chat log."""
     outcome: list[dict] = []
+    new_run_chat = None
     try:
         reply = react_to_event(summarize_for_reaction(event), history, use_tools=True)
         outcome = _reply_events(stage, reply)
+        new_run_chat = _new_run_chat(run_id, reply)
     except Exception as e:
         logger.exception("chat reply failed for run %s", run_id)
         reply = {"error": str(e)}
         outcome = [{"type": "message_failed", "stage": stage, "data": {"error": str(e)}, "timestamp": time.time()}]
     finally:
-        # Recorded and released in one step, so a poll never sees "not
-        # replying" without the reply, and the run is never left replying.
-        with chat.lock:
-            chat.events.extend(outcome)
-            chat.replying = False
-    _copy_to_new_run(run_id, event, outcome)
+        chat_log.end_reply(chat, event, outcome, new_run_chat)
     return reply
 
 
-def _copy_to_new_run(run_id: str, event: dict, outcome: list[dict]) -> None:
-    """A message that started a new run (the start_pipeline tool) is also
-    recorded at the start of that run's chat, which is the one the UI now
-    shows, so the person sees what they asked and what was done."""
+def _new_run_chat(run_id: str, reply: dict) -> chat_log.ChatLog | None:
+    """When the reply started a new run with the start_pipeline tool, that
+    run's chat, so the message and the answer are recorded there too: the
+    UI's live view moves on to the new run, and the person should see what
+    they asked and what was done. None otherwise, including when the new run
+    cannot be looked up, since the answer itself still stands."""
+    started = any(
+        step["tool"] == "start_pipeline" and isinstance(step["result"], dict) and step["result"].get("status") == "started"
+        for step in reply.get("steps", [])
+    )
+    if not started:
+        return None
     try:
         current = integration_runner_client.get_status()["run_id"]
     except Exception:
-        logger.exception("could not check whether the chat answer changed the run")
-        return
-    if current != run_id:
-        chat_log.get_chat_log(current).append_all([event, *outcome])
+        logger.exception("could not look up the run the chat answer started")
+        return None
+    return chat_log.get_chat_log(current) if current != run_id else None
 
 
 def _reply_events(stage: str | None, reply: dict) -> list[dict]:
