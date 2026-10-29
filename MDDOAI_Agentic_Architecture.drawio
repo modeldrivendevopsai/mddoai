@@ -1032,6 +1032,12 @@
         <mxCell id="devhost-71" edge="1" parent="devhostV2" source="devhost-64" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#4A2D6B;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="devhost-66" value="rebuild">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="devhost-branch-workflow" parent="devhostV2" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="&lt;b&gt;Branch workflow&lt;/b&gt;&lt;br&gt;GitHub Actions: someone with&lt;br&gt;write access picks the branch&lt;br&gt;the Test stack runs" vertex="1">
+          <mxGeometry height="80" width="200" x="1840" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="devhost-branch-workflow-edge" edge="1" parent="devhostV2" source="devhost-branch-workflow" target="devhost-78" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" value="records">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="devhost-72" edge="1" parent="devhostV2" source="devhost-64" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;dashed=1;fontSize=11;fontColor=#4A2D6B;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0.2222;entryY=1;" target="devhost-78" value="fetch branch&lt;br&gt;(outbound)">
           <mxGeometry relative="1" x="0.36" as="geometry">
             <Array as="points">
