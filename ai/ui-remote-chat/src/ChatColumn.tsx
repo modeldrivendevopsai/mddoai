@@ -43,7 +43,7 @@ export function ChatColumn({
   // run has started too: /message has no stage-busy guard (unlike every
   // other mutating endpoint), and the tool-calling layer can itself invoke
   // start_pipeline from a message. Only an in-flight call, a message still
-  // being answered (one at a time per run), or viewing read-only history
+  // being answered (one at a time), or viewing read-only history
   // blocks input.
   const disabled = busy || replying || readOnly
   const logRef = useRef<HTMLDivElement>(null)
