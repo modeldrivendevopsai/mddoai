@@ -35,6 +35,17 @@ docker compose up --build
 
 Starts every service in `docker-compose.yml`. `ai-layer` at [http://localhost:8000](http://localhost:8000), and `ui-host` at [http://localhost:5173](http://localhost:5173) (the whole UI, every remote included) are published to the host; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
 
+These settings change how the stack is reached. Set them in the shell or in `ai/.env`:
+
+- `UI_PORT` is the port `ui-host` is published on, `5173` by default. It always listens on this machine only.
+- `AI_LAYER_PORT` is the port `ai-layer` is published on, `8000` by default, on every network address of the machine. Put an address in front to listen on that address only, for example `127.0.0.1:8100`.
+- `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces, `localhost 127.0.0.1` by default. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
+- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `1900s` by default. Keep it above the slowest request the UI makes: a chat message, whose model call and tool call can together take that long.
+
+The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials and listens on every network address by default: set `AI_LAYER_PORT=127.0.0.1:8000` unless another machine needs it.
+
+Change the two ports to run a second copy of the stack on the same machine. Give that copy its own Compose project name too (`COMPOSE_PROJECT_NAME` in its `ai/.env`, or `docker compose -p <name>`), so its containers, networks and volumes are separate from the first copy's. Both copies still read the same `~/.claude` folder (see `ai-layer` below).
+
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 
 `ai-layer`'s container also gets read-only access to your host's `~/.claude` — see `docker-compose.yml` for why (the Claude Pro/Max subscription auto-detect path needs it; without the mount, the container has no way to see it since containers don't share the host's home directory).
