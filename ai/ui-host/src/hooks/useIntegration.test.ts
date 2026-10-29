@@ -89,10 +89,68 @@ describe("useIntegration", () => {
     expect(result.current.replying).toBe(true)
 
     await act(async () => {
-      fail(new Error("The previous message is still being answered."))
+      fail(new Error("Network down"))
       await sending
     })
     expect(result.current.replying).toBe(false)
-    expect(result.current.error).toBe("The previous message is still being answered.")
+    expect(result.current.error).toBe("Network down")
+  })
+
+  it("keeps waiting, and says the message was not sent, when another is still being answered", async () => {
+    const busy = Object.assign(new Error("The previous message is still being answered."), { status: 409 })
+    vi.mocked(service.sendMessage).mockRejectedValue(busy)
+    const { result } = renderHook(() => useIntegration())
+    await waitFor(() => expect(result.current.events).toHaveLength(3))
+
+    server = { ...server, replying: true }
+    await act(() => result.current.sendMessage("hello"))
+
+    expect(result.current.error).toBe("Your message was not sent: the previous one is still being answered.")
+    expect(result.current.replying).toBe(true)
+  })
+
+  it("keeps polling a run viewed by id while a reply is coming, even once it is not current", async () => {
+    vi.useFakeTimers()
+    // The answer's start_pipeline made another run current; this one waits
+    // for the answer that is copied into the new run and recorded here.
+    server = { ...server, is_current: false, replying: true }
+    const { result } = renderHook(() => useIntegration("run-a"))
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    server = { ...server, replying: false, events: [...server.events, event("the reply")] }
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS))
+    expect(result.current.events.at(-1)?.text).toBe("the reply")
+
+    const calls = vi.mocked(service.getEvents).mock.calls.length
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3))
+    expect(vi.mocked(service.getEvents).mock.calls.length).toBe(calls)
+  })
+
+  it("fetches again after a fetch that was already in flight when a message was sent", async () => {
+    vi.useFakeTimers()
+    const { result } = renderHook(() => useIntegration())
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    // The next poll is sent before the message and answers late, still
+    // saying "not replying"; the fetch the message asked for must not be
+    // dropped because that poll was in flight.
+    let answerStalePoll: () => void = () => {}
+    vi.mocked(service.getEvents).mockImplementationOnce(
+      (since = 0) =>
+        new Promise((resolve) => {
+          const stale = { ...server, events: server.events.slice(since) }
+          answerStalePoll = () => resolve(stale)
+        })
+    )
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS))
+
+    server = { ...server, replying: true }
+    await act(() => result.current.sendMessage("hello"))
+    await act(async () => {
+      answerStalePoll()
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    expect(result.current.replying).toBe(true)
   })
 })
