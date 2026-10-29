@@ -196,29 +196,29 @@ Claude Code and image builds.
 
 `connect/connect.ps1` is a PowerShell script for Windows. It reads Terraform's
 outputs and state, so it is for the person who runs Terraform for this VM (see
-"Terraform state"). From the repository root:
+"Terraform state"). Run it from the repository root, the first time and
+whenever SSH stops connecting:
 
 ```powershell
 .\infra\dev-host\connect\connect.ps1
 ```
 
 If PowerShell says running scripts is disabled, allow local scripts for your
-user once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, or run it
-as `powershell -ExecutionPolicy Bypass -File .\infra\dev-host\connect\connect.ps1`.
+user once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
 It runs each file in `connect/steps/` in order, and each one skips work already done:
 
-- `10-firewall-ip.ps1`: finds your public IPv4 address. If the applied firewall does not allow it yet, it puts it in `ssh_allowed_cidrs` and applies. It applies only when the plan updates the firewall and nothing else. If the apply fails, `terraform.tfvars` is put back as it was.
+- `10-firewall-ip.ps1`: when your public IPv4 address is not in `ssh_allowed_cidrs` in `terraform.tfvars` yet, writes it there and runs `terraform apply`. Check that the plan only updates `hcloud_firewall.dev`, then answer `yes`. If the apply does not complete (an error, `no`, or Ctrl+C), `terraform.tfvars` is put back as it was.
 - `20-vscode-extension.ps1`: installs VS Code's Remote - SSH extension.
-- `30-ssh-config.ps1`: writes Terraform's `ssh_config` output into `~/.ssh/config`, between two marker comments, before your first other `Host` entry. Running it again replaces that block and keeps the rest of the file.
+- `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` by default), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
 - `40-run-setup.ps1`: copies `setup/` to the VM and runs it there as `dev` with `sudo`. Runs only with `-RunSetup`.
 - `50-open-vscode.ps1`: opens VS Code connected to the VM, in `/home/dev`. Skipped with `-NoOpen`.
 
 Notes:
 
-- The firewall step needs the Hetzner token only when your address changed. It reads `HCLOUD_TOKEN` from the environment, or from a `HCLOUD_TOKEN=` line in a file passed with `-EnvFile <path>`. It does not leave the token behind in your terminal.
-- The firewall step replaces the address only when `ssh_allowed_cidrs` lists exactly one. With several, it cannot tell which one was yours, so it stops and asks you to edit the list by hand.
-- The SSH config step stops if `~/.ssh/config` already has an entry for the same host name outside its block, because ssh would use whichever comes first.
+- The firewall step needs the Hetzner token only when your address changed. It uses `HCLOUD_TOKEN` from your terminal (see "Before you start"), or reads it from a file you pass with `-EnvFile <path>`. In that file, the line must start with `HCLOUD_TOKEN=`. Afterwards your terminal's `HCLOUD_TOKEN` is as it was before.
+- The firewall step needs `ssh_allowed_cidrs` on one line, as in `terraform.tfvars.example`. It replaces the address only when that line lists exactly one. With several, one may be another developer's, so it stops and asks you to edit the list by hand.
+- If `~/.ssh/config` has another `Host mddoai-dev` entry, delete it. ssh ignores its settings, except `LocalForward` lines, which add to the ones in the included file.
 - The script needs the `code` command on your PATH. VS Code's Windows setup adds it; restart the terminal after installing. With `-NoOpen`, a missing `code` is only a warning.
 - The SSH config comes from Terraform's state. After changing a variable that affects it (for example `ui_ports`), run `terraform apply` before the connect script.
 - On the first connection, VS Code installs its server on the VM, which takes about a minute. It may also ask for the remote platform once: pick Linux.
@@ -373,7 +373,7 @@ either order.
   ```
 
   If `31-docker-logs.sh` changes the log settings, it restarts Docker, which stops running containers. Existing containers keep their old log settings until they are recreated with `docker compose up -d --force-recreate`.
-- **Your IP changed:** SSH and VS Code time out. Run the connect script, which updates the firewall. By hand: update `ssh_allowed_cidrs` and run `terraform apply`. Only the firewall changes. Being locked out meanwhile does not affect anything on the server.
+- **Your IP changed:** SSH and VS Code time out. Run the connect script, which updates the firewall. Without it: replace your address in `ssh_allowed_cidrs` and run `terraform apply`; the plan should only update `hcloud_firewall.dev`. Being locked out meanwhile does not affect anything on the server.
 - **Another developer:** add their address to `ssh_allowed_cidrs` and apply. They log in as the same `dev` user with a key you add to `/home/dev/.ssh/authorized_keys`; separate Linux users per developer are not set up by this folder.
 - **Rebuild the server from scratch** (to check it can be recreated, or after a broken setup):
   - This deletes everything on the server's disk. If backups are on, Hetzner deletes the old server's backups with it. Take a snapshot in the Hetzner Console first. Snapshots are kept until you delete them.

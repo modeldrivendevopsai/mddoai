@@ -20,6 +20,9 @@ function Write-Log([string]$Message) {
 function Invoke-Native([scriptblock]$Command, [string]$What) {
   $previous = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
+  # So a command that never ran (not installed) cannot pass on the exit code
+  # of an earlier program.
+  $global:LASTEXITCODE = -1
   try {
     & $Command
   } finally {
@@ -31,14 +34,9 @@ function Invoke-Native([scriptblock]$Command, [string]$What) {
 # Reads one Terraform output as text. Outputs come from the local state file,
 # so this needs no API token.
 function Get-TerraformOutput([string]$Name) {
-  Push-Location $TerraformDir
-  try {
-    $value = & terraform output -raw $Name
-    if ($LASTEXITCODE -ne 0) { throw "terraform output $Name failed. Has terraform apply run?" }
-    return ($value -join "`n")
-  } finally {
-    Pop-Location
-  }
+  $value = & terraform "-chdir=$TerraformDir" output -raw $Name
+  if ($LASTEXITCODE -ne 0) { throw "terraform output $Name failed. Has terraform apply run?" }
+  return ($value -join "`n")
 }
 
 # The Host alias and user from the ssh_config output, so later steps use the
