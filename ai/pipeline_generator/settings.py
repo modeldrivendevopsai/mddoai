@@ -33,3 +33,13 @@ MAX_ARTIFACT_BYTES = int(os.environ.get("GENERATOR_MAX_ARTIFACT_BYTES", str(1024
 # Engineering guess: far more than anyone reopens, small enough that the list
 # and the folder stay small.
 MAX_PIPELINES = int(os.environ.get("GENERATOR_MAX_PIPELINES", "200"))
+
+# How many finished generation jobs are kept for their callers to fetch. The
+# browser that started a job fetches it within seconds of it finishing, so
+# this only needs to cover a handful of open tabs (engineering guess).
+MAX_FINISHED_JOBS = int(os.environ.get("GENERATOR_MAX_FINISHED_JOBS", "100"))
+
+# How many generations run at once; the rest wait their turn. Each one starts
+# the engine's JVM, so a few at once is plenty for the people sharing one
+# stack (engineering guess).
+MAX_RUNNING_JOBS = int(os.environ.get("GENERATOR_MAX_RUNNING_JOBS", "2"))

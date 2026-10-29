@@ -77,6 +77,20 @@ export interface GenerateRequest {
   save_to: string | null
 }
 
+// How often a running generation is checked. Each platform takes seconds
+// to minutes, so a second's delay in noticing it finished is unnoticeable
+// (engineering guess).
+const GENERATION_POLL_MS = 1000
+// Checks in a row that may fail (no answer, or a 5xx from a proxy restarting)
+// before giving up on a job that is probably still running (engineering
+// guess, a few seconds of outage).
+const GENERATION_POLL_RETRIES = 3
+
+type GenerationJob =
+  | { state: "running" }
+  | ({ state: "done" } & GenerateResponse)
+  | { state: "failed"; error: string }
+
 export interface GenerateResponse {
   // null when nothing was generated or the result could not be kept.
   pipeline_id: string | null
@@ -172,9 +186,13 @@ async function post<T>(path: string, label: string, payload: unknown): Promise<T
   return res.json()
 }
 
-async function get<T>(path: string, label: string, query?: Record<string, string>): Promise<T> {
+async function get<T>(
+  path: string,
+  label: string,
+  { query, signal }: { query?: Record<string, string>; signal?: AbortSignal } = {}
+): Promise<T> {
   const search = query ? `?${new URLSearchParams(query)}` : ""
-  const res = await fetch(`/generator-api${path}${search}`)
+  const res = await fetch(`/generator-api${path}${search}`, { signal })
   if (!res.ok) throw await errorFor(label, res)
   return res.json()
 }
@@ -189,8 +207,57 @@ export function inspectModel(filename: string, content: string): Promise<Inspect
   return post("/inspect", "Inspect", { filename, content })
 }
 
-export function generatePipelines(request: GenerateRequest): Promise<GenerateResponse> {
-  return post("/generate", "Generate", request)
+// The generator answers POST /generate at once with a job and generates
+// afterwards, since a generation can outlast a proxy's request timeout. This
+// waits for the job, so callers get the finished results either way. Aborting
+// `signal` stops the waiting; the job itself still finishes on the server.
+export async function generatePipelines(request: GenerateRequest, signal?: AbortSignal): Promise<GenerateResponse> {
+  const { job_id } = await post<{ job_id: string }>("/generate", "Generate", request)
+  let failures = 0
+  for (;;) {
+    signal?.throwIfAborted()
+    let job: GenerationJob
+    try {
+      job = await get<GenerationJob>(`/generate/${encodeURIComponent(job_id)}`, "Generate", { signal })
+      failures = 0
+    } catch (err) {
+      if (!isTransient(err) || ++failures > GENERATION_POLL_RETRIES) throw err
+      await sleep(GENERATION_POLL_MS, signal)
+      continue
+    }
+    // The job's own outcome, not an HTTP error, so it carries no status.
+    switch (job.state) {
+      case "done":
+        return { pipeline_id: job.pipeline_id, results: job.results }
+      case "failed":
+        throw new GeneratorError(job.error, 0)
+      case "running":
+        await sleep(GENERATION_POLL_MS, signal)
+        break
+      default:
+        throw new GeneratorError("The pipeline generator gave an unexpected answer.", 0)
+    }
+  }
+}
+
+// No answer at all, or one from a server error rather than about the job.
+function isTransient(err: unknown): boolean {
+  return err instanceof TypeError || (err instanceof GeneratorError && err.status >= 500)
+}
+
+// Ends early, rejecting, when signal is aborted.
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 export function validatePipeline(platform: string, content: string): Promise<PipelineValidation> {
@@ -206,9 +273,9 @@ export function getPipeline(id: string): Promise<PipelineRecord> {
 }
 
 export function browseWorkspace(path: string, dirsOnly: boolean): Promise<WorkspaceListing> {
-  return get("/workspace/browse", "Browse", { path, dirs_only: String(dirsOnly) })
+  return get("/workspace/browse", "Browse", { query: { path, dirs_only: String(dirsOnly) } })
 }
 
 export function readWorkspaceFile(path: string): Promise<WorkspaceFile> {
-  return get("/workspace/file", "Open file", { path })
+  return get("/workspace/file", "Open file", { query: { path } })
 }

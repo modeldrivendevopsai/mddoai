@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 import engine_runner
 import main
 from engine_runner import EngineError
+from helpers import generate
 
 client = TestClient(main.app)
 
@@ -113,7 +114,7 @@ def test_inspect_rejects_an_overlong_filename():
 def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermediates():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
             patch("generation.run_engine", return_value=_engine_result()) as engine:
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 200
     body = response.json()
@@ -127,10 +128,62 @@ def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermed
     assert engine.call_args.args[1].id == "gitlab"
 
 
+def test_generate_answers_at_once_with_a_job_to_fetch():
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_engine", return_value=_engine_result()):
+        started = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        job = client.get(f"/generate/{started.json()['job_id']}")
+
+    assert started.status_code == 202
+    assert set(started.json()) == {"job_id"}
+    assert job.status_code == 200
+    assert job.json()["state"] == "done"
+    assert job.json()["pipeline_id"]
+
+
+def test_generate_answers_before_generating(workspace_dir, history, registry):
+    """With a job store that holds work back, the endpoint has answered and
+    the job is running before the engine is ever called."""
+    from generation_jobs import GenerationJobs
+    from workspace import Workspace
+
+    pending = []
+    jobs = GenerationJobs(max_finished=10, run=pending.append)
+    request = main.GenerateRequest(**MODEL, platforms=["gitlab"])
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_engine", return_value=_engine_result()) as engine:
+        started = main.generate_endpoint(request, Workspace(workspace_dir), history, registry, jobs)
+
+        assert jobs.get(started["job_id"]) == {"state": "running"}
+        engine.assert_not_called()
+
+        pending[0]()
+
+    assert jobs.get(started["job_id"])["state"] == "done"
+
+
+def test_an_unknown_generation_job_is_404():
+    response = client.get("/generate/no-such-job")
+
+    assert response.status_code == 404
+    assert "restart" in response.json()["detail"]
+
+
+def test_a_crash_during_generation_fails_the_job_without_its_error_text():
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_engine", side_effect=RuntimeError("boom at /secret/path")):
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
+
+    assert response.status_code == 200
+    assert response.json()["state"] == "failed"
+    assert "failed" in response.json()["error"]
+    assert "secret" not in response.text
+
+
 def test_generate_refuses_an_invalid_model_and_never_runs_the_engine():
     with patch("main.validator_agent_client.validate_swarch", return_value=_invalid()), \
             patch("generation.run_engine") as engine:
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 422
     detail = response.json()["detail"]
@@ -141,7 +194,7 @@ def test_generate_refuses_an_invalid_model_and_never_runs_the_engine():
 
 def test_generate_rejects_an_unsupported_platform_naming_the_supported_ones():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()):
-        response = client.post("/generate", json={**MODEL, "platforms": ["jenkins"]})
+        response = generate(client, {**MODEL, "platforms": ["jenkins"]})
 
     assert response.status_code == 422
     assert "gitlab" in response.json()["detail"]
@@ -150,7 +203,7 @@ def test_generate_rejects_an_unsupported_platform_naming_the_supported_ones():
 def test_generate_hides_the_engines_own_error_text():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
             patch("generation.run_engine", side_effect=EngineError("exited 1: java.lang.Boom at /secret/path")):
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 200
     [result] = response.json()["results"]
@@ -162,7 +215,7 @@ def test_generate_hides_the_engines_own_error_text():
 
 def test_generate_returns_502_when_the_validator_is_unreachable():
     with patch("main.validator_agent_client.validate_swarch", side_effect=httpx.ConnectError("down")):
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 502
 
@@ -170,7 +223,7 @@ def test_generate_returns_502_when_the_validator_is_unreachable():
 def test_generate_rejects_oversized_content():
     oversized = {"filename": "x.swarch", "content": "x" * (main.MAX_MODEL_BYTES + 1), "platforms": ["gitlab"]}
 
-    assert client.post("/generate", json=oversized).status_code == 413
+    assert generate(client, oversized).status_code == 413
 
 
 def test_validate_checks_the_pipeline_for_the_platform():
@@ -230,7 +283,7 @@ def test_the_validator_is_always_sent_a_fixed_filename_never_the_callers():
     # recognised downstream.
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()) as validate:
         client.post("/inspect", json={"filename": "../../evil.TXT", "content": MODEL["content"]})
-        client.post("/generate", json={"filename": "..", "content": MODEL["content"], "platforms": ["gitlab"]})
+        generate(client, {"filename": "..", "content": MODEL["content"], "platforms": ["gitlab"]})
 
     assert {call.args[1] for call in validate.call_args_list} == {"model.swarch"}
 

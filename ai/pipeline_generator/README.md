@@ -12,10 +12,13 @@ separate service. This mode has no pipeline run, no chat and no stages, and it c
 
 1. **Inspect** (`POST /inspect`). Reads the uploaded model's attributes for display, and asks
    `validator_agent` whether the real EMF validator accepts it.
-2. **Generate** (`POST /generate`). Checks the model again, then, for each chosen platform, runs
-   the engine's own `swarch2<platform>` command and returns the generated pipeline plus the
-   intermediate models the engine passed through. It saves each pipeline file into the requested
-   workspace folder and records the generation so it can be reopened.
+2. **Generate** (`POST /generate`). Checks the model again and answers at once with a job id.
+   Then, for each chosen platform, it runs the engine's own `swarch2<platform>` command and
+   keeps the generated pipeline plus the intermediate models the engine passed through, for
+   `GET /generate/{job_id}` to return. It saves each pipeline file into the requested workspace
+   folder and records the generation so it can be reopened. A generation can take longer than a
+   proxy in front of the service allows one request to last, which is why it does not answer
+   with the results.
 3. **Validate** (`POST /validate`). Checks the generated pipeline file and returns a short
    checklist in plain language.
 
@@ -106,7 +109,8 @@ is the one place a caller's path reaches the disk, and it is confined.)
 | `GET /platforms` | The platforms a pipeline can be generated for: the built-in ones, then the latest version of each published one. Each has `id`, `name`, `output_filename`, `source` (`engine` or `published`) and `version` (null for a built-in one). |
 | `POST /platforms` | Publishes a platform approved in an integration run, as its next version. Body: `name`, `output_filename` (a relative path), `output_model_name`, `metamodel`, `transformation`, `template`, optional `source_run_id`. Returns `id`, `name`, `version`, `output_filename`. `422` with the reason when it cannot be published (for example a name that would take a built-in platform's id), `413` for an artifact over the size limit. |
 | `POST /inspect` | Body: `filename`, `content`. Returns `element`, `attributes` (name and value, in file order) and `model_validation` (`valid` plus `issues`). An invalid model is a normal `200` answer. |
-| `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path` and `save_to`. Returns `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms`, `saved_to`, `replaced`, `save_error` and `error`. An empty `save_to` is refused; omit it to save nothing. One platform failing is reported in its own entry and does not discard the others. |
+| `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path` and `save_to`. An empty `save_to` is refused; omit it to save nothing. Checks the request, then answers `202` with `job_id` and generates afterwards. |
+| `GET /generate/{job_id}` | The generation's `state`: `running`, `failed` (with a generic `error`; the cause is in the service log) or `done`. A done job has `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms`, `saved_to`, `replaced`, `save_error` and `error`. One platform failing is reported in its own entry and does not discard the others. |
 | `GET /pipelines` | The generated pipelines, newest first: `id`, `swarch_name`, `source_path`, `platforms`, `outputs`, `generated_at`. |
 | `GET /pipelines/{id}` | One pipeline in full, including the model `content`, `save_to` and `results`. `404` for an unknown id. |
 | `GET /workspace/browse` | Query: `path`, `dirs_only`. Returns `path`, `parent`, `entries` (name and `dir` or `file`) and `truncated`. |
@@ -116,6 +120,8 @@ is the one place a caller's path reaches the disk, and it is confined.)
 | Outcome | HTTP status |
 |---|---|
 | Success, including an invalid model on `/inspect` and a failing check on `/validate` | `200` |
+| `/generate` accepted the request | `202` |
+| A generation job that is unknown, for example lost in a restart (jobs are kept in memory only; the pipeline history is not) | `404` |
 | `/generate` given a model that fails validation (the response lists the issues) | `422` |
 | Unsupported platform, a path outside the workspace, or a malformed body | `422` |
 | A workspace path that names no file or folder | `404` |
@@ -188,6 +194,8 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `SWARCH_AGENT_URL` | Where `swarch_agent` is reached, to turn a model into a PIM for a published platform. |
 | `EXECUTION_AGENT_URL` | Where `execution_agent` is reached, to run a published platform's transformation and template. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
+| `GENERATOR_MAX_FINISHED_JOBS` | How many finished generation jobs are kept for `GET /generate/{job_id}`. The oldest are forgotten beyond it; running jobs never are. |
+| `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn, reported as running. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest file read back from the engine, and the largest pipeline `/validate` accepts. One setting, so a pipeline the engine can write can always be validated. |
 

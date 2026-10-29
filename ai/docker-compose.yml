@@ -15,7 +15,10 @@ services:
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     ports:
-      - "8000:8000"
+      # AI_LAYER_PORT is the host port, optionally with the address to listen
+      # on in front (127.0.0.1:8100), so a second copy of the stack on the
+      # same machine can use another one.
+      - "${AI_LAYER_PORT:-8000}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
   # Python packages (orchestrator/, clients/) into one container. Before
@@ -32,7 +35,7 @@ services:
         required: false
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
-      # send_message()'s own tool-routing decision, see assistant.py), and
+      # accept_message()'s own tool-routing decision, see assistant.py), and
       # main.py's /providers proxies ai_layer_client.list_providers() too —
       # orchestrator is still the LLM-chat layer. It has no import on
       # clients/retrieval_client.py at all anymore, though: the
@@ -328,16 +331,19 @@ services:
     environment:
       # Filled into the proxy's configuration when the container starts.
       # The host names the app may be opened under. Any other Host header is
-      # refused, so a page using DNS rebinding cannot reach the APIs. Add a
-      # name here if the app is opened under one.
-      - UI_ALLOWED_HOSTS=localhost 127.0.0.1
+      # refused, so a page using DNS rebinding cannot reach the APIs. Set
+      # UI_ALLOWED_HOSTS (space-separated) if the app is opened under another
+      # name, keeping localhost if you still open it that way too.
+      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:-localhost 127.0.0.1}
       # Above the largest attachment upload the stage agents accept (5 MiB by
       # default, *_MAX_UPLOAD_BYTES). Raise it with them.
       - UI_MAX_BODY_SIZE=6m
-      # Above the longest single request the UI makes: a chat message, whose
-      # LLM call may take LLM_CHAT_TIMEOUT (900s) and whose tool call may then
-      # fetch a docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them.
-      - UI_PROXY_READ_TIMEOUT=1900s
+      # Above the longest single request the UI makes: a model check, which
+      # may take VALIDATE_TIMEOUT (90s). Raise it with that, but keep it under
+      # the limit of any proxy in front of this one: Cloudflare ends a request
+      # after 125s. Anything slower (a stage, a chat answer, a generation)
+      # answers at once and runs in the background.
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-120s}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
       # The "Generate a CI/CD pipeline" mode's own backend (see
       # pipeline-generator below), reached through its own proxy path, not
@@ -348,8 +354,9 @@ services:
       # This machine only. The generate mode's API, reached through this
       # port, can read model files from and write pipeline files into the
       # workspace folder, and like every service here it has no
-      # authentication, so it is not published on the network.
-      - "127.0.0.1:5173:80"
+      # authentication, so it is not published on the network. UI_PORT
+      # changes the port, for a second copy of the stack on the same machine.
+      - "127.0.0.1:${UI_PORT:-5173}:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
   # Federation remote, its own image and container, exposing one piece of the

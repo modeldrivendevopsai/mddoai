@@ -41,6 +41,7 @@ export function useIntegration(runId?: string) {
   const [events, setEvents] = useState<OrchestratorEvent[]>([])
   const [currentStage, setCurrentStage] = useState<StageId | null>(null)
   const [busy, setBusy] = useState(false)
+  const [replying, setReplying] = useState(false)
   const [started, setStarted] = useState(false)
   const [model, setModelState] = useState<string | null>(null)
   // Fetched once, not polled — ChatColumn's own model picker used to fetch
@@ -60,9 +61,15 @@ export function useIntegration(runId?: string) {
   // id regardless of which case it is.
   const [viewedRunId, setViewedRunId] = useState<string | null>(null)
   const pollingRef = useRef(false)
-  // Mirrors isCurrent for the interval poll below, which can't depend on the
-  // state value directly without re-subscribing the effect every tick.
+  // Set when a fetch is asked for while another is in flight. That one may
+  // have been sent before the action that asked, so its answer can be stale:
+  // the fetch in flight runs once more when it ends.
+  const followUpRef = useRef(false)
+  // Mirror isCurrent and replying for the interval poll below, which can't
+  // depend on the state values directly without re-subscribing the effect
+  // every tick.
   const isCurrentRef = useRef(true)
+  const replyingRef = useRef(false)
   // The real accumulated log. GET /events?since_index=N exists specifically
   // "for incremental polling" (see main.py), so each fetch only asks for
   // what's new since this and gets appended, rather than re-fetching and
@@ -77,6 +84,10 @@ export function useIntegration(runId?: string) {
   // never check this, they always fetch, since they just did something
   // that can legitimately change state.
   const doneRef = useRef(false)
+  // The run the accumulated log belongs to. A chat answer can start a new run
+  // in the background (the start_pipeline tool), after which an incremental
+  // slice would be the new run's events appended to the old run's log.
+  const runIdRef = useRef<string | null>(null)
 
   // Providers don't depend on runId (it's a global, not a per-run list), so
   // this fetches once per mount rather than re-running alongside the
@@ -97,9 +108,12 @@ export function useIntegration(runId?: string) {
 
   const applyEvents = useCallback((body: Awaited<ReturnType<typeof getEvents>>, replace: boolean) => {
     allEventsRef.current = replace ? body.events : [...allEventsRef.current, ...body.events]
+    runIdRef.current = body.run_id
     setEvents(allEventsRef.current)
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
+    setReplying(body.replying)
+    replyingRef.current = body.replying
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
@@ -108,47 +122,45 @@ export function useIntegration(runId?: string) {
     // never-started Orchestrator, it's only ever null once the whole
     // pipeline finishes. A raw pipeline event (PIPELINE_EVENT_TYPES) is the
     // only real signal that /start has actually been called — plain chat
-    // events (user_message/message/tool_called) can exist with zero real
+    // events (user_message/message/message_failed/tool_called) can exist with zero real
     // pipeline activity, e.g. the LLM just asking a clarifying question, so
     // events.length alone isn't enough (a false positive here shows the
     // Stepper as "reviewing" and enables Retry for a stage that never ran).
     setStarted(allEventsRef.current.some((e) => PIPELINE_EVENT_TYPES.includes(e.type)))
-    doneRef.current = !body.busy && (body.current_stage === null || allEventsRef.current.length === 0)
+    doneRef.current =
+      !body.busy && !body.replying && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
-  // Used by the interval poll and by approve/retry, neither of which can
-  // ever change which run is current (only /start and /reset do that), so
-  // asking for since_index=<what we already have> is always safe.
-  const fetchIncremental = useCallback(async () => {
-    if (pollingRef.current) return
-    pollingRef.current = true
-    try {
-      applyEvents(await getEvents(allEventsRef.current.length, runId), false)
-    } catch {
-      // Transient network hiccup, the next poll tick or manual action retries.
-    } finally {
-      pollingRef.current = false
-    }
-  }, [applyEvents, runId])
+  // What's new since the accumulated log, or the whole log again when the
+  // run changed underneath it (see runIdRef). Returns whether it replaced.
+  const fetchNewEvents = useCallback(async () => {
+    const body = await getEvents(allEventsRef.current.length, runId)
+    if (runIdRef.current === null || body.run_id === runIdRef.current) return { body, replace: false }
+    return { body: await getEvents(0, runId), replace: true }
+  }, [runId])
 
-  // Used after start/reset (which already clear allEventsRef themselves) and
-  // after sending a chat message, since its tool-calling can itself call
-  // start_pipeline (see tools/pipeline_control.py's start_pipeline tool),
-  // resetting the backend's own event indices in a way this hook can't
-  // predict in advance, there's no run identity yet to detect that safely,
-  // so sending a message always does a full refetch rather than risk
-  // merging two different runs' events together.
-  const fetchFull = useCallback(async () => {
-    if (pollingRef.current) return
+  // Used by every action. After start/reset/fork, which empty the
+  // accumulated log first, this fetches the whole log.
+  const fetchIncremental = useCallback(async () => {
+    if (pollingRef.current) {
+      followUpRef.current = true
+      return
+    }
     pollingRef.current = true
     try {
-      applyEvents(await getEvents(0, runId), true)
+      do {
+        followUpRef.current = false
+        const { body, replace } = await fetchNewEvents()
+        // Asked for again while this one was out, so its answer may be
+        // stale; the next round applies a fresh one.
+        if (!followUpRef.current) applyEvents(body, replace)
+      } while (followUpRef.current)
     } catch {
       // Transient network hiccup, the next poll tick or manual action retries.
     } finally {
       pollingRef.current = false
     }
-  }, [applyEvents, runId])
+  }, [applyEvents, fetchNewEvents])
 
   // The interval poll is defined and called entirely inside this effect
   // (not via the fetch callbacks above) so state updates stay scoped to
@@ -159,20 +171,27 @@ export function useIntegration(runId?: string) {
     // Switching which run is viewed (including live -> history or back) is a
     // fresh start: the previous run's accumulated event indices don't apply.
     allEventsRef.current = []
+    runIdRef.current = null
     doneRef.current = false
     isCurrentRef.current = true
+    replyingRef.current = false
 
     async function poll() {
       if (doneRef.current) return
       // A past, non-current run is a frozen log (see main.py's /events?run_id=
       // — "read-only, no polling loop needed"): once the first fetch confirms
-      // that, every later tick is a no-op instead of a wasted request.
-      if (runId && !isCurrentRef.current) return
+      // that, every later tick is a no-op instead of a wasted request. The
+      // exception is a chat answer still coming: when it starts a new run,
+      // the run on screen stops being current before the answer lands in it.
+      if (runId && !isCurrentRef.current && !replyingRef.current) return
       if (pollingRef.current) return
       pollingRef.current = true
       try {
-        const body = await getEvents(allEventsRef.current.length, runId)
-        if (!cancelled) applyEvents(body, false)
+        do {
+          followUpRef.current = false
+          const { body, replace } = await fetchNewEvents()
+          if (!cancelled && !followUpRef.current) applyEvents(body, replace)
+        } while (followUpRef.current && !cancelled)
       } catch {
         // Transient network hiccup, the next tick retries.
       } finally {
@@ -186,7 +205,7 @@ export function useIntegration(runId?: string) {
       cancelled = true
       clearInterval(id)
     }
-  }, [applyEvents, runId])
+  }, [applyEvents, fetchNewEvents, runId])
 
   const start = useCallback(
     async (platformDescription: string, seedUrl: string, model?: string, docsOptions?: DocsOptions) => {
@@ -200,12 +219,12 @@ export function useIntegration(runId?: string) {
         allEventsRef.current = []
         doneRef.current = false
         setStarted(true)
-        await fetchFull()
+        await fetchIncremental()
       } catch (err) {
         setError(messageFor(err, "Could not start the integration. Is the orchestrator running?"))
       }
     },
-    [fetchFull]
+    [fetchIncremental]
   )
 
   const approve = useCallback(
@@ -245,14 +264,28 @@ export function useIntegration(runId?: string) {
   const sendMessage = useCallback(
     async (message: string) => {
       setError(null)
+      // Set before sending, so the input waits from the first keypress. The
+      // answer arrives through the events poll, which keeps running until
+      // it does.
+      setReplying(true)
       try {
         await sendMessageApi(message)
-        await fetchFull()
+        doneRef.current = false
+        await fetchIncremental()
       } catch (err) {
+        // A 409 means an earlier message is still being answered (perhaps
+        // from another tab): keep waiting for that answer instead.
+        if ((err as { status?: number }).status === 409) {
+          setError("Your message was not sent: the previous one is still being answered.")
+          doneRef.current = false
+          await fetchIncremental()
+          return
+        }
+        setReplying(false)
         setError(messageFor(err, "Could not reach the Orchestrator."))
       }
     },
-    [fetchFull]
+    [fetchIncremental]
   )
 
   // Changes the model for the rest of the run (every subsequent stage run,
@@ -282,11 +315,11 @@ export function useIntegration(runId?: string) {
       await resetPipeline()
       allEventsRef.current = []
       doneRef.current = false
-      await fetchFull()
+      await fetchIncremental()
     } catch (err) {
       setError(messageFor(err, "Could not restart, a stage may still be running."))
     }
-  }, [fetchFull])
+  }, [fetchIncremental])
 
   // The counterpart to reset: makes this hook's own runId current again
   // instead of replacing it with a blank one. Only meaningful for a past,
@@ -302,11 +335,11 @@ export function useIntegration(runId?: string) {
     setError(null)
     try {
       await resumeRun(runId)
-      await fetchFull()
+      await fetchIncremental()
     } catch (err) {
       setError(messageFor(err, "Could not resume, another stage may still be running."))
     }
-  }, [runId, fetchFull])
+  }, [runId, fetchIncremental])
 
   // Starts a genuinely new run seeded with the currently-viewed run's own
   // real output up to (not including) fromStage, then pauses there - the
@@ -322,7 +355,7 @@ export function useIntegration(runId?: string) {
   // that hands the caller a DIFFERENT run than whichever one this hook is
   // currently keyed to (runId is a fixed, URL-derived parameter this hook
   // never changes itself - see IntegrationScreen.tsx's own component,
-  // which owns the URL). A bare fetchFull() here would still ask for
+  // which owns the URL). A bare fetchIncremental() here would still ask for
   // *this* hook's own fixed runId, landing back on the now-non-current
   // source run instead of the new one - IntegrationScreen.tsx's own
   // onForkFrom is what actually navigates to the new id, this just reports
@@ -357,16 +390,17 @@ export function useIntegration(runId?: string) {
   const publish = useCallback(
     async (name: string, outputFilename: string) => {
       const published = await publishPlatform(name, outputFilename, viewedRunId)
-      await fetchFull()
+      await fetchIncremental()
       return published
     },
-    [fetchFull, viewedRunId]
+    [fetchIncremental, viewedRunId]
   )
 
   return {
     events,
     currentStage,
     busy,
+    replying,
     started,
     model,
     providers,

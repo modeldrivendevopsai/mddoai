@@ -473,13 +473,16 @@ describe("GenerateScreen: generating", () => {
     await loadValidModelAndGenerate()
 
     expect(await screen.findByText(/GitLab CI pipeline generated in 1\.5 s/)).toBeTruthy()
-    expect(service.generatePipelines).toHaveBeenCalledWith({
-      filename: "app.swarch",
-      content: "<swarch/>",
-      platforms: ["gitlab"],
-      source_path: null,
-      save_to: "./ci-output/",
-    })
+    expect(service.generatePipelines).toHaveBeenCalledWith(
+      {
+        filename: "app.swarch",
+        content: "<swarch/>",
+        platforms: ["gitlab"],
+        source_path: null,
+        save_to: "./ci-output/",
+      },
+      expect.any(AbortSignal)
+    )
     expect(screen.getByLabelText(".gitlab-ci.yml").textContent).toBe("stages:\n  - build\n")
     expect(screen.getByText("Saved to /ci-output/.gitlab-ci.yml")).toBeTruthy()
   })
