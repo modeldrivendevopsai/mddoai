@@ -1,22 +1,13 @@
 import path from 'node:path'
-import { setDefaultResultOrder } from 'node:dns'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { federation } from '@module-federation/vite'
 
-// Node 18+ defaults DNS lookups to 'verbatim' order, which can return an AAAA
-// (IPv6) result first for a Docker Compose service name that only has an A
-// record, making the dev-server proxy fail fast instead of falling back to
-// IPv4. Force IPv4-first so proxying to Docker service names is reliable.
-setDefaultResultOrder('ipv4first')
-
-// A remote's URL here has to be one the *browser* can resolve, unlike
-// VITE_ORCHESTRATOR_PROXY_TARGET below (a Docker Compose service name the
-// dev *server* resolves for its own server-side proxy). Module Federation
-// works the other way around: the browser itself fetches each remote's
-// remoteEntry.js directly against that remote's own origin, after this
-// page has already loaded, so every remote needs a real published
-// localhost:xxxx port, matching docker-compose.yml's own ports: entries.
+// Where the *browser* loads each remote's remoteEntry.js from, at runtime,
+// after this page has loaded. Read when the app is built: docker-compose.yml
+// passes a path on this app's own origin (/remotes/<name>), which ui-host's
+// proxy forwards to that remote's container. The localhost:<port> default is
+// each remote's own `npm run dev` server, for running outside Docker.
 function remote(envVar: string, defaultPort: number, name: string) {
   return {
     type: 'module' as const,
@@ -81,31 +72,16 @@ export default defineConfig({
       // so serving a file that only exists under design-system's own
       // node_modules (its @fontsource-variable font files, imported by
       // design-system/src/tokens.css) 403s without this. Resolved by name
-      // relative to this file, not hardcoded to either environment's own
-      // absolute layout (Docker's /design-system vs. a local checkout's
-      // ../design-system), so it works the same in both.
+      // relative to this file, not hardcoded to one checkout's absolute
+      // layout.
       allow: [path.resolve(__dirname), path.resolve(__dirname, '..', 'design-system')],
-    },
-    watch: {
-      // Docker Desktop on Windows doesn't reliably forward native filesystem
-      // change events from a bind-mounted host directory into the Linux
-      // container, so Vite's file watcher can silently stop picking up edits
-      // (no "[vite] hmr update" log line, page just serves stale code).
-      // Polling works regardless of how the mount forwards events; only
-      // enabled via CHOKIDAR_USEPOLLING (set for the Docker Compose service in
-      // docker-compose.yml), so `npm run dev` on the host keeps cheap native
-      // watching.
-      usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
-      interval: 300,
     },
     proxy: {
       '/orchestrator-api': {
-        // docker-compose.yml sets this to orchestrator:8001 (Docker service
-        // name); the fallback here is for running npm run dev outside
-        // Docker. ai/orchestrator is internal-only (expose, not ports, in
-        // docker-compose.yml) — every real call ui-host makes goes through
-        // this one proxy now, orchestrator itself is the only thing that
-        // talks to ai-layer/retrieval (see ai/README.md).
+        // For `npm run dev` outside Docker; in Docker, ui-host's nginx
+        // configuration proxies instead. Every real call ui-host makes goes
+        // through this proxy; orchestrator itself is what talks to
+        // ai-layer/retrieval (see ai/README.md).
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
         rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),
       },

@@ -1,11 +1,11 @@
 # ui-remote-chat
 
-A Module Federation remote: its own container, its own port (5174), exposing one piece of
+A Module Federation remote: its own image and container, exposing one piece of
 `ai/ui-host`'s integration screen for that host to load at runtime as a federated import, never a
 source import. See `ai/ui-host/CLAUDE.md`'s Docker section for the shared Module Federation
-mechanics every `ui-remote-*` package follows (why the browser fetches this package's
-`remoteEntry.js` directly rather than through `ui-host`'s own proxy, the `VITE_REMOTE_*_URL` env
-var wiring, why there's no `depends_on` between this package and `ui-host`), and `ai/CLAUDE.md`'s
+mechanics every `ui-remote-*` package follows (how the browser loads this package's
+`remoteEntry.js` through `ui-host`'s proxy, the `VITE_REMOTE_*_URL` and `PUBLIC_PATH` wiring,
+why there's no `depends_on` between this package and `ui-host`), and `ai/CLAUDE.md`'s
 folder-boundaries section for the `ui-` naming convention.
 
 ## What this exposes
@@ -51,10 +51,6 @@ npm test
 
 Runs the component tests in jsdom, a browser-like DOM for Node.
 
-The test setup adds development packages, and this package's Vite config now loads one of them.
-A stack that already runs keeps its old `node_modules` volume, so start it again with
-`docker compose up -d --build --renew-anon-volumes` after pulling this change.
-
 ## Build
 
 ```bash
@@ -63,8 +59,10 @@ npm run build
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (not this folder's
-`Dockerfile`, which builds static assets for an actual deployment target later), published at
-[http://localhost:5174](http://localhost:5174). See `ai/ui-host/CLAUDE.md`'s Docker section
-for the full Module Federation topology and why this needs a real published port rather than an
-internal-only one.
+`docker compose up --build` from `ai/` builds this package into static files and serves them with
+nginx's stock configuration. It publishes no port: the browser loads it through `ai/ui-host`'s
+proxy at `/remotes/chat/`, and it is built with that path as its Vite `base` (the
+`PUBLIC_PATH` build argument in `docker-compose.yml`), so its own files are requested under it
+too. A change here takes `docker compose up -d --build ui-remote-chat`; the page picks it up on
+its next load, without rebuilding `ui-host`. See `ai/ui-host/CLAUDE.md`'s Docker section for the
+full Module Federation topology.
