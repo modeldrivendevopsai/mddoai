@@ -1,0 +1,8 @@
+# The app's stack, plus the gateway that lets listed GitHub users in, both
+# with the values in config.env. Run docker compose in the environment's
+# folder, infra/environments/<name>/; the Compose project is named after it.
+include:
+  - path: ../../../ai/docker-compose.yml
+    env_file: config.env
+  - path: gateway.yaml
+    env_file: config.env
