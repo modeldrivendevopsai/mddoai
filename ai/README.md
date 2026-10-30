@@ -40,7 +40,7 @@ These settings change how the stack is reached. Set them in the shell or in `ai/
 - `UI_PORT` is the port `ui-host` is published on, `5173` by default. It always listens on this machine only.
 - `AI_LAYER_PORT` is the port `ai-layer` is published on, `8000` by default, on every network address of the machine. Put an address in front to listen on that address only, for example `127.0.0.1:8100`.
 - `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces, `localhost 127.0.0.1` by default. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
-- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `1900s` by default. Keep it above the slowest request the UI makes: a chat message, whose model call plus one docs page fetch by a tool fits in it.
+- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `120s` by default. Slow work runs in the background, so this only covers quick calls. Keep it under the limit of any proxy in front of the app, such as Cloudflare's 125 seconds.
 
 The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials and listens on every network address by default: set `AI_LAYER_PORT=127.0.0.1:8000` unless another machine needs it.
 

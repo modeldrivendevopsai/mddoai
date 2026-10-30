@@ -334,11 +334,11 @@ services:
       # Above the largest attachment upload the stage agents accept (5 MiB by
       # default, *_MAX_UPLOAD_BYTES). Raise it with them.
       - UI_MAX_BODY_SIZE=6m
-      # Above the longest single request the UI makes: a chat message, whose
-      # LLM call may take LLM_CHAT_TIMEOUT (900s) and whose tool call may then
-      # fetch one docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them;
-      # an answer that fetches several pages can still outlast it.
-      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-1900s}
+      # How long a request may wait for its answer. Slow work (stage runs,
+      # chat answers) runs in the background and answers at once, so this only
+      # needs to cover quick calls. Keep it under the limit of any proxy in
+      # front of the app: Cloudflare ends a request after 125s.
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-120s}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
     ports:
       # The one port the browser uses: the app, every remote and the
