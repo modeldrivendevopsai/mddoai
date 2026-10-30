@@ -1,10 +1,5 @@
-# The Test environment's way in from the internet, added to the test stack
-# through COMPOSE_FILE in .env:
-#
-#   browser -> Cloudflare -> cloudflared -> oauth2-proxy -> ui-host
-#
-# cloudflared connects out to Cloudflare, so no port opens on the VM.
-# oauth2-proxy lets in only the GitHub users listed in GITHUB_USERS.
+# The way in from the internet: Cloudflare -> cloudflared -> oauth2-proxy -> ui-host.
+# cloudflared connects out, so no port opens on the VM.
 services:
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5

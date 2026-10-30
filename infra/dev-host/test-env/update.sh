@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs the Test environment on the newest commit of the default branch. The timer
-# runs it every few minutes. To run it now and see what it did:
+# Runs the Test environment on the newest commit of main. The timer runs it
+# every few minutes. To run it now and see what it did:
 #
 #   sudo systemctl start mddoai-test-update
 #   journalctl -u mddoai-test-update
@@ -12,9 +12,8 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYED="$TEST_DIR/deployed"
 cd "$TEST_DIR/repo"
 
-# The newest commit of the repository's default branch, so the Test
-# environment always shows what has been merged. One fetch, so a network
-# failure stops the run instead of changing anything.
+# main is the repository's default branch. One fetch, so a network failure
+# stops the run instead of changing anything.
 git fetch --quiet --prune origin
 commit="$(git rev-parse origin/HEAD)"
 deployed="$(cat "$DEPLOYED" 2>/dev/null || true)"

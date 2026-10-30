@@ -1,5 +1,5 @@
 [Unit]
-Description=Check the MDDOAI Test environment's branch for new commits
+Description=Check main for new commits for the MDDOAI Test environment
 
 [Timer]
 # Starts the stack again after a reboot, since its containers do not restart

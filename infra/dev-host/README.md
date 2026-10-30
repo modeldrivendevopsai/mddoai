@@ -9,8 +9,8 @@ outbound Cloudflare tunnel.
 The work is split in four:
 
 - `terraform/` creates the machine, on your PC.
-- `setup/` sets up what runs on it, on the VM. It is idempotent: running it again changes only what is not set up yet, so run it whenever the setup changes.
-- `connect/` connects your PC to it: firewall address, VS Code extension, SSH config. It is idempotent too, so run it whenever you want to connect.
+- `setup/` sets up what runs on it, on the VM. Idempotent, so run it again whenever the setup changes.
+- `connect/` connects your PC to it: firewall address, VS Code extension, SSH config. Idempotent too.
 - `test-env/` is the Test environment that setup installs on the VM (see "Test environment").
 
 ## Versions
@@ -53,7 +53,7 @@ install live in `setup/files/`. `dev` gets passwordless sudo and joins the
 the new SSH config, the last stage puts the previous config back, so sshd can
 always start.
 
-The user name defaults to `dev`. To use another name, set it in both places:
+The example uses the user name `dev`. To use another name, set it in both places:
 `dev_user` in `terraform.tfvars`, and `DEV_USER` for the script. Put
 `DEV_USER=<name>` after `sudo`, as in `sudo DEV_USER=<name> bash setup.sh`.
 Placed before `sudo`, it is dropped. The connect script passes it for you.
@@ -108,7 +108,7 @@ remove someone, delete their key line and their address, then apply.
 
 ## Server size
 
-The default is `cx43`, on Hetzner's cost-optimized line. It is the cheapest
+`terraform.tfvars.example` uses `cx43`, on Hetzner's cost-optimized line. It is the cheapest
 type with room for the full `ai/` Docker Compose stack plus the VS Code Server,
 Claude Code and image builds.
 
@@ -143,6 +143,8 @@ Claude Code and image builds.
    ```sh
    curl -s -H "Authorization: Bearer <token>" "https://api.hetzner.cloud/v1/server_types?name=<server_type>"
    ```
+
+   The token stays in your shell history, so clear it afterwards.
 
    In the reply, each entry under `locations` has a location `name` and an `available` flag. Pick a `location` where it is `true`. Hetzner treats the flag as an indication, not a guarantee.
 
@@ -209,7 +211,7 @@ It calls the steps in `connect/steps/`, and each one skips work already done:
 
 - `10-firewall-ip.ps1`: when your public IPv4 address is not in `ssh_allowed_cidrs` in `terraform.tfvars` yet, writes it there and runs `terraform apply`. Check that the plan only updates `hcloud_firewall.dev`, then answer `yes`. If the apply does not complete (an error, `no`, or Ctrl+C), `terraform.tfvars` is put back as it was.
 - `20-vscode-extension.ps1`: installs VS Code's Remote - SSH extension.
-- `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` by default), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
+- `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` with the example's `server_name`), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
 - `40-run-setup.ps1`: copies `setup/` and `test-env/` to the VM and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
 - `50-open-vscode.ps1`: opens VS Code connected to the VM, in `/home/dev`. Skipped with `-NoOpen`.
 
@@ -228,7 +230,7 @@ owner adds their address to `ssh_allowed_cidrs` and sends them the
 ### Opening the app
 
 The SSH config forwards `ui_port` (from `terraform.tfvars`) from the VM to the
-same port on your PC; it matches `UI_PORT` in the dev clone's `ai/.env`.
+same port on your PC. Set it to `UI_PORT` in the dev clone's `ai/.env`.
 While you are connected, open that port on `localhost` in your browser. If the
 port is already in use on your PC, ssh warns and skips the forward; stop the
 local program using it.

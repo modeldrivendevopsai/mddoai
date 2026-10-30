@@ -48,7 +48,7 @@ serve that port to the internet with no login. Two things keep that from
 mattering:
 
 - The tunnel has exactly one route, to `oauth2-proxy` ("Setting it up", step 2). Only people who manage the domain on Cloudflare can change it.
-- Nothing worth reaching listens on all addresses: each stack's `AI_LAYER_PORT` in its `ai/.env` keeps `ai-layer` on `127.0.0.1`, and the UI always is.
+- Nothing worth reaching listens on all addresses: each stack's `AI_LAYER_PORT` in its `ai/.env` keeps `ai-layer` on `127.0.0.1`, and the UI is always on `127.0.0.1`.
 
 To try a branch before it is merged, run it on the dev environment instead.
 
@@ -92,7 +92,7 @@ either order.
   ```
 
   Start it again with `sudo systemctl enable --now mddoai-test-update.timer`. Running the setup script again never switches it on or off.
-- **Files in this folder changed:** run the setup script again, then `cd /opt/mddoai-test/repo/ai && docker compose up -d`. `update.sh` alone does not pick them up while `main` has no new commit.
+- **Files in this folder changed:** run the setup script again, then `cd /opt/mddoai-test/repo/ai && docker compose up -d`. Setup never overwrites `.env`, so add any new line from `env.example` to it by hand.
 - **Change a setting or rotate a secret:** edit `.env` or `ai-layer.env`, then run `cd /opt/mddoai-test/repo/ai && docker compose up -d`, which recreates the containers that use it.
   - A new tunnel token comes from the tunnel's page in the Cloudflare dashboard, and a new client secret from the OAuth app's page on GitHub.
   - Make a new cookie secret with `openssl rand -base64 32 | tr -- '+/' '-_'`. It logs everyone out.
