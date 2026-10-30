@@ -153,4 +153,27 @@ describe("useIntegration", () => {
 
     expect(result.current.replying).toBe(true)
   })
+  it("keeps the chat waiting when a poll answers while the message is still being sent", async () => {
+    vi.useFakeTimers()
+    let accept: () => void = () => {}
+    vi.mocked(service.sendMessage).mockReturnValue(
+      new Promise((resolve) => (accept = () => resolve({ status: "accepted" })))
+    )
+    const { result } = renderHook(() => useIntegration())
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    act(() => {
+      void result.current.sendMessage("hello")
+    })
+    // The server has not taken the message yet, so a poll still says "not replying".
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS))
+    expect(result.current.replying).toBe(true)
+
+    server = { ...server, replying: true }
+    await act(async () => {
+      accept()
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(result.current.replying).toBe(true)
+  })
 })

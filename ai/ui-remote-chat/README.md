@@ -51,6 +51,10 @@ npm test
 
 Runs the component tests in jsdom, a browser-like DOM for Node.
 
+The test setup adds development packages, and this package's Vite config now loads one of them.
+A stack that already runs keeps its old `node_modules` volume, so start it again with
+`docker compose up -d --build --renew-anon-volumes` after pulling this change.
+
 ## Build
 
 ```bash

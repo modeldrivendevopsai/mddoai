@@ -68,6 +68,9 @@ export function useIntegration(runId?: string) {
   // every tick.
   const isCurrentRef = useRef(true)
   const replyingRef = useRef(false)
+  // True while a message is being sent. A poll answered before the server
+  // accepted it still says "not replying", so it must not free the input.
+  const sendingRef = useRef(false)
   // The real accumulated log. GET /events?since_index=N exists specifically
   // "for incremental polling" (see main.py), so each fetch only asks for
   // what's new since this and gets appended, rather than re-fetching and
@@ -110,8 +113,9 @@ export function useIntegration(runId?: string) {
     setEvents(allEventsRef.current)
     setCurrentStage(body.current_stage)
     setBusy(body.busy)
-    setReplying(body.replying)
-    replyingRef.current = body.replying
+    const replying = body.replying || sendingRef.current
+    setReplying(replying)
+    replyingRef.current = replying
     setModelState(body.model)
     setIsCurrent(body.is_current)
     isCurrentRef.current = body.is_current
@@ -126,7 +130,7 @@ export function useIntegration(runId?: string) {
     // Stepper as "reviewing" and enables Retry for a stage that never ran).
     setStarted(allEventsRef.current.some((e) => PIPELINE_EVENT_TYPES.includes(e.type)))
     doneRef.current =
-      !body.busy && !body.replying && (body.current_stage === null || allEventsRef.current.length === 0)
+      !body.busy && !replying && (body.current_stage === null || allEventsRef.current.length === 0)
   }, [])
 
   // What's new since the accumulated log, or the whole log again when the
@@ -266,11 +270,14 @@ export function useIntegration(runId?: string) {
       // answer arrives through the events poll, which keeps running until
       // it does.
       setReplying(true)
+      sendingRef.current = true
       try {
         await sendMessageApi(message)
+        sendingRef.current = false
         doneRef.current = false
         await fetchIncremental()
       } catch (err) {
+        sendingRef.current = false
         // A 409 means an earlier message is still being answered (perhaps
         // from another tab): keep waiting for that answer instead.
         if ((err as { status?: number }).status === 409) {
