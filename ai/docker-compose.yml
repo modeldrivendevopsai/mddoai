@@ -32,7 +32,7 @@ services:
         required: false
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
-      # send_message()'s own tool-routing decision, see assistant.py), and
+      # accept_message()'s own tool-routing decision, see assistant.py), and
       # main.py's /providers proxies ai_layer_client.list_providers() too —
       # orchestrator is still the LLM-chat layer. It has no import on
       # clients/retrieval_client.py at all anymore, though: the

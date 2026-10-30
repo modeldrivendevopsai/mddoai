@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -167,19 +167,29 @@ def rerun_endpoint(stage_id: str, request: RerunRequest | None = None):
     return integration_runner_client.rerun_stage(stage_id, overrides)
 
 
-@app.post("/message")
-def message_endpoint(request: MessageRequest):
-    # Deliberately no busy pre-check here, unlike every endpoint above: a
-    # message that doesn't need a tool (a status question, small talk)
+@app.post("/message", status_code=202)
+def message_endpoint(request: MessageRequest, background_tasks: BackgroundTasks):
+    # Answered after this response goes out, since an answer can outlast
+    # any proxy's request timeout; the reply arrives through GET /events.
+    # FastAPI's BackgroundTasks is enough here: one answer runs at a time, so
+    # it holds at most one of Starlette's shared request threads.
+    # 409 while the previous message is still being answered.
+    #
+    # Deliberately no stage-busy pre-check here, unlike every endpoint above:
+    # a message that doesn't need a tool (a status question, small talk)
     # should still get a reply even while a stage is running. Any tool call
     # that WOULD mutate state still hits the real busy guard, inside
     # tool_calling.dispatch_tool()'s own per-call try/except, surfaced as
     # that step's own {"error": ...} result rather than blocking the whole
     # message.
     try:
-        return assistant.send_message(request.message)
+        answer = assistant.accept_message(request.message)
+    except chat_log.ReplyInProgressError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(answer)
+    return {"status": "accepted"}
 
 
 # --- Run/attempt introspection ---------------------------------------------------
