@@ -10,6 +10,6 @@ terraform {
   }
 }
 
-# The API token comes from the HCLOUD_TOKEN environment variable, so it never
-# sits in a tfvars file next to the code.
-provider "hcloud" {}
+provider "hcloud" {
+  token = var.hcloud_token
+}

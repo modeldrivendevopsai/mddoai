@@ -2,7 +2,6 @@
 # writes the address to terraform.tfvars and runs terraform apply, which shows
 # the plan and asks before changing anything. If the apply does not complete,
 # terraform.tfvars is put back as it was.
-param([string]$EnvFile)
 . (Join-Path $PSScriptRoot '..\lib\common.ps1')
 
 # Answers with the caller's IPv4 address only, which is what the /32 firewall
@@ -26,14 +25,8 @@ if ([regex]::Matches($line.Value, '"[^"]*"').Count -ne 1) {
 }
 $updated = $original.Remove($line.Index, $line.Length).Insert($line.Index, "ssh_allowed_cidrs = [`"$cidr`"]")
 
-$previousToken = $env:HCLOUD_TOKEN
 $applied = $false
 try {
-  if ($EnvFile) {
-    $tokenLine = Select-String -Path $EnvFile -Pattern '^HCLOUD_TOKEN=(.+)$' | Select-Object -First 1
-    if (-not $tokenLine) { throw "No HCLOUD_TOKEN= line in $EnvFile." }
-    $env:HCLOUD_TOKEN = $tokenLine.Matches[0].Groups[1].Value.Trim('"', "'")
-  }
   [IO.File]::WriteAllText($TfvarsFile, $updated)
   Write-Host "Allowing $cidr. The plan should only update hcloud_firewall.dev."
   Invoke-Native { terraform "-chdir=$TerraformDir" apply } 'terraform apply'
@@ -44,6 +37,4 @@ try {
     [IO.File]::WriteAllText($TfvarsFile, $original)
     Write-Host 'The firewall was not updated, so terraform.tfvars was put back as it was.'
   }
-  # Leave the terminal's token as it was before this step.
-  $env:HCLOUD_TOKEN = $previousToken
 }

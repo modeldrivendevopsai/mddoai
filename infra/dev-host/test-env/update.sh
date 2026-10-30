@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the Test environment on the newest commit of its branch. The timer
+# Runs the Test environment on the newest commit of the default branch. The timer
 # runs it every few minutes. To run it now and see what it did:
 #
 #   sudo systemctl start mddoai-test-update
@@ -12,17 +12,11 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYED="$TEST_DIR/deployed"
 cd "$TEST_DIR/repo"
 
-# The branch chosen with the repository's "Test environment branch" workflow,
-# which writes its name to the file `branch` on the test-env-config branch.
-# The repository's default branch when none was chosen or the chosen one was
-# deleted. One fetch, so a network failure stops the run instead of switching.
+# The newest commit of the repository's default branch, so the Test
+# environment always shows what has been merged. One fetch, so a network
+# failure stops the run instead of changing anything.
 git fetch --quiet --prune origin
-chosen="$(git show origin/test-env-config:branch 2>/dev/null)" || chosen=""
-if ! git rev-parse --quiet --verify "origin/$chosen^{commit}" >/dev/null; then
-  chosen="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
-  chosen="${chosen#origin/}"
-fi
-commit="$(git rev-parse "origin/$chosen")"
+commit="$(git rev-parse origin/HEAD)"
 deployed="$(cat "$DEPLOYED" 2>/dev/null || true)"
 
 # Nothing new, and the stack is up.
@@ -30,7 +24,7 @@ if [[ "$commit" == "$deployed" ]] && (cd ai && [[ -n "$(docker compose ps --quie
   exit 0
 fi
 
-echo "Starting $chosen at $commit"
+echo "Starting $commit"
 git checkout --quiet --force "$commit"
 # The running containers mount files from the clone, so a failed build or
 # start puts the clone back on the commit they run.
@@ -47,4 +41,4 @@ fi
 docker compose up --detach --wait --remove-orphans
 trap - ERR
 echo "$commit" >"$DEPLOYED"
-echo "Running $chosen at $commit"
+echo "Running $commit"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Sets up the dev host: runs every stage in stages/ in name order.
-# Run as root on the VM. Safe to run again; each stage skips work already done.
+# Run as root on the VM. Idempotent: each stage skips work already done, so
+# running it again changes only what is not set up yet.
 #
 #   sudo bash setup.sh             # all stages
 #   sudo bash stages/30-docker.sh  # one stage on its own
