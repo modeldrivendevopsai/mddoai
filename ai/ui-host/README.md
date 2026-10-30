@@ -89,7 +89,7 @@ npm run preview    # serve the production build locally
 ## Docker
 
 `docker compose up --build` from `ai/` builds this app into static files (`npm run build`) and
-serves them with nginx, published at `http://localhost:5173` on this machine only. The same
+serves them with nginx, published on `UI_PORT` from `ai/.env` (5173 in `ai/.env.example`), on this machine only. The same
 server is the one origin the browser uses for everything else (`nginx/default.conf.template`):
 
 - `/remotes/<name>/` is forwarded to the `ui-remote-<name>` container. Only the remotes listed

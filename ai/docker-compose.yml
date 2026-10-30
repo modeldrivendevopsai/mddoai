@@ -478,8 +478,6 @@ services:
       # identical reason (a real, read-only MDE data file, not code).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
-      - LOG_LEVEL=INFO
-      - VALIDATOR_TIMEOUT_SECONDS=60
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - VALIDATOR_OUTPUT_DIR=/runs
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
@@ -515,8 +513,6 @@ services:
       # instead (see execution_agent/README.md's own "How a request flows").
       - main-build-output:/main-build:ro
     environment:
-      - LOG_LEVEL=INFO
-      - EXECUTION_TIMEOUT_SECONDS=60
       - EXECUTION_LIB_DIR=/main-build/install/com.mddoai/lib
     depends_on:
       gradle-builder:
