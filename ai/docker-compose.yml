@@ -336,7 +336,8 @@ services:
       - UI_MAX_BODY_SIZE=6m
       # Above the longest single request the UI makes: a chat message, whose
       # LLM call may take LLM_CHAT_TIMEOUT (900s) and whose tool call may then
-      # fetch a docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them.
+      # fetch one docs page for DOCS_EXTEND_TIMEOUT (960s). Raise it with them;
+      # an answer that fetches several pages can still outlast it.
       - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-1900s}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
     ports:

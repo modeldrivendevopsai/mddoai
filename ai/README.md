@@ -18,13 +18,13 @@ service-specific setup — this file only covers how they fit together.
 
 `clients/`, `design-system/`, and `orchestrator-types/` aren't services either, no port, no Dockerfile, nothing in `docker-compose.yml` — the first is a shared package of HTTP wrapper functions the Python services import directly, the other two are shared frontend packages (`design-system` for UI components/tokens, `orchestrator-types` for the shared REST/event type contract) that `ui-host` and every `ui-remote-*` package depend on as an ordinary local npm dependency. See `ai/CLAUDE.md`'s folder-boundaries section for why each is structured that way.
 
-The browser reaches everything through one origin, `ui-host` on port 5173: the app's files, every remote's files and both backend APIs. One port is simpler to forward over SSH, and the page needs no cross-origin requests. The UI is built, not run as dev servers, so a change to UI code takes `docker compose up -d --build <service>` for the package it is in; there is no hot reloading in Docker. `npm run dev` in a UI package still works outside Docker (see that package's README).
+The browser reaches everything through one origin, `ui-host` on port 5173: the app's files, every remote's files and the orchestrator's API. One port is simpler to forward over SSH, and the page needs no cross-origin requests. The UI is built, not run as dev servers, so a change to UI code takes `docker compose up -d --build <service>` for the package it is in; there is no hot reloading in Docker. `npm run dev` in a UI package still works outside Docker (see that package's README).
 
 ## Request path
 
 Browser → `ui-host`'s proxy → `orchestrator` (prefix stripped). `orchestrator` calls `ai-layer` for LLM completions and `integration_runner` for every real pipeline capability, over the Docker network — those are the only two services it talks to. `integration_runner` in turn calls `ai-layer`, `retrieval`, `serialization_agent`, `psm_agent` (the `psm` stage's own real generation-or-drift-check), and `validator_agent` (the `pim`/`atl`/`acceleo` stages' own real validation call), and `serialization_agent` itself calls `ai-layer` and `pim_agent`. `psm_agent` in turn calls `ai-layer`, `pim_agent` (concept grounding), and `validator_agent` (real Ecore validation, generation path only). `ai-layer` never talks to the Java/Eclipse backend at the repo root, and `ui-host` never talks to any backend except `orchestrator` directly.
 
-Loading a `ui-remote-*` piece: after the page has loaded, the **browser itself** fetches the remote's `remoteEntry.js` at runtime, from `/remotes/<name>/` on the same origin, and `ui-host`'s proxy forwards that to the remote's container. Nothing about a remote is bundled into `ui-host`, only the path it is served under, so no `ui-remote-*` service publishes a port.
+Loading a `ui-remote-*` piece: after the page has loaded, the **browser itself** fetches the remote's `remoteEntry.js` at runtime, from `/remotes/<name>/` on the same origin, and `ui-host`'s proxy forwards that to the remote's container. Each remote is served only through that proxy, so no `ui-remote-*` service publishes a port.
 
 ## Run everything
 
@@ -40,7 +40,7 @@ These settings change how the stack is reached. Set them in the shell or in `ai/
 - `UI_PORT` is the port `ui-host` is published on, `5173` by default. It always listens on this machine only.
 - `AI_LAYER_PORT` is the port `ai-layer` is published on, `8000` by default, on every network address of the machine. Put an address in front to listen on that address only, for example `127.0.0.1:8100`.
 - `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces, `localhost 127.0.0.1` by default. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
-- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `1900s` by default. Keep it above the slowest request the UI makes: a chat message, whose model call and tool call can together take that long.
+- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `1900s` by default. Keep it above the slowest request the UI makes: a chat message, whose model call plus one docs page fetch by a tool fits in it.
 
 The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials and listens on every network address by default: set `AI_LAYER_PORT=127.0.0.1:8000` unless another machine needs it.
 

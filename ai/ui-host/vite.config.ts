@@ -79,8 +79,8 @@ export default defineConfig({
     proxy: {
       '/orchestrator-api': {
         // For `npm run dev` outside Docker; in Docker, ui-host's nginx
-        // configuration proxies instead. The platform-integration mode's
-        // calls go through this proxy; orchestrator itself is what talks to
+        // configuration proxies instead. Every real call ui-host makes goes
+        // through this proxy; orchestrator itself is what talks to
         // ai-layer/retrieval (see ai/README.md).
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
         rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),

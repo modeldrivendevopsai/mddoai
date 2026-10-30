@@ -98,9 +98,10 @@ server is the one origin the browser uses for everything else (`nginx/default.co
 
 The backend is named by its Compose service name through an environment variable
 (`ORCHESTRATOR_UPSTREAM`), filled into the configuration when the container starts. Names are
-resolved per request, so this starts even while the backend or a remote is not up yet. See `ai/README.md` for the full compose setup.
+resolved per request, so this starts even while the backend or a remote is not up yet. See
+`ai/README.md` for the full compose setup.
 
-Build context is `ai/`, not this folder alone — see this package's own `CLAUDE.md`'s Docker
+Build context is `ai/`, not this folder alone, see this package's own `CLAUDE.md`'s Docker
 section for why (`package.json` depends on the sibling `design-system` and `orchestrator-types`
 packages via a local `file:` path).
 

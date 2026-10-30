@@ -76,7 +76,7 @@ server {
         return 404;
     }
 
-    # The platform-integration mode's backend.
+    # The orchestrator's API, the one backend the app calls.
     location /orchestrator-api/ {
         set $orchestrator ${ORCHESTRATOR_UPSTREAM};
         rewrite ^/orchestrator-api/(.*)$ /$1 break;
