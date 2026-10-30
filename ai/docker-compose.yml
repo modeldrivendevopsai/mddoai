@@ -15,9 +15,7 @@ services:
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     ports:
-      # AI_LAYER_PORT (in ai/.env) is the host port, with the address to
-      # listen on in front, so a second copy of the stack on the same machine
-      # can use another one.
+      # From ai/.env.
       - "${AI_LAYER_PORT:?set it in ai/.env, see ai/.env.example}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
@@ -330,17 +328,14 @@ services:
       # refused, so a page using DNS rebinding cannot reach the APIs. The
       # names come from UI_ALLOWED_HOSTS in ai/.env.
       - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:?set it in ai/.env, see ai/.env.example}
-      # The proxy's upload size limit and how long it waits for an answer,
-      # both from ai/.env (see ai/.env.example for what each must match).
+      # From ai/.env.
       - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?set it in ai/.env, see ai/.env.example}
       - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?set it in ai/.env, see ai/.env.example}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
     ports:
       # The one port the browser uses: the app, every remote and the
-      # orchestrator's API. This machine only: like every service here it has
-      # no authentication, so it is not published on the network. UI_PORT
-      # (in ai/.env) is the port, so a second copy of the stack on the same
-      # machine can use another one.
+      # orchestrator's API. This machine only: nothing here has a login.
+      # UI_PORT is from ai/.env.
       - "127.0.0.1:${UI_PORT:?set it in ai/.env, see ai/.env.example}:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
