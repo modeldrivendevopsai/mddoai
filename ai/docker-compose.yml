@@ -15,10 +15,10 @@ services:
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     ports:
-      # AI_LAYER_PORT is the host port, optionally with the address to listen
-      # on in front (127.0.0.1:8100), so a second copy of the stack on the
-      # same machine can use another one.
-      - "${AI_LAYER_PORT:-8000}:8000"
+      # AI_LAYER_PORT (in ai/.env) is the host port, with the address to
+      # listen on in front, so a second copy of the stack on the same machine
+      # can use another one.
+      - "${AI_LAYER_PORT:?set it in ai/.env, see ai/.env.example}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
   # Python packages (orchestrator/, clients/) into one container. Before
@@ -327,25 +327,21 @@ services:
     environment:
       # Filled into the proxy's configuration when the container starts.
       # The host names the app may be opened under. Any other Host header is
-      # refused, so a page using DNS rebinding cannot reach the APIs. Set
-      # UI_ALLOWED_HOSTS (space-separated) if the app is opened under another
-      # name, keeping localhost if you still open it that way too.
-      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:-localhost 127.0.0.1}
-      # Above the largest attachment upload the stage agents accept (5 MiB by
-      # default, *_MAX_UPLOAD_BYTES). Raise it with them.
-      - UI_MAX_BODY_SIZE=6m
-      # How long a request may wait for its answer. Slow work (stage runs,
-      # chat answers) runs in the background and answers at once, so this only
-      # needs to cover quick calls. Keep it under the limit of any proxy in
-      # front of the app: Cloudflare ends a request after 125s.
-      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:-120s}
+      # refused, so a page using DNS rebinding cannot reach the APIs. The
+      # names come from UI_ALLOWED_HOSTS in ai/.env.
+      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:?set it in ai/.env, see ai/.env.example}
+      # The proxy's upload size limit and how long it waits for an answer,
+      # both from ai/.env (see ai/.env.example for what each must match).
+      - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?set it in ai/.env, see ai/.env.example}
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?set it in ai/.env, see ai/.env.example}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
     ports:
       # The one port the browser uses: the app, every remote and the
       # orchestrator's API. This machine only: like every service here it has
       # no authentication, so it is not published on the network. UI_PORT
-      # changes the port, for a second copy of the stack on the same machine.
-      - "127.0.0.1:${UI_PORT:-5173}:80"
+      # (in ai/.env) is the port, so a second copy of the stack on the same
+      # machine can use another one.
+      - "127.0.0.1:${UI_PORT:?set it in ai/.env, see ai/.env.example}:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
   # Federation remote, its own image and container, exposing one piece of the

@@ -58,3 +58,6 @@ ai/acceleo_agent/prompts/*/*.json
 
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
+
+# Each copy of the stack's own settings (ai/.env.example is the template).
+ai/.env

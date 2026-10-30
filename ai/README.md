@@ -30,19 +30,20 @@ Loading a `ui-remote-*` piece: after the page has loaded, the **browser itself**
 
 ```bash
 cd ai
+cp .env.example .env    # once: this copy's ports and host names
 docker compose up --build
 ```
 
-Starts every service in `docker-compose.yml`. `ai-layer` at [http://localhost:8000](http://localhost:8000), and `ui-host` at [http://localhost:5173](http://localhost:5173) (the whole UI, every remote included) are published to the host; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
+Starts every service in `docker-compose.yml`. With the values in `.env.example`, `ai-layer` is at [http://localhost:8000](http://localhost:8000) and `ui-host` at [http://localhost:5173](http://localhost:5173) (the whole UI, every remote included), both on this machine only; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
 
-These settings change how the stack is reached. Set them in the shell or in `ai/.env`:
+`ai/.env` holds the settings that differ between copies of the stack. Every one is required, and `ai/.env.example` has the values for a normal local setup:
 
-- `UI_PORT` is the port `ui-host` is published on, `5173` by default. It always listens on this machine only.
-- `AI_LAYER_PORT` is the port `ai-layer` is published on, `8000` by default, on every network address of the machine. Put an address in front to listen on that address only, for example `127.0.0.1:8100`.
-- `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces, `localhost 127.0.0.1` by default. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
-- `UI_PROXY_READ_TIMEOUT` is how long `ui-host` waits for a service's answer, `120s` by default. Slow work runs in the background, so this only covers quick calls. Keep it under the limit of any proxy in front of the app, such as Cloudflare's 125 seconds.
+- `UI_PORT` is the port `ui-host` is published on. It always listens on this machine only.
+- `AI_LAYER_PORT` is the port `ai-layer` is published on, with the address it listens on in front, for example `127.0.0.1:8000`. Without an address it listens on every network address of the machine.
+- `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
+- `UI_MAX_BODY_SIZE` and `UI_PROXY_READ_TIMEOUT` set the UI proxy's upload limit and how long it waits for an answer. `ai/.env.example` explains what each must match.
 
-The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials and listens on every network address by default: set `AI_LAYER_PORT=127.0.0.1:8000` unless another machine needs it.
+The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials: keep the address in `AI_LAYER_PORT` unless another machine needs to reach it.
 
 Change the two ports to run a second copy of the stack on the same machine. Give that copy its own Compose project name too (`COMPOSE_PROJECT_NAME` in its `ai/.env`, or `docker compose -p <name>`), so its containers, networks and volumes are separate from the first copy's. Both copies still read the same `~/.claude` folder (see `ai-layer` below).
 
