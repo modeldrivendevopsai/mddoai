@@ -4,8 +4,9 @@
 #
 #   sudo systemctl enable --now mddoai-test-update.timer
 #
-# Its files come from infra/environments/test/ and templates/public/, copied
-# in the same layout as the repository.
+# Its updater comes from files/test-updater/, and its config.env from
+# infra/environments/templates/public/, copied in the same layout as the
+# repository.
 set -euo pipefail
 # shellcheck source=../lib/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -13,7 +14,6 @@ require_root
 
 TEST_DIR=/opt/mddoai-test
 REPO_URL=https://github.com/modeldrivendevopsai/mddoai.git
-SRC="$SETUP_DIR/../../environments/test"
 TEMPLATE="$SETUP_DIR/../../environments/templates/public/config.env"
 # Where the stack looks for them, in the clone. Both are gitignored, so a
 # checkout leaves them alone.
@@ -22,7 +22,7 @@ LLM_KEYS="$TEST_DIR/repo/ai/ai-layer/.env"
 
 # All of it belongs to the developer's user, who runs update.sh.
 install -d -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR"
-install -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$SRC/update.sh" "$TEST_DIR/"
+install -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$FILES_DIR/test-updater/update.sh" "$TEST_DIR/"
 
 if [[ ! -d "$TEST_DIR/repo/.git" ]]; then
   sudo -u "$DEV_USER" git clone --quiet "$REPO_URL" "$TEST_DIR/repo"
@@ -43,7 +43,7 @@ if [[ ! -f "$LLM_KEYS" ]]; then
 fi
 
 for unit in mddoai-test-update.service mddoai-test-update.timer; do
-  sed -e "s|@DEV_USER@|$DEV_USER|" -e "s|@TEST_DIR@|$TEST_DIR|" "$SRC/$unit" >"$TMP_DIR/$unit"
+  sed -e "s|@DEV_USER@|$DEV_USER|" -e "s|@TEST_DIR@|$TEST_DIR|" "$FILES_DIR/test-updater/$unit" >"$TMP_DIR/$unit"
   install_if_changed "$TMP_DIR/$unit" "/etc/systemd/system/$unit" 0644 || true
 done
 systemctl daemon-reload

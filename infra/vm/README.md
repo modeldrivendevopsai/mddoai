@@ -49,8 +49,8 @@ script's job, so all on-server setup lives in one place.
 does one job, described at its top, and can also be run on its own. Together
 they install updates and basic tools, create the `dev` user, install Docker
 (with log rotation) and Claude Code, install the Test environment switched
-off, and last turn off password login over SSH. Config files the stages
-install live in `setup/files/`. `dev` gets passwordless sudo and joins the
+off, and last turn off password login over SSH. Files the stages install
+live in `setup/files/`. `dev` gets passwordless sudo and joins the
 `docker` group, which is equivalent to root on this machine. If sshd rejects
 the new SSH config, the last stage puts the previous config back, so sshd can
 always start.
@@ -179,12 +179,12 @@ Claude Code and image builds.
    ssh -i ~/.ssh/mddoai_dev root@<ip> "echo ok"
    ```
 
-5. Run the setup script as root. It needs `infra/vm/setup/`, `infra/environments/test/` and `infra/environments/templates/`, in the same layout as the repository. From the repository root on your PC:
+5. Run the setup script as root. It needs `infra/vm/setup/` and `infra/environments/templates/`, in the same layout as the repository. From the repository root on your PC:
 
    ```sh
    ssh -i ~/.ssh/mddoai_dev root@<ip> "rm -rf infra && mkdir -p infra/vm infra/environments"
    scp -i ~/.ssh/mddoai_dev -r infra/vm/setup root@<ip>:infra/vm/
-   scp -i ~/.ssh/mddoai_dev -r infra/environments/test infra/environments/templates root@<ip>:infra/environments/
+   scp -i ~/.ssh/mddoai_dev -r infra/environments/templates root@<ip>:infra/environments/
    ssh -i ~/.ssh/mddoai_dev root@<ip> "bash infra/vm/setup/setup.sh"
    ```
 
@@ -215,7 +215,7 @@ It calls the steps in `connect/steps/`, and each one skips work already done:
 - `10-firewall-ip.ps1`: when your public IPv4 address is not in `ssh_allowed_cidrs` in `terraform.tfvars` yet, writes it there and runs `terraform apply`. Check that the plan only updates `hcloud_firewall.dev`, then answer `yes`. If the apply does not complete (an error, `no`, or Ctrl+C), `terraform.tfvars` is put back as it was.
 - `20-vscode-extension.ps1`: installs VS Code's Remote - SSH extension.
 - `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` with the example's `server_name`), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
-- `40-run-setup.ps1`: copies `infra/vm/setup/`, `infra/environments/test/` and `infra/environments/templates/` to the VM, in the same layout as the repository, and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
+- `40-run-setup.ps1`: copies `infra/vm/setup/` and `infra/environments/templates/` to the VM, in the same layout as the repository, and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
 - `50-open-vscode.ps1`: opens VS Code connected to the VM, in `/home/dev`. Skipped with `-NoOpen`.
 
 Notes:
@@ -289,7 +289,7 @@ works and how to set it up.
   ```sh
   ssh mddoai-dev "rm -rf infra && mkdir -p infra/vm infra/environments"
   scp -r infra/vm/setup mddoai-dev:infra/vm/
-  scp -r infra/environments/test infra/environments/templates mddoai-dev:infra/environments/
+  scp -r infra/environments/templates mddoai-dev:infra/environments/
   ssh mddoai-dev "sudo DEV_USER=dev bash infra/vm/setup/setup.sh"
   ```
 

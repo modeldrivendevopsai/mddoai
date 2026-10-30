@@ -6,9 +6,10 @@ merged code in a browser without SSH. It runs the newest commit of `main` at
 the login. Both are set in its `config.env`, which stays on the VM like every
 environment's (see [Environments](../../README.md#environments)).
 
-This folder is a copy of `templates/public/`, plus its updater files. Setup
-stage `60-test.sh` installs it in `/opt/mddoai-test` on the VM, switched off:
-a clone of the repository, plus `update.sh` and the timer from this folder.
+This folder is a copy of `templates/public/`, plus this README. Setup stage
+`60-test.sh` installs the Test environment in `/opt/mddoai-test` on the VM,
+switched off: a clone of the repository, plus an updater and its timer from
+`infra/vm/setup/files/test-updater/`.
 The [VM's README](../../vm/README.md) covers the VM itself and the setup
 script.
 
@@ -105,11 +106,12 @@ the Test environment.
   ```
 
   Start it again with `sudo systemctl enable --now mddoai-test-update.timer`. Running the setup script again never switches it on or off.
+- **Updater changed** (`infra/vm/setup/files/test-updater/`): run the setup script again.
 - **Change a setting or rotate a secret:** edit `config.env` in the clone's copy of this folder, then run `docker compose up -d` there. It recreates the containers that use it.
   - A new tunnel token comes from the tunnel's page in the Cloudflare dashboard, and a new client secret from the OAuth app's page on GitHub.
   - Make a new cookie secret with `openssl rand -base64 32 | tr -- '+/' '-_'`. It logs everyone out.
   - For the LLM keys, edit `/opt/mddoai-test/repo/ai/ai-layer/.env` the same way.
-- **Files in this folder changed:** `compose.yaml` and `gateway.yaml` are read from the clone, so they follow `main`. A change to `update.sh`, the timer or the service needs the setup script again. A new setting in `templates/public/config.env` must be added to `config.env` by hand.
+- **Files in this folder changed:** `compose.yaml` and `gateway.yaml` are read from the clone, so they follow `main`. A new setting in `templates/public/config.env` must be added to `config.env` by hand.
 - **Add or remove a user:** change `GITHUB_USERS` in `config.env`, like any other setting.
   - `oauth2-proxy` checks the list at login only, so someone removed keeps access until their cookie expires (`OAUTH2_COOKIE_EXPIRE`). To end it sooner, make a new cookie secret once the removal is running.
   - Access is by username. When someone on the list renames or deletes their GitHub account, remove the old name at once: GitHub lets anyone claim a freed name.
