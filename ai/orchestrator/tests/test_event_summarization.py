@@ -1,6 +1,6 @@
 """event_summarization.py unit tests: summarize_for_reaction()/
 summarize_history()'s own truncation contract, independent of chat_log.py's
-narration loop or assistant.py's send_message() (both of which exercise
+narration loop or assistant.py's accept_message() (both of which exercise
 these functions indirectly — see test_chat_log.py's own truncation test for
 that integration-level coverage).
 

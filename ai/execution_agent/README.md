@@ -40,4 +40,4 @@ pip install -r requirements.txt
 EXECUTION_LIB_DIR=../../main/build/install/com.mddoai/lib uvicorn main:app --reload --port 8090
 ```
 
-`pytest` alone (no env vars) runs the fast, fully-mocked suite on any machine. The real end-to-end test (`tests/test_integration_real_jvm.py`) auto-skips unless a JDK and the built `main/` distribution are both available.
+`pytest` alone (no env vars) runs the fast, fully-mocked suite on any machine. The real end-to-end test (`tests/test_integration_real_jvm.py`) auto-skips unless a Java runtime (`java`), the built `main/` distribution and the full repository checkout are all available. Run it inside the service's image with the repository mounted to exercise the image's own runtime.

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "design-system": "file:../design-system",
@@ -21,6 +23,9 @@
     "@vitejs/plugin-react": "^6.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
-    "@types/node": "^24.13.2"
+    "@types/node": "^24.13.2",
+    "vitest": "^4.1.9",
+    "jsdom": "^30.0.1",
+    "@testing-library/react": "^16.3.2"
   }
 }
