@@ -8,6 +8,6 @@ server_type         = "cx43"
 location            = "hel1" # where server_type is orderable
 image               = "ubuntu-24.04"
 dev_user            = "dev"
-ui_port             = 5173 # same as UI_PORT in ai/.env
+ui_port             = 5173 # same as UI_PORT in the dev environment's config.env
 protection          = true # false only to delete or rebuild
 backups             = false

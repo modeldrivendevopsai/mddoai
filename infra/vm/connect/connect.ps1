@@ -1,10 +1,10 @@
-# Connects this PC to the dev host: lets your current IP through the firewall,
+# Connects this PC to the VM: lets your current IP through the firewall,
 # installs VS Code's Remote - SSH extension, writes the SSH config entry, and
 # opens VS Code on the VM. Idempotent: each step skips work already done.
 #
-#   .\infra\dev-host\connect\connect.ps1                      # everything
-#   .\infra\dev-host\connect\connect.ps1 -RunSetup            # also (re)run the VM setup script
-#   .\infra\dev-host\connect\connect.ps1 -NoOpen              # don't open VS Code
+#   .\infra\vm\connect\connect.ps1                   # everything
+#   .\infra\vm\connect\connect.ps1 -RunSetup         # also (re)run the VM setup script
+#   .\infra\vm\connect\connect.ps1 -NoOpen           # don't open VS Code
 param(
   [switch]$RunSetup,
   [switch]$NoOpen

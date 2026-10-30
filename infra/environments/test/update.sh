@@ -6,10 +6,11 @@
 #   journalctl -u mddoai-test-update
 set -euo pipefail
 
-# The settings, the keys, the clone and the record of the running commit all
-# sit next to this script.
+# The clone and the record of the running commit sit next to this script.
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYED="$TEST_DIR/deployed"
+# The Test environment's folder in the clone, where docker compose runs.
+ENV_DIR=infra/environments/test
 cd "$TEST_DIR/repo"
 
 # main is the repository's default branch. One fetch, so a network failure
@@ -19,7 +20,7 @@ commit="$(git rev-parse origin/HEAD)"
 deployed="$(cat "$DEPLOYED" 2>/dev/null || true)"
 
 # Nothing new, and the stack is up.
-if [[ "$commit" == "$deployed" ]] && (cd ai && [[ -n "$(docker compose ps --quiet --status running ui-host)" ]]); then
+if [[ "$commit" == "$deployed" ]] && [[ -n "$(cd "$ENV_DIR" && docker compose ps --quiet --status running ui-host)" ]]; then
   exit 0
 fi
 
@@ -28,10 +29,8 @@ git checkout --quiet --force "$commit"
 # The running containers mount files from the clone, so a failed build or
 # start puts the clone back on the commit they run.
 trap '[[ -n "$deployed" ]] && git checkout --quiet --force "$deployed"' ERR
-ln -sfn "$TEST_DIR/.env" ai/.env
-ln -sfn "$TEST_DIR/ai-layer.env" ai/ai-layer/.env
 
-cd ai
+cd "$ENV_DIR"
 if [[ "$commit" != "$deployed" ]]; then
   docker compose build --quiet
   # The images this build replaced.

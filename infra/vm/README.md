@@ -1,4 +1,4 @@
-# Dev host
+# VM
 
 Infrastructure for the remote development VM on Hetzner Cloud. Developers edit
 with VS Code Remote-SSH and reach the app through SSH port forwarding. The only
@@ -6,12 +6,14 @@ inbound port is SSH, and only from listed developer addresses. A list of
 GitHub users can also open a Test environment in the browser, through an
 outbound Cloudflare tunnel.
 
-The work is split in four:
+The work is split in three:
 
 - `terraform/` creates the machine, on your PC.
 - `setup/` sets up what runs on it, on the VM. Idempotent, so run it again whenever the setup changes.
 - `connect/` connects your PC to it: firewall address, VS Code extension, SSH config. Idempotent too.
-- `test-env/` is the Test environment that setup installs on the VM (see "Test environment").
+
+The copies of the app that run on it, dev and Test, are described under
+[Environments](../README.md#environments).
 
 ## Versions
 
@@ -69,7 +71,7 @@ Who can reach the VM, and what each kind of access allows.
 **Network.** The Hetzner firewall lets in one thing: SSH (TCP 22) from the
 addresses in `ssh_allowed_cidrs`. It filters in Hetzner's network, before
 traffic reaches the VM, so it also blocks ports that Docker publishes on the
-VM. The dev stack is never reachable directly; developers reach it through SSH
+VM. The dev environment is never reachable directly; developers reach it through SSH
 port forwarding (see "Opening the app"). Outbound traffic is not restricted.
 The Test environment uses that: its tunnel connects out to Cloudflare, so it
 needs no inbound rule.
@@ -98,7 +100,7 @@ off, and Hetzner issues no root password because a key is given.
 - **Terraform state:** on the Terraform owner's PC, gitignored (see "Terraform state").
 - **GitHub access:** no GitHub key is stored on the VM. Git uses the developer's own key through SSH agent forwarding, only while they are connected (see "Working on the VM"). While a developer is connected, anyone with root on the VM can use their forwarded agent.
 - **LLM API keys:** in the clone's `ai/ai-layer/.env` on the VM, which is gitignored. Keep it readable by its owner only (`chmod 600`). Anyone with root can still read it.
-- **Test environment:** the Cloudflare tunnel token, the GitHub OAuth app's client secret and the login cookie secret in `/opt/mddoai-test/.env`, and its LLM API keys in `/opt/mddoai-test/ai-layer.env`. Both are readable by `dev` only; anyone with root can still read them. Like the dev stack, it also reads `dev`'s `~/.claude` folder.
+- **Test environment:** the Cloudflare tunnel token, the GitHub OAuth app's client secret and the login cookie secret are in `infra/environments/test/config.env` of its clone in `/opt/mddoai-test/repo`, and its LLM API keys in that clone's `ai/ai-layer/.env`. Both are gitignored and readable by `dev` only; anyone with root can still read them. Like the dev environment, it also reads `dev`'s `~/.claude` folder.
 - **Claude Code:** each developer signs in on the VM themselves. The stack's `ai-layer` reads the `~/.claude` folder of the user who starts it, so sign in with a Claude Console account, not a personal subscription.
 
 **Adding and removing access.** A developer gets access when the Terraform
@@ -117,7 +119,7 @@ Claude Code and image builds.
 - Check the price, size and disk in the [Hetzner Console](https://console.hetzner.com/) before applying. Backups, if turned on, add a share of the server price. The IPv4 address is billed separately, including while no server uses it.
 - Measure with `docker stats` once the stack runs before deciding to resize.
 - Changing `server_type` later resizes the server, at the price current on that day.
-  - Terraform first powers the server off without a clean shutdown, like pulling the plug. Stop the stack first (`docker compose down`), and expect a few minutes of downtime.
+  - Terraform first powers the server off without a clean shutdown, like pulling the plug. Stop each environment first (`docker compose down` in its folder), and expect a few minutes of downtime.
   - The resize also grows the disk, and a server with a grown disk cannot move back to a smaller type.
 
 ## Before you start
@@ -153,7 +155,7 @@ Claude Code and image builds.
 1. Go to the Terraform folder and copy the example settings:
 
    ```sh
-   cd infra/dev-host/terraform
+   cd infra/vm/terraform
    cp terraform.tfvars.example terraform.tfvars
    ```
 
@@ -177,15 +179,16 @@ Claude Code and image builds.
    ssh -i ~/.ssh/mddoai_dev root@<ip> "echo ok"
    ```
 
-5. Run the setup script as root. It needs `setup/` and `test-env/` side by side. From the repository root on your PC:
+5. Run the setup script as root. It needs `infra/vm/setup/`, `infra/environments/test/` and `infra/environments/templates/`, in the same layout as the repository. From the repository root on your PC:
 
    ```sh
-   ssh -i ~/.ssh/mddoai_dev root@<ip> "rm -rf dev-host && mkdir dev-host"
-   scp -i ~/.ssh/mddoai_dev -r infra/dev-host/setup infra/dev-host/test-env root@<ip>:dev-host/
-   ssh -i ~/.ssh/mddoai_dev root@<ip> "bash dev-host/setup/setup.sh"
+   ssh -i ~/.ssh/mddoai_dev root@<ip> "rm -rf infra && mkdir -p infra/vm infra/environments"
+   scp -i ~/.ssh/mddoai_dev -r infra/vm/setup root@<ip>:infra/vm/
+   scp -i ~/.ssh/mddoai_dev -r infra/environments/test infra/environments/templates root@<ip>:infra/environments/
+   ssh -i ~/.ssh/mddoai_dev root@<ip> "bash infra/vm/setup/setup.sh"
    ```
 
-   - The copy goes into the logged-in user's home folder.
+   - The copy goes into the logged-in user's home folder, in the same layout as the repository.
    - The first command clears any copy from an earlier run. Without it, `scp` would copy into the old folder instead of replacing it, and files deleted from the repository would still run.
    - The script stops at the first failing step. Fix the cause and run it again.
    - If it ends with "Updates need a reboot", run `ssh -i ~/.ssh/mddoai_dev root@<ip> reboot`.
@@ -201,7 +204,7 @@ outputs and state, so it is for the person who runs Terraform for this VM (see
 whenever SSH stops connecting:
 
 ```powershell
-.\infra\dev-host\connect\connect.ps1
+.\infra\vm\connect\connect.ps1
 ```
 
 If PowerShell says running scripts is disabled, allow local scripts for your
@@ -212,7 +215,7 @@ It calls the steps in `connect/steps/`, and each one skips work already done:
 - `10-firewall-ip.ps1`: when your public IPv4 address is not in `ssh_allowed_cidrs` in `terraform.tfvars` yet, writes it there and runs `terraform apply`. Check that the plan only updates `hcloud_firewall.dev`, then answer `yes`. If the apply does not complete (an error, `no`, or Ctrl+C), `terraform.tfvars` is put back as it was.
 - `20-vscode-extension.ps1`: installs VS Code's Remote - SSH extension.
 - `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` with the example's `server_name`), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
-- `40-run-setup.ps1`: copies `setup/` and `test-env/` to the VM and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
+- `40-run-setup.ps1`: copies `infra/vm/setup/`, `infra/environments/test/` and `infra/environments/templates/` to the VM, in the same layout as the repository, and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
 - `50-open-vscode.ps1`: opens VS Code connected to the VM, in `/home/dev`. Skipped with `-NoOpen`.
 
 Notes:
@@ -230,7 +233,7 @@ owner adds their address to `ssh_allowed_cidrs` and sends them the
 ### Opening the app
 
 The SSH config forwards `ui_port` (from `terraform.tfvars`) from the VM to the
-same port on your PC. Set it to `UI_PORT` in the dev clone's `ai/.env`.
+same port on your PC. Keep it equal to `UI_PORT` in the dev environment's `config.env`.
 While you are connected, open that port on `localhost` in your browser. If the
 port is already in use on your PC, ssh warns and skips the forward; stop the
 local program using it.
@@ -264,6 +267,7 @@ One-time setup:
 
 3. In VS Code, connected to the VM, open `/home/dev/mddoai` with File, Open Folder.
 4. To use Claude Code on the VM, run `claude` in VS Code's terminal and sign in.
+5. Start the dev environment from the clone (see [Environments](../README.md#environments)).
 
 If `docker` says "permission denied" in a VS Code terminal right after the
 setup script added you to the `docker` group, VS Code is still using its old
@@ -274,21 +278,22 @@ palette, then connect again.
 
 A second copy of the `ai/` stack on this VM that always runs the latest `main`.
 Listed GitHub users open it in a browser through a Cloudflare tunnel. Setup
-stage `60-test-env.sh` installs it switched off.
-[test-env/README.md](test-env/README.md) explains how it works and how to set
-it up.
+stage `60-test.sh` installs it switched off.
+[environments/test/README.md](../environments/test/README.md) explains how it
+works and how to set it up.
 
 ## Day-to-day changes
 
-- **Setup files changed:** run the setup script again as `dev` with `.\infra\dev-host\connect\connect.ps1 -RunSetup -NoOpen`. Without the connect script, the same thing by hand is:
+- **Setup files changed:** run the setup script again as `dev` with `.\infra\vm\connect\connect.ps1 -RunSetup -NoOpen`. Without the connect script, the same thing by hand is:
 
   ```sh
-  ssh mddoai-dev "rm -rf dev-host && mkdir dev-host"
-  scp -r infra/dev-host/setup infra/dev-host/test-env mddoai-dev:dev-host/
-  ssh mddoai-dev "sudo DEV_USER=dev bash dev-host/setup/setup.sh"
+  ssh mddoai-dev "rm -rf infra && mkdir -p infra/vm infra/environments"
+  scp -r infra/vm/setup mddoai-dev:infra/vm/
+  scp -r infra/environments/test infra/environments/templates mddoai-dev:infra/environments/
+  ssh mddoai-dev "sudo DEV_USER=dev bash infra/vm/setup/setup.sh"
   ```
 
-  If `31-docker-logs.sh` changes the log settings, it restarts Docker, which stops running containers. Existing containers keep their old log settings until they are recreated with `docker compose up -d --force-recreate`.
+  If `31-docker-logs.sh` changes the log settings, it restarts Docker, which stops running containers. Existing containers keep their old log settings until they are recreated with `docker compose up -d --force-recreate` in each environment's folder.
 - **Your IP changed:** SSH and VS Code time out. Run the connect script, which updates the firewall. Without it: replace your address in `ssh_allowed_cidrs` and run `terraform apply`; the plan should only update `hcloud_firewall.dev`. Being locked out meanwhile does not affect anything on the server.
 - **Another developer:** add their address to `ssh_allowed_cidrs` and apply. They log in as the same `dev` user with a key you add to `/home/dev/.ssh/authorized_keys`; separate Linux users per developer are not set up by this folder.
 - **Rebuild the server from scratch** (to check it can be recreated, or after a broken setup):

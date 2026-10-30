@@ -28,24 +28,19 @@ Loading a `ui-remote-*` piece: after the page has loaded, the **browser itself**
 
 ## Run everything
 
+Every copy of the stack is an environment under `infra/environments/`, which sets its ports and host names (see [infra/README.md](../infra/README.md#environments)). To run your own:
+
 ```bash
-cd ai
-cp .env.example .env    # once: this copy's ports and host names
+cd infra/environments/dev
+cp ../templates/dev/config.env config.env    # once, then fill it in
 docker compose up --build
 ```
 
-Starts every service in `docker-compose.yml`. With the values in `.env.example`, `ai-layer` is at [http://localhost:8000](http://localhost:8000) and `ui-host` at [http://localhost:5173](http://localhost:5173) (the whole UI, every remote included), both on this machine only; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`.
-
-`ai/.env` holds the settings that differ between copies of the stack. Every one is required, and `ai/.env.example` has the values for a normal local setup:
-
-- `UI_PORT` is the port `ui-host` is published on. It always listens on this machine only.
-- `AI_LAYER_PORT` is the port `ai-layer` is published on, with the address it listens on in front, for example `127.0.0.1:8000`. Without an address it listens on every network address of the machine.
-- `UI_ALLOWED_HOSTS` lists the host names the UI may be opened under, separated by spaces. `ui-host` refuses a request under any other name. Add a name when the app is reached through one, for example through a tunnel.
-- `UI_MAX_BODY_SIZE` and `UI_PROXY_READ_TIMEOUT` set the UI proxy's upload limit and how long it waits for an answer. `ai/.env.example` explains what each must match.
+Starts every service in `ai/docker-compose.yml`. `ai-layer` is on the environment's `AI_LAYER_PORT` and `ui-host` on `localhost` at its `UI_PORT` (the whole UI, every remote included), both on this machine only; any service without a `ports:` entry in `docker-compose.yml` stays internal-only, reachable by other containers on the same Docker network by service name, not from the host. Stop with `docker compose down`. Run every `docker compose` command in the environment's folder.
 
 The app has no login of its own. Before opening it under a public name, for example through a tunnel, put a proxy that logs people in in front of it, such as `oauth2-proxy`. Without one, anyone who finds the name can use the app and spend its LLM credentials. Such a proxy does not cover `ai-layer`, which holds the LLM credentials: keep the address in `AI_LAYER_PORT` unless another machine needs to reach it.
 
-Change the two ports to run a second copy of the stack on the same machine. Give that copy its own Compose project name too (`COMPOSE_PROJECT_NAME` in its `ai/.env`, or `docker compose -p <name>`), so its containers, networks and volumes are separate from the first copy's. Both copies still read the same `~/.claude` folder (see `ai-layer` below).
+Every environment on the same machine reads the same `~/.claude` folder (see `ai-layer` below).
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 

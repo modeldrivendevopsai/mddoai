@@ -80,7 +80,7 @@ Used by the Dockerfile's `HEALTHCHECK`.
 
 ## Where the Java side comes from
 
-This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-compose.yml`'s `gradle-builder` service builds `main/`'s real distribution (`./gradlew --no-daemon build -x test installDist`, piped through `tr`+`sh` rather than run directly, since a Windows checkout's `gradlew` has CRLF endings that break it otherwise — no `clean`, `build/` is a volume mount point Gradle can't rmdir, and doesn't need to, nothing else writes to that volume) into a shared `main-build-output` volume; `validator-agent` mounts that volume read-only and points `VALIDATOR_LIB_DIR` at its `install/com.mddoai/lib` subdirectory. `validator-agent` won't start until `gradle-builder` finishes (`depends_on: condition: service_completed_successfully`), so `docker compose up --build` from `ai/` works from a clean checkout with no manual Gradle step.
+This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-compose.yml`'s `gradle-builder` service builds `main/`'s real distribution (`./gradlew --no-daemon build -x test installDist`, piped through `tr`+`sh` rather than run directly, since a Windows checkout's `gradlew` has CRLF endings that break it otherwise — no `clean`, `build/` is a volume mount point Gradle can't rmdir, and doesn't need to, nothing else writes to that volume) into a shared `main-build-output` volume; `validator-agent` mounts that volume read-only and points `VALIDATOR_LIB_DIR` at its `install/com.mddoai/lib` subdirectory. `validator-agent` won't start until `gradle-builder` finishes (`depends_on: condition: service_completed_successfully`), so `docker compose up --build` in an environment's folder (see `infra/README.md`) works from a clean checkout with no manual Gradle step.
 
 ## Setup
 
@@ -125,7 +125,7 @@ artifacts already live, not off in a validator-only corner.
 
 Via the full stack (recommended — builds the Java side automatically):
 ```
-cd ai && docker compose up --build
+cd infra/environments/dev && docker compose up --build
 ```
 
 Standalone (needs `main/`'s distribution already built):

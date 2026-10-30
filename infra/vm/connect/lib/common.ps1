@@ -3,10 +3,12 @@
 $ErrorActionPreference = 'Stop'
 
 $ConnectDir = Split-Path -Parent $PSScriptRoot
-$DevHostDir = Split-Path -Parent $ConnectDir
-$TerraformDir = Join-Path $DevHostDir 'terraform'
-$SetupDir = Join-Path $DevHostDir 'setup'
-$TestEnvDir = Join-Path $DevHostDir 'test-env'
+$VmDir = Split-Path -Parent $ConnectDir
+$TerraformDir = Join-Path $VmDir 'terraform'
+$SetupDir = Join-Path $VmDir 'setup'
+$EnvironmentsDir = Join-Path (Split-Path -Parent $VmDir) 'environments'
+$TestDir = Join-Path $EnvironmentsDir 'test'
+$TemplatesDir = Join-Path $EnvironmentsDir 'templates'
 $TfvarsFile = Join-Path $TerraformDir 'terraform.tfvars'
 $SshConfigFile = Join-Path $HOME '.ssh\config'
 

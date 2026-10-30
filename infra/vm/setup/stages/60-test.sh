@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Installs the Test environment in TEST_DIR, switched off. To start it, fill in
-# .env and ai-layer.env there, then run:
+# its config.env and LLM keys in the clone, then run:
 #
 #   sudo systemctl enable --now mddoai-test-update.timer
 #
-# Its files come from the test-env/ folder next to setup/.
+# Its files come from infra/environments/test/ and templates/public/, copied
+# in the same layout as the repository.
 set -euo pipefail
 # shellcheck source=../lib/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -12,11 +13,15 @@ require_root
 
 TEST_DIR=/opt/mddoai-test
 REPO_URL=https://github.com/modeldrivendevopsai/mddoai.git
-SRC="$SETUP_DIR/../test-env"
+SRC="$SETUP_DIR/../../environments/test"
+TEMPLATE="$SETUP_DIR/../../environments/templates/public/config.env"
+# Where the stack looks for them, in the clone. Both are gitignored, so a
+# checkout leaves them alone.
+CONFIG="$TEST_DIR/repo/infra/environments/test/config.env"
+LLM_KEYS="$TEST_DIR/repo/ai/ai-layer/.env"
 
 # All of it belongs to the developer's user, who runs update.sh.
 install -d -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR"
-install -m 0644 -o "$DEV_USER" -g "$DEV_USER" "$SRC/compose.yaml" "$TEST_DIR/"
 install -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$SRC/update.sh" "$TEST_DIR/"
 
 if [[ ! -d "$TEST_DIR/repo/.git" ]]; then
@@ -25,16 +30,16 @@ if [[ ! -d "$TEST_DIR/repo/.git" ]]; then
 fi
 
 # Created once and never overwritten, so the values filled in are kept.
-if [[ ! -f "$TEST_DIR/.env" ]]; then
-  install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$SRC/env.example" "$TEST_DIR/.env"
+if [[ ! -f "$CONFIG" ]]; then
+  install -D -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEMPLATE" "$CONFIG"
   # oauth2-proxy's documented way to make one.
   cookie_secret="$(openssl rand -base64 32 | tr -- '+/' '-_')"
-  sed -i "s|^OAUTH2_COOKIE_SECRET=.*|OAUTH2_COOKIE_SECRET=$cookie_secret|" "$TEST_DIR/.env"
-  log "Created $TEST_DIR/.env. Fill in its users and secrets."
+  sed -i "s|^OAUTH2_COOKIE_SECRET=.*|OAUTH2_COOKIE_SECRET=$cookie_secret|" "$CONFIG"
+  log "Created $CONFIG. Fill it in."
 fi
-if [[ ! -f "$TEST_DIR/ai-layer.env" ]]; then
-  install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/repo/ai/ai-layer/.env.example" "$TEST_DIR/ai-layer.env"
-  log "Created $TEST_DIR/ai-layer.env. Fill in the LLM API keys."
+if [[ ! -f "$LLM_KEYS" ]]; then
+  install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/repo/ai/ai-layer/.env.example" "$LLM_KEYS"
+  log "Created $LLM_KEYS. Fill in the LLM API keys."
 fi
 
 for unit in mddoai-test-update.service mddoai-test-update.timer; do

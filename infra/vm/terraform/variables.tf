@@ -62,7 +62,7 @@ variable "dev_user" {
 }
 
 variable "ui_port" {
-  description = "The UI's port on the VM, forwarded to the same port on the developer's PC. It matches UI_PORT in the dev clone's ai/.env."
+  description = "The UI's port on the VM, forwarded to the same port on the developer's PC. It matches UI_PORT in the dev environment's config.env."
   type        = number
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets up the dev host: runs every stage in stages/ in name order.
+# Sets up the VM: runs every stage in stages/ in name order.
 # Run as root on the VM. Idempotent: each stage skips work already done.
 #
 #   sudo bash setup.sh             # all stages
