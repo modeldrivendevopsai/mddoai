@@ -1,0 +1,85 @@
+# The one origin the browser talks to: this app's built files, every Module
+# Federation remote under /remotes/<name>/, and the orchestrator's API. The
+# official nginx image fills in ${...} from the environment at start (its
+# /etc/nginx/templates feature); nginx's own $variables are left alone.
+
+# Docker's embedded DNS server. Names are resolved per request, not once at
+# start, so this proxy starts even while a remote or a backend is not up yet
+# (the page then shows that one piece as unavailable) and follows a container
+# that was recreated with a new address. valid=10s is an engineering guess: a
+# recreated container is found again within ten seconds, without a lookup on
+# every request.
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+# The remotes this page loads. Each name must match three other places: the
+# ui-remote-<name> service in docker-compose.yml (served on its port 80), that
+# service's PUBLIC_PATH (/remotes/<name>/), and ui-host's VITE_REMOTE_*_URL
+# build argument. Anything else under /remotes/ is refused, so the path cannot
+# be used to reach other containers.
+map $remote_name $remote_upstream {
+    default                 "";
+    chat                    ui-remote-chat;
+    stepper                 ui-remote-stepper;
+    stage-docs              ui-remote-stage-docs;
+    stage-serialization     ui-remote-stage-serialization;
+    stage-pim               ui-remote-stage-pim;
+    stage-psm               ui-remote-stage-psm;
+    stage-atl               ui-remote-stage-atl;
+    stage-acceleo           ui-remote-stage-acceleo;
+    stage-generation        ui-remote-stage-generation;
+}
+
+# A request for any other host name is refused. None of the APIs behind this
+# proxy has authentication, so a web page that rebinds its own domain to this
+# machine's address (DNS rebinding) must not be able to use them through the
+# browser of someone who has the app open.
+server {
+    listen 80 default_server;
+    return 421;
+}
+
+server {
+    listen 80;
+    # The names the app is opened under; the port is not part of the match.
+    server_name ${UI_ALLOWED_HOSTS};
+    root /usr/share/nginx/html;
+
+    client_max_body_size ${UI_MAX_BODY_SIZE};
+    proxy_read_timeout ${UI_PROXY_READ_TIMEOUT};
+
+    # The app itself. Every route is the same index.html; the router picks
+    # the screen. index.html is never cached, so a new build is picked up on
+    # the next load; its hashed assets can be.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # A remote's own files. remoteEntry.js keeps the same name across builds,
+    # so it is never cached: a remote rebuilt on its own is picked up on the
+    # next page load without rebuilding this app.
+    location ~ ^/remotes/(?<remote_name>[a-z-]+)/(?<remote_path>.*)$ {
+        if ($remote_upstream = "") {
+            return 404;
+        }
+        if ($remote_path = "remoteEntry.js") {
+            add_header Cache-Control "no-cache";
+        }
+        rewrite ^/remotes/[a-z-]+/(.*)$ /$1 break;
+        proxy_pass http://$remote_upstream;
+    }
+    # Any other spelling under /remotes/ (a name the pattern above does not
+    # match, or no trailing slash) is not a remote, not the app.
+    location /remotes/ {
+        return 404;
+    }
+
+    # The orchestrator's API, the one backend the app calls.
+    location /orchestrator-api/ {
+        set $orchestrator ${ORCHESTRATOR_UPSTREAM};
+        rewrite ^/orchestrator-api/(.*)$ /$1 break;
+        proxy_pass http://$orchestrator;
+    }
+}

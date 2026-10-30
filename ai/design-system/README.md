@@ -32,6 +32,20 @@ or an elevated shell, depending on the npm/Node version — if `npm install`
 in a consuming package fails to link this one, that's the first thing to
 check, not a real dependency problem.
 
+## Changing it
+
+In the Docker Compose stack, this package is built into every UI image
+(`ui-host` and each `ui-remote-*`) when that image is built, together with its
+own `node_modules`. The running containers only serve the built files. After
+any change here, to its code or to its dependencies, rebuild every UI image
+from `ai/`:
+
+```bash
+docker compose up -d --build
+```
+
+Until then the containers keep serving what was built before.
+
 ## Multi-file component groups
 
 Most components here are one flat `.tsx` file. A component whose own concerns are each real and

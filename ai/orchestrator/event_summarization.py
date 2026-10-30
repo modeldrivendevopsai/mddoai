@@ -1,8 +1,8 @@
 """Turning a raw pipeline event (or a list of them) into an LLM-prompt-safe
 shape: long string fields get truncated so re-sending history on every
-narration/send_message() call doesn't balloon the prompt.
+narration/accept_message() call doesn't balloon the prompt.
 
-Shared by chat_log.py's own narration and assistant.py's send_message(), the
+Shared by chat_log.py's own narration and assistant.py's accept_message(), the
 only two places that build a prompt from real events — neither one owns
 this, it's a concern of "how we build LLM prompts from event history," not
 of the chat transcript (chat_log.py) or the reply mechanism (assistant.py)

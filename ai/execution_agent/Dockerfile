@@ -1,5 +1,8 @@
 # -noble (glibc), not -alpine: Alpine's python3 has a broken pyexpat that breaks pip.
-FROM eclipse-temurin:24-jdk-noble
+# A JRE, not a JDK: this service only runs the engine's executors with `java`,
+# and never compiles Java (validator-agent, which runs javac for its
+# Ecore code-generation check, keeps the JDK).
+FROM eclipse-temurin:24-jre-noble
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
