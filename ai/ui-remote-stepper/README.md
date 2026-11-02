@@ -51,7 +51,7 @@ npm run build
 
 ## Docker
 
-`docker compose up --build` from `ai/` builds this package into static files and serves them with
+`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this package into static files and serves them with
 nginx's stock configuration. It publishes no port: the browser loads it through `ai/ui-host`'s
 proxy at `/remotes/stepper/`, and it is built with that path as its Vite `base` (the
 `PUBLIC_PATH` build argument in `docker-compose.yml`), so its own files are requested under it

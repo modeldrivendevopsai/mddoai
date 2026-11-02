@@ -15,8 +15,8 @@ services:
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     ports:
-      # From ai/.env.
-      - "${AI_LAYER_PORT:?set it in ai/.env, see ai/.env.example}:8000"
+      # From the environment's config.env.
+      - "${AI_LAYER_PORT:?}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
   # Python packages (orchestrator/, clients/) into one container. Before
@@ -326,17 +326,17 @@ services:
       # Filled into the proxy's configuration when the container starts.
       # The host names the app may be opened under. Any other Host header is
       # refused, so a page using DNS rebinding cannot reach the APIs. The
-      # names come from UI_ALLOWED_HOSTS in ai/.env.
-      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:?set it in ai/.env, see ai/.env.example}
-      # From ai/.env.
-      - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?set it in ai/.env, see ai/.env.example}
-      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?set it in ai/.env, see ai/.env.example}
+      # names come from UI_ALLOWED_HOSTS in the environment's config.env.
+      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:?}
+      # From the environment's config.env.
+      - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?}
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
     ports:
       # The one port the browser uses: the app, every remote and the
       # orchestrator's API. This machine only: nothing here has a login.
-      # UI_PORT is from ai/.env.
-      - "127.0.0.1:${UI_PORT:?set it in ai/.env, see ai/.env.example}:80"
+      # UI_PORT is from the environment's config.env.
+      - "127.0.0.1:${UI_PORT:?}:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
   # Federation remote, its own image and container, exposing one piece of the

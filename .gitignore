@@ -56,8 +56,15 @@ ai/acceleo_agent/prompts/*/history/
 ai/acceleo_agent/prompts/*/*.json
 !ai/acceleo_agent/prompts/*/*.default.json
 
+# A .env that Compose would read on its own: settings stay in config.env.
+ai/.env
+infra/environments/*/.env
+
+# Each environment's settings and secrets, kept only on the machine that runs
+# it. The templates are committed.
+infra/environments/*/config.env
+!infra/environments/templates/*/config.env
+
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
 
-# Each copy of the stack's own settings (ai/.env.example is the template).
-ai/.env

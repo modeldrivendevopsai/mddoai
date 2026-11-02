@@ -122,7 +122,7 @@ Component styling throughout `src/features/` and every `ui-remote-*` package use
 
 ## Docker
 
-`docker compose up --build` from `ai/` builds this app into static files and serves them with nginx, published on `UI_PORT` from `ai/.env` (5173 in `ai/.env.example`), on this machine only. That server is the one origin the browser uses (`nginx/default.conf.template`): it serves the app, forwards `/remotes/<name>/` to each `ui-remote-*` container, and `/orchestrator-api` to `ai/orchestrator`, which is internal-only. See `ai/README.md` for the full topology.
+`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app into static files and serves them with nginx, published on the environment's `UI_PORT`, on this machine only. That server is the one origin the browser uses (`nginx/default.conf.template`): it serves the app, forwards `/remotes/<name>/` to each `ui-remote-*` container, and `/orchestrator-api` to `ai/orchestrator`, which is internal-only. See `ai/README.md` for the full topology.
 
 Build context is `ai/`, not this folder alone — `package.json`'s `design-system` and
 `orchestrator-types` dependencies are both sibling packages (local `file:` paths), and Docker can't

@@ -38,7 +38,7 @@ In the Docker Compose stack, this package is built into every UI image
 (`ui-host` and each `ui-remote-*`) when that image is built, together with its
 own `node_modules`. The running containers only serve the built files. After
 any change here, to its code or to its dependencies, rebuild every UI image
-from `ai/`:
+in your environment's folder (see `infra/README.md`):
 
 ```bash
 docker compose up -d --build
