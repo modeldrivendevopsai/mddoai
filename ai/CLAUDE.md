@@ -140,13 +140,20 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   proliferation (`/validate/<type>`), and its licensed reach into `main/` is scoped, by name and
   path, to `*ValidatorCli.java` under `mddoai.validation`; neither extends to execution. Its Python
   code lives in `ai/execution_agent/`; it also owns every
-  `main/src/main/java/mddoai/execution/**/*ExecutorCli.java` class (recursive, any depth under
-  `execution/`), a thin entrypoint that `execution_agent` invokes as a subprocess
-  (`java -cp .../lib/* ...*ExecutorCli <args>`), reading structured JSON off stdout; it never links
-  against or imports Java code directly. Everything else under `mddoai.execution` is owned by the
-  Java/Eclipse work, not by `execution_agent`. This exception does not extend to any `ui-*` package,
-  `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
-  `main/` without the same explicit justification.
+  `main/src/main/java/mddoai/execution/**/*Executor.java` class and its
+  `main/src/main/java/mddoai/execution/**/*ExecutorCli.java` entrypoint (recursive, any depth under
+  `execution/`, one such pair per DSL type). The executor class holds the execution logic, which
+  exists only to serve this service: the Java/Eclipse engine does not call it. The `*ExecutorCli`
+  class is a thin entrypoint that `execution_agent` invokes as a subprocess
+  (`java -cp .../lib/* ...*ExecutorCli <args>`), reading structured JSON off stdout; the Python code
+  never links against or imports Java code directly. Supporting a new kind of input model means
+  adding a new pair in its own subpackage, not editing an existing one. Everything else under
+  `mddoai.execution` is owned by the Java/Eclipse work, not by `execution_agent`. Like the first
+  exception, both rules (subprocess boundary, ownership split) are stated by naming pattern and
+  path, not by enumerating specific classes, so adding a new executor never requires an edit here.
+  This exception does not extend to any `ui-*` package, `design-system`, or `ai-layer`, and does
+  not license any other future `ai/` service to reach into `main/` without the same explicit
+  justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 
