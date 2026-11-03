@@ -37,8 +37,7 @@ logger = logging.getLogger(__name__)
 # longer point anywhere real by then.
 LIB_DIR = str(Path(os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")).resolve())
 ATL_MAIN_CLASS = "main.java.mddoai.execution.atl.AtlExecutorCli"
-# AtlExecutorCli's own switch for its SWArch-in, PIM-out form.
-ATL_FROM_SWARCH_FLAG = "--from-swarch"
+SWARCH_MAIN_CLASS = "main.java.mddoai.execution.swarch.SwarchExecutorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.execution.acceleo.AcceleoExecutorCli"
 TIMEOUT_SECONDS = float(os.environ.get("EXECUTION_TIMEOUT_SECONDS", "60"))
 
@@ -141,7 +140,7 @@ def run_atl_from_swarch_executor(atl_source: str, swarch_model_xmi: str) -> AtlE
         output_file = tmp_path / "output.pimmm"
 
         argv = [
-            "java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, ATL_FROM_SWARCH_FLAG,
+            "java", "-cp", f"{LIB_DIR}/*", SWARCH_MAIN_CLASS,
             str(atl_file), str(swarch_model_file), str(output_file),
         ]
         result, duration_ms = _run_cli(argv, tmp_path)

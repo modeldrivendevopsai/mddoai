@@ -127,7 +127,7 @@ def test_run_acceleo_executor_raises_infra_error_for_unparseable_stdout():
 # --- SWArch to PIM -----------------------------------------------------------
 
 
-def test_run_atl_from_swarch_executor_calls_the_cli_in_its_swarch_form_and_reads_the_pim_back():
+def test_run_atl_from_swarch_executor_calls_the_swarch_cli_and_reads_the_pim_back():
     seen = {}
 
     def fake_run(argv, **kwargs):
@@ -140,8 +140,7 @@ def test_run_atl_from_swarch_executor_calls_the_cli_in_its_swarch_form_and_reads
 
     assert result == {"output_xmi": "<pim/>"}
     argv = seen["argv"]
-    assert argv[argv.index("main.java.mddoai.execution.atl.AtlExecutorCli") + 1] == "--from-swarch"
-    assert len(argv[argv.index("--from-swarch") + 1:]) == 3
+    assert len(argv[argv.index("main.java.mddoai.execution.swarch.SwarchExecutorCli") + 1:]) == 3
     assert Path(argv[-2]).suffix == ".swarch"
 
 
