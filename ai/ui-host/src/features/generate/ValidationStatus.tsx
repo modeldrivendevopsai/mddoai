@@ -46,6 +46,7 @@ function summarize({ validation, validating, error, onRetry }: ValidationStatusP
   const details = <PipelineChecks validation={validation} />;
   if (!validation.valid) return { variant: 'danger', label: copy.failed(failed, total), details };
   // Only a pipeline every check was made on is a pass; skipped checks say so.
+  if (skipped === total) return { variant: 'info', label: copy.notChecked, details };
   if (skipped > 0) return { variant: 'info', label: copy.partial(total - skipped, skipped), details };
   return { variant: 'success', label: copy.passed(total), details };
 }

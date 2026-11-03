@@ -114,24 +114,41 @@ def _store_platform(tmp_path, platform_id, name, output_filename):
         (folder / filename).write_text("placeholder", encoding="utf-8")
 
 
-def test_validate_for_a_platform_with_no_schema_says_so_instead_of_passing(tmp_path):
+def test_validate_for_a_platform_with_no_schema_sends_none_and_no_rules(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
+    answer = {"valid": True, "checks": []}
 
-    body = client.post("/validate", json={"platform": "other", "content": "a: b\n"}).json()
+    with patch("main.validator_agent_client.validate_pipeline", return_value=answer) as validate:
+        body = client.post("/validate", json={"platform": "other", "content": "a: b\n"}).json()
 
-    assert [(c["id"], c["status"]) for c in body["checks"]] == [("yaml", "pass"), ("schema", "skipped")]
-    assert body["valid"] is True
+    assert body == answer
+    assert validate.call_args.args == ("a: b\n", "other.yml", "Other CI", None, [])
 
 
-def test_validate_with_a_schema_the_platform_cannot_load_is_a_generic_server_error(tmp_path):
+def test_validate_sends_the_schema_and_rules_the_platform_has(tmp_path):
+    _store_platform(tmp_path, "other", "Other CI", "other.yml")
+    version = tmp_path / "platforms" / "other" / "1"
+    (version / "schema.json").write_text('{"type": "object"}', encoding="utf-8")
+    meta = json.loads((version / "platform.json").read_text(encoding="utf-8"))
+    (version / "platform.json").write_text(json.dumps({**meta, "rules": ["gitlab-references"]}), encoding="utf-8")
+
+    with patch("main.validator_agent_client.validate_pipeline", return_value={"valid": True, "checks": []}) as validate:
+        client.post("/validate", json={"platform": "other", "content": "a: b\n"})
+
+    assert validate.call_args.args[3:] == ({"type": "object"}, ["gitlab-references"])
+
+
+def test_validate_with_a_schema_file_that_cannot_be_read_is_a_generic_error_and_asks_nobody(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
     (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text("{not json", encoding="utf-8")
 
-    response = client.post("/validate", json={"platform": "other", "content": "a: b\n"})
+    with patch("main.validator_agent_client.validate_pipeline") as validate:
+        response = client.post("/validate", json={"platform": "other", "content": "a: b\n"})
 
     assert response.status_code == 500
-    assert response.json()["detail"] == "The platform's checks could not be loaded."
+    assert response.json()["detail"] == "The platform's checks could not be used."
     assert "not json" not in response.text
+    validate.assert_not_called()
 
 
 def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure(tmp_path):

@@ -2,3 +2,6 @@ fastapi>=0.111.0
 uvicorn>=0.30.0
 pytest>=8.0.0
 httpx>=0.27.0
+pyyaml>=6.0
+# 4.18 or later: its references are resolved through the `referencing` library.
+jsonschema>=4.18

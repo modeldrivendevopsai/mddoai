@@ -159,3 +159,24 @@ def validate_swarch(content: str, filename: str) -> dict:
     )
     response.raise_for_status()
     return response.json()
+
+
+def validate_pipeline(content: str, filename: str, platform_name: str, json_schema: dict | None, rules: list[str]) -> dict:
+    """POSTs to validator-agent's /validate/pipeline, returns its parsed JSON
+    response directly: {"valid": bool, "checks": [...]}. A pipeline that fails
+    its checks is still an HTTP 200 with valid=false. A schema or rule name
+    validator-agent cannot use is a 422, which raises like every other
+    rejected request."""
+    response = httpx.post(
+        f"{VALIDATOR_AGENT_URL}/validate/pipeline",
+        json={
+            "content": content,
+            "filename": filename,
+            "platform_name": platform_name,
+            "json_schema": json_schema,
+            "rules": rules,
+        },
+        timeout=VALIDATE_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()

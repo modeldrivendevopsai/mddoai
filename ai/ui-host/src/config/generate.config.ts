@@ -50,6 +50,8 @@ export const GENERATE_COPY = {
     passed: (total: number) => (total === 1 ? '1 check passed' : `All ${total} checks passed`),
     // Nothing failed, but some checks could not be made: not a pass.
     partial: (passed: number, skipped: number) => `${passed} ${passed === 1 ? 'check' : 'checks'} passed, ${skipped} skipped`,
+    // Nothing failed, but not one check could be made.
+    notChecked: 'Could not be checked',
     failed: (failed: number, total: number) => `${failed} of ${total} ${total === 1 ? 'check' : 'checks'} failed`,
     unavailable: 'Could not check the pipeline',
     unavailableDetail: 'The pipeline could not be checked.',

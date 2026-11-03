@@ -11,8 +11,6 @@ from pydantic import BaseModel, Field
 from clients import validator_agent_client
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
-from check_results import PipelineValidation
-from pipeline_checks import check_pipeline
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from platforms import Platform
@@ -43,6 +41,11 @@ app.include_router(pipelines_routes.router)
 # filename never reaches it: there it would become a file name on disk, and
 # its extension would decide how the content is recognised.
 _VALIDATOR_FILENAME = "model.swarch"
+
+# What a caller is told when validation cannot be done, never why: the cause
+# is in the service log.
+_CHECKS_UNUSABLE = "The platform's checks could not be used."
+_CHECKER_UNAVAILABLE = "The pipeline checker is unavailable, try again shortly."
 
 # A person ticks platforms from a short list. The ceiling only stops a
 # request naming the same few over and over.
@@ -188,16 +191,31 @@ def generation_job_endpoint(job_id: str, jobs: GenerationJobs = Depends(get_jobs
 
 
 @app.post("/validate")
-def validate_endpoint(
-    request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)
-) -> PipelineValidation:
+def validate_endpoint(request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)) -> dict:
+    """The checks themselves are validator-agent's. This reads what the
+    platform says to check against (its schema and rule names) and asks."""
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
     platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
     try:
-        result = check_pipeline(platform, request.content, registry.schema(platform))
+        schema = registry.schema(platform)
     except (OSError, ValueError) as e:
-        logger.error("could not check a pipeline for %s: %s", platform.id, e)
-        raise HTTPException(status_code=500, detail="The platform's checks could not be loaded.")
+        logger.error("could not read the schema of platform %s: %s", platform.id, e)
+        raise HTTPException(status_code=500, detail=_CHECKS_UNUSABLE)
+    try:
+        result = validator_agent_client.validate_pipeline(
+            request.content, platform.output_filename, platform.name, schema, list(platform.rules)
+        )
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 422:
+            # The checks the platform's files ask for cannot be used: the fault
+            # is in those files, whatever the pipeline holds.
+            logger.error("validator-agent cannot use the checks of platform %s: %s", platform.id, e.response.text[:500])
+            raise HTTPException(status_code=500, detail=_CHECKS_UNUSABLE)
+        logger.error("validator-agent call failed: %s", e)
+        raise HTTPException(status_code=502, detail=_CHECKER_UNAVAILABLE)
+    except httpx.HTTPError as e:
+        logger.error("validator-agent call failed: %s", e)
+        raise HTTPException(status_code=502, detail=_CHECKER_UNAVAILABLE)
     logger.info("POST /validate done platform=%s valid=%s", platform.id, result["valid"])
     return result

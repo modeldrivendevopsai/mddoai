@@ -76,6 +76,8 @@ class PlatformRegistry:
             rules = raw.get("rules", [])
             if not isinstance(rules, list) or not all(isinstance(rule, str) and rule for rule in rules):
                 raise ValueError("rules must be a list of names")
+            if len(set(rules)) != len(rules):
+                raise ValueError("rules must name each rule set once")
             for filename in (_METAMODEL, _TRANSFORMATION, _TEMPLATE):
                 if not (folder / filename).is_file():
                     raise ValueError(f"{filename} is missing")

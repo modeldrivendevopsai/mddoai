@@ -223,20 +223,59 @@ def test_generate_rejects_oversized_content():
     assert generate(client, oversized).status_code == 413
 
 
-def test_validate_checks_the_pipeline_for_the_platform():
-    response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build]\nbuild:\n  stage: build\n  script: [echo]\n"})
+CHECKLIST = {"valid": True, "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "pass", "details": []}]}
+
+
+def _status_error(status, text):
+    request = httpx.Request("POST", "http://validator-agent/validate/pipeline")
+    return httpx.HTTPStatusError("failed", request=request, response=httpx.Response(status, text=text, request=request))
+
+
+def test_validate_asks_validator_agent_with_what_the_platform_says_to_check_against():
+    with patch("main.validator_agent_client.validate_pipeline", return_value=CHECKLIST) as validate:
+        response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build]\n"})
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["valid"] is True
-    assert [check["id"] for check in body["checks"]] == ["yaml", "schema", "jobs", "stages", "needs"]
+    assert response.json() == CHECKLIST
+    content, filename, platform_name, schema, rules = validate.call_args.args
+    assert (content, filename, platform_name, rules) == ("stages: [build]\n", ".gitlab-ci.yml", "GitLab CI", ["gitlab-references"])
+    assert schema["$schema"].startswith("http://json-schema.org/")
 
 
-def test_validate_reports_a_broken_pipeline_as_a_normal_answer():
-    response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build\n"})
+def test_validate_reports_a_pipeline_that_fails_its_checks_as_a_normal_answer():
+    failing = {"valid": False, "checks": [{"id": "yaml", "title": "t", "status": "fail", "details": ["bad"]}]}
+    with patch("main.validator_agent_client.validate_pipeline", return_value=failing):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build\n"})
 
     assert response.status_code == 200
-    assert response.json()["valid"] is False
+    assert response.json() == failing
+
+
+def test_validate_says_the_checker_is_unavailable_when_validator_agent_cannot_be_reached():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=httpx.ConnectError("down")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "The pipeline checker is unavailable, try again shortly."
+
+
+def test_validate_treats_a_server_error_from_validator_agent_as_the_checker_being_unavailable():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=_status_error(500, "boom at /secret")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 502
+    assert "secret" not in response.text
+
+
+def test_validate_hides_why_the_platforms_checks_could_not_be_used(caplog):
+    refusal = _status_error(422, "no rule set is named 'typo'")
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=refusal):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "The platform's checks could not be used."
+    assert "typo" not in response.text
+    assert "no rule set is named 'typo'" in caplog.text
 
 
 def test_validate_rejects_an_unsupported_platform():

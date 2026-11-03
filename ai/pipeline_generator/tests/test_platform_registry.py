@@ -82,6 +82,7 @@ def test_an_empty_or_missing_folder_offers_nothing(folder):
         {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": "a"},
         {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": [1]},
         {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": [""]},
+        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": ["a", "a"]},
     ],
 )
 def test_a_version_without_a_usable_platform_json_is_never_listed(folder, meta):

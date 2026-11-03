@@ -9,8 +9,8 @@ const CHECK_PILL: Record<PipelineCheck['status'], { variant: 'success' | 'danger
 
 /**
  * A plain-language checklist for a generated pipeline file, not a raw schema
- * dump: each row says what was checked, and only a failing row lists what to
- * look at.
+ * dump: each row says what was checked, and a failing row lists what to look
+ * at, a skipped one why it was not made.
  */
 export function PipelineChecks({ validation }: { validation: PipelineValidation }) {
   return (

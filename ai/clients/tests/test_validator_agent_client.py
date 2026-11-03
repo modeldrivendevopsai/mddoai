@@ -199,3 +199,22 @@ def test_validate_swarch_posts_filename_and_content():
         timeout=validator_agent_client.VALIDATE_TIMEOUT,
     )
     assert response == result
+
+
+def test_validate_pipeline_posts_the_file_and_what_to_check_it_against():
+    result = {"valid": True, "checks": []}
+    with patch("validator_agent_client.httpx.post", return_value=_fake_httpx_response_raw(result)) as mock_post:
+        response = validator_agent_client.validate_pipeline("a: b\n", ".x.yml", "X CI", {"type": "object"}, ["r"])
+
+    mock_post.assert_called_once_with(
+        f"{validator_agent_client.VALIDATOR_AGENT_URL}/validate/pipeline",
+        json={
+            "content": "a: b\n",
+            "filename": ".x.yml",
+            "platform_name": "X CI",
+            "json_schema": {"type": "object"},
+            "rules": ["r"],
+        },
+        timeout=validator_agent_client.VALIDATE_TIMEOUT,
+    )
+    assert response == result

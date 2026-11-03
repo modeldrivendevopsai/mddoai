@@ -1,8 +1,12 @@
+import json
 import logging
 import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
+
+from check_results import PipelineValidation
+from pipeline_checks import PlatformChecksError, check_pipeline
 
 from validator_runner import (
     AcceleoValidationResult,
@@ -25,6 +29,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MDDOAI Validator Agent")
 
 MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
+# The largest JSON schema accepted with a pipeline to check. A real platform's
+# is on the order of a hundred KB; this only stops an absurd one being parsed
+# and walked (engineering guess).
+MAX_SCHEMA_BYTES = int(os.environ.get("MAX_SCHEMA_BYTES", str(2 * 1024 * 1024)))
 
 # Every request model below that takes a run_id (it scopes where a real
 # compiled artifact lands - EcoreValidator's codegen output, AtlValidator's
@@ -165,6 +173,21 @@ class SwarchValidateRequest(BaseModel):
     content: str = Field(..., min_length=1, description="Raw .swarch (XMI) content.")
 
 
+class PipelineValidateRequest(BaseModel):
+    content: str = Field(..., min_length=1, description="The generated pipeline file's text.")
+    filename: str = Field(..., min_length=1, max_length=255, description="The pipeline file's name; its ending says whether it is YAML.")
+    platform_name: str = Field(..., min_length=1, max_length=100, description="How the checks name the platform.")
+    json_schema: dict | None = Field(None, description="The platform's JSON schema, if it has one.")
+    rules: list[str] = Field(default_factory=list, max_length=20, description="Names of the rule sets to apply.")
+
+    @field_validator("rules")
+    @classmethod
+    def _rules_are_named_once(cls, rules: list[str]) -> list[str]:
+        if any(not rule for rule in rules) or len(set(rules)) != len(rules):
+            raise ValueError("rules must be non-empty names, each given once")
+        return rules
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -258,4 +281,24 @@ def validate_swarch_endpoint(request: SwarchValidateRequest) -> SwarchValidation
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /validate/swarch done filename=%s valid=%s duration_ms=%d",
                 request.filename, result["valid"], result["duration_ms"])
+    return result
+
+
+@app.post("/validate/pipeline", response_model=PipelineValidation)
+def validate_pipeline_endpoint(request: PipelineValidateRequest) -> PipelineValidation:
+    content_bytes = len(request.content.encode("utf-8"))
+    if content_bytes > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
+    if request.json_schema is not None and len(json.dumps(request.json_schema)) > MAX_SCHEMA_BYTES:
+        raise HTTPException(status_code=413, detail=f"json_schema exceeds {MAX_SCHEMA_BYTES} bytes")
+
+    logger.info("POST /validate/pipeline platform=%s filename=%s bytes=%d", request.platform_name, request.filename, content_bytes)
+    try:
+        result = check_pipeline(
+            request.content, request.filename, request.platform_name, request.json_schema, request.rules
+        )
+    except PlatformChecksError as e:
+        logger.warning("POST /validate/pipeline unusable checks for %s: %s", request.platform_name, e)
+        raise HTTPException(status_code=422, detail=str(e))
+    logger.info("POST /validate/pipeline done platform=%s valid=%s", request.platform_name, result["valid"])
     return result

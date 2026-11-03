@@ -719,6 +719,21 @@ describe("GenerateScreen: validating a pipeline", () => {
     expect(screen.getByText("Other CI has no schema to check against.")).toBeTruthy()
   })
 
+  it("says nothing could be checked when every check was skipped", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue({
+      valid: true,
+      checks: [{ id: "format", title: "The file can be checked", status: "skipped", details: ["Only YAML pipeline files can be checked."] }],
+    })
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("Could not be checked")).toBeTruthy()
+    expect(screen.queryByText(/passed/)).toBeNull()
+  })
+
   it("checks once even when React runs effects twice", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)

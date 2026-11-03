@@ -10,7 +10,7 @@ import httpx
 import pytest
 
 from clients import execution_agent_client
-from helpers import check_gitlab_pipeline
+from clients import validator_agent_client
 from platform_runner import run_platform
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -61,12 +61,17 @@ def test_returns_both_intermediate_models(gitlab, registry):
     assert all(m["content"].strip() for m in result["intermediates"])
 
 
-def test_the_real_output_passes_the_pipeline_checks(gitlab, registry):
+@pytest.mark.skipif(not _reachable(validator_agent_client.VALIDATOR_AGENT_URL), reason="validator-agent is not reachable")
+def test_the_real_output_passes_the_real_pipeline_checks(gitlab, registry):
     model = (FIXTURES / "valid.swarch").read_text(encoding="utf-8")
 
     result = run_platform(model, gitlab, registry)
+    checked = validator_agent_client.validate_pipeline(
+        result["pipeline"], gitlab.output_filename, gitlab.name, registry.schema(gitlab), list(gitlab.rules)
+    )
 
-    assert check_gitlab_pipeline(result["pipeline"])["valid"] is True
+    assert checked["valid"] is True, checked
+    assert [entry["status"] for entry in checked["checks"]] == ["pass"] * 5
 
 
 def test_concurrent_runs_do_not_mix_up_each_others_output(gitlab, registry):

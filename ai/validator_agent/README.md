@@ -88,6 +88,37 @@ Validates a Software Architecture model instance: it must hold exactly one top-l
 
 The content is untrusted, so it is parsed with DOCTYPE declarations rejected outright and outbound network resolution disabled, the same hardening `/validate/ecore` applies. There is no `run_id`, `stage` or `attempt`: nothing is compiled, so there is no output to persist or scope.
 
+### `POST /validate/pipeline`
+
+```json
+// request
+{"content": "stages: [build]\n...", "filename": ".gitlab-ci.yml", "platform_name": "GitLab CI", "json_schema": {"type": "object"}, "rules": ["gitlab-references"]}
+
+// response (200)
+{"valid": false, "checks": [{"id": "stages", "title": "Every job belongs to a declared stage", "status": "fail", "details": ["Job 'ship' uses the stage 'deploy', which is not one of the pipeline's stages"]}]}
+```
+
+Checks a generated pipeline file. It is plain Python, with no JVM, and it knows no platform: the
+caller says what to check against. The checks, in order:
+
+1. The file parses as YAML. Only `.yml` and `.yaml` files can be checked: any other file gets one
+   skipped check.
+2. It follows `json_schema`. With no schema this check is skipped, with the reason shown.
+3. It passes each rule set named in `rules`. A rule set is code in this service, for what a schema
+   cannot see. `gitlab-references` is GitLab CI's: the pipeline defines a job, each job's stage is
+   declared, and each `needs:` points at a real job.
+
+A check that cannot be made is `skipped`, never `pass`. A pipeline that fails its checks is still a
+`200` with `valid: false`.
+
+The pipeline is untrusted. Its YAML is size-checked with every alias expanded before anything walks
+it, and content the YAML reader cannot handle (a number too long to read, a date as a setting name)
+is a failed check, not an error. The schema and the rule names are the caller's, not the
+pipeline's. A schema that is not a valid JSON schema, one that refers to anything outside itself
+(it is built with no way to fetch a reference, so it must be self-contained), or a rule name that
+does not exist is a `422` with the reason, whatever the file holds. Content over `MAX_CONTENT_BYTES`
+and a schema over `MAX_SCHEMA_BYTES` are `413`.
+
 ### `GET /health`
 
 Used by the Dockerfile's `HEALTHCHECK`.

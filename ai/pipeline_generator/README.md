@@ -86,6 +86,7 @@ platforms/
     transformation.atl          the transformation from the PIM to the platform's model
     template.mtl                the Acceleo template from that model to the pipeline file
     schema.json                 optional: the JSON schema the generated pipeline must follow
+                                (kept beside it, a copied schema's license notice)
     platform.json               id, name, version, the pipeline's file name, the name the
                                 transformation gives the model it creates (the `GitLabMM` in
                                 `create OUT : GitLabMM from IN : PIM;`), and optionally `rules`,
@@ -141,6 +142,7 @@ service's error text goes to the log, never to the caller.
 | Unsupported platform, a path outside the workspace, or a malformed body | `422` |
 | A workspace path that names no file or folder | `404` |
 | Content or a workspace file over the size limit | `413` |
+| A platform's schema or rules that cannot be used for validation | `500`, with a generic message (the cause is in the service log) |
 | `validator_agent` unreachable | `502` |
 | The workspace folder is not mounted | `503` |
 | A workspace file or folder could not be read or listed | `500`, with a generic message (the cause is in the service log) |
@@ -152,23 +154,20 @@ severity and message are returned, never the server-side file path.
 
 ## Pipeline checks
 
-`pipeline_checks.py` is pure Python. What it checks comes from the platform's own files. For a
-platform whose pipeline is a YAML file, it runs, in order:
+The checks themselves are `validator_agent`'s (`POST /validate/pipeline`, described in its README).
+`POST /validate` here reads what the platform says to check against, which is its `schema.json`
+if it has one and the rule names in `rules` of its `platform.json`, and asks `validator_agent`. It
+returns the checklist as it comes back.
 
-1. The file is valid YAML.
-2. The settings follow the platform's `schema.json`. A platform with no `schema.json` has this
-   check skipped, with the reason shown.
-3. Each rule set the platform lists in `rules`, for what a schema cannot see. The only rule set
-   today is `gitlab-references` (`gitlab_references.py`), which GitLab CI lists: the pipeline
-   defines at least one job, every job belongs to a declared stage, and every `needs:` entry
-   points at a real job. These are GitLab's own semantics, so they are code, not data.
+A check that cannot be made is reported as skipped, never as passed. A platform with no
+`schema.json` has its schema check skipped, with the reason shown. The UI says "passed" only when
+every check was made and passed, and otherwise says how many were skipped, or that nothing could be
+checked.
 
-A check that cannot be made is reported as skipped, never as passed: if the YAML is broken, the
-later checks are skipped, and a file that is not YAML (a Jenkinsfile, say) gets one skipped check.
-The UI says "passed" only when every check was made and passed, and otherwise says how many were
-skipped. A `schema.json` that is not a valid JSON schema, or a `rules` entry that names no rule
-set, is a fault in the platform's files: `/validate` answers `500` for the first, and fails a
-check naming the rule set for the second.
+If the platform's schema or rules cannot be used (a `schema.json` that is not valid JSON or not a
+valid JSON schema, a schema that refers to something outside itself, a rule name that does not
+exist), `/validate` answers `500` with a generic message and the cause is logged. Generation is not
+affected.
 
 ## Configuration
 
@@ -210,8 +209,8 @@ service's container in the running stack they do.
    commit it.
 2. Add a `schema.json` to the version folder, so its pipeline is checked for real. Without one the
    pipeline is only checked to be valid YAML, and the schema check is shown as skipped.
-3. If it needs checks a schema cannot make, write a rule set in code, add it to `RULE_SETS` in
-   `pipeline_checks.py`, and list its name in the platform's `rules`.
+3. If it needs checks a schema cannot make, write a rule set in `validator_agent` (its README says
+   how), and list its name in the platform's `rules`.
 
 ## Boundaries
 
