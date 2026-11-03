@@ -6,52 +6,35 @@ import main
 
 client = TestClient(main.app)
 
-SCHEMA = {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}}
-
 
 def _post(**overrides):
-    body = {"content": "name: a\n", "filename": ".x.yml", "platform_name": "X CI", **overrides}
-    return client.post("/validate/pipeline", json=body)
+    return client.post("/validate/pipeline", json={"content": "name: a\n", "filename": ".x.yml", **overrides})
 
 
-def test_a_pipeline_is_checked_against_the_schema_it_comes_with():
-    response = _post(json_schema=SCHEMA)
+def test_a_pipeline_is_checked_as_yaml():
+    response = _post()
 
     assert response.status_code == 200
-    assert [(c["id"], c["status"]) for c in response.json()["checks"]] == [("yaml", "pass"), ("schema", "pass")]
+    assert [(c["id"], c["status"]) for c in response.json()["checks"]] == [("yaml", "pass")]
 
 
 def test_a_failing_pipeline_is_still_a_normal_200_answer():
-    response = _post(content="name: 5\n", json_schema=SCHEMA)
+    response = _post(content="name: [a\n")
 
     assert response.status_code == 200
     assert response.json()["valid"] is False
 
 
-def test_without_a_schema_the_schema_check_is_skipped_and_says_why():
-    body = _post().json()
+def test_a_file_that_is_not_yaml_is_skipped():
+    body = _post(filename="Jenkinsfile").json()
 
-    assert [(c["id"], c["status"]) for c in body["checks"]] == [("yaml", "pass"), ("schema", "skipped")]
-    assert body["checks"][1]["details"] == ["X CI has no schema to check against."]
-
-
-def test_a_schema_that_is_not_a_json_schema_is_refused_with_the_reason():
-    response = _post(json_schema={"type": 5})
-
-    assert response.status_code == 422
-    assert "not a valid JSON schema" in response.json()["detail"]
+    assert [(c["id"], c["status"]) for c in body["checks"]] == [("format", "skipped")]
 
 
 def test_content_over_the_limit_is_refused(monkeypatch):
     monkeypatch.setattr(main, "MAX_PIPELINE_BYTES", 5)
 
     assert _post(content="name: a\n").status_code == 413
-
-
-def test_a_schema_over_the_limit_is_refused(monkeypatch):
-    monkeypatch.setattr(main, "MAX_SCHEMA_BYTES", 10)
-
-    assert _post(json_schema=SCHEMA).status_code == 413
 
 
 def test_missing_fields_are_refused():

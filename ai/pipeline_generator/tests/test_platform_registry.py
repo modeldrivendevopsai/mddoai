@@ -176,27 +176,3 @@ def test_a_folder_with_no_usable_platform_is_logged_as_an_error(folder, caplog):
 
     assert PlatformRegistry(folder).latest() == []
     assert "holds no usable platform" in caplog.text
-
-
-def test_the_committed_gitlab_platform_has_a_schema():
-    registry = PlatformRegistry(PLATFORMS_DIR)
-    gitlab = registry.get("gitlab")
-
-    assert registry.schema(gitlab)["$schema"].startswith("http://json-schema.org/")
-
-
-def test_a_platform_without_a_schema_file_has_no_schema(folder):
-    _write_version(folder, "x", 1)
-    registry = PlatformRegistry(folder)
-
-    assert registry.schema(registry.get("x")) is None
-
-
-@pytest.mark.parametrize("content", ["{not json", "[]", '"text"'])
-def test_a_schema_file_that_cannot_be_read_is_an_error_not_no_schema(folder, content):
-    version_folder = _write_version(folder, "x", 1)
-    (version_folder / "schema.json").write_text(content, encoding="utf-8")
-    registry = PlatformRegistry(folder)
-
-    with pytest.raises(ValueError):
-        registry.schema(registry.get("x"))

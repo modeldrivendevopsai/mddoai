@@ -44,7 +44,6 @@ _VALIDATOR_FILENAME = "model.swarch"
 
 # What a caller is told when validation cannot be done, never why: the cause
 # is in the service log.
-_CHECKS_UNUSABLE = "The platform's checks could not be used."
 _CHECKER_UNAVAILABLE = "The pipeline checker is unavailable, try again shortly."
 
 # A person ticks platforms from a short list. The ceiling only stops a
@@ -192,28 +191,16 @@ def generation_job_endpoint(job_id: str, jobs: GenerationJobs = Depends(get_jobs
 
 @app.post("/validate")
 def validate_endpoint(request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)) -> dict:
-    """The checks themselves are validator-agent's. This reads what the
-    platform says to check against (its schema and rule names) and asks."""
+    """The checks themselves are validator-agent's. This tells it the file and
+    the name the platform gives it, which says how it can be checked."""
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
     platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
     try:
-        schema = registry.schema(platform)
-    except (OSError, ValueError) as e:
-        logger.error("could not read the schema of platform %s: %s", platform.id, e)
-        raise HTTPException(status_code=500, detail=_CHECKS_UNUSABLE)
-    try:
-        result = validator_agent_client.validate_pipeline(
-            request.content, platform.output_filename, platform.name, schema
-        )
+        result = validator_agent_client.validate_pipeline(request.content, platform.output_filename)
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 413:
             raise HTTPException(status_code=413, detail="The pipeline is too large to check.")
-        if e.response.status_code == 422:
-            # The checks the platform's files ask for cannot be used: the fault
-            # is in those files, whatever the pipeline holds.
-            logger.error("validator-agent cannot use the checks of platform %s: %s", platform.id, e.response.text[:500])
-            raise HTTPException(status_code=500, detail=_CHECKS_UNUSABLE)
         logger.error("validator-agent call failed: %s", e)
         raise HTTPException(status_code=502, detail=_CHECKER_UNAVAILABLE)
     except httpx.HTTPError as e:

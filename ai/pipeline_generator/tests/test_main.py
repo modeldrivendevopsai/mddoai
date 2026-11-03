@@ -231,15 +231,13 @@ def _status_error(status, text):
     return httpx.HTTPStatusError("failed", request=request, response=httpx.Response(status, text=text, request=request))
 
 
-def test_validate_asks_validator_agent_with_the_schema_the_platform_has():
+def test_validate_asks_validator_agent_with_the_file_and_the_name_the_platform_gives_it():
     with patch("main.validator_agent_client.validate_pipeline", return_value=CHECKLIST) as validate:
         response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build]\n"})
 
     assert response.status_code == 200
     assert response.json() == CHECKLIST
-    content, filename, platform_name, schema = validate.call_args.args
-    assert (content, filename, platform_name) == ("stages: [build]\n", ".gitlab-ci.yml", "GitLab CI")
-    assert schema["$schema"].startswith("http://json-schema.org/")
+    assert validate.call_args.args == ("stages: [build]\n", ".gitlab-ci.yml")
 
 
 def test_validate_reports_a_pipeline_that_fails_its_checks_as_a_normal_answer():
@@ -273,17 +271,6 @@ def test_validate_says_so_when_validator_agent_finds_the_pipeline_too_large_to_c
 
     assert response.status_code == 413
     assert response.json()["detail"] == "The pipeline is too large to check."
-
-
-def test_validate_hides_why_the_platforms_checks_could_not_be_used(caplog):
-    refusal = _status_error(422, "the schema is not a valid JSON schema: typo")
-    with patch("main.validator_agent_client.validate_pipeline", side_effect=refusal):
-        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "The platform's checks could not be used."
-    assert "typo" not in response.text
-    assert "the schema is not a valid JSON schema: typo" in caplog.text
 
 
 def test_validate_rejects_an_unsupported_platform():

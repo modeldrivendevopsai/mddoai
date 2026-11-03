@@ -8,7 +8,7 @@ const CHECK_PILL: Record<PipelineCheck['status'], { variant: 'success' | 'danger
 };
 
 /**
- * A plain-language checklist for a generated pipeline file, not a raw schema
+ * A plain-language checklist for a generated pipeline file, not a raw parser
  * dump: each row says what was checked, and a failing row lists what to look
  * at, a skipped one why it was not made.
  */

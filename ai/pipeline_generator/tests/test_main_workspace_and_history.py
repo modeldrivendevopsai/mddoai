@@ -114,7 +114,7 @@ def _store_platform(tmp_path, platform_id, name, output_filename):
         (folder / filename).write_text("placeholder", encoding="utf-8")
 
 
-def test_validate_for_a_platform_with_no_schema_sends_none(tmp_path):
+def test_validate_sends_the_file_name_the_platform_gives_its_pipeline(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
     answer = {"valid": True, "checks": []}
 
@@ -122,43 +122,7 @@ def test_validate_for_a_platform_with_no_schema_sends_none(tmp_path):
         body = client.post("/validate", json={"platform": "other", "content": "a: b\n"}).json()
 
     assert body == answer
-    assert validate.call_args.args == ("a: b\n", "other.yml", "Other CI", None)
-
-
-def test_validate_sends_the_schema_the_platform_has(tmp_path):
-    _store_platform(tmp_path, "other", "Other CI", "other.yml")
-    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text('{"type": "object"}', encoding="utf-8")
-
-    with patch("main.validator_agent_client.validate_pipeline", return_value={"valid": True, "checks": []}) as validate:
-        client.post("/validate", json={"platform": "other", "content": "a: b\n"})
-
-    assert validate.call_args.args[3] == {"type": "object"}
-
-
-def test_validate_with_a_schema_file_that_cannot_be_read_is_a_generic_error_and_asks_nobody(tmp_path):
-    _store_platform(tmp_path, "other", "Other CI", "other.yml")
-    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text("{not json", encoding="utf-8")
-
-    with patch("main.validator_agent_client.validate_pipeline") as validate:
-        response = client.post("/validate", json={"platform": "other", "content": "a: b\n"})
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "The platform's checks could not be used."
-    assert "not json" not in response.text
-    validate.assert_not_called()
-
-
-def test_a_bad_schema_file_affects_only_validation_not_listing_or_generating(tmp_path):
-    _store_platform(tmp_path, "other", "Other CI", "other.yml")
-    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text("{not json", encoding="utf-8")
-
-    listed = [p["id"] for p in client.get("/platforms").json()["platforms"]]
-    with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_platform", return_value=_run_result()):
-        result = generate(client, {**MODEL, "platforms": ["other"]}).json()["results"][0]
-
-    assert "other" in listed
-    assert result["error"] is None and result["pipeline"]
+    assert validate.call_args.args == ("a: b\n", "other.yml")
 
 
 def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure(tmp_path):

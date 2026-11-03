@@ -59,8 +59,8 @@ ai/data/
   workspace/        the "Generate a CI/CD pipeline" mode's workspace: the models you pick
                     (mounted read-only)
   platforms/        committed: the files each platform is run from (metamodel.ecore,
-                    transformation.atl, template.mtl, platform.json and an optional
-                    schema.json per version, and swarch2pim.atl). Read-only for the stack.
+                    transformation.atl, template.mtl and platform.json per version, and
+                    swarch2pim.atl). Read-only for the stack.
   pipelines/<id>/   that mode's "Your pipelines": meta.json, record.json, model.swarch,
                     <platform>/<pipeline file>, <platform>/intermediates/<models the
                     generation passed through>

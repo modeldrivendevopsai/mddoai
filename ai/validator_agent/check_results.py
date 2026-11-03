@@ -1,8 +1,8 @@
 """The shape of a pipeline check's result, and how one is built."""
 from typing import Literal, TypedDict
 
-# A pipeline with a systemic mistake can trip a schema hundreds of times; the
-# first few are enough to act on, the rest is noise.
+# A pipeline with a systemic mistake can trip one check many times; the first
+# few are enough to act on, the rest is noise.
 MAX_DETAILS = 10
 
 

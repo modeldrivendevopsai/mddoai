@@ -9,7 +9,6 @@ Committed files, one folder per platform and one subfolder per version:
         template.mtl              platform model to pipeline file
         platform.json             name, output file name, name of the model the
                                   transformation creates
-        schema.json               optional: the JSON schema its pipeline must follow
 
 The files are read on every request, so a changed file applies to the next
 generation. Generation uses each platform's latest version. A version is only
@@ -37,7 +36,6 @@ _VERSION_PATTERN = re.compile(r"[1-9][0-9]{0,5}")
 _METAMODEL = "metamodel.ecore"
 _TRANSFORMATION = "transformation.atl"
 _TEMPLATE = "template.mtl"
-_SCHEMA = "schema.json"
 _META = "platform.json"
 # The step every platform starts with, beside the platform folders.
 _PIM_TRANSFORMATION = "swarch2pim.atl"
@@ -129,18 +127,6 @@ class PlatformRegistry:
             transformation=_read_text(folder / _TRANSFORMATION),
             template=_read_text(folder / _TEMPLATE),
         )
-
-    def schema(self, platform: Platform) -> dict | None:
-        """The JSON schema the platform's pipeline must follow, or None if it
-        has none. A schema that is there but cannot be read raises OSError or
-        ValueError."""
-        path = self._directory / platform.id / str(platform.version) / _SCHEMA
-        if not path.is_file():
-            return None
-        schema = json.loads(_read_text(path))
-        if not isinstance(schema, dict):
-            raise ValueError("schema.json is not an object")
-        return schema
 
     def pim_transformation(self) -> str:
         """The SWArch-to-PIM transformation, as ATL source text."""

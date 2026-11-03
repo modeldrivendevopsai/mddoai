@@ -7,8 +7,7 @@ real data, not an error to branch on, or raises: a genuine infra failure
 httpx error, matching ai_layer_client.py's own pattern exactly. Deliberately not
 integration_runner_client.py's IntegrationRunnerError shape: validator-agent
 reports no structured business error to branch on, only 200 (valid or not), a
-rejected request (413, or 422, which validate_pipeline gets when its schema or
-rule names cannot be used) or 500 (infra), so there's nothing that wrapper
+rejected request (413, 422) or 500 (infra), so there's nothing that wrapper
 would add here.
 """
 import os
@@ -162,20 +161,13 @@ def validate_swarch(content: str, filename: str) -> dict:
     return response.json()
 
 
-def validate_pipeline(content: str, filename: str, platform_name: str, json_schema: dict | None) -> dict:
+def validate_pipeline(content: str, filename: str) -> dict:
     """POSTs to validator-agent's /validate/pipeline, returns its parsed JSON
     response directly: {"valid": bool, "checks": [...]}. A pipeline that fails
-    its checks is still an HTTP 200 with valid=false. A schema or rule name
-    validator-agent cannot use is a 422, which raises like every other
-    rejected request."""
+    its checks is still an HTTP 200 with valid=false."""
     response = httpx.post(
         f"{VALIDATOR_AGENT_URL}/validate/pipeline",
-        json={
-            "content": content,
-            "filename": filename,
-            "platform_name": platform_name,
-            "json_schema": json_schema,
-        },
+        json={"content": content, "filename": filename},
         timeout=VALIDATE_TIMEOUT,
     )
     response.raise_for_status()

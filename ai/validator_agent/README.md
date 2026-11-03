@@ -94,32 +94,20 @@ The content is untrusted, so it is parsed with DOCTYPE declarations rejected out
 
 ```json
 // request
-{"content": "stages: [build]\n...", "filename": ".gitlab-ci.yml", "platform_name": "GitLab CI", "json_schema": {"type": "object"}}
+{"content": "stages: [build\n...", "filename": ".gitlab-ci.yml"}
 
 // response (200)
-{"valid": false, "checks": [{"id": "schema", "title": "The settings follow GitLab CI's format", "status": "fail", "details": ["build: Additional properties are not allowed ('scrpt' was unexpected)"]}]}
+{"valid": false, "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "fail", "details": ["while parsing a flow sequence, expected ',' or ']', but got '<document end>' (line 2)"]}]}
 ```
 
-Checks a generated pipeline file. It is plain Python, with no JVM, and it knows no platform: the
-caller says what to check against. The checks, in order:
+Checks a generated pipeline file. It is plain Python, with no JVM, and it knows no platform. The
+check is that the file parses as YAML. Only `.yml` and `.yaml` files can be checked: any other file
+gets one skipped check. A check that cannot be made is `skipped`, never `pass`.
 
-1. The file parses as YAML. Only `.yml` and `.yaml` files can be checked: any other file gets one
-   skipped check.
-2. It follows `json_schema`. With no schema this check is skipped, with the reason shown.
-
-A check that cannot be made is `skipped`, never `pass`. A pipeline that fails its checks is still a
-`200` with `valid: false`.
-
-The pipeline is untrusted. Its YAML is size-checked with every alias expanded before anything walks
-it, and content the YAML reader cannot handle (a number too long to read, a date as a setting name)
-is a failed check, not an error. The schema is the caller's, not the pipeline's. A schema that is
-not a valid JSON schema is a `422` with the reason, whatever the file holds. So is a schema that
-refers to something it does not contain (it is built with no way to fetch a reference, so it must
-be self-contained) or cannot be applied (a reference loop, say), as soon as the pipeline reaches
-the part that does. A schema is trusted input: it is committed with its platform, and a
-pathological one can take very long to apply. Content over `MAX_PIPELINE_BYTES` (512 KiB by
-default, because parsing YAML costs seconds per megabyte) and a schema over `MAX_SCHEMA_BYTES`
-(2 MiB) are `413`.
+A pipeline that fails its check is still a `200` with `valid: false`. The pipeline is untrusted, so
+content the YAML reader cannot handle (a number too long to read, a list as a setting name, nesting
+too deep) is a failed check, not an error. Content over `MAX_PIPELINE_BYTES` (512 KiB by default,
+because parsing YAML costs seconds per megabyte) is a `413`.
 
 ### `GET /health`
 
@@ -189,7 +177,7 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Window
 pytest
 ```
 
-The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks*.py` and `test_pipeline_route.py` run plain Python and mock nothing; the GitLab ones read the committed GitLab platform and skip themselves without it. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
+The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks.py` and `test_pipeline_route.py` run plain Python and mock nothing. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures. It auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest

@@ -85,8 +85,6 @@ platforms/
     metamodel.ecore             the platform's metamodel
     transformation.atl          the transformation from the PIM to the platform's model
     template.mtl                the Acceleo template from that model to the pipeline file
-    schema.json                 optional: the JSON schema the generated pipeline must follow
-    schema.LICENSE.txt          optional: the license notice of a schema copied from elsewhere
     platform.json               id, name, version, the pipeline's file name, the name the
                                 transformation gives the model it creates (the `GitLabMM` in
                                 `create OUT : GitLabMM from IN : PIM;`)
@@ -141,7 +139,6 @@ service's error text goes to the log, never to the caller.
 | Unsupported platform, a path outside the workspace, or a malformed body | `422` |
 | A workspace path that names no file or folder | `404` |
 | Content or a workspace file over the size limit | `413` |
-| A platform's schema that cannot be used for validation | `500`, with a generic message (the cause is in the service log) |
 | `validator_agent` unreachable | `502` |
 | The workspace folder is not mounted | `503` |
 | A workspace file or folder could not be read or listed | `500`, with a generic message (the cause is in the service log) |
@@ -154,17 +151,12 @@ severity and message are returned, never the server-side file path.
 ## Pipeline checks
 
 The checks themselves are `validator_agent`'s (`POST /validate/pipeline`, described in its README).
-`POST /validate` here reads the platform's `schema.json`, if it has one, and asks `validator_agent`.
-It returns the checklist as it comes back.
+`POST /validate` here sends `validator_agent` the pipeline and the file name the platform gives it,
+and returns the checklist as it comes back. The check made is that a YAML file parses as YAML.
 
-A check that cannot be made is reported as skipped, never as passed. A platform with no
-`schema.json` has its schema check skipped, with the reason shown. The UI says "passed" only when
+A check that cannot be made is reported as skipped, never as passed. The UI says "passed" only when
 every check was made and passed, and otherwise says how many were skipped, or that nothing could be
 checked.
-
-If the platform's schema cannot be used (a `schema.json` that is not valid JSON or not a valid JSON
-schema, or one that refers to something outside itself), `/validate` answers `500` with a generic
-message and the cause is logged. Generation is not affected.
 
 ## Configuration
 
@@ -202,10 +194,8 @@ service's container in the running stack they do.
 
 ## Adding a platform
 
-1. Add `<platform-id>/<version>/` to the data folder's `platforms/` with the four files above, and
-   commit it.
-2. Add a `schema.json` to the version folder, so its pipeline is checked for real. Without one the
-   pipeline is only checked to be valid YAML, and the schema check is shown as skipped.
+Add `<platform-id>/<version>/` to the data folder's `platforms/`, holding each file listed in the
+layout above, and commit it.
 
 ## Boundaries
 

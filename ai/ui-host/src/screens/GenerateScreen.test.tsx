@@ -97,7 +97,7 @@ const PASSING: PipelineValidation = {
   valid: true,
   checks: [
     { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
-    { id: "schema", title: "The settings follow GitLab's CI format", status: "pass", details: [] },
+    { id: "lint", title: "The file passes the linter", status: "pass", details: [] },
   ],
 }
 
@@ -667,10 +667,10 @@ const FAILING: PipelineValidation = {
   checks: [
     { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
     {
-      id: "schema",
-      title: "The settings follow GitLab's CI format",
+      id: "lint",
+      title: "The file passes the linter",
       status: "fail",
-      details: ["build: Additional properties are not allowed ('scrpt' was unexpected)"],
+      details: ["build: unknown key 'scrpt'"],
     },
     { id: "needs", title: "Every job dependency points at a real job", status: "skipped", details: [] },
   ],
@@ -702,10 +702,10 @@ describe("GenerateScreen: validating a pipeline", () => {
       checks: [
         { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
         {
-          id: "schema",
-          title: "The settings follow Other CI's format",
+          id: "lint",
+          title: "The file passes the linter",
           status: "skipped",
-          details: ["Other CI has no schema to check against."],
+          details: ["The linter is not available."],
         },
       ],
     })
@@ -716,7 +716,7 @@ describe("GenerateScreen: validating a pipeline", () => {
     expect(await screen.findByText("1 check passed, 1 skipped")).toBeTruthy()
     expect(screen.queryByText(/All \d+ checks? passed/)).toBeNull()
     fireEvent.click(statusMenu("1 check passed, 1 skipped").querySelector("summary") as HTMLElement)
-    expect(screen.getByText("Other CI has no schema to check against.")).toBeTruthy()
+    expect(screen.getByText("The linter is not available.")).toBeTruthy()
   })
 
   it("says nothing could be checked when every check was skipped", async () => {
@@ -821,7 +821,7 @@ describe("GenerateScreen: validating a pipeline", () => {
 
     expect(await screen.findByText("1 of 3 checks failed")).toBeTruthy()
     const menu = statusMenu("1 of 3 checks failed")
-    expect(within(menu).getByText(/'scrpt' was unexpected/)).toBeTruthy()
+    expect(within(menu).getByText(/unknown key 'scrpt'/)).toBeTruthy()
     expect(within(menu).getByText("Skipped")).toBeTruthy()
   })
 

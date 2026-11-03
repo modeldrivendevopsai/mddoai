@@ -1,172 +1,104 @@
-"""pipeline_checks.py: the checklist for a generated file. The GitLab cases use
-the committed GitLab platform's real schema (see gitlab_platform.py);
-the rest hand the checker small schemas of their own."""
+"""pipeline_checks.py: the checklist for a generated file. Real YAML in, nothing
+mocked."""
+import time
+
 import pytest
 
-from check_results import MAX_DETAILS
-from pipeline_checks import PlatformChecksError, check_pipeline
-
-SCHEMA = {
-    "type": "object",
-    "required": ["name"],
-    "properties": {"name": {"type": "string"}},
-    "additionalProperties": False,
-}
-
-
-def _check(content="name: a\n", filename=".x.yml", schema=None):
-    return check_pipeline(content, filename, "X CI", schema)
+from check_results import MAX_DETAILS, check
+from pipeline_checks import check_pipeline
 
 
 def _statuses(result):
     return {entry["id"]: entry["status"] for entry in result["checks"]}
 
 
-# --- what a platform's own files decide ---------------------------------------
+def test_a_file_that_parses_as_yaml_passes():
+    result = check_pipeline("stages: [build]\nbuild-job:\n  stage: build\n  script: [make]\n", ".gitlab-ci.yml")
+
+    assert result == {
+        "valid": True,
+        "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "pass", "details": []}],
+    }
 
 
-def test_a_platform_without_a_schema_has_its_schema_check_skipped_not_passed():
-    result = _check()
-
-    assert _statuses(result) == {"yaml": "pass", "schema": "skipped"}
-    assert result["valid"] is True
-    assert result["checks"][1]["details"] == ["X CI has no schema to check against."]
-
-
-def test_a_pipeline_that_follows_the_schema_passes_it_and_the_title_names_the_platform():
-    result = _check(schema=SCHEMA)
-
-    assert _statuses(result) == {"yaml": "pass", "schema": "pass"}
-    assert result["checks"][1]["title"] == "The settings follow X CI's format"
-
-
-def test_a_pipeline_that_breaks_the_schema_fails_and_says_where():
-    result = _check("name: 5\nextra: 1\n", schema=SCHEMA)
+def test_yaml_that_does_not_parse_fails_and_says_which_line():
+    result = check_pipeline("stages: [build\n", ".gitlab-ci.yml")
 
     assert result["valid"] is False
-    assert result["checks"][1]["status"] == "fail"
-    assert any("name" in detail for detail in result["checks"][1]["details"])
-
-
-def test_yaml_that_does_not_parse_fails_and_the_schema_check_is_skipped():
-    result = _check("a: [b\n", schema=SCHEMA)
-
-    assert result["valid"] is False
+    assert _statuses(result) == {"yaml": "fail"}
     assert "line" in result["checks"][0]["details"][0]
-    assert _statuses(result) == {"yaml": "fail", "schema": "skipped"}
 
 
-def test_a_top_level_list_is_not_a_pipeline():
-    result = _check("- build\n- test\n")
+def test_a_second_document_in_the_file_is_named_as_the_problem():
+    result = check_pipeline("a: 1\n---\nb: 2\n", ".yml")
 
-    assert result["valid"] is False
-    assert _statuses(result)["yaml"] == "fail"
+    assert result["checks"][0]["details"] == ["expected a single document in the stream, but found another document (line 2)"]
+
+
+def test_the_check_is_by_the_files_ending_not_its_name():
+    assert check_pipeline("a: b\n", "workflow.YAML")["checks"][0]["status"] == "pass"
 
 
 def test_a_file_that_is_not_yaml_is_skipped_as_a_whole_not_passed():
-    result = _check("pipeline { }", filename="Jenkinsfile")
+    result = check_pipeline("pipeline { }", "Jenkinsfile")
 
     assert result["valid"] is True
     assert _statuses(result) == {"format": "skipped"}
 
 
-# --- what cannot be used is an error --------------------------------------------
+@pytest.mark.parametrize("content", ["", "   \n", "# only a comment\n"], ids=["empty", "blank", "comment"])
+def test_a_file_with_nothing_in_it_is_still_valid_yaml(content):
+    assert check_pipeline(content, ".yml")["valid"] is True
 
 
-@pytest.mark.parametrize("content, filename", [("name: a\n", ".x.yml"), ("a: [b\n", ".x.yml"), ("anything", "Jenkinsfile")])
-def test_a_schema_that_is_not_a_json_schema_is_an_error_whatever_the_file(content, filename):
-    with pytest.raises(PlatformChecksError, match="not a valid JSON schema"):
-        _check(content, filename, schema={"type": 5})
+def test_anchors_and_merge_keys_are_valid_yaml():
+    content = ".defaults: &defaults\n  image: node\nbuild:\n  <<: *defaults\n  script: [make]\n"
 
-
-def test_a_schema_with_a_reference_to_nothing_is_an_error_not_a_crash():
-    schema = {"properties": {"name": {"$ref": "#/definitions/nope"}}}
-
-    with pytest.raises(PlatformChecksError, match="does not contain"):
-        _check("name: a\n", schema=schema)
-
-
-def test_a_reference_outside_the_schema_is_never_fetched():
-    # Nothing listens here, and nothing must be asked: it is unresolvable at once.
-    schema = {"properties": {"name": {"$ref": "http://127.0.0.1:9/never.json"}}}
-
-    with pytest.raises(PlatformChecksError, match="does not contain"):
-        _check("name: a\n", schema=schema)
-
-
-@pytest.mark.parametrize(
-    "schema",
-    [
-        {"$ref": "#"},
-        {"definitions": {"a": {"$ref": "#/definitions/b"}, "b": {"$ref": "#/definitions/a"}}, "$ref": "#/definitions/a"},
-        {"$schema": ["not", "a", "uri"]},
-    ],
-    ids=["a schema that refers to itself", "two references in a loop", "a $schema that is not text"],
-)
-def test_a_schema_that_cannot_be_applied_is_an_error_not_a_crash(schema):
-    with pytest.raises(PlatformChecksError, match="cannot be used"):
-        _check("name: a\n", schema=schema)
-
-
-def test_a_reference_inside_the_schema_works():
-    schema = {"definitions": {"text": {"type": "string"}}, "properties": {"name": {"$ref": "#/definitions/text"}}}
-
-    assert _check("name: a\n", schema=schema)["valid"] is True
-    assert _check("name: 5\n", schema=schema)["valid"] is False
-
-
-# --- hostile or unusual content is a failed check, never an error --------------
+    assert check_pipeline(content, ".yml")["valid"] is True
 
 
 @pytest.mark.parametrize(
     "content",
-    ["a: " + "9" * 5000 + "\n", "2020-01-01: x\n", "? !!binary dGVzdA==\n: x\n"],
-    ids=["a number too long to read", "a date as a setting name", "a binary setting name"],
+    [
+        "a: " + "9" * 5000 + "\n",
+        "? [a, b]\n: x\n",
+        "[" * 5000 + "]" * 5000,
+        "a: !!python/object:os.system x\n",
+        "a: !!timestamp abc\n",
+        "a: !!bool maybe\n",
+    ],
+    ids=[
+        "a number too long to read",
+        "a list as a setting name",
+        "nested too deeply",
+        "a python tag",
+        "a timestamp that is not one",
+        "a boolean that is not one",
+    ],
 )
 def test_content_the_yaml_reader_cannot_handle_is_a_failed_check_not_an_error(content):
-    result = _check(content, schema=SCHEMA)
+    result = check_pipeline(content, ".yml")
 
     assert result["valid"] is False
-    assert _statuses(result)["yaml"] == "fail"
-    assert _statuses(result)["schema"] == "skipped"
+    assert _statuses(result) == {"yaml": "fail"}
 
 
-# --- GitLab, with its real schema ---------------------------------------------
+def test_nested_merges_that_would_expand_enormously_are_checked_in_no_time():
+    # Each level merges the one before it ten times, so expanding the merges
+    # would take ten times as long per level.
+    lines = ["a0: &a0 {x: 1}"]
+    for level in range(1, 21):
+        lines.append(f"a{level}: &a{level} {{<<: [{', '.join([f'*a{level - 1}'] * 10)}]}}")
+    started = time.monotonic()
+
+    result = check_pipeline("\n".join(lines) + "\n", ".yml")
+
+    assert result["valid"] is True
+    assert time.monotonic() - started < 2
 
 
-def test_a_good_gitlab_pipeline_passes_both_checks():
-    from gitlab_platform import check_gitlab_pipeline
+def test_a_check_with_many_problems_lists_only_the_first_few():
+    entry = check("many", "A check", [f"problem {n}" for n in range(MAX_DETAILS + 5)])
 
-    content = (
-        "stages: [build, test]\n"
-        "variables:\n  A: b\n"
-        "build:\n  stage: build\n  script: [make]\n"
-        "check:\n  stage: test\n  script: [make test]\n  needs: [build]\n"
-    )
-
-    result = check_gitlab_pipeline(content)
-
-    assert result["valid"] is True, result
-    assert [entry["status"] for entry in result["checks"]] == ["pass"] * 2
-    assert result["checks"][1]["title"] == "The settings follow GitLab CI's format"
-
-
-def test_a_misspelled_gitlab_keyword_fails_the_schema_check_by_name():
-    from gitlab_platform import check_gitlab_pipeline
-
-    result = check_gitlab_pipeline("stages: [build]\nbuild:\n  stage: build\n  scrpt:\n    - echo hi\n")
-
-    schema = next(entry for entry in result["checks"] if entry["id"] == "schema")
-    assert schema["status"] == "fail"
-    assert any("scrpt" in detail for detail in schema["details"]), schema["details"]
-
-
-def test_details_are_capped_so_a_systemic_mistake_does_not_flood_the_reader():
-    from gitlab_platform import check_gitlab_pipeline
-
-    jobs = "".join(f"j{i}:\n  stage: build\n  scrpt{i}: [echo hi]\n" for i in range(MAX_DETAILS + 15))
-
-    result = check_gitlab_pipeline("stages: [build]\n" + jobs)
-
-    schema = next(entry for entry in result["checks"] if entry["id"] == "schema")
-    assert len(schema["details"]) == MAX_DETAILS
+    assert entry["status"] == "fail"
+    assert entry["details"] == [f"problem {n}" for n in range(MAX_DETAILS)]
