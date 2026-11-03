@@ -15,16 +15,14 @@ It is plain Python. The transformation itself runs in `execution_agent`'s JVM, a
 1. **Check.** `validator_agent`'s `/validate/swarch` runs the real EMF check. An invalid model is
    refused with its issues; nothing runs.
 2. **Read the transformation.** The SWArch-to-PIM transformation is an `.atl` source file at
-   `SWARCH2PIM_ATL_PATH`. It is read on every request, so replacing the file takes effect on the next
-   one, with no restart.
+   `SWARCH2PIM_ATL_PATH`, by default this service's own copy under `transformations/`. It is read on
+   every request, so replacing the file takes effect on the next one, with no restart.
 3. **Run it.** `execution_agent`'s `/execute/atl/swarch` compiles that source and runs it on the
    model, and the PIM it produces is returned.
 
-In Docker, `SWARCH2PIM_ATL_PATH` names the engine's own transformation inside its folder, which is
-bind-mounted read-only (see `ai/CLAUDE.md`'s third exception). The folder is mounted rather than the
-single file, so a replaced file is seen at once. The PIM is exactly what the engine's own SWArch-to-PIM step
-produces for the same model; `main/`'s executor tests check that byte for byte on the engine's
-example models.
+The copy is this service's own and does not read anything from `main/`. When it was taken, the PIM
+it produced was exactly what the engine's own SWArch-to-PIM step produces for the same model; `main/`'s
+executor tests check that byte for byte on the engine's example models.
 
 ## Who calls it
 
@@ -76,7 +74,7 @@ Callers use `clients/swarch_agent_client.py`, which raises `AgentServiceError` f
 
 | Variable | Meaning |
 |---|---|
-| `SWARCH2PIM_ATL_PATH` | The SWArch-to-PIM transformation's `.atl` source. Unset, the engine's own file in this checkout. |
+| `SWARCH2PIM_ATL_PATH` | The SWArch-to-PIM transformation's `.atl` source. Unset, this service's own copy. |
 | `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` | The services it calls. |
 | `SWARCH_MAX_MODEL_BYTES` | The largest model accepted, in bytes. |
 

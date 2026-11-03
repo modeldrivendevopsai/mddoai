@@ -124,10 +124,7 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   real execution smoke test (given a real target metamodel) actually runs the candidate ATL/Acceleo
   against it, catching a real runtime-only failure a compile-only check can never see, during
   atl_stage's/acceleo_stage's own retry loop instead of only later, with no retries left.
-  `swarch_agent` mounts the one real folder holding the engine's own SWArch-to-PIM transformation the
-  same narrow way (`SWARCH2PIM_ATL_PATH` names the file in it), and hands that source to
-  `execution_agent` to run, so an improved transformation can replace it without a rebuild or a Java
-  change. This is a
+  This is a
   read of real MDE *data*, never Java/Eclipse *code*, a distinction that separates it from the first
   exception above (`validator_agent`'s own reach into `mddoai.validation`) and the fourth exception
   below (`execution_agent`'s own). This exception does not extend

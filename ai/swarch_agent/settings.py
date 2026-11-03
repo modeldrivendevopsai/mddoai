@@ -2,16 +2,14 @@
 import os
 from pathlib import Path
 
-# The SWArch-to-PIM transformation this service runs, as ATL source text.
-# Docker mounts the folder holding the engine's own transformation, read-only,
-# and this names the file in it; pointing it at another file is how an
-# improved transformation is put to use, with no change to any other service.
-# The default resolves to that same engine file when the service is run from
-# its own folder in a checkout.
+# The SWArch-to-PIM transformation this service runs, as ATL source text. The
+# default is this service's own copy, which ships with it; pointing this at
+# another file is how an improved transformation is put to use, with no change
+# to any other service.
 SWARCH2PIM_ATL_PATH = Path(
     os.environ.get(
         "SWARCH2PIM_ATL_PATH",
-        str(Path(__file__).resolve().parents[2] / "main" / "src" / "main" / "resources" / "transformations" / "swarch2pim" / "swarch2pim.atl"),
+        str(Path(__file__).resolve().parent / "transformations" / "swarch2pim.atl"),
     )
 )
 

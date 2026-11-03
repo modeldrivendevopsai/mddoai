@@ -98,7 +98,7 @@ def test_an_empty_transformation_file_is_reported_as_unavailable_and_never_sent(
     execute.assert_not_called()
 
 
-def test_the_default_transformation_is_the_engines_own_swarch2pim_file(monkeypatch):
+def test_the_default_transformation_is_this_services_own_swarch2pim_copy(monkeypatch):
     import importlib
 
     import settings
@@ -106,8 +106,7 @@ def test_the_default_transformation_is_the_engines_own_swarch2pim_file(monkeypat
     monkeypatch.delenv("SWARCH2PIM_ATL_PATH", raising=False)
     try:
         default = importlib.reload(settings).SWARCH2PIM_ATL_PATH
-        if not default.is_file():
-            pytest.skip("not running inside a full repository checkout")
+        assert default.is_file()
         assert "module swarch2pim;" in default.read_text(encoding="utf-8")
     finally:
         monkeypatch.undo()

@@ -532,16 +532,8 @@ services:
     env_file:
       - path: ./swarch_agent/.env
         required: false
-    volumes:
-      # The folder holding the engine's own SWArch-to-PIM transformation,
-      # read-only: real MDE data this service runs, not code it links
-      # against. The folder, not the single file: a file mount keeps pointing
-      # at the original file even after a checkout or an editor's save
-      # replaces it, so a new transformation would not be seen.
-      - ../main/src/main/resources/transformations/swarch2pim:/swarch2pim:ro
     environment:
       - LOG_LEVEL=INFO
-      - SWARCH2PIM_ATL_PATH=/swarch2pim/swarch2pim.atl
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
     depends_on:
