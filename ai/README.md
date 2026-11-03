@@ -81,7 +81,7 @@ Things to know about that choice:
 - **Root-owned files.** The services write as root inside their containers, so on Linux the pipeline files saved into the workspace and everything under `pipelines/` are owned by root. Use `sudo` to delete them by hand.
 - **Host write access.** A bind mount lets a container write to the host. `pipeline_generator` only writes pipeline files under their platform's file name, inside the workspace folder, and its history inside `pipelines/`.
 - **Cleanup risk.** `git clean -x` in this repository deletes the data folder along with other ignored files.
-- **Who can see the workspace.** Anyone who can reach the UI can list and read the `.swarch` files in `workspace/` and have pipeline files written into it. Keep only files there that you are comfortable exposing that way.
+- **Who can see the workspace.** Anyone who can reach the UI can list the files in `workspace/`, read its `.swarch` files, and have pipeline files written into it. Keep only files there that you are comfortable exposing that way.
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 

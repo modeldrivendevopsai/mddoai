@@ -404,10 +404,25 @@ describe("GenerateScreen: browsing the workspace", () => {
 
     expect(
       await within(dialog).findByText(
-        "Showing .swarch files in the MDDOAI repository. To use a file from somewhere else, close this and choose Upload."
+        "Showing the files in the MDDOAI repository. Only .swarch files can be opened. To use a file from somewhere else, close this and choose Upload."
       )
     ).toBeTruthy()
     expect(within(dialog).getByText("Folder /")).toBeTruthy()
+  })
+
+  it("shows files that are not models, but does not let one be chosen", async () => {
+    vi.mocked(service.browseWorkspace).mockResolvedValue({
+      ...ROOT,
+      entries: [...ROOT.entries, { name: ".gitlab-ci.yml", kind: "other" as const }],
+    })
+    renderScreen()
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[0])
+    const dialog = await screen.findByRole("dialog", { name: "Choose an architecture file" })
+
+    expect(await within(dialog).findByText(".gitlab-ci.yml")).toBeTruthy()
+    expect(within(dialog).queryByRole("button", { name: ".gitlab-ci.yml" })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "top.swarch" })).toBeTruthy()
   })
 
   it("can go back up a folder", async () => {

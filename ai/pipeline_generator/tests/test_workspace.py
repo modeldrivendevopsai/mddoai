@@ -211,21 +211,33 @@ def test_browse_reports_the_parent_of_a_subfolder(ws, workspace_dir):
     assert listing["parent"] == "/repos"
 
 
-def test_browse_lists_only_folders_and_architecture_files(ws, workspace_dir):
+def test_browse_lists_every_file_and_marks_which_ones_can_be_opened(ws, workspace_dir):
     (workspace_dir / "sub").mkdir()
     (workspace_dir / "a.swarch").write_text("", encoding="utf-8")
     (workspace_dir / "notes.txt").write_text("", encoding="utf-8")
-    (workspace_dir / ".env").write_text("", encoding="utf-8")
+    (workspace_dir / ".gitlab-ci.yml").write_text("", encoding="utf-8")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["sub", "a.swarch"]
+    assert [(e["name"], e["kind"]) for e in ws.browse("/", False)["entries"]] == [
+        ("sub", "dir"), (".gitlab-ci.yml", "other"), ("a.swarch", "file"), ("notes.txt", "other"),
+    ]
 
 
-def test_browse_does_not_offer_a_link_named_like_a_model_that_points_at_something_else(ws, workspace_dir):
+def test_a_file_that_is_listed_but_not_a_model_still_cannot_be_read(ws, workspace_dir):
+    (workspace_dir / "notes.txt").write_text("secret", encoding="utf-8")
+
+    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["notes.txt"]
+    with pytest.raises(WorkspaceError):
+        ws.read_text("/notes.txt", 1000)
+
+
+def test_browse_does_not_offer_a_link_named_like_a_model_as_a_model_when_it_points_at_something_else(ws, workspace_dir):
     (workspace_dir / ".env").write_text("SECRET=1", encoding="utf-8")
     _link(workspace_dir / ".env", workspace_dir / "arch.swarch")
     (workspace_dir / "real.swarch").write_text("", encoding="utf-8")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["real.swarch"]
+    assert [(e["name"], e["kind"]) for e in ws.browse("/", False)["entries"]] == [
+        (".env", "other"), ("arch.swarch", "other"), ("real.swarch", "file"),
+    ]
 
 
 def test_browse_can_list_folders_only(ws, workspace_dir):

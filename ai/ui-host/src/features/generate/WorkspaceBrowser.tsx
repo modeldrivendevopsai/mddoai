@@ -57,7 +57,7 @@ export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserPr
         {listing && (
           <p className="mdd-generate__hint">
             {kind === 'file'
-              ? `Showing ${MODEL_FILE_ACCEPT} files in ${listing.root_label}. To use a file from somewhere else, close this and choose ${GENERATE_COPY.input.upload}.`
+              ? `Showing the files in ${listing.root_label}. Only ${MODEL_FILE_ACCEPT} files can be opened. To use a file from somewhere else, close this and choose ${GENERATE_COPY.input.upload}.`
               : `Saves go into a folder inside ${listing.root_label}.`}
           </p>
         )}
@@ -82,23 +82,32 @@ export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserPr
                 </button>
               </li>
             )}
-            {listing.entries.map((entry) => (
-              <li key={entry.name}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    entry.kind === 'dir'
-                      ? setFolder(joinPath(listing.path, entry.name))
-                      : onSelect(joinPath(listing.path, entry.name))
-                  }
-                >
-                  <Icon name={entry.kind === 'dir' ? 'Folder' : 'FileText'} size={16} />
-                  <span>{entry.name}</span>
-                </button>
-              </li>
-            ))}
+            {listing.entries.map((entry) =>
+              entry.kind === 'other' ? (
+                <li key={entry.name}>
+                  <span className="mdd-generate__entry-static">
+                    <Icon name="FileText" size={16} />
+                    <span>{entry.name}</span>
+                  </span>
+                </li>
+              ) : (
+                <li key={entry.name}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      entry.kind === 'dir'
+                        ? setFolder(joinPath(listing.path, entry.name))
+                        : onSelect(joinPath(listing.path, entry.name))
+                    }
+                  >
+                    <Icon name={entry.kind === 'dir' ? 'Folder' : 'FileText'} size={16} />
+                    <span>{entry.name}</span>
+                  </button>
+                </li>
+              )
+            )}
             {listing.entries.length === 0 && (
-              <li className="mdd-generate__hint">{kind === 'file' ? 'No .swarch files here.' : 'No folders here.'}</li>
+              <li className="mdd-generate__hint">{kind === 'file' ? 'No files here.' : 'No folders here.'}</li>
             )}
           </ul>
         )}

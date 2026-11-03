@@ -111,7 +111,9 @@ export interface PipelineRecord extends PipelineSummary {
 
 export interface WorkspaceEntry {
   name: string
-  kind: "dir" | "file"
+  // "file" is an architecture model, which can be opened; "other" is any other
+  // file, shown so the person sees what is in the workspace, never opened.
+  kind: "dir" | "file" | "other"
 }
 
 export interface WorkspaceListing {

@@ -22,9 +22,10 @@ logger = logging.getLogger(__name__)
 # Engineering guess, well above what a project folder holds.
 MAX_LISTED_ENTRIES = 500
 
-# The only kind of file this service reads or lists. The folder is mounted
-# from the person's own disk and may hold anything, so a request can only get
-# an architecture model out of it, never an arbitrary file.
+# The only kind of file this service reads. Every file in the workspace is
+# listed by name, so a person can see what is in it (the pipelines they saved,
+# for one), but a request can only get an architecture model's content out of
+# it, never an arbitrary file.
 MODEL_EXTENSION = ".swarch"
 
 # Folders never listed, read from or written to, wherever they are in the
@@ -139,9 +140,11 @@ class Workspace:
             return None
 
     def _offered_kind(self, entry: os.DirEntry, root: Path, dirs_only: bool) -> str | None:
-        """`dir`, `file`, or None if `entry` is not offered: a name that cannot
-        be used, a file that is not a model, a link that leaves the workspace
-        or leads to another kind of file, or anything that cannot be looked at.
+        """`dir`, `file` (a model, which can be opened), `other` (any other
+        regular file, named but never opened), or None if `entry` is not
+        offered: a name that cannot be used, anything that is neither a folder
+        nor a regular file, a link that leaves the workspace, or anything that
+        cannot be looked at.
 
         The cheap name tests come first, and a link is the only thing that
         needs resolving, so a folder with very many entries stays quick."""
@@ -149,19 +152,21 @@ class Workspace:
             return None
         try:
             is_dir = entry.is_dir()
-            if not is_dir and (dirs_only or not _is_model_file(Path(entry.name)) or not entry.is_file()):
+            if not is_dir and (dirs_only or not entry.is_file()):
                 return None
+            is_model = _is_model_file(Path(entry.name))
             if entry.is_symlink():
                 resolved = Path(entry.path).resolve()
                 if not self._inside(resolved, root):
                     return None
                 # A link named like a model but pointing at another kind of
-                # file would otherwise be a way to name and read that file.
-                if not is_dir and not _is_model_file(resolved):
-                    return None
+                # file is not a model: it is listed, but never opened.
+                is_model = is_model and _is_model_file(resolved)
         except _UNFOLLOWABLE:
             return None
-        return "dir" if is_dir else "file"
+        if is_dir:
+            return "dir"
+        return "file" if is_model else "other"
 
     def browse(self, relative: str, dirs_only: bool) -> dict:
         directory = self._resolve(relative)

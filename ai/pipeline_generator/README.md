@@ -43,9 +43,10 @@ long as nothing else is changing the folder's links while a request runs: a path
 then used, not held open in between.
 
 - **Reading.** `GET /workspace/browse` lists a folder (for the Browse dialogs). `GET /workspace/file`
-  returns a model file's text, so it loads exactly like an upload. Only `.swarch` files are read
-  or listed (folders are listed so they can be walked), and only regular text files up to
-  `GENERATOR_MAX_MODEL_BYTES` are returned. Whatever else the folder holds is neither read nor named.
+  returns a model file's text, so it loads exactly like an upload. Every folder and regular file
+  is listed by name, so a person can see what is in the workspace, including the pipelines they
+  saved. Only `.swarch` files are read, and only up to `GENERATOR_MAX_MODEL_BYTES`. Other files
+  are never opened. Links that leave the workspace are not listed.
 - **Saving.** `POST /generate` with `save_to` writes each pipeline into that workspace folder
   (created if needed) under the platform's own file name, replacing a file of that name. The write
   goes to a temporary file that is renamed into place, so a failure part way does not leave half a
@@ -197,7 +198,7 @@ A platform is supported when the engine has an end-to-end command for it. To add
 The workspace folder is the part of the host's disk this service reads or writes. The API has no
 authentication, like the other services, so what protects the workspace is who can reach the UI:
 `docker-compose.yml` publishes the UI's port on this machine only. Anyone who can reach it can list
-the workspace's folders and `.swarch` files, read those files, and have pipeline files written into
+the workspace's folders and files, read its `.swarch` files, and have pipeline files written into
 it, so mount a folder you are comfortable exposing that way.
 
 This is the service that runs the engine's own command, a deliberate exception described in

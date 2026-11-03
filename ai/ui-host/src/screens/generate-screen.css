@@ -449,6 +449,14 @@
   border: 0;
   cursor: pointer;
 }
+.mdd-generate__entry-static {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+}
 .mdd-generate__entries button:hover {
   background: var(--surface-sunken);
 }
