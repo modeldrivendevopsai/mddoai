@@ -107,7 +107,7 @@ public class AtlValidatorTest {
         // and the .asm output empty. Confirmed for real: a genuine
         // LLM-generated .atl this exact fixture reduces to compiled "clean"
         // here before this test existed, then failed for real once
-        // AtlExecutor actually tried to run it (see AtlExecutorTest and
+        // PimExecutor actually tried to run it (see PimExecutorTest and
         // this fixture's own file header for the real construct that
         // triggers it). No output plus no errors must never read as valid.
         AtlCompileResult compileResult = AtlValidator.validate(FIXTURES + "lazy-rule-targets-raw-collection.atl");
@@ -159,7 +159,7 @@ public class AtlValidatorTest {
         // this rule set instantiates the base type directly instead of
         // dispatching to a concrete subtype rule (confirmed for real
         // against a genuine LLM-generated transformation - see
-        // AtlExecutorTest's own aRealAtlRuntimeFailureIsReportedCleanlyNotThrownRaw
+        // PimExecutorTest's own aRealAtlRuntimeFailureIsReportedCleanlyNotThrownRaw
         // for the same fixture's own execution-level proof). Compiling has
         // never implied a transformation actually produces correct real
         // output; this is what catches that gap during atl_stage's own

@@ -1,6 +1,6 @@
 package main.java.mddoai.validation.atl;
 
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
 import org.eclipse.m2m.atl.engine.compiler.AtlCompiler;
@@ -106,8 +106,8 @@ public final class AtlValidator {
             String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
             String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
             String pimInstance = Files.readString(Path.of(pimSamplePath), StandardCharsets.UTF_8);
-            String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
-            AtlExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
+            String outputModelName = PimExecutor.parseOutputModelName(atlSource);
+            PimExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
             return compileResult;
         } catch (Exception e) {
             return new AtlCompileResult(ValidationResult.of(List.of(new ValidationIssue(

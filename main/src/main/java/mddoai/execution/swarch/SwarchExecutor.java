@@ -3,7 +3,7 @@ package main.java.mddoai.execution.swarch;
 import com.mddoai.metamodel.pim.pimMM.PimMMPackage;
 import com.mddoai.metamodel.swarch.SoftwareArchitecture;
 import com.mddoai.metamodel.swarch.SwarchPackage;
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 import main.java.mddoai.loaders.ModelLoader;
 import main.java.mddoai.transformers.FromSWArchAbstractTransformer;
 import main.java.mddoai.transformers.Transformer;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
  * or an improved one without a Java change.
  *
  * <p>The other half of the chain, a PIM in and a platform's own model out, is
- * {@link AtlExecutor}. This class is separate because its input is a
+ * {@link PimExecutor}. This class is separate because its input is a
  * different kind of model, and it shares nothing with that one beyond reading
  * the output model's name from the ATL source.
  */
@@ -53,7 +53,7 @@ public final class SwarchExecutor {
     // A transformation declares its models in one line, "create OUT :
     // <OutputModel> from IN : <InputModel>;". The input side is checked here
     // because the transformer fixes it; the output side is read by
-    // AtlExecutor.parseOutputModelName. Comments are stripped first so a line
+    // PimExecutor.parseOutputModelName. Comments are stripped first so a line
     // that merely mentions the convention is never mistaken for the real one.
     private static final Pattern INPUT_MODEL_NAME_PATTERN =
             Pattern.compile("create\\s+OUT\\s*:\\s*\\w+\\s+from\\s+IN\\s*:\\s*(\\w+)");
@@ -72,7 +72,7 @@ public final class SwarchExecutor {
      */
     public static String execute(String atlSource, String swarchModelXmi) throws IOException {
         EMFUtils.init();
-        String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
+        String outputModelName = PimExecutor.parseOutputModelName(atlSource);
         requireSwarchInputName(atlSource);
 
         File workDir = Files.createTempDirectory("swarch-execute-").toFile();

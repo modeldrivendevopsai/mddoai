@@ -12,12 +12,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import main.java.mddoai.execution.acceleo.AcceleoExecutor;
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 
 /**
  * Real execution of the project's own real, hand-authored generate.mtl
  * against a real GitLab PSM model instance. The instance itself comes from
- * AtlExecutor's own real output (see AtlExecutorTest), not the ported
+ * PimExecutor's own real output (see PimExecutorTest), not the ported
  * ai-research fixture's own output.gitlabmm directly: that file predates a
  * real rename in the current gitlabMM.ecore (ifCondition -> gitlabIf, see
  * both classes' own git history) and is stale against this branch's real
@@ -48,7 +48,7 @@ public class AcceleoExecutorTest {
         String atlSource = Files.readString(Path.of(ATL_SOURCE_PATH), StandardCharsets.UTF_8);
         String pimInstance = Files.readString(Path.of(PIM_SAMPLE_INSTANCE_PATH), StandardCharsets.UTF_8);
         String gitlabEcore = Files.readString(Path.of(GITLAB_ECORE_PATH), StandardCharsets.UTF_8);
-        return AtlExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
+        return PimExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
     }
 
     @Test

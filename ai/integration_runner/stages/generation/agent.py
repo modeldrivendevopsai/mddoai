@@ -69,7 +69,7 @@ PIM_SAMPLE_INSTANCE_PATH = Path(
 # line just above it. Parsed directly out of the real generated source
 # rather than reconstructed from a platform name string this stage doesn't
 # otherwise have: the ATL source itself is the one place that name is
-# declared, and it must match exactly for AtlExecutor's own output model
+# declared, and it must match exactly for PimExecutor's own output model
 # to resolve.
 _OUTPUT_MODEL_NAME_PATTERN = re.compile(r"create\s+OUT\s*:\s*(\w+)\s+from")
 

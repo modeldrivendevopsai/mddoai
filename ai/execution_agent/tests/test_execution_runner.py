@@ -28,7 +28,7 @@ def fake_completed_process(returncode=0, stdout="", stderr=""):
 
 
 def _write_output_file(argv, **kwargs):
-    """Real AtlExecutorCli's own contract: the output file (argv[-1]) is
+    """Real PimExecutorCli's own contract: the output file (argv[-1]) is
     where the real output actually lands, not stdout - a fake subprocess
     call has to write it too, or the real read-back afterward finds
     nothing, matching the real Java side's own documented contract."""
@@ -73,7 +73,7 @@ def test_run_atl_executor_raises_execution_failed_for_a_real_reported_failure():
 def test_run_atl_executor_raises_infra_error_for_a_nonzero_exit():
     with patch(
         "execution_runner.subprocess.run",
-        return_value=fake_completed_process(returncode=1, stderr="AtlExecutorCli: unexpected error"),
+        return_value=fake_completed_process(returncode=1, stderr="PimExecutorCli: unexpected error"),
     ):
         with pytest.raises(ExecutionInfraError, match="unexpected error"):
             run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")

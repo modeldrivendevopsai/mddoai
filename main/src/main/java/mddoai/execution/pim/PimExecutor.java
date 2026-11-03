@@ -1,4 +1,4 @@
-package main.java.mddoai.execution.atl;
+package main.java.mddoai.execution.pim;
 
 import com.mddoai.metamodel.pim.pimMM.Pipeline;
 import com.mddoai.metamodel.pim.pimMM.PimMMPackage;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * existing hand-authored transformation (e.g. pim2gitlabmodel.atl) already
  * uses it with.
  */
-public final class AtlExecutor {
+public final class PimExecutor {
 
     // atl_agent's own generation prompt forces every generated ATL's output
     // model name into this exact shape: "create OUT : <ModelName> from IN :
@@ -58,7 +58,7 @@ public final class AtlExecutor {
             Pattern.compile("create\\s+OUT\\s*:\\s*(\\w+)\\s+from");
     private static final Pattern ATL_LINE_COMMENT_PATTERN = Pattern.compile("--.*$", Pattern.MULTILINE);
 
-    private AtlExecutor() {
+    private PimExecutor() {
     }
 
     /**
@@ -120,7 +120,7 @@ public final class AtlExecutor {
                 // javap against the real vendored jar: it overrides only
                 // the two printStackTrace overloads, whose own pretty-print
                 // path can NPE on an invalid classifier - see
-                // AtlExecutorCli's own catch-all for why that matters too).
+                // PimExecutorCli's own catch-all for why that matters too).
                 throw new IOException("ATL runtime failure: " + e.getMessage(), e);
             }
             if (outputModel == null) {

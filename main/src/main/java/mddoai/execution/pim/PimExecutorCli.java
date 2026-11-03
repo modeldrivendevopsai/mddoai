@@ -1,4 +1,4 @@
-package main.java.mddoai.execution.atl;
+package main.java.mddoai.execution.pim;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Thin process-boundary wrapper around AtlExecutor, for invocation as a
+ * Thin process-boundary wrapper around PimExecutor, for invocation as a
  * separate OS process (e.g. from a Python service) - mirrors
  * {@link main.java.mddoai.validation.atl.AtlValidatorCli}'s own shape
  * exactly, one level up (execution instead of compile-only validation).
@@ -27,9 +27,9 @@ import java.nio.file.Path;
  *   1 - unexpected exception invoking the executor - the tool itself
  *       broke, as distinct from it successfully reporting a real failure.
  */
-public final class AtlExecutorCli {
+public final class PimExecutorCli {
 
-    private AtlExecutorCli() {
+    private PimExecutorCli() {
     }
 
     public static void main(String[] args) {
@@ -41,7 +41,7 @@ public final class AtlExecutorCli {
     // with main.java.mddoai..., so package-private would be untestable.
     public static int run(String[] args, PrintStream out, PrintStream err) {
         if (args.length != 5) {
-            err.println("usage: AtlExecutorCli <atl-file> <pim-model-file> <target-ecore-file> <output-model-name> <output-file>");
+            err.println("usage: PimExecutorCli <atl-file> <pim-model-file> <target-ecore-file> <output-model-name> <output-file>");
             return 2;
         }
         String atlFilePath = args[0];
@@ -57,7 +57,7 @@ public final class AtlExecutorCli {
 
             String outputXmi;
             try {
-                outputXmi = AtlExecutor.execute(atlSource, pimModelXmi, targetEcore, outputModelName);
+                outputXmi = PimExecutor.execute(atlSource, pimModelXmi, targetEcore, outputModelName);
             } catch (IllegalArgumentException | IOException e) {
                 out.println("{\"success\":false,\"error\":\"" + escape(String.valueOf(e.getMessage())) + "\"}");
                 return 0;
@@ -67,21 +67,21 @@ public final class AtlExecutorCli {
             out.println("{\"success\":true}");
             return 0;
         } catch (Exception e) {
-            err.println("AtlExecutorCli: unexpected error: " + e);
+            err.println("PimExecutorCli: unexpected error: " + e);
             // Not e.printStackTrace(err) directly: an ATL VMException's own
             // override of that method pretty-prints its real ATL stack
             // frames, which can itself throw (a real, confirmed NPE from
             // EMFModelAdapter.getNameOf() when a frame references an
             // invalid classifier) - diagnostic logging must never be able
             // to crash the process harder than the failure it's reporting.
-            // AtlExecutor's own execute() already converts the real ATL
+            // PimExecutor's own execute() already converts the real ATL
             // runtime-failure case (ATLExecutionException) into a clean
             // IOException the catch above handles, so reaching here at all
             // means something genuinely unexpected happened.
             try {
                 e.printStackTrace(err);
             } catch (RuntimeException loggingFailure) {
-                err.println("AtlExecutorCli: (also failed to print the real stack trace: " + loggingFailure + ")");
+                err.println("PimExecutorCli: (also failed to print the real stack trace: " + loggingFailure + ")");
             }
             return 1;
         }

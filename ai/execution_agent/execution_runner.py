@@ -2,7 +2,7 @@
 JSON stdout.
 
 A fresh JVM per call, mirroring validator_agent's own real reasoning (see
-its own validator_runner.py) - AtlExecutor/AcceleoExecutor do even more EMF
+its own validator_runner.py) - PimExecutor/AcceleoExecutor do even more EMF
 global registry manipulation per call (dynamically loading and registering
 a fresh target metamodel every time) than the validators do, so the same
 "never reuse a JVM across calls" argument applies at least as strongly here.
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # directory (see _run_cli), so a path relative to this service's would no
 # longer point anywhere real by then.
 LIB_DIR = str(Path(os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")).resolve())
-ATL_MAIN_CLASS = "main.java.mddoai.execution.atl.AtlExecutorCli"
+PIM_MAIN_CLASS = "main.java.mddoai.execution.pim.PimExecutorCli"
 SWARCH_MAIN_CLASS = "main.java.mddoai.execution.swarch.SwarchExecutorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.execution.acceleo.AcceleoExecutorCli"
 TIMEOUT_SECONDS = float(os.environ.get("EXECUTION_TIMEOUT_SECONDS", "60"))
@@ -116,7 +116,7 @@ def run_atl_executor(
         output_file = tmp_path / "output.xmi"
 
         argv = [
-            "java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS,
+            "java", "-cp", f"{LIB_DIR}/*", PIM_MAIN_CLASS,
             str(atl_file), str(pim_model_file), str(ecore_file), output_model_name, str(output_file),
         ]
         result, duration_ms = _run_cli(argv, tmp_path)

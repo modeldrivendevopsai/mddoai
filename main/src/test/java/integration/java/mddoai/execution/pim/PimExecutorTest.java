@@ -1,4 +1,4 @@
-package test.java.integration.java.mddoai.execution.atl;
+package test.java.integration.java.mddoai.execution.pim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,7 +11,7 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 
 /**
  * Real execution of the project's own real, hand-authored
@@ -19,11 +19,11 @@ import main.java.mddoai.execution.atl.AtlExecutor;
  * matrix builds, triggers, caches, artifacts - exercising all of MDDOAI's
  * own PIM concepts, not a trivial one-class mock). No mocking: real ATL
  * compilation (AtlStandaloneCompiler) and real execution (EMFVMLauncher),
- * proving AtlExecutor's own new "run", not just "compile", capability -
+ * proving PimExecutor's own new "run", not just "compile", capability -
  * the same way AtlValidatorTest already proves the compile half for this
  * exact same file.
  */
-public class AtlExecutorTest {
+public class PimExecutorTest {
 
     private static final String ATL_SOURCE_PATH = "./src/main/resources/transformations/pim2psm/pim2gitlabmodel.atl";
     private static final String GITLAB_ECORE_PATH = "../meta_models/com.mddoai.metamodel.gitlab/model/gitlabMM.ecore";
@@ -40,7 +40,7 @@ public class AtlExecutorTest {
         String pimInstance = Files.readString(Path.of(PIM_SAMPLE_INSTANCE_PATH), StandardCharsets.UTF_8);
         String gitlabEcore = Files.readString(Path.of(GITLAB_ECORE_PATH), StandardCharsets.UTF_8);
 
-        String outputXmi = AtlExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
+        String outputXmi = PimExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
 
         assertTrue(outputXmi.contains("gitlabMM:Pipeline"),
                 "expected a real gitlabMM:Pipeline root element, got:\n" + outputXmi);
@@ -58,7 +58,7 @@ public class AtlExecutorTest {
         String pimInstance = Files.readString(Path.of(PIM_SAMPLE_INSTANCE_PATH), StandardCharsets.UTF_8);
 
         assertThrows(IllegalArgumentException.class,
-                () -> AtlExecutor.execute(atlSource, pimInstance, "not a real ecore file", "GitLabMM"));
+                () -> PimExecutor.execute(atlSource, pimInstance, "not a real ecore file", "GitLabMM"));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class AtlExecutorTest {
         String notAPimModel = "<?xml version=\"1.0\"?><root/>";
 
         assertThrows(Exception.class,
-                () -> AtlExecutor.execute(atlSource, notAPimModel, gitlabEcore, "GitLabMM"));
+                () -> PimExecutor.execute(atlSource, notAPimModel, gitlabEcore, "GitLabMM"));
     }
 
     @Test
@@ -78,9 +78,9 @@ public class AtlExecutorTest {
         // time with org.eclipse.m2m.atl.engine.emfvm.VMException: "The
         // class 'Trigger' is not a valid classifier" - PIM!Trigger is
         // abstract (see pimMM.ecore), and this rule set tries to
-        // instantiate it directly. Before AtlExecutor's own fix, this raw
+        // instantiate it directly. Before PimExecutor's own fix, this raw
         // ATLExecutionException propagated uncaught out of transform(),
-        // and printing it via AtlExecutorCli's own catch-all crashed AGAIN
+        // and printing it via PimExecutorCli's own catch-all crashed AGAIN
         // with a real NPE (VMException's own printStackTrace() override
         // chokes on the same invalid classifier) - confirmed for real
         // against a live Docker run, not a hypothetical.
@@ -93,7 +93,7 @@ public class AtlExecutorTest {
                 StandardCharsets.UTF_8);
 
         IOException e = assertThrows(IOException.class,
-                () -> AtlExecutor.execute(atlSource, pimInstance, targetEcore, "GenericCICDMM"));
+                () -> PimExecutor.execute(atlSource, pimInstance, targetEcore, "GenericCICDMM"));
         assertTrue(e.getMessage().contains("ATL runtime failure"),
                 "expected a real, clean runtime-failure message, got: " + e.getMessage());
         assertTrue(e.getMessage().contains("Trigger"),
@@ -107,7 +107,7 @@ public class AtlExecutorTest {
         String brokenAtl = "this is not real ATL source";
 
         IOException e = assertThrows(IOException.class,
-                () -> AtlExecutor.execute(brokenAtl, pimInstance, gitlabEcore, "GitLabMM"));
+                () -> PimExecutor.execute(brokenAtl, pimInstance, gitlabEcore, "GitLabMM"));
         assertTrue(e.getMessage().contains("failed to compile"), "expected a real compile failure message, got: " + e.getMessage());
     }
 }

@@ -1,4 +1,4 @@
-package test.java.unit.java.mddoai.execution.atl;
+package test.java.unit.java.mddoai.execution.pim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,9 +12,9 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import main.java.mddoai.execution.atl.AtlExecutorCli;
+import main.java.mddoai.execution.pim.PimExecutorCli;
 
-public class AtlExecutorCliTest {
+public class PimExecutorCliTest {
 
     private static final String ATL_SOURCE_PATH = "./src/main/resources/transformations/pim2psm/pim2gitlabmodel.atl";
     private static final String GITLAB_ECORE_PATH = "../meta_models/com.mddoai.metamodel.gitlab/model/gitlabMM.ecore";
@@ -23,7 +23,7 @@ public class AtlExecutorCliTest {
     @Test
     public void wrongArgCountReturnsUsageError() {
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        int exitCode = AtlExecutorCli.run(new String[]{}, nullOut(), new PrintStream(err));
+        int exitCode = PimExecutorCli.run(new String[]{}, nullOut(), new PrintStream(err));
 
         assertEquals(2, exitCode);
         assertTrue(err.toString(StandardCharsets.UTF_8).contains("usage:"));
@@ -34,7 +34,7 @@ public class AtlExecutorCliTest {
         Path outputFile = tmp.resolve("output.xmi");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        int exitCode = AtlExecutorCli.run(
+        int exitCode = PimExecutorCli.run(
                 new String[]{ATL_SOURCE_PATH, PIM_INSTANCE_PATH, GITLAB_ECORE_PATH, "GitLabMM", outputFile.toString()},
                 new PrintStream(out), nullOut());
 
@@ -53,7 +53,7 @@ public class AtlExecutorCliTest {
         Path outputFile = tmp.resolve("output.xmi");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        int exitCode = AtlExecutorCli.run(
+        int exitCode = PimExecutorCli.run(
                 new String[]{ATL_SOURCE_PATH, notAPimModel.toString(), GITLAB_ECORE_PATH, "GitLabMM", outputFile.toString()},
                 new PrintStream(out), nullOut());
 

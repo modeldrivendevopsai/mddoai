@@ -40,7 +40,7 @@ ATTACHMENT_UPLOADS_DIR = Path(
 # clean via the real AtlValidator, confirmed directly - a real-execution
 # check isn't meaningful for it the way it is for a PIM-sourced
 # transformation, since its own real source metamodel is CICD, not this
-# project's own fixed PIM, and AtlExecutor only ever loads a real PIM
+# project's own fixed PIM, and PimExecutor only ever loads a real PIM
 # instance as its source.
 #
 # A real file this service owns directly (reference_example/cicd2gha.atl),

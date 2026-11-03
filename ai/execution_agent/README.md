@@ -7,7 +7,7 @@ Wraps `main/`'s new headless model/code executors as an HTTP service, so other `
 `validator_agent` already bridges Python to this same JVM/EMF/ATL/Acceleo world, and it might look like `/execute/*` belongs there as a sibling to `/validate/*`. It doesn't, for reasons that came out of an actual review of both services' real contracts, not a naming preference:
 
 - `validator_agent`'s own stated scope (see its README) is specifically about *validator-type* proliferation, "a future validator type would add another sibling `/validate/<type>` route", never about any-JVM-capability proliferation.
-- `ai/CLAUDE.md`'s own documented exception licensing `validator_agent` to reach into `main/` is scoped, by name and path, to `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`. `AtlExecutorCli`/`AcceleoExecutorCli` live under a sibling top-level package, `mddoai.execution`, not under `mddoai.validation` at all, stretching that exception to cover them would mean quietly rewriting what it says, not applying it.
+- `ai/CLAUDE.md`'s own documented exception licensing `validator_agent` to reach into `main/` is scoped, by name and path, to `main/src/main/java/mddoai/validation/**/*ValidatorCli.java`. `PimExecutorCli`/`AcceleoExecutorCli` live under a sibling top-level package, `mddoai.execution`, not under `mddoai.validation` at all, stretching that exception to cover them would mean quietly rewriting what it says, not applying it.
 - The real request/response contracts genuinely differ, not just the verb: validating posts draft DSL text and gets back a validity/issues report; executing needs a full model instance *and* a target metamodel as additional real input, and returns the real transformed output, not a report about it. That's a different resource, not the same one with an extra HTTP verb.
 - The infra cost of a second JVM-backed service is small: it mounts the exact same `main-build-output` volume `gradle-builder` already produces for `validator-agent`, read-only, with no separate Gradle build of its own.
 
@@ -15,7 +15,7 @@ This mirrors `validator_agent`'s own real architecture deliberately (see below),
 
 ## Why a subprocess, not an embedded JVM
 
-Same reasoning as `validator_agent`'s own README: a fresh `java` process per call, not a long-lived embedded one (JPype/Py4J). `AtlExecutor`/`AcceleoExecutor` do even *more* EMF global-registry manipulation per call than the validators do (dynamically loading and registering a fresh target metamodel every time), so the same "never reuse a JVM across calls" argument applies at least as strongly here.
+Same reasoning as `validator_agent`'s own README: a fresh `java` process per call, not a long-lived embedded one (JPype/Py4J). `PimExecutor`/`AcceleoExecutor` do even *more* EMF global-registry manipulation per call than the validators do (dynamically loading and registering a fresh target metamodel every time), so the same "never reuse a JVM across calls" argument applies at least as strongly here.
 
 ## How a request flows
 

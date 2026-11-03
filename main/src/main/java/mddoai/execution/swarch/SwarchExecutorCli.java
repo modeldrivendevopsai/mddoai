@@ -9,7 +9,7 @@ import java.nio.file.Path;
 /**
  * Thin process-boundary wrapper around SwarchExecutor, for invocation as a
  * separate OS process (e.g. from a Python service), in the same shape as
- * {@link main.java.mddoai.execution.atl.AtlExecutorCli}. Content flows through
+ * {@link main.java.mddoai.execution.pim.PimExecutorCli}. Content flows through
  * files, not argv, on both sides: the ATL source and the model can each be too
  * large for a command-line argument, and the PIM that comes out is written to a
  * given output file rather than printed, for the same reason.
