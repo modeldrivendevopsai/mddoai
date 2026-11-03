@@ -102,6 +102,12 @@ def test_an_empty_or_missing_folder_offers_nothing(folder):
         {"id": "other", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM"},
         {"id": "x", "name": "X", "version": 7, "output_filename": ".x.yml", "output_model_name": "XMM"},
         {"id": "x", "name": "X", "version": 1, "output_filename": "sub/x.yml", "output_model_name": "XMM"},
+        {"id": "x", "name": "X", "version": 1, "output_filename": "..", "output_model_name": "XMM"},
+        {"id": "x", "name": "X", "version": 1, "output_filename": "", "output_model_name": "XMM"},
+        {"id": "x", "name": None, "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM"},
+        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": None},
+        {"id": "x", "name": "X", "version": "1", "output_filename": ".x.yml", "output_model_name": "XMM"},
+        {"id": "x", "name": "X", "version": True, "output_filename": ".x.yml", "output_model_name": "XMM"},
     ],
 )
 def test_a_version_without_a_usable_platform_json_is_never_listed(folder, meta):
@@ -136,3 +142,48 @@ def test_an_id_that_is_not_a_folder_name_this_registry_uses_is_never_read(folder
     _write_version(folder, "x", 1)
 
     assert PlatformRegistry(folder).get(platform_id) is None
+
+
+def test_a_version_missing_one_of_its_files_is_skipped_and_the_one_before_is_used(folder):
+    _write_version(folder, "x", 1)
+    damaged = _write_version(folder, "x", 2)
+    (damaged / "template.mtl").unlink()
+    registry = PlatformRegistry(folder)
+
+    assert registry.get("x").version == 1
+    assert [p.version for p in registry.latest()] == [1]
+
+
+def test_a_version_that_is_skipped_is_logged_with_the_reason(folder, caplog):
+    damaged = _write_version(folder, "x", 1)
+    (damaged / "transformation.atl").unlink()
+
+    PlatformRegistry(folder).latest()
+
+    assert "transformation.atl is missing" in caplog.text
+
+
+def test_seeding_ignores_a_stray_file_among_the_shipped_platforms(folder, tmp_path):
+    seeds = tmp_path / "seeds"
+    _write_version(seeds, "x", 1)
+    (seeds / "README.txt").write_text("not a platform", encoding="utf-8")
+    (seeds / "x" / "notes.txt").write_text("not a version", encoding="utf-8")
+    registry = PlatformRegistry(folder)
+
+    registry.seed(seeds)
+
+    assert [p.id for p in registry.latest()] == ["x"]
+
+
+def test_a_staging_folder_left_by_a_crash_is_replaced_at_the_next_seeding(folder, tmp_path):
+    seeds = tmp_path / "seeds"
+    _write_version(seeds, "x", 1)
+    stale = folder / "x" / ".seeding-1"
+    stale.mkdir(parents=True)
+    (stale / "left-over.txt").write_text("from a crash", encoding="utf-8")
+    registry = PlatformRegistry(folder)
+
+    registry.seed(seeds)
+
+    assert registry.get("x").version == 1
+    assert not stale.exists()

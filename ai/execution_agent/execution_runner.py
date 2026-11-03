@@ -70,9 +70,10 @@ def _run_cli(argv: list[str], cwd: Path) -> tuple[dict, int]:
     """Shared subprocess boundary for both *ExecutorCli classes: run, time
     it, and turn every non-"the executor itself reported a real failure"
     failure mode into ExecutionInfraError. Mirrors validator_runner.py's own
-    _run_cli exactly (same real subprocess failure modes apply here
-    unchanged), duplicated rather than imported since this is a separate
-    service's own code, not a shared library the two happen to both use.
+    _run_cli (same real subprocess failure modes apply here), except that it
+    runs in the call's own directory. Duplicated rather than imported since
+    this is a separate service's own code, not a shared library the two
+    happen to both use.
 
     Runs in `cwd`, the call's own scratch directory: the transformer writes
     intermediate files to a fixed path relative to the working directory and

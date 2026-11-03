@@ -19,6 +19,8 @@ import yaml
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 
+from platforms import Platform
+
 _SCHEMA_PATH = Path(__file__).parent / "schemas" / "gitlab-ci.schema.json"
 _GITLAB_VALIDATOR = Draft7Validator(json.loads(_SCHEMA_PATH.read_text(encoding="utf-8")))
 
@@ -225,7 +227,7 @@ def check_generic_pipeline(content: str, output_filename: str) -> PipelineValida
 CHECKERS: dict[str, Callable[[str], PipelineValidation]] = {"gitlab": check_gitlab_pipeline}
 
 
-def check_pipeline(platform, content: str) -> PipelineValidation:
+def check_pipeline(platform: Platform, content: str) -> PipelineValidation:
     """The platform's own checker, or the generic check when it has none."""
     checker = CHECKERS.get(platform.id)
     if checker is None:

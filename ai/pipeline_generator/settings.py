@@ -9,8 +9,9 @@ MAX_MODEL_BYTES = int(os.environ.get("GENERATOR_MAX_MODEL_BYTES", str(256 * 1024
 
 # The largest pipeline a template may produce, and the largest the validate
 # endpoint accepts: one setting, so anything that can be generated can also be
-# checked. A real pipeline is a few KB; this only guards against reading
-# something unexpectedly huge into memory.
+# checked. The models a generation passes through are held to the same limit.
+# A real pipeline or model is a few KB; this only guards against keeping
+# something unexpectedly huge in memory and on disk.
 MAX_PIPELINE_BYTES = int(os.environ.get("GENERATOR_MAX_PIPELINE_BYTES", str(512 * 1024)))
 
 # The longest path or file name a request may carry. Engineering guess: far

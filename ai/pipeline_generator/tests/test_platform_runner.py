@@ -96,3 +96,13 @@ def test_a_pipeline_over_the_size_limit_is_a_run_error(monkeypatch):
 
     with pytest.raises(PlatformRunError, match="exceeds 5 bytes"):
         _run(acceleo={".x-ci.yml": "123456"})
+
+
+@pytest.mark.parametrize("which", ["pim", "platform_model"])
+def test_a_model_over_the_size_limit_is_a_run_error_too(monkeypatch, which):
+    monkeypatch.setattr(platform_runner, "MAX_PIPELINE_BYTES", 5)
+    big = "1234567"
+    kwargs = {"to_pim": big} if which == "pim" else {"atl": big}
+
+    with pytest.raises(PlatformRunError, match="exceeds 5 bytes"):
+        _run(acceleo={".x-ci.yml": "ok"}, **kwargs)

@@ -12,6 +12,7 @@ distribution, or that wider checkout aren't available, so the fast suite
 in-container suite skips cleanly instead of crashing on a missing tree.
 """
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,21 @@ def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample
     assert "gitlabMM:Pipeline" in output_xmi
     assert "install-deps" in output_xmi
     assert "deploy-prod" in output_xmi
+
+
+def test_real_concurrent_atl_executions_do_not_break_each_other():
+    # The transformer writes intermediate files relative to its working
+    # directory and deletes them afterwards, so two calls sharing a directory
+    # fail. Each call runs in its own.
+    atl = ATL_SOURCE_PATH.read_text(encoding="utf-8")
+    pim = PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8")
+    ecore = GITLAB_ECORE_PATH.read_text(encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda _: execution_runner.run_atl_executor(atl, pim, ecore, "GitLabMM"), range(4)))
+
+    assert all(result["output_xmi"] == results[0]["output_xmi"] for result in results)
+    assert "gitlabMM:Pipeline" in results[0]["output_xmi"]
 
 
 def test_real_atl_execution_of_a_non_pim_model_returns_422():

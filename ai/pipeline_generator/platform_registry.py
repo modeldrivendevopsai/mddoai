@@ -9,8 +9,9 @@ One folder per platform, one subfolder per version:
         template.mtl         platform model to pipeline file
         platform.json        name, output file name, name of the model the transformation creates
 
-Generation uses each platform's latest version. A version whose files are not
-all there yet is never listed: platform.json is what makes a version exist.
+Generation uses each platform's latest version. A version is only listed when
+platform.json is usable and the three files are all there, so a version that
+is unfinished or damaged is skipped (and logged) and the one before it is used.
 
 The platforms this service ships with are copied in at startup (`seed`), so a
 fresh data folder works at once; after that these files are the platform, and
@@ -21,7 +22,6 @@ import logging
 import os
 import re
 import shutil
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +29,9 @@ from platforms import Platform
 
 logger = logging.getLogger(__name__)
 
+# A platform id is a folder name and a URL segment: lowercase letters, digits
+# and dashes, up to 40 characters (an engineering guess, far longer than any
+# real platform's name). A version is a whole number from 1, up to 6 digits.
 _ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 _VERSION_PATTERN = re.compile(r"[1-9][0-9]{0,5}")
 
@@ -57,18 +60,29 @@ class PlatformRegistry:
 
     @staticmethod
     def _read_meta(folder: Path) -> Platform | None:
-        """The platform a version folder describes, or None if it has no
-        usable platform.json."""
+        """The platform a version folder describes, or None (with the reason in
+        the log) if it has no usable platform.json or lacks one of its files."""
         try:
             raw = json.loads((folder / _META).read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                raise ValueError("platform.json is not an object")
+            for field in ("id", "name", "output_filename", "output_model_name"):
+                if not isinstance(raw.get(field), str) or not raw[field]:
+                    raise ValueError(f"{field} must be a non-empty string")
+            if type(raw.get("version")) is not int:
+                raise ValueError("version must be a whole number")
+            for filename in (_METAMODEL, _TRANSFORMATION, _TEMPLATE):
+                if not (folder / filename).is_file():
+                    raise ValueError(f"{filename} is missing")
             return Platform(
-                id=str(raw["id"]),
-                name=str(raw["name"]),
-                version=int(raw["version"]),
-                output_filename=str(raw["output_filename"]),
-                output_model_name=str(raw["output_model_name"]),
+                id=raw["id"],
+                name=raw["name"],
+                version=raw["version"],
+                output_filename=raw["output_filename"],
+                output_model_name=raw["output_model_name"],
             )
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, ValueError) as e:
+            logger.warning("ignoring platform version %s: %s", folder, e)
             return None
 
     def _versions(self, platform_id: str) -> list[Platform]:
@@ -86,7 +100,7 @@ class PlatformRegistry:
         return sorted(versions, key=lambda platform: platform.version)
 
     def latest(self) -> list[Platform]:
-        """Every platform's latest complete version, by name."""
+        """Every platform's latest usable version, by name."""
         if not self._directory.is_dir():
             return []
         found = []
@@ -98,7 +112,7 @@ class PlatformRegistry:
         return sorted(found, key=lambda platform: platform.name.lower())
 
     def get(self, platform_id: str) -> Platform | None:
-        """A platform's latest complete version."""
+        """A platform's latest usable version."""
         if not _ID_PATTERN.fullmatch(platform_id):
             return None
         versions = self._versions(platform_id)
@@ -117,13 +131,16 @@ class PlatformRegistry:
         yet. A version that is stored is never overwritten, so a change made to
         a stored platform survives a restart. A version is copied beside its
         final name and renamed into place, so it appears whole or not at all."""
-        for platform_folder in sorted(seed_directory.iterdir()):
-            for version_folder in sorted(platform_folder.iterdir()):
+        for platform_folder in sorted(p for p in seed_directory.iterdir() if p.is_dir()):
+            for version_folder in sorted(v for v in platform_folder.iterdir() if v.is_dir()):
                 target = self._directory / platform_folder.name / version_folder.name
                 if target.exists():
                     continue
                 target.parent.mkdir(parents=True, exist_ok=True)
-                staging = target.parent / f".seeding-{uuid.uuid4().hex}"
+                # A fixed staging name, so one left by a crash is replaced by
+                # the next start instead of piling up.
+                staging = target.parent / f".seeding-{version_folder.name}"
+                shutil.rmtree(staging, ignore_errors=True)
                 shutil.copytree(version_folder, staging)
                 os.rename(staging, target)
                 logger.info("stored platform %s version %s", platform_folder.name, version_folder.name)

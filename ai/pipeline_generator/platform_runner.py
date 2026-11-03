@@ -75,8 +75,9 @@ def run_platform(content: str, platform: Platform, registry: PlatformRegistry) -
         raise PlatformRunError(
             f"the template for {platform.id} produced {sorted(files)}, not {platform.output_filename}"
         )
-    if len(pipeline.encode("utf-8")) > MAX_PIPELINE_BYTES:
-        raise PlatformRunError(f"the pipeline for {platform.id} exceeds {MAX_PIPELINE_BYTES} bytes")
+    for what, text in (("pipeline", pipeline), ("PIM", pim), ("platform model", platform_model)):
+        if len(text.encode("utf-8")) > MAX_PIPELINE_BYTES:
+            raise PlatformRunError(f"the {what} for {platform.id} exceeds {MAX_PIPELINE_BYTES} bytes")
 
     duration_ms = int((time.monotonic() - start) * 1000)
     logger.info("run: platform=%s v%d duration_ms=%d", platform.id, platform.version, duration_ms)

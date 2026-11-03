@@ -25,6 +25,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from platforms import plain_name
+
 logger = logging.getLogger(__name__)
 
 _ID_PATTERN = re.compile(r"[0-9a-f]{32}")
@@ -60,15 +62,6 @@ def _is_usable(meta: object, folder_name: str) -> bool:
         and isinstance(meta.get("platforms"), list)
         and isinstance(meta.get("outputs"), list)
     )
-
-
-def _plain_name(name: object) -> str:
-    """`name` as one path segment. Platform ids and file names come from the
-    platform definitions, never from a request, but record.json is read back
-    from disk, so a name that would step outside its folder is refused."""
-    if not isinstance(name, str) or name in ("", ".", "..") or Path(name).name != name:
-        raise ValueError(f"not a plain file name: {name!r}")
-    return name
 
 
 def _write_json(path: Path, value: dict) -> None:
@@ -188,10 +181,10 @@ class PipelineHistory:
             # Only generations that produced a pipeline are recorded.
             if not isinstance(result.get("pipeline"), str):
                 raise ValueError("a recorded result must carry its generated pipeline")
-            platform_dir = folder / _plain_name(result["platform"]["id"])
-            _write_text(platform_dir / _plain_name(result["output_filename"]), result["pipeline"])
+            platform_dir = folder / plain_name(result["platform"]["id"])
+            _write_text(platform_dir / plain_name(result["output_filename"]), result["pipeline"])
             for intermediate in result.get("intermediates", []):
-                path = platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])
+                path = platform_dir / _INTERMEDIATES_DIR / plain_name(intermediate["filename"])
                 _write_text(path, intermediate["content"])
         stored_results = [_stored_result(result) for result in results]
         _write_json(folder / "record.json", {**meta, "results": stored_results})
@@ -305,17 +298,17 @@ class PipelineHistory:
     def _with_files(self, folder: Path, record: dict) -> dict:
         results = []
         for stored in record["results"]:
-            platform_dir = folder / _plain_name(stored["platform"]["id"])
+            platform_dir = folder / plain_name(stored["platform"]["id"])
             intermediates = [
                 {
                     **intermediate,
-                    "content": _read_text(platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])),
+                    "content": _read_text(platform_dir / _INTERMEDIATES_DIR / plain_name(intermediate["filename"])),
                 }
                 for intermediate in stored["intermediates"]
             ]
             results.append({
                 **stored,
-                "pipeline": _read_text(platform_dir / _plain_name(stored["output_filename"])),
+                "pipeline": _read_text(platform_dir / plain_name(stored["output_filename"])),
                 "intermediates": intermediates,
             })
         return {**record, "content": _read_text(folder / _MODEL_FILENAME), "results": results}

@@ -32,7 +32,9 @@ pytestmark = pytest.mark.skipif(
 
 def _normalized(text: str) -> str:
     """Line endings, trailing spaces and blank lines ignored: the template's
-    indented call leaves a line of two spaces, which no YAML reader can see."""
+    indented call leaves a line of two spaces, which no YAML reader can see.
+    (A blank line inside a multi-line script block would be ignored too; the
+    fixture has none.)"""
     lines = (line.rstrip() for line in text.replace("\r\n", "\n").split("\n"))
     return "\n".join(line for line in lines if line)
 
@@ -42,7 +44,7 @@ def gitlab(registry):
     return registry.get("gitlab")
 
 
-def test_generates_what_the_engines_own_end_to_end_test_expects(gitlab, registry):
+def test_generates_the_expected_gitlab_pipeline(gitlab, registry):
     model = (FIXTURES / "valid.swarch").read_text(encoding="utf-8")
     expected = (FIXTURES / "expected-gitlab-ci.yml").read_text(encoding="utf-8")
 

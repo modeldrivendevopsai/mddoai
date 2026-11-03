@@ -7,7 +7,6 @@ import httpx
 from fastapi.testclient import TestClient
 
 import main
-import platform_runner
 from helpers import generate
 from platform_runner import PlatformRunError
 
@@ -29,7 +28,7 @@ def _invalid():
     }
 
 
-def _engine_result():
+def _run_result():
     return {
         "pipeline": "stages: [build]\n",
         "intermediates": [{"id": "pim", "title": "Platform-independent model", "filename": "PipelinePIM.pimmm", "content": "<pim/>"}],
@@ -111,7 +110,7 @@ def test_inspect_rejects_an_overlong_filename():
 
 def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermediates():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
-            patch("generation.run_platform", return_value=_engine_result()) as engine:
+            patch("generation.run_platform", return_value=_run_result()) as run:
         response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 200
@@ -122,13 +121,13 @@ def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermed
     assert result["pipeline"] == "stages: [build]\n"
     assert result["intermediates"][0]["id"] == "pim"
     assert result["error"] is None
-    assert engine.call_args.args[0] == MODEL["content"]
-    assert engine.call_args.args[1].id == "gitlab"
+    assert run.call_args.args[0] == MODEL["content"]
+    assert run.call_args.args[1].id == "gitlab"
 
 
 def test_generate_answers_at_once_with_a_job_to_fetch():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
-            patch("generation.run_platform", return_value=_engine_result()):
+            patch("generation.run_platform", return_value=_run_result()):
         started = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
         job = client.get(f"/generate/{started.json()['job_id']}")
 
@@ -149,11 +148,11 @@ def test_generate_answers_before_generating(workspace_dir, history, registry):
     jobs = GenerationJobs(max_finished=10, run=pending.append)
     request = main.GenerateRequest(**MODEL, platforms=["gitlab"])
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
-            patch("generation.run_platform", return_value=_engine_result()) as engine:
+            patch("generation.run_platform", return_value=_run_result()) as run:
         started = main.generate_endpoint(request, Workspace(workspace_dir), history, registry, jobs)
 
         assert jobs.get(started["job_id"]) == {"state": "running"}
-        engine.assert_not_called()
+        run.assert_not_called()
 
         pending[0]()
 
@@ -180,14 +179,14 @@ def test_a_crash_during_generation_fails_the_job_without_its_error_text():
 
 def test_generate_refuses_an_invalid_model_and_never_runs_the_engine():
     with patch("main.validator_agent_client.validate_swarch", return_value=_invalid()), \
-            patch("generation.run_platform") as engine:
+            patch("generation.run_platform") as run:
         response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert "language" in detail["issues"][0]["message"]
     assert "tmpabc123" not in response.text
-    engine.assert_not_called()
+    run.assert_not_called()
 
 
 def test_generate_rejects_an_unsupported_platform_naming_the_supported_ones():
@@ -248,12 +247,6 @@ def test_validate_rejects_oversized_content():
     oversized = {"platform": "gitlab", "content": "x" * (main.MAX_PIPELINE_BYTES + 1)}
 
     assert client.post("/validate", json=oversized).status_code == 413
-
-
-def test_a_pipeline_that_can_be_generated_can_always_be_validated():
-    # The generated-pipeline size ceiling and the validate ceiling are one
-    # setting, so a pipeline can never be generated and then refused.
-    assert main.MAX_PIPELINE_BYTES == platform_runner.MAX_PIPELINE_BYTES
 
 
 def _raw_json(body: str):

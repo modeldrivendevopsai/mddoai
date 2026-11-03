@@ -20,14 +20,12 @@ It is plain Python. The transformation itself runs in `execution_agent`'s JVM, a
 3. **Run it.** `execution_agent`'s `/execute/atl/swarch` compiles that source and runs it on the
    model, and the PIM it produces is returned.
 
-The copy is this service's own and does not read anything from `main/`. When it was taken, the PIM
-it produced was exactly what the engine's own SWArch-to-PIM step produces for the same model; `main/`'s
-executor tests check that byte for byte on the engine's example models.
+The copy is this service's own and does not read anything from `main/`.
 
 ## Who calls it
 
-Its first caller is the pipeline generator, for platforms published from integration runs, which
-need a PIM from the person's model before their own transformation and template can run.
+Its first caller is the pipeline generator, which needs a PIM from the person's model before any
+platform's own transformation and template can run.
 
 ## What a replacement transformation must look like
 

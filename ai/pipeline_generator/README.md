@@ -3,7 +3,7 @@
 The backend of the "Generate a CI/CD pipeline" mode. A person gives it a Software Architecture
 model (a `.swarch` file, uploaded or picked from the workspace folder), and this service checks
 it, turns it into a CI/CD pipeline for each chosen platform, keeps them so they can be reopened,
-and checks the result. It replaces running the engine's command line or Eclipse by hand.
+and checks the result.
 
 It is UI-facing, the way `orchestrator` is for the platform-integration mode, but it is a
 separate service. This mode has no pipeline run, no chat and no stages, and it calls no LLM.
@@ -195,11 +195,17 @@ answer. Inside this service's container in the running stack they do.
 
 ## Boundaries
 
-The workspace folder is the part of the host's disk this service reads, and it is mounted
-read-only. The API has no authentication, like the other services, so what protects the workspace
+The workspace folder is the part of the host's disk this service reads from a caller's path, and
+it is mounted read-only. The API has no authentication, like the other services, so what protects the workspace
 is who can reach the UI: `docker-compose.yml` publishes the UI's port on this machine only. Anyone
 who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
 a folder you are comfortable exposing that way.
+
+The data folder's `platforms/` is trusted input. Its transformations and templates are compiled
+and run by `execution_agent`, and an Acceleo template can call Java code (`invoke`), so only people
+who may run code on the machine should be able to write there. No route of this service writes to
+it: only the startup copy of the platforms it ships with does, and it needs `platforms/` writable
+to do that.
 
 This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent`,
 `swarch_agent` and `execution_agent` through the shared `clients/` package, like every other

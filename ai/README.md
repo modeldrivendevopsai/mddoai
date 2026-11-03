@@ -37,7 +37,7 @@ Every copy of the stack is an environment under `infra/environments/`, which set
 ```bash
 cd infra/environments/dev
 cp ../templates/dev/config.env config.env    # once, then fill it in
-mkdir -p ../../../ai/data/workspace ../../../ai/data/pipelines ../../../ai/data/platforms    # once, if MDDOAI_DATA_DIR is ./data
+mkdir -p ../../../ai/data/workspace ../../../ai/data/pipelines    # once, if MDDOAI_DATA_DIR is ./data
 docker compose up --build
 ```
 
@@ -49,10 +49,10 @@ Every environment on the same machine reads the same `~/.claude` folder (see `ai
 
 ## Where files live
 
-Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its folders before the first start:
+Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its `workspace/` and `pipelines/` folders before the first start (the generator creates `platforms/` itself):
 
 ```bash
-mkdir -p ai/data/workspace ai/data/pipelines ai/data/platforms
+mkdir -p ai/data/workspace ai/data/pipelines
 ```
 
 ```
@@ -84,7 +84,7 @@ Why a bind-mounted folder and not named Docker volumes: Docker's own guidance pr
 Things to know about that choice:
 
 - **Create the folders first.** Docker would otherwise create a missing folder owned by root, and you could not add models to it. `docker-compose.yml` refuses to create them, so a missing folder is an error that names it.
-- **Root-owned files.** The services write as root inside their containers, so on Linux everything under `pipelines/` and the platforms it stores are owned by root. Use `sudo` to delete them by hand.
+- **Root-owned files.** The services write as root inside their containers, so on Linux everything under `pipelines/` and the platforms it stores are owned by root. Use `sudo` to change or delete them by hand.
 - **Host write access.** A bind mount lets a container write to the host. `pipeline_generator` only writes its history inside `pipelines/` and the platforms it ships with inside `platforms/`. The workspace folder is mounted read-only.
 - **Cleanup risk.** `git clean -x` in this repository deletes the data folder along with other ignored files.
 - **Who can see the workspace.** Anyone who can reach the UI can list the files in `workspace/` and read its `.swarch` files. Keep only files there that you are comfortable exposing that way.

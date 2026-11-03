@@ -10,7 +10,7 @@ def _status(result, check_id):
     return next(check for check in result["checks"] if check["id"] == check_id)
 
 
-def test_the_engines_own_output_passes_every_check():
+def test_the_expected_gitlab_output_passes_every_check():
     content = (FIXTURES / "expected-gitlab-ci.yml").read_text(encoding="utf-8")
 
     result = check_gitlab_pipeline(content)

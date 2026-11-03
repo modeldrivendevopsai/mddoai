@@ -581,12 +581,12 @@ services:
         bind:
           create_host_path: false
       # The data folder's platforms/: the files each platform is run from. The
-      # service copies the platforms it ships with in when they are missing.
+      # service copies the platforms it ships with in when they are missing,
+      # and nobody but the service writes here, so Docker may create the
+      # folder (owned by root) when it is not there.
       - type: bind
         source: ${MDDOAI_DATA_DIR:?}/platforms
         target: /data/platforms
-        bind:
-          create_host_path: false
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - SWARCH_AGENT_URL=http://swarch-agent:8110

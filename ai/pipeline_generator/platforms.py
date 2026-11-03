@@ -5,6 +5,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def plain_name(name: object) -> str:
+    """`name` as one path segment, or ValueError. Platform ids and file names
+    are joined onto folders, so a name that is empty, or would step outside
+    its folder, is refused wherever one is read from disk."""
+    if not isinstance(name, str) or name in ("", ".", "..") or Path(name).name != name:
+        raise ValueError(f"not a plain file name: {name!r}")
+    return name
+
+
 @dataclass(frozen=True)
 class Platform:
     id: str
@@ -19,5 +28,7 @@ class Platform:
     output_model_name: str
 
     def __post_init__(self):
-        if Path(self.output_filename).name != self.output_filename:
-            raise ValueError(f"Platform {self.id!r}: output_filename must be a plain file name, not a path")
+        try:
+            plain_name(self.output_filename)
+        except ValueError:
+            raise ValueError(f"Platform {self.id!r}: output_filename must be a plain file name, not a path") from None
