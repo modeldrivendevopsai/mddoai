@@ -6,7 +6,7 @@ This is a full-repo-checkout test, not something the deployed
 execution-agent container can ever run (it only ever gets its own service
 code plus main/'s compiled build output, never the wider monorepo's real
 .atl/.mtl/.ecore source tree - see ai/docker-compose.yml's own
-execution-agent volumes). Auto-skips when a JDK, the built main/
+execution-agent volumes). Auto-skips when a Java runtime, the built main/
 distribution, or that wider checkout aren't available, so the fast suite
 (plain `pytest`) always runs standalone on any machine, and the real
 in-container suite skips cleanly instead of crashing on a missing tree.
@@ -48,12 +48,12 @@ GITLAB_ECORE_PATH = REPO_ROOT / "meta_models" / "com.mddoai.metamodel.gitlab" / 
 # matching validator_agent's own test_integration_real_jvm.py reasoning for
 # why that matters. Also checks PIM_SAMPLE_INSTANCE_PATH itself exists, not
 # just java/LIB_DIR: the deployed container has both of those (it ships its
-# own JDK and mounts main/'s compiled output) but never the wider repo
+# own Java runtime and mounts main/'s compiled output) but never the wider repo
 # checkout this test's real source files live in, so java+LIB_DIR alone
 # would wrongly conclude "run for real" there.
 pytestmark = pytest.mark.skipif(
     not (shutil.which("java") and Path(execution_runner.LIB_DIR).exists() and PIM_SAMPLE_INSTANCE_PATH.exists()),
-    reason="real JDK + built main/ distribution + full repo checkout not available",
+    reason="Java runtime + built main/ distribution + full repo checkout not available",
 )
 
 client = TestClient(main.app)

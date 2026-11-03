@@ -129,6 +129,7 @@ export default function IntegrationScreen() {
     events,
     currentStage,
     busy,
+    replying,
     started,
     model,
     providers,
@@ -414,6 +415,7 @@ export default function IntegrationScreen() {
               providers={providers}
               onSend={sendMessage}
               onModelChange={changeModel}
+              replying={replying}
               readOnly={!isCurrent}
             />
           </RemoteBoundary>

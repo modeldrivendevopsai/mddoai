@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (gitignored). Every value is required.
+
+hcloud_token        = "<Hetzner API token>"
+ssh_allowed_cidrs   = ["203.0.113.7/32"] # your IP, one per developer
+ssh_public_key_path = "~/.ssh/mddoai_dev.pub"
+server_name         = "mddoai-dev"
+server_type         = "cx43"
+location            = "hel1" # where server_type is orderable
+image               = "ubuntu-24.04"
+dev_user            = "dev"
+ui_port             = 5173 # same as UI_PORT in the dev environment's config.env
+protection          = true # false only to delete or rebuild
+backups             = false

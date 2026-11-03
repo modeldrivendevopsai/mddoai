@@ -607,6 +607,40 @@ def test_record_review_rejects_approval_after_a_failed_attempt():
         o.record_review("generation", approved=True)
 
 
+def test_record_review_rejects_approval_when_a_retry_failed_after_an_earlier_success():
+    # A stage succeeded, a retry of it (usually with a correction) then
+    # failed. Approving must not forward the earlier output: it is the one
+    # the retry was asked to change, and the human never approved it.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    with _mocked_generation_execution():
+        o.run_stage({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+    with _mocked_generation_execution(execute_atl_kwargs={"side_effect": RuntimeError("execution-agent unreachable")}):
+        with pytest.raises(RuntimeError):
+            o.run_stage({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+
+    with pytest.raises(ValueError, match="hasn't completed successfully"):
+        o.record_review("generation", approved=True)
+    assert o.current_stage == "generation"
+    assert "review_approved" not in [e["type"] for e in o.events]
+
+
+def test_record_review_forwards_the_successful_retry_s_output_after_a_failed_one():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    failing = _validation_result(valid=False, issues=[{"severity": "error", "message": "NoSuchType", "source": None}])
+    with patch.object(validator_agent_client, "validate_ecore", return_value=failing):
+        with pytest.raises(RuntimeError, match="failed validation"):
+            o.run_stage({"platform_description": "A GitLab CI platform"})
+    with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result(valid=True)):
+        retried = o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    result = o.record_review("pim", approved=True)
+
+    assert result["status"] == "advanced"
+    assert result["context"]["pim_output"] == retried["output"]
+
+
 def test_record_review_rejects_approval_after_a_failed_validation():
     # Same real bug class as the LLM-side test above, for a mock-validated
     # stage's own failure path (raise_if_invalid(), not an LLM error). pim,

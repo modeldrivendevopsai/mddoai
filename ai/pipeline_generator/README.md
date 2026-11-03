@@ -26,8 +26,8 @@ Around these, two more concerns have their own modules: the **workspace** (`work
 
 A web page can neither read nor write a path on the user's machine, so the service works inside
 one folder that is mounted into it. In Docker Compose that is `GENERATOR_WORKSPACE_HOST_DIR` on
-the host (default `./generator-workspace` next to the compose file), seen as `/workspace` inside
-the container. Point it at a folder of your own, such as the one holding your repositories.
+the host, set in the environment's `config.env`, seen as `/workspace` inside the container. Point
+it at a folder of your own, such as the one holding your repositories.
 
 Every path a caller supplies is read as relative to that folder: `/repos/app/a.swarch`,
 `./repos/app/a.swarch` and `repos/app/a.swarch` are the same file. Whatever a path resolves to,
