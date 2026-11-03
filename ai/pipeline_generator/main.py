@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 
@@ -9,13 +10,14 @@ from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
 from engine_runner import MAX_PIPELINE_BYTES
-from generation import generate_one
+from generation import GENERATION_FAILED, generate_all
+from generation_jobs import GenerationJobs
 from pipeline_checks import CHECKERS, PipelineValidation
 from pipeline_history import PipelineHistory
 from platforms import PLATFORMS, Platform, get_platform
 from routes import pipelines as pipelines_routes
 from routes import workspace as workspace_routes
-from routes.dependencies import get_history, get_workspace
+from routes.dependencies import get_history, get_jobs, get_workspace
 from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS
 from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
@@ -142,14 +144,16 @@ def inspect_endpoint(request: ModelRequest):
     }
 
 
-@app.post("/generate")
+@app.post("/generate", status_code=202)
 def generate_endpoint(
     request: GenerateRequest,
     workspace: Workspace = Depends(get_workspace),
     history: PipelineHistory = Depends(get_history),
+    jobs: GenerationJobs = Depends(get_jobs),
 ):
-    """Generates a pipeline for each requested platform, saves each one into
-    `save_to` when given, and records the result so it can be reopened."""
+    """Checks the request, then generates after answering: the outcome is
+    fetched from GET /generate/{job_id}. A request that cannot be generated
+    at all (an unknown platform, an invalid model) is refused here, at once."""
     _require_size(request.content, MAX_MODEL_BYTES, "content")
     platforms = _require_platforms(request.platforms)
     logger.info("POST /generate filename=%r platforms=%s", request.filename, [p.id for p in platforms])
@@ -163,16 +167,27 @@ def generate_endpoint(
             detail={"message": "The model is not valid, so no pipeline was generated.", "issues": model_validation["issues"]},
         )
 
-    results = [generate_one(request.content, platform, workspace, request.save_to) for platform in platforms]
-    generated = [result for result in results if result["error"] is None]
-    pipeline_id = history.record_generation(
-        filename=request.filename,
+    work = functools.partial(
+        generate_all,
         content=request.content,
-        source_path=workspace.normalize(request.source_path) if request.source_path else None,
+        filename=request.filename,
+        source_path=request.source_path,
         save_to=request.save_to,
-        generated=generated,
+        platforms=platforms,
+        workspace=workspace,
+        history=history,
     )
-    return {"pipeline_id": pipeline_id, "results": results}
+    return {"job_id": jobs.start(work, GENERATION_FAILED)}
+
+
+@app.get("/generate/{job_id}")
+def generation_job_endpoint(job_id: str, jobs: GenerationJobs = Depends(get_jobs)):
+    """A generation started by POST /generate: `state` is "running", then
+    "done" (with `pipeline_id` and `results`) or "failed" (with `error`)."""
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No such generation. It may have been lost in a restart.")
+    return job
 
 
 @app.post("/validate")

@@ -2,7 +2,8 @@ import pytest
 
 import main
 from pipeline_history import PipelineHistory
-from routes.dependencies import get_history, get_workspace
+from generation_jobs import GenerationJobs
+from routes.dependencies import get_history, get_jobs, get_workspace
 from workspace import Workspace
 
 
@@ -20,9 +21,12 @@ def history(tmp_path):
 
 @pytest.fixture(autouse=True)
 def isolated_storage(workspace_dir, history):
-    """Every test gets its own workspace folder and history, so none of them
-    reads or writes the service's real ones."""
+    """Every test gets its own workspace folder, history and generation jobs,
+    so none of them reads or writes the service's real ones."""
     main.app.dependency_overrides[get_workspace] = lambda: Workspace(workspace_dir)
     main.app.dependency_overrides[get_history] = lambda: history
+    # Runs each generation at once, so a test's GET finds it finished.
+    jobs = GenerationJobs(max_finished=10, run=lambda task: task())
+    main.app.dependency_overrides[get_jobs] = lambda: jobs
     yield
     main.app.dependency_overrides.clear()

@@ -37,6 +37,8 @@ TRANSFORMATIONS_DIR = Path(
     os.environ.get("ENGINE_TRANSFORMATIONS_DIR", "../../main/src/main/resources/transformations")
 ).resolve()
 MAIN_CLASS = "main.java.Main"
+# One engine run for one platform (engineering guess: every real run reports
+# its duration_ms, so tighten it once real numbers exist).
 TIMEOUT_SECONDS = float(os.environ.get("GENERATOR_TIMEOUT_SECONDS", "60"))
 # The largest file read back from the engine, and also the largest pipeline
 # the validate endpoint accepts (main.py reuses it), so anything the engine
