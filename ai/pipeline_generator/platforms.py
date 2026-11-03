@@ -26,6 +26,9 @@ class Platform:
     # The name the transformation gives the model it creates, as declared in
     # it: "create OUT : <name> from IN : PIM;".
     output_model_name: str
+    # The named rule sets its pipeline is also checked against, for what its
+    # schema cannot see.
+    rules: tuple[str, ...] = ()
 
     def __post_init__(self):
         try:

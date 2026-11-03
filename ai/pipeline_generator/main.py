@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 from clients import validator_agent_client
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
-from pipeline_checks import PipelineValidation, check_pipeline
+from check_results import PipelineValidation
+from pipeline_checks import check_pipeline
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from platforms import Platform
@@ -193,6 +194,10 @@ def validate_endpoint(
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
     platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
-    result = check_pipeline(platform, request.content)
+    try:
+        result = check_pipeline(platform, request.content, registry.schema(platform))
+    except (OSError, ValueError) as e:
+        logger.error("could not check a pipeline for %s: %s", platform.id, e)
+        raise HTTPException(status_code=500, detail="The platform's checks could not be loaded.")
     logger.info("POST /validate done platform=%s valid=%s", platform.id, result["valid"])
     return result

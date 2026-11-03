@@ -42,11 +42,12 @@ function summarize({ validation, validating, error, onRetry }: ValidationStatusP
   if (validating || !validation) return { variant: 'info', label: copy.checking, details: null };
   const total = validation.checks.length;
   const failed = validation.checks.filter((check) => check.status === 'fail').length;
-  return {
-    variant: validation.valid ? 'success' : 'danger',
-    label: validation.valid ? copy.passed(total) : copy.failed(failed, total),
-    details: <PipelineChecks validation={validation} />,
-  };
+  const skipped = validation.checks.filter((check) => check.status === 'skipped').length;
+  const details = <PipelineChecks validation={validation} />;
+  if (!validation.valid) return { variant: 'danger', label: copy.failed(failed, total), details };
+  // Only a pipeline every check was made on is a pass; skipped checks say so.
+  if (skipped > 0) return { variant: 'info', label: copy.partial(total - skipped, skipped), details };
+  return { variant: 'success', label: copy.passed(total), details };
 }
 
 // The status is a live region, so a person using a screen reader hears

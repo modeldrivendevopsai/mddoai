@@ -10,7 +10,7 @@ import httpx
 import pytest
 
 from clients import execution_agent_client
-from pipeline_checks import check_gitlab_pipeline
+from helpers import check_gitlab_pipeline
 from platform_runner import run_platform
 
 FIXTURES = Path(__file__).parent / "fixtures"

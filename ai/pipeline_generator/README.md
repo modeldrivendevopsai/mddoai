@@ -85,9 +85,11 @@ platforms/
     metamodel.ecore             the platform's metamodel
     transformation.atl          the transformation from the PIM to the platform's model
     template.mtl                the Acceleo template from that model to the pipeline file
-    platform.json               id, name, version, the pipeline's file name, and the name the
+    schema.json                 optional: the JSON schema the generated pipeline must follow
+    platform.json               id, name, version, the pipeline's file name, the name the
                                 transformation gives the model it creates (the `GitLabMM` in
-                                `create OUT : GitLabMM from IN : PIM;`)
+                                `create OUT : GitLabMM from IN : PIM;`), and optionally `rules`,
+                                the named rule sets its pipeline is also checked against
 ```
 
 Generation uses each platform's latest version. A version without a usable `platform.json`, or
@@ -150,17 +152,23 @@ severity and message are returned, never the server-side file path.
 
 ## Pipeline checks
 
-`pipeline_checks.py` is pure Python. For GitLab CI it runs these checks in order:
+`pipeline_checks.py` is pure Python. What it checks comes from the platform's own files. For a
+platform whose pipeline is a YAML file, it runs, in order:
 
 1. The file is valid YAML.
-2. The settings follow GitLab's published CI schema (vendored under `schemas/`, with its license
-   notice next to it).
-3. The pipeline defines at least one job.
-4. Every job belongs to a declared stage.
-5. Every `needs:` entry points at a real job.
+2. The settings follow the platform's `schema.json`. A platform with no `schema.json` has this
+   check skipped, with the reason shown.
+3. Each rule set the platform lists in `rules`, for what a schema cannot see. The only rule set
+   today is `gitlab-references` (`gitlab_references.py`), which GitLab CI lists: the pipeline
+   defines at least one job, every job belongs to a declared stage, and every `needs:` entry
+   points at a real job. These are GitLab's own semantics, so they are code, not data.
 
-The schema cannot see cross-references, which is why checks 4 and 5 exist. If the YAML itself is
-broken, the later checks are reported as skipped rather than failed.
+A check that cannot be made is reported as skipped, never as passed: if the YAML is broken, the
+later checks are skipped, and a file that is not YAML (a Jenkinsfile, say) gets one skipped check.
+The UI says "passed" only when every check was made and passed, and otherwise says how many were
+skipped. A `schema.json` that is not a valid JSON schema, or a `rules` entry that names no rule
+set, is a fault in the platform's files: `/validate` answers `500` for the first, and fails a
+check naming the rule set for the second.
 
 ## Configuration
 
@@ -200,8 +208,10 @@ service's container in the running stack they do.
 
 1. Add `<platform-id>/<version>/` to the data folder's `platforms/` with the four files above, and
    commit it.
-2. If the pipeline has a checker of its own, add it to `CHECKERS` in `pipeline_checks.py`. Without
-   one, a file ending in `.yml` or `.yaml` is only checked to be valid YAML.
+2. Add a `schema.json` to the version folder, so its pipeline is checked for real. Without one the
+   pipeline is only checked to be valid YAML, and the schema check is shown as skipped.
+3. If it needs checks a schema cannot make, write a rule set in code, add it to `RULE_SETS` in
+   `pipeline_checks.py`, and list its name in the platform's `rules`.
 
 ## Boundaries
 

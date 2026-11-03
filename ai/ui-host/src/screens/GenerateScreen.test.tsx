@@ -694,6 +694,31 @@ describe("GenerateScreen: validating a pipeline", () => {
     expect(screen.queryByRole("button", { name: /validate/i })).toBeNull()
   })
 
+  it("does not call a pipeline passed when some checks could not be made", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue({
+      valid: true,
+      checks: [
+        { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
+        {
+          id: "schema",
+          title: "The settings follow Other CI's format",
+          status: "skipped",
+          details: ["Other CI has no schema to check against."],
+        },
+      ],
+    })
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("1 check passed, 1 skipped")).toBeTruthy()
+    expect(screen.queryByText(/All \d+ checks? passed/)).toBeNull()
+    fireEvent.click(statusMenu("1 check passed, 1 skipped").querySelector("summary") as HTMLElement)
+    expect(screen.getByText("Other CI has no schema to check against.")).toBeTruthy()
+  })
+
   it("checks once even when React runs effects twice", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)

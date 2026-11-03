@@ -1,4 +1,4 @@
-gitlab-ci.schema.json is a verbatim copy of GitLab's own CI/CD configuration
+schema.json is a verbatim copy of GitLab's own CI/CD configuration
 schema, app/assets/javascripts/editor/schema/ci.json in
 https://gitlab.com/gitlab-org/gitlab (JSON Schema Draft-07). That file sits
 outside GitLab's doc/, ee/ and jh/ directories, so it is available under the

@@ -1,7 +1,9 @@
-"""pipeline_checks.py tests: real YAML in, real GitLab-schema validation, no mocks."""
+"""The GitLab platform's checks: real YAML in, validation against the committed
+GitLab schema and rules, no mocks."""
 from pathlib import Path
 
-from pipeline_checks import MAX_DETAILS, check_gitlab_pipeline
+from check_results import MAX_DETAILS
+from helpers import check_gitlab_pipeline
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

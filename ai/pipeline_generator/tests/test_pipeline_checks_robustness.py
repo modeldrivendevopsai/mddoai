@@ -3,7 +3,7 @@ GitLab's own rules differ from a naive reading. Every case here either crashed
 the checker, froze it, or gave GitLab-incorrect advice."""
 import time
 
-from pipeline_checks import check_gitlab_pipeline
+from helpers import check_gitlab_pipeline
 
 
 def _status(result, check_id):

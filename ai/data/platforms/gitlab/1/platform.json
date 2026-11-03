@@ -3,5 +3,6 @@
   "name": "GitLab CI",
   "version": 1,
   "output_filename": ".gitlab-ci.yml",
-  "output_model_name": "GitLabMM"
+  "output_model_name": "GitLabMM",
+  "rules": ["gitlab-references"]
 }

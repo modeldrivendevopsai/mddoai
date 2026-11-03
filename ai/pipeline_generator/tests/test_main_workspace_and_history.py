@@ -114,6 +114,26 @@ def _store_platform(tmp_path, platform_id, name, output_filename):
         (folder / filename).write_text("placeholder", encoding="utf-8")
 
 
+def test_validate_for_a_platform_with_no_schema_says_so_instead_of_passing(tmp_path):
+    _store_platform(tmp_path, "other", "Other CI", "other.yml")
+
+    body = client.post("/validate", json={"platform": "other", "content": "a: b\n"}).json()
+
+    assert [(c["id"], c["status"]) for c in body["checks"]] == [("yaml", "pass"), ("schema", "skipped")]
+    assert body["valid"] is True
+
+
+def test_validate_with_a_schema_the_platform_cannot_load_is_a_generic_server_error(tmp_path):
+    _store_platform(tmp_path, "other", "Other CI", "other.yml")
+    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text("{not json", encoding="utf-8")
+
+    response = client.post("/validate", json={"platform": "other", "content": "a: b\n"})
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "The platform's checks could not be loaded."
+    assert "not json" not in response.text
+
+
 def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
 

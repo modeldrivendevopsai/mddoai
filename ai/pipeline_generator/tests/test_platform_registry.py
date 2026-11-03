@@ -32,8 +32,8 @@ def folder(tmp_path):
 def test_the_committed_platforms_are_listed():
     registry = PlatformRegistry(PLATFORMS_DIR)
 
-    assert Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM") in registry.latest()
-    assert registry.get("gitlab") == Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM")
+    assert Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM", ("gitlab-references",)) in registry.latest()
+    assert registry.get("gitlab") == Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM", ("gitlab-references",))
 
 
 def test_a_platform_gives_back_its_three_files():
@@ -79,6 +79,9 @@ def test_an_empty_or_missing_folder_offers_nothing(folder):
         {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": None},
         {"id": "x", "name": "X", "version": "1", "output_filename": ".x.yml", "output_model_name": "XMM"},
         {"id": "x", "name": "X", "version": True, "output_filename": ".x.yml", "output_model_name": "XMM"},
+        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": "a"},
+        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": [1]},
+        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": [""]},
     ],
 )
 def test_a_version_without_a_usable_platform_json_is_never_listed(folder, meta):
@@ -176,3 +179,41 @@ def test_a_folder_with_no_usable_platform_is_logged_as_an_error(folder, caplog):
 
     assert PlatformRegistry(folder).latest() == []
     assert "holds no usable platform" in caplog.text
+
+
+def test_the_rule_sets_a_platform_lists_are_read(folder):
+    meta = {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM", "rules": ["a", "b"]}
+    _write_version(folder, "x", 1, meta=meta)
+
+    assert PlatformRegistry(folder).get("x").rules == ("a", "b")
+
+
+def test_a_platform_that_lists_no_rule_sets_has_none(folder):
+    _write_version(folder, "x", 1)
+
+    assert PlatformRegistry(folder).get("x").rules == ()
+
+
+def test_the_committed_gitlab_platform_has_a_schema_and_names_its_rules():
+    registry = PlatformRegistry(PLATFORMS_DIR)
+    gitlab = registry.get("gitlab")
+
+    assert gitlab.rules == ("gitlab-references",)
+    assert registry.schema(gitlab)["$schema"].startswith("http://json-schema.org/")
+
+
+def test_a_platform_without_a_schema_file_has_no_schema(folder):
+    _write_version(folder, "x", 1)
+    registry = PlatformRegistry(folder)
+
+    assert registry.schema(registry.get("x")) is None
+
+
+@pytest.mark.parametrize("content", ["{not json", "[]", '"text"'])
+def test_a_schema_file_that_cannot_be_read_is_an_error_not_no_schema(folder, content):
+    version_folder = _write_version(folder, "x", 1)
+    (version_folder / "schema.json").write_text(content, encoding="utf-8")
+    registry = PlatformRegistry(folder)
+
+    with pytest.raises(ValueError):
+        registry.schema(registry.get("x"))
