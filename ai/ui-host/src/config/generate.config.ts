@@ -1,5 +1,5 @@
 /**
- * "Generate a CI/CD pipeline" screens' defaults, and the copy that follows the
+ * The copy of the "Generate a CI/CD pipeline" screens, which follows the
  * approved wireframes, as data. A label that belongs to one component alone
  * (a button's name, a status line) is written beside that component.
  */
@@ -8,14 +8,10 @@
 // actually valid.
 export const MODEL_FILE_ACCEPT = '.swarch';
 
-// Where generated pipeline files are saved, relative to the workspace folder,
-// until the person changes it.
-export const DEFAULT_SAVE_TO = './ci-output/';
-
 export const GENERATE_COPY = {
   pipelines: {
     title: 'CI/CD Pipelines',
-    back: 'Start',
+    backHint: 'Back to the start screen',
     newPipeline: '+ New pipeline',
     listTitle: 'Your pipelines',
     columns: {
@@ -31,6 +27,7 @@ export const GENERATE_COPY = {
   },
   input: {
     title: 'Generate CI/CD Pipeline',
+    backHint: 'Back to your pipelines',
     inputPath: 'Input path for SWArch file',
     inputPlaceholder: '/path/to/your-architecture.swarch',
     pathTitle: 'A path inside your workspace folder',
@@ -48,6 +45,14 @@ export const GENERATE_COPY = {
       invalid: 'Fix the problems found in your file first.',
       noPlatform: 'Select at least one platform.',
     },
+  },
+  validation: {
+    checking: 'Checking the pipeline…',
+    passed: (total: number) => (total === 1 ? '1 check passed' : `All ${total} checks passed`),
+    failed: (failed: number, total: number) => `${failed} of ${total} ${total === 1 ? 'check' : 'checks'} failed`,
+    unavailable: 'Could not check the pipeline',
+    unavailableDetail: 'The pipeline could not be checked.',
+    retry: 'Try again',
   },
   result: {
     placeholder: 'Result will appear here once generated.',

@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { GeneratorPlatform } from '@/services/generator.service';
-import { DEFAULT_SAVE_TO } from '../../config/generate.config';
 
 /**
  * What the person chooses before generating: which platforms, and which
@@ -9,7 +8,8 @@ import { DEFAULT_SAVE_TO } from '../../config/generate.config';
  */
 export function useGenerationSettings(platforms: GeneratorPlatform[]) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [saveTo, setSaveTo] = useState(DEFAULT_SAVE_TO);
+  // Empty until the person chooses a folder: nothing is saved without one.
+  const [saveTo, setSaveTo] = useState('');
 
   const toggle = useCallback((platformId: string) => {
     setSelected((current) =>

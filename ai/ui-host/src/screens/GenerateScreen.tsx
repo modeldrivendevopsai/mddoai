@@ -60,7 +60,7 @@ export default function GenerateScreen({ pipelineId, onBack }: GenerateScreenPro
             validations={generation.validations}
             validating={generation.validating}
             validateErrors={generation.validateErrors}
-            onValidate={(platformId) => void generation.validate(platformId)}
+            onRetryValidation={(platformId) => void generation.validate(platformId)}
           />
         </div>
       </div>

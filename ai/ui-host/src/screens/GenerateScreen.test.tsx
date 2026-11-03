@@ -5,6 +5,7 @@
 // what's under test is the screen's own behaviour: what unlocks Generate and
 // when, what each failure shows, how a path, a browse and a saved pipeline
 // load, and that a slow answer for a replaced file never lands on the new one.
+import { StrictMode } from "react"
 import type { ReactNode } from "react"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -160,7 +161,7 @@ describe("GenerateScreen: the empty screen", () => {
     expect(checkbox("GitLab CI").checked).toBe(false)
     expect(screen.getByText(/select one or more/)).toBeTruthy()
     expect(pathField().value).toBe("")
-    expect(saveField().value).toBe("./ci-output/")
+    expect(saveField().value).toBe("")
     expect(screen.getByText("Result will appear here once generated.")).toBeTruthy()
     expect(generateButton().disabled).toBe(true)
     expect(screen.getByText("Load an architecture file first.")).toBeTruthy()
@@ -485,6 +486,7 @@ describe("GenerateScreen: generating", () => {
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     renderScreen()
 
+    fireEvent.change(saveField(), { target: { value: "/ci-output" } })
     await loadValidModelAndGenerate()
 
     expect(await screen.findByText(/GitLab CI pipeline generated in 1\.5 s/)).toBeTruthy()
@@ -494,12 +496,23 @@ describe("GenerateScreen: generating", () => {
         content: "<swarch/>",
         platforms: ["gitlab"],
         source_path: null,
-        save_to: "./ci-output/",
+        save_to: "/ci-output",
       },
       expect.any(AbortSignal)
     )
     expect(screen.getByLabelText(".gitlab-ci.yml").textContent).toBe("stages:\n  - build\n")
     expect(screen.getByText("Saved to /ci-output/.gitlab-ci.yml")).toBeTruthy()
+  })
+
+  it("saves nothing when no folder was chosen", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    await screen.findByText(/GitLab CI pipeline generated/)
+    expect(vi.mocked(service.generatePipelines).mock.calls[0][0]).toMatchObject({ save_to: null })
   })
 
   it("tells the service where a path-loaded model came from", async () => {
@@ -704,55 +717,158 @@ describe("GenerateScreen: generating", () => {
   })
 })
 
+const FAILING: PipelineValidation = {
+  valid: false,
+  checks: [
+    { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
+    {
+      id: "schema",
+      title: "The settings follow GitLab's CI format",
+      status: "fail",
+      details: ["build: Additional properties are not allowed ('scrpt' was unexpected)"],
+    },
+    { id: "needs", title: "Every job dependency points at a real job", status: "skipped", details: [] },
+  ],
+}
+
+// The drop-down the checks sit in, found from its status line.
+const statusMenu = (label: string) => screen.getByText(label).closest("details") as HTMLDetailsElement
+
 describe("GenerateScreen: validating a pipeline", () => {
-  it("validates the generated pipeline for its platform", async () => {
+  it("checks the generated pipeline by itself, with no button to press", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
 
-    expect(await screen.findByText("All checks passed")).toBeTruthy()
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
     expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", GITLAB_RESULT.pipeline)
-    expect(screen.getByText("The file is valid YAML")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /validate/i })).toBeNull()
   })
 
-  it("lists each failed check with what to look at", async () => {
+  it("checks once even when React runs effects twice", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
-    vi.mocked(service.validatePipeline).mockResolvedValue({
-      valid: false,
-      checks: [
-        { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
-        { id: "schema", title: "The settings follow GitLab's CI format", status: "fail", details: ["build: Additional properties are not allowed ('scrpt' was unexpected)"] },
-        { id: "needs", title: "Every job dependency points at a real job", status: "skipped", details: [] },
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    render(
+      <StrictMode>
+        <GenerateScreen onBack={() => undefined} />
+      </StrictMode>
+    )
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
+  })
+
+  it("checks each platform's pipeline, and skips one that produced none", async () => {
+    vi.mocked(service.getPlatforms).mockResolvedValue([GITLAB, BAMBOO])
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue({
+      pipeline_id: "p1",
+      results: [
+        GITLAB_RESULT,
+        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, pipeline: null, intermediates: [], duration_ms: null, saved_to: null, error: "The pipeline generator failed." },
       ],
     })
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen()
+
+    uploadFile("app.swarch")
+    await screen.findByText("This model is valid")
+    fireEvent.click(await screen.findByRole("checkbox", { name: "GitLab CI" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Bamboo" }))
+    fireEvent.click(generateButton())
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
+    expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", GITLAB_RESULT.pipeline)
+  })
+
+  it("closes the drop-down on Escape or a press outside it, not on a press inside", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen()
+    await loadValidModelAndGenerate()
+    await screen.findByText("All 2 checks passed")
+    const menu = statusMenu("All 2 checks passed")
+    const open = () => fireEvent.click(menu.querySelector("summary") as HTMLElement)
+
+    open()
+    fireEvent.pointerDown(screen.getByText("The file is valid YAML"))
+    expect(menu.open).toBe(true)
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(menu.open).toBe(false)
+
+    open()
+    fireEvent.pointerDown(document.body)
+    expect(menu.open).toBe(false)
+  })
+
+  it("keeps each check under a drop-down next to the status", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
+    await screen.findByText("All 2 checks passed")
 
-    expect(await screen.findByText("1 check failed")).toBeTruthy()
-    expect(screen.getByText(/'scrpt' was unexpected/)).toBeTruthy()
-    expect(screen.getByText("Skipped")).toBeTruthy()
+    const menu = statusMenu("All 2 checks passed")
+    expect(menu.open).toBe(false)
+    expect(within(menu).getByText("The file is valid YAML")).toBeTruthy()
+    fireEvent.click(menu.querySelector("summary") as HTMLElement)
+    expect(menu.open).toBe(true)
   })
 
-  it("shows the real error when validation itself fails", async () => {
+  it("counts the failed checks and lists what to look at", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(FAILING)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("1 of 3 checks failed")).toBeTruthy()
+    const menu = statusMenu("1 of 3 checks failed")
+    expect(within(menu).getByText(/'scrpt' was unexpected/)).toBeTruthy()
+    expect(within(menu).getByText("Skipped")).toBeTruthy()
+  })
+
+  it("shows the real error when the check itself fails", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     vi.mocked(service.validatePipeline).mockRejectedValue(new service.GeneratorError("Validate request failed: 500", 500))
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
 
-    expect(await screen.findByText("Validate request failed: 500")).toBeTruthy()
+    expect(await screen.findByText("Could not check the pipeline")).toBeTruthy()
+    expect(within(statusMenu("Could not check the pipeline")).getByText("Validate request failed: 500")).toBeTruthy()
   })
 
-  it("does not show the old pipeline's validation after generating again", async () => {
+  it("offers to try again when the check itself could not run", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline)
+      .mockRejectedValueOnce(new service.GeneratorError("Validate request failed: 502", 502))
+      .mockResolvedValueOnce(PASSING)
+    renderScreen()
+    await loadValidModelAndGenerate()
+    await screen.findByText("Could not check the pipeline")
+
+    fireEvent.click(within(statusMenu("Could not check the pipeline")).getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(2)
+  })
+
+  it("says it is checking until the answer arrives", async () => {
     let resolveValidation: (value: PipelineValidation) => void = () => undefined
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
@@ -760,18 +876,44 @@ describe("GenerateScreen: validating a pipeline", () => {
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
-    await screen.findByRole("button", { name: "Validating…" })
+
+    expect(await screen.findByText("Checking the pipeline…")).toBeTruthy()
+    resolveValidation(PASSING)
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(screen.queryByText("Checking the pipeline…")).toBeNull()
+  })
+
+  it("checks a saved pipeline when it is brought back", async () => {
+    vi.mocked(service.getPipeline).mockResolvedValue(SAVED)
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen({ pipelineId: "p1" })
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", SAVED.results[0].pipeline)
+  })
+
+  it("does not show the old pipeline's validation after generating again", async () => {
+    let resolveFirst: (value: PipelineValidation) => void = () => undefined
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline)
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockResolvedValueOnce(FAILING)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+    await screen.findByText("Checking the pipeline…")
 
     fireEvent.click(generateButton())
-    await waitFor(() => expect(vi.mocked(service.generatePipelines)).toHaveBeenCalledTimes(2))
-    resolveValidation(PASSING)
+    expect(await screen.findByText("1 of 3 checks failed")).toBeTruthy()
+    resolveFirst(PASSING)
     // Let the late answer land before looking: asserting on the very next tick
     // would pass whether or not it was (wrongly) applied.
     await act(async () => undefined)
 
-    expect(screen.queryByText("All checks passed")).toBeNull()
-    expect(screen.queryByRole("button", { name: "Validating…" })).toBeNull()
+    expect(screen.queryByText("All 2 checks passed")).toBeNull()
+    expect(screen.getByText("1 of 3 checks failed")).toBeTruthy()
   })
 })
 

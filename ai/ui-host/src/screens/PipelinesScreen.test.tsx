@@ -120,7 +120,7 @@ describe("PipelinesScreen", () => {
     renderScreen({ onNew, onBack })
 
     fireEvent.click(screen.getByRole("button", { name: "+ New pipeline" }))
-    fireEvent.click(screen.getByRole("button", { name: /Start/ }))
+    fireEvent.click(screen.getByRole("button", { name: "CI/CD Pipelines" }))
 
     expect(onNew).toHaveBeenCalledTimes(1)
     expect(onBack).toHaveBeenCalledTimes(1)

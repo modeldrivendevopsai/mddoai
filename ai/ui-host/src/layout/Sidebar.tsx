@@ -3,19 +3,36 @@ import { useLocation } from 'react-router-dom';
 import { Tabs, Icon } from 'design-system';
 import { SIDEBAR_TABS } from '../config/sidebar.config';
 import { SidebarActions } from './SidebarActions';
+import { PipelinesList } from './PipelinesList';
 import { SessionsList } from './SessionsList';
 import type { SessionType } from '../services/sessions.service';
 import './sidebar.css';
 
 /**
- * Sidebar — collapsible nav panel. Tab set comes from config, not
- * hardcoded here, so adding a third tab later is a config change only.
+ * Sidebar — collapsible nav panel. The tab set comes from config. Each tab
+ * type has its own list (see TabList), and the compiler requires one for every
+ * tab type, so a new tab cannot be added without it.
  */
 interface SidebarProps {
   onAction?: (actionId: string) => void;
+  // Opens a generated pipeline; where that goes is the caller's to decide.
+  onOpenPipeline: (pipelineId: string) => void;
+  // The generated pipeline on screen, if one is.
+  openPipelineId: string | undefined;
 }
 
-export function Sidebar({ onAction }: SidebarProps) {
+type TabListProps = Pick<SidebarProps, 'onOpenPipeline' | 'openPipelineId'> & { tab: SessionType };
+
+function TabList({ tab, onOpenPipeline, openPipelineId }: TabListProps) {
+  switch (tab) {
+    case 'pipeline':
+      return <PipelinesList openId={openPipelineId} onOpen={onOpenPipeline} />;
+    case 'platform':
+      return <SessionsList activeTab={tab} />;
+  }
+}
+
+export function Sidebar({ onAction, onOpenPipeline, openPipelineId }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<SessionType>(SIDEBAR_TABS[0].id);
   const [collapsed, setCollapsed] = useState(false);
   const { pathname } = useLocation();
@@ -60,7 +77,7 @@ export function Sidebar({ onAction }: SidebarProps) {
 
       {!collapsed && (
         <div className="mdd-sidebar__sessions">
-          <SessionsList activeTab={activeTab} />
+          <TabList tab={activeTab} onOpenPipeline={onOpenPipeline} openPipelineId={openPipelineId} />
         </div>
       )}
     </aside>

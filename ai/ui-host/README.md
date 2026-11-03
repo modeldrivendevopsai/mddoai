@@ -53,12 +53,14 @@ Where things live:
   hook `src/hooks/useIntegration.ts`.
 - **Generate-a-pipeline screens** `src/screens/PipelinesScreen.tsx` and
   `src/screens/GenerateScreen.tsx`, their components under `src/features/generate/`, state in
-  `useGenerate.ts`, copy and defaults in `src/config/generate.config.ts`. Backed by its own API client `src/services/generator.service.ts`,
+  `useGenerate.ts`, copy in `src/config/generate.config.ts`. Backed by its own API client `src/services/generator.service.ts`,
   which talks to `ai/pipeline_generator` (not `ai/orchestrator`).
 - **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
   with mock data from `src/services/platforms.service.ts`.
-- **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
-  sourced from `src/config/sidebar.config.ts` and `src/services/sessions.service.ts`.
+- **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `PipelinesList`,
+  `TopBar`), sourced from `src/config/sidebar.config.ts`, `src/services/sessions.service.ts` (the
+  platforms tab) and `src/services/generator.service.ts` (the pipelines tab lists the pipelines
+  already generated).
 - **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
   under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
 - **REST-contract types** the sibling `orchestrator-types` package (`ai/orchestrator-types`), the

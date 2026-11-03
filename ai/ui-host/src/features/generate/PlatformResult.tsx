@@ -2,7 +2,7 @@ import { Button, CodeBlock, StatusPill } from 'design-system';
 import type { GenerationResult, PipelineValidation } from '@/services/generator.service';
 import { downloadName, downloadText } from './download';
 import { seconds } from './format';
-import { PipelineChecks } from './PipelineChecks';
+import { ValidationStatus } from './ValidationStatus';
 import type { StepError } from './stepError';
 
 interface PlatformResultProps {
@@ -10,16 +10,16 @@ interface PlatformResultProps {
   validation: PipelineValidation | undefined;
   validating: boolean;
   validateError: StepError | undefined;
-  onValidate: () => void;
+  onRetryValidation: () => void;
 }
 
 /**
  * One platform's outcome: the pipeline itself first, since it is the point
- * of the screen, with where it was saved, a way to validate it, and the
+ * of the screen, how it checked out, where it was saved, and the
  * intermediate models the engine passed through tucked behind a disclosure
  * for anyone curious how it was built.
  */
-export function PlatformResult({ result, validation, validating, validateError, onValidate }: PlatformResultProps) {
+export function PlatformResult({ result, validation, validating, validateError, onRetryValidation }: PlatformResultProps) {
   const { platform, pipeline } = result;
 
   if (pipeline === null) {
@@ -37,10 +37,16 @@ export function PlatformResult({ result, validation, validating, validateError, 
 
   return (
     <section className="mdd-generate__result" aria-label={platform.name}>
-      <div className="mdd-generate__row">
+      <div className="mdd-generate__result-head">
         <StatusPill variant="success">
           {platform.name} pipeline generated{result.duration_ms !== null && ` in ${seconds(result.duration_ms)}`}
         </StatusPill>
+        <ValidationStatus
+          validation={validation}
+          validating={validating}
+          error={validateError}
+          onRetry={onRetryValidation}
+        />
       </div>
 
       <div className="mdd-generate__code">
@@ -55,9 +61,6 @@ export function PlatformResult({ result, validation, validating, validateError, 
           onClick={() => downloadText(savedAs, pipeline)}
         >
           Download {result.output_filename}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={validating} onClick={onValidate}>
-          {validating ? 'Validating…' : validation ? 'Validate again' : 'Validate pipeline'}
         </Button>
       </div>
 
@@ -78,13 +81,6 @@ export function PlatformResult({ result, validation, validating, validateError, 
           Could not save the file: {result.save_error}
         </p>
       )}
-
-      {validateError && (
-        <p className="mdd-generate__error" role="alert">
-          {validateError.message}
-        </p>
-      )}
-      {validation && <PipelineChecks validation={validation} />}
 
       {result.intermediates.length > 0 && (
         <details className="mdd-generate__details">

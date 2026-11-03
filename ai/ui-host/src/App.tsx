@@ -16,6 +16,9 @@ const START_OPTION_ROUTES: Record<string, string> = {
   "add-update-platform": "/integration",
 }
 
+// Where a saved pipeline is shown. Used by the pipelines list and by the sidebar.
+const pipelinePath = (pipelineId: string) => `/generate/${pipelineId}`
+
 function StartScreenRoute() {
   const navigate = useNavigate()
   return <StartScreen onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? "/integration")} />
@@ -27,7 +30,7 @@ function PipelinesScreenRoute() {
     <PipelinesScreen
       onBack={() => navigate("/")}
       onNew={() => navigate("/generate/new")}
-      onOpen={(pipelineId) => navigate(`/generate/${pipelineId}`)}
+      onOpen={(pipelineId) => navigate(pipelinePath(pipelineId))}
     />
   )
 }
@@ -68,8 +71,19 @@ function useSidebarNavigation() {
 }
 
 function AppShellRoute({ children }: { children: ReactNode }) {
+  const navigate = useNavigate()
+  // Set only on /generate/<id>, the screen of a saved pipeline.
+  const { pipelineId } = useParams()
   const onSidebarAction = useSidebarNavigation()
-  return <AppShell onSidebarAction={onSidebarAction}>{children}</AppShell>
+  return (
+    <AppShell
+      onSidebarAction={onSidebarAction}
+      onOpenPipeline={(id) => navigate(pipelinePath(id))}
+      openPipelineId={pipelineId}
+    >
+      {children}
+    </AppShell>
+  )
 }
 
 function App() {

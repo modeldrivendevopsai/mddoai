@@ -15,7 +15,7 @@ interface ResultPanelProps {
   validations: Record<string, PipelineValidation>;
   validating: string[];
   validateErrors: Record<string, StepError>;
-  onValidate: (platformId: string) => void;
+  onRetryValidation: (platformId: string) => void;
 }
 
 /**
@@ -31,7 +31,7 @@ export function ResultPanel({
   validations,
   validating,
   validateErrors,
-  onValidate,
+  onRetryValidation,
 }: ResultPanelProps) {
   if (generating) {
     return (
@@ -70,7 +70,7 @@ export function ResultPanel({
           validation={validations[result.platform.id]}
           validating={validating.includes(result.platform.id)}
           validateError={validateErrors[result.platform.id]}
-          onValidate={() => onValidate(result.platform.id)}
+          onRetryValidation={() => onRetryValidation(result.platform.id)}
         />
       ))}
       {!kept && results.some((result) => result.pipeline !== null) && (
