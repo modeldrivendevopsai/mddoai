@@ -31,9 +31,10 @@ pytestmark = pytest.mark.skipif(
 
 
 def _normalized(text: str) -> str:
-    """Line endings and trailing spaces ignored: the template's indented call
-    leaves two spaces on one blank line, which no YAML reader can see."""
-    return "\n".join(line.rstrip() for line in text.replace("\r\n", "\n").split("\n"))
+    """Line endings, trailing spaces and blank lines ignored: the template's
+    indented call leaves a line of two spaces, which no YAML reader can see."""
+    lines = (line.rstrip() for line in text.replace("\r\n", "\n").split("\n"))
+    return "\n".join(line for line in lines if line)
 
 
 @pytest.fixture
