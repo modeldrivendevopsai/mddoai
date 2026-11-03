@@ -57,7 +57,7 @@ def test_a_rule_set_named_twice_or_empty_is_refused():
 
 
 def test_content_over_the_limit_is_refused(monkeypatch):
-    monkeypatch.setattr(main, "MAX_CONTENT_BYTES", 5)
+    monkeypatch.setattr(main, "MAX_PIPELINE_BYTES", 5)
 
     assert _post(content="name: a\n").status_code == 413
 

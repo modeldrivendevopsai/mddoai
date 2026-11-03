@@ -1,8 +1,8 @@
 # validator_agent
 
-Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), `.mtl` Acceleo templates (issue #315), and `.swarch` Software Architecture models. The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output (see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts)), `pipeline_generator`, which calls `/validate/swarch` on every Software Architecture model it is given, and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), `.mtl` Acceleo templates (issue #315), and `.swarch` Software Architecture models, plus generated CI/CD pipeline files (`/validate/pipeline`, plain Python, no JVM). The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output (see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts)), `pipeline_generator`, which calls `/validate/swarch` on every Software Architecture model it is given and `/validate/pipeline` on every pipeline it generates, and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
 
-Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
+Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single FastAPI wrapper (most routes spawn a Java process, `/validate/pipeline` is plain Python), not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
 ## Why a subprocess, not an embedded JVM
 
@@ -15,11 +15,13 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 3. The Java side prints one line of JSON to stdout and exits 0, whether the input is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from an input that's simply invalid.
 4. The JSON is parsed, `duration_ms` is added, and returned as the HTTP response.
 
+`/validate/pipeline` takes none of these steps: it is plain Python in this process, and its own section below says what it checks.
+
 | Outcome | HTTP status |
 |---|---|
 | Input validated (valid or not) | `200`, `valid` field tells you which |
 | Subprocess itself failed (missing `java`, timeout, crash, garbage stdout) | `500` |
-| Request body over `MAX_CONTENT_BYTES` | `413` |
+| Request body over `MAX_CONTENT_BYTES` (`MAX_PIPELINE_BYTES` for `/validate/pipeline`) | `413` |
 | Bad `mode` (ecore only) / missing `content` | `422` |
 
 ## API
@@ -113,11 +115,18 @@ A check that cannot be made is `skipped`, never `pass`. A pipeline that fails it
 
 The pipeline is untrusted. Its YAML is size-checked with every alias expanded before anything walks
 it, and content the YAML reader cannot handle (a number too long to read, a date as a setting name)
-is a failed check, not an error. The schema and the rule names are the caller's, not the
-pipeline's. A schema that is not a valid JSON schema, one that refers to anything outside itself
-(it is built with no way to fetch a reference, so it must be self-contained), or a rule name that
-does not exist is a `422` with the reason, whatever the file holds. Content over `MAX_CONTENT_BYTES`
-and a schema over `MAX_SCHEMA_BYTES` are `413`.
+is a failed check, not an error. The schema and the rule names are the caller's, not the pipeline's. A schema that is not a valid
+JSON schema, or a rule name that does not exist, is a `422` with the reason, whatever the file
+holds. So is a schema that refers to something it does not contain (it is built with no way to
+fetch a reference, so it must be self-contained) or cannot be applied (a reference loop, say), as
+soon as the pipeline reaches the part that does. A schema is trusted input: it is committed with
+its platform, and a pathological one can take very long to apply. Content over `MAX_PIPELINE_BYTES`
+(512 KiB by default, because parsing YAML costs seconds per megabyte) and a schema over
+`MAX_SCHEMA_BYTES` (2 MiB) are `413`.
+
+To add a rule set, write a function from a parsed pipeline (or `None` when it did not parse) to a
+list of checks in its own module, register it by name in `RULE_SETS` in `pipeline_checks.py`, and
+have the platform's `platform.json` list that name in its `rules`.
 
 ### `GET /health`
 
@@ -187,7 +196,7 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Window
 pytest
 ```
 
-The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
+The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks*.py`, `test_gitlab_references.py` and `test_pipeline_route.py` run plain Python and mock nothing; the GitLab ones read the committed GitLab platform and skip themselves without it. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest

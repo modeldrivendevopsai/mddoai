@@ -113,6 +113,20 @@ def test_a_reference_outside_the_schema_is_never_fetched():
         _check("name: a\n", schema=schema)
 
 
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"$ref": "#"},
+        {"definitions": {"a": {"$ref": "#/definitions/b"}, "b": {"$ref": "#/definitions/a"}}, "$ref": "#/definitions/a"},
+        {"$schema": ["not", "a", "uri"]},
+    ],
+    ids=["a schema that refers to itself", "two references in a loop", "a $schema that is not text"],
+)
+def test_a_schema_that_cannot_be_applied_is_an_error_not_a_crash(schema):
+    with pytest.raises(PlatformChecksError, match="cannot be used"):
+        _check("name: a\n", schema=schema)
+
+
 def test_a_reference_inside_the_schema_works():
     schema = {"definitions": {"text": {"type": "string"}}, "properties": {"name": {"$ref": "#/definitions/text"}}}
 
@@ -139,12 +153,15 @@ def test_content_the_yaml_reader_cannot_handle_is_a_failed_check_not_an_error(co
 # --- GitLab, with its real schema and rules -----------------------------------
 
 
-def test_the_expected_gitlab_output_passes_every_check():
-    from pathlib import Path
-
+def test_a_good_gitlab_pipeline_passes_every_check():
     from gitlab_platform import check_gitlab_pipeline
 
-    content = (Path(__file__).parent / "fixtures" / "expected-gitlab-ci.yml").read_text(encoding="utf-8")
+    content = (
+        "stages: [build, test]\n"
+        "variables:\n  A: b\n"
+        "build:\n  stage: build\n  script: [make]\n"
+        "check:\n  stage: test\n  script: [make test]\n  needs: [build]\n"
+    )
 
     result = check_gitlab_pipeline(content)
 

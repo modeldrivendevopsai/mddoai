@@ -1,14 +1,15 @@
-"""HTTP client for validator-agent: real .ecore/.atl/.mtl/.swarch structural/syntax
-validation, backed by the same Java CLIs main/'s own build produces (see
-validator_agent/README.md). Every call either returns validator-agent's own
-{"valid": bool, "issues": [...], "duration_ms": int, ...} body directly —
-win or lose, that's real data, not an error to branch on — or raises: a
-genuine infra failure (validator-agent unreachable, its own subprocess
-crashed) surfaces as a raw httpx error, matching ai_layer_client.py's own
-pattern exactly. Deliberately not integration_runner_client.py's
-IntegrationRunnerError shape: validator-agent never reports a structured
-400/404/409 business error to branch on, only 200 (valid or not) or 500
-(infra), so there's nothing that wrapper would add here.
+"""HTTP client for validator-agent: structural/syntax validation of .ecore/.atl/.mtl/.swarch
+files (backed by the same Java CLIs main/'s own build produces, see
+validator_agent/README.md) and of generated pipeline files (plain Python). Every
+call either returns validator-agent's own body directly, win or lose, that's
+real data, not an error to branch on, or raises: a genuine infra failure
+(validator-agent unreachable, its own subprocess crashed) surfaces as a raw
+httpx error, matching ai_layer_client.py's own pattern exactly. Deliberately not
+integration_runner_client.py's IntegrationRunnerError shape: validator-agent
+reports no structured business error to branch on, only 200 (valid or not), a
+rejected request (413, or 422, which validate_pipeline gets when its schema or
+rule names cannot be used) or 500 (infra), so there's nothing that wrapper
+would add here.
 """
 import os
 

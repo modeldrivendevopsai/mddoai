@@ -86,7 +86,7 @@ platforms/
     transformation.atl          the transformation from the PIM to the platform's model
     template.mtl                the Acceleo template from that model to the pipeline file
     schema.json                 optional: the JSON schema the generated pipeline must follow
-                                (kept beside it, a copied schema's license notice)
+    schema.LICENSE.txt          optional: the license notice of a schema copied from elsewhere
     platform.json               id, name, version, the pipeline's file name, the name the
                                 transformation gives the model it creates (the `GitLabMM` in
                                 `create OUT : GitLabMM from IN : PIM;`), and optionally `rules`,
@@ -185,7 +185,7 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it, and the platforms, in a `platforms/` folder. In Docker it is `/data`, with the data folder's `pipelines/` and `platforms/` mounted inside it. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
-| `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. One setting, so a pipeline that can be generated can always be validated. |
+| `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. `validator_agent`'s own `MAX_PIPELINE_BYTES` must be at least as large, or it refuses a pipeline this service accepted (the answer is then `413`). |
 
 In Docker, `ai/docker-compose.yml` sets the services' addresses and mounts the workspace folder
 (read-only), the pipeline history and the platforms folder (read-only).

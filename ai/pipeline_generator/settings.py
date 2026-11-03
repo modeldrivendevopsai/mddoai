@@ -8,8 +8,9 @@ from pathlib import Path
 MAX_MODEL_BYTES = int(os.environ.get("GENERATOR_MAX_MODEL_BYTES", str(256 * 1024)))
 
 # The largest pipeline a template may produce, and the largest the validate
-# endpoint accepts: one setting, so anything that can be generated can also be
-# checked. The models a generation passes through are held to the same limit.
+# endpoint accepts. validator-agent has a limit of its own for what it checks
+# (MAX_PIPELINE_BYTES there), which must be at least this large. The models a
+# generation passes through are held to the same limit.
 # A real pipeline or model is a few KB; this only guards against keeping
 # something unexpectedly huge in memory and on disk.
 MAX_PIPELINE_BYTES = int(os.environ.get("GENERATOR_MAX_PIPELINE_BYTES", str(512 * 1024)))

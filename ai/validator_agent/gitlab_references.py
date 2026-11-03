@@ -1,7 +1,7 @@
 """The GitLab CI rules a schema cannot see: a job naming a stage that was never
 declared, a `needs:` pointing at a job that does not exist, a file with no job
-at all. They are GitLab's own semantics, so they are code; a platform opts in
-by listing "gitlab-references" in the `rules` of its platform.json.
+at all. They are GitLab's own semantics, so they are code; a caller opts in by
+naming "gitlab-references" in the `rules` it sends.
 """
 from check_results import Check, check, skipped
 

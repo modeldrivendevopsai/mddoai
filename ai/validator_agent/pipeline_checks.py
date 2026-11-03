@@ -33,6 +33,11 @@ _YAML_SUFFIXES = (".yml", ".yaml")
 
 _MAX_DETAIL_CHARS = 300
 
+# What applying a schema can fail with when the schema, not the pipeline, is at
+# fault: a reference loop, a malformed keyword. The document it is applied to
+# is size-checked first, so it cannot be what makes these happen.
+_SCHEMA_FAULTS = (RecursionError, TypeError, AttributeError, ValueError)
+
 
 class PlatformChecksError(ValueError):
     """What the caller asked to check against cannot be used: a schema that is
@@ -89,7 +94,7 @@ def _load_document(content: str) -> tuple[dict | None, list[str]]:
         return None, ["The file is nested too deeply"]
     except ValueError as e:
         # For example an integer with more digits than Python will convert.
-        return None, [_clip(f"The file could not be read: {e}")]
+        return None, ["The file contains a value too long to read"]
     if not isinstance(parsed, dict):
         return None, ["The top level of the file must be a set of settings and jobs"]
     if _is_too_large(parsed):
@@ -105,12 +110,14 @@ def _validator(schema: dict):
     """A validator for `schema`. It is built with an empty registry, so a
     reference to anything outside the schema cannot be fetched from anywhere:
     a schema must be self-contained."""
-    validator_class = validator_for(schema)
     try:
+        validator_class = validator_for(schema)
         validator_class.check_schema(schema)
+        return validator_class(schema, registry=Registry())
     except SchemaError as e:
-        raise PlatformChecksError(f"the schema is not a valid JSON schema: {e.message}") from e
-    return validator_class(schema, registry=Registry())
+        raise PlatformChecksError(f"the schema is not a valid JSON schema: {_clip(e.message)}") from e
+    except _SCHEMA_FAULTS as e:
+        raise PlatformChecksError(f"the schema cannot be used ({type(e).__name__})") from e
 
 
 def _schema_problems(validator, document: dict) -> list[str]:
@@ -123,7 +130,9 @@ def _schema_problems(validator, document: dict) -> list[str]:
             if problem not in problems:
                 problems.append(problem)
     except Unresolvable as e:
-        raise PlatformChecksError(f"the schema refers to something it does not contain: {e}") from e
+        raise PlatformChecksError(f"the schema refers to something it does not contain: {_clip(str(e))}") from e
+    except _SCHEMA_FAULTS as e:
+        raise PlatformChecksError(f"the schema cannot be used ({type(e).__name__})") from e
     return problems
 
 
@@ -149,8 +158,11 @@ def check_pipeline(
     """The checklist for a generated file. `filename` says whether it is YAML,
     `platform_name` is how the checks name the platform, `schema` is its JSON
     schema if it has one, and `rules` names the rule sets to apply. Raises
-    PlatformChecksError if the schema or a rule set cannot be used; that is
-    found first, whatever the file holds."""
+    PlatformChecksError if the schema or a rule set cannot be used. A schema
+    that is not a valid JSON schema, and a rule set that does not exist, are
+    found first, whatever the file holds. A schema that refers to something it
+    does not contain, or cannot be applied, is found when the pipeline reaches
+    the part that does."""
     validator = _validator(schema) if schema is not None else None
     rule_sets = [_rule_set(name) for name in rules]
     if not filename.lower().endswith(_YAML_SUFFIXES):

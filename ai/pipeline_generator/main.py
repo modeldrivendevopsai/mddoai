@@ -207,6 +207,8 @@ def validate_endpoint(request: PipelineRequest, registry: PlatformRegistry = Dep
             request.content, platform.output_filename, platform.name, schema, list(platform.rules)
         )
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 413:
+            raise HTTPException(status_code=413, detail="The pipeline is too large to check.")
         if e.response.status_code == 422:
             # The checks the platform's files ask for cannot be used: the fault
             # is in those files, whatever the pipeline holds.

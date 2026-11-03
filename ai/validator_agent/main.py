@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MDDOAI Validator Agent")
 
 MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
+# The largest pipeline file /validate/pipeline accepts. A real pipeline is a
+# few KB, and parsing YAML costs seconds per megabyte, so this is far below
+# MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
+MAX_PIPELINE_BYTES = int(os.environ.get("MAX_PIPELINE_BYTES", str(512 * 1024)))
 # The largest JSON schema accepted with a pipeline to check. A real platform's
 # is on the order of a hundred KB; this only stops an absurd one being parsed
 # and walked (engineering guess).
@@ -173,12 +177,19 @@ class SwarchValidateRequest(BaseModel):
     content: str = Field(..., min_length=1, description="Raw .swarch (XMI) content.")
 
 
+# The longest file name and platform name, and the most rule sets, a request
+# may carry. Engineering guesses, far beyond anything real.
+_MAX_FILENAME_CHARS = 255
+_MAX_PLATFORM_NAME_CHARS = 100
+_MAX_RULES = 20
+
+
 class PipelineValidateRequest(BaseModel):
     content: str = Field(..., min_length=1, description="The generated pipeline file's text.")
-    filename: str = Field(..., min_length=1, max_length=255, description="The pipeline file's name; its ending says whether it is YAML.")
-    platform_name: str = Field(..., min_length=1, max_length=100, description="How the checks name the platform.")
+    filename: str = Field(..., min_length=1, max_length=_MAX_FILENAME_CHARS, description="The pipeline file's name; its ending says whether it is YAML.")
+    platform_name: str = Field(..., min_length=1, max_length=_MAX_PLATFORM_NAME_CHARS, description="How the checks name the platform.")
     json_schema: dict | None = Field(None, description="The platform's JSON schema, if it has one.")
-    rules: list[str] = Field(default_factory=list, max_length=20, description="Names of the rule sets to apply.")
+    rules: list[str] = Field(default_factory=list, max_length=_MAX_RULES, description="Names of the rule sets to apply.")
 
     @field_validator("rules")
     @classmethod
@@ -287,9 +298,9 @@ def validate_swarch_endpoint(request: SwarchValidateRequest) -> SwarchValidation
 @app.post("/validate/pipeline", response_model=PipelineValidation)
 def validate_pipeline_endpoint(request: PipelineValidateRequest) -> PipelineValidation:
     content_bytes = len(request.content.encode("utf-8"))
-    if content_bytes > MAX_CONTENT_BYTES:
-        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_CONTENT_BYTES} bytes")
-    if request.json_schema is not None and len(json.dumps(request.json_schema)) > MAX_SCHEMA_BYTES:
+    if content_bytes > MAX_PIPELINE_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_PIPELINE_BYTES} bytes")
+    if request.json_schema is not None and len(json.dumps(request.json_schema, ensure_ascii=False).encode("utf-8")) > MAX_SCHEMA_BYTES:
         raise HTTPException(status_code=413, detail=f"json_schema exceeds {MAX_SCHEMA_BYTES} bytes")
 
     logger.info("POST /validate/pipeline platform=%s filename=%s bytes=%d", request.platform_name, request.filename, content_bytes)

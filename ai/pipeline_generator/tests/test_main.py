@@ -267,6 +267,14 @@ def test_validate_treats_a_server_error_from_validator_agent_as_the_checker_bein
     assert "secret" not in response.text
 
 
+def test_validate_says_so_when_validator_agent_finds_the_pipeline_too_large_to_check():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=_status_error(413, "content exceeds 5 bytes")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "The pipeline is too large to check."
+
+
 def test_validate_hides_why_the_platforms_checks_could_not_be_used(caplog):
     refusal = _status_error(422, "no rule set is named 'typo'")
     with patch("main.validator_agent_client.validate_pipeline", side_effect=refusal):

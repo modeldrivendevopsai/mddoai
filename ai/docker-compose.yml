@@ -433,6 +433,7 @@ services:
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
   # .ecore (issue #313), .atl (issue #314), .mtl/Acceleo (issue #315), and .swarch.
+  # It also checks generated pipeline files in plain Python (/validate/pipeline).
   # Named validator-agent, not ecore-validator: a future validator type would
   # add another sibling /validate/<type> route to this same service.
   validator-agent:

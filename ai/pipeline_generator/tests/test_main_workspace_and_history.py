@@ -151,6 +151,19 @@ def test_validate_with_a_schema_file_that_cannot_be_read_is_a_generic_error_and_
     validate.assert_not_called()
 
 
+def test_a_bad_schema_file_affects_only_validation_not_listing_or_generating(tmp_path):
+    _store_platform(tmp_path, "other", "Other CI", "other.yml")
+    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text("{not json", encoding="utf-8")
+
+    listed = [p["id"] for p in client.get("/platforms").json()["platforms"]]
+    with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
+            patch("generation.run_platform", return_value=_run_result()):
+        result = generate(client, {**MODEL, "platforms": ["other"]}).json()["results"][0]
+
+    assert "other" in listed
+    assert result["error"] is None and result["pipeline"]
+
+
 def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
 
