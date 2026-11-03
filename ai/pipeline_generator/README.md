@@ -2,8 +2,8 @@
 
 The backend of the "Generate a CI/CD pipeline" mode. A person gives it a Software Architecture
 model (a `.swarch` file, uploaded or picked from the workspace folder), and this service checks
-it, turns it into a CI/CD pipeline for each chosen platform, saves the pipelines, and checks the
-result. It replaces running the engine's command line or Eclipse by hand.
+it, turns it into a CI/CD pipeline for each chosen platform, keeps them so they can be reopened,
+and checks the result. It replaces running the engine's command line or Eclipse by hand.
 
 It is UI-facing, the way `orchestrator` is for the platform-integration mode, but it is a
 separate service. This mode has no pipeline run, no chat and no stages, and it calls no LLM.
@@ -15,10 +15,9 @@ separate service. This mode has no pipeline run, no chat and no stages, and it c
 2. **Generate** (`POST /generate`). Checks the model again and answers at once with a job id.
    Then, for each chosen platform, it runs the engine's own `swarch2<platform>` command and
    keeps the generated pipeline plus the intermediate models the engine passed through, for
-   `GET /generate/{job_id}` to return. It saves each pipeline file into the requested workspace
-   folder and records the generation so it can be reopened. A generation can take longer than a
-   proxy in front of the service allows one request to last, which is why it does not answer
-   with the results.
+   `GET /generate/{job_id}` to return. It records the generation so it can be reopened. A
+   generation can take longer than a proxy in front of the service allows one request to last,
+   which is why it does not answer with the results.
 3. **Validate** (`POST /validate`). Checks the generated pipeline file and returns a short
    checklist in plain language.
 
@@ -27,10 +26,10 @@ Around these, two more concerns have their own modules: the **workspace** (`work
 
 ## The workspace
 
-A web page can neither read nor write a path on the user's machine, so the service works inside
-one folder that is mounted into it. In Docker Compose that is the data folder's `workspace/` on
-the host (`MDDOAI_DATA_DIR` in the environment's `config.env`, see [ai/README.md](../README.md)'s
-"Where files live"), seen as `/workspace` inside the container. Put the models you want to pick
+A web page cannot read a path on the user's machine, so the service works inside one folder that
+is mounted into it. In Docker Compose that is the data folder's `workspace/` on the host
+(`MDDOAI_DATA_DIR` in the environment's `config.env`, see [ai/README.md](../README.md)'s "Where
+files live"), seen read-only as `/workspace` inside the container. Put the models you want to pick
 in it, or use Upload. The Browse dialog names the folder it is showing, from
 `GENERATOR_WORKSPACE_LABEL`, which compose sets to the host folder (`GET /workspace/browse`
 returns it as `root_label`).
@@ -42,20 +41,13 @@ outside is listed, and error messages never name a location outside the folder. 
 long as nothing else is changing the folder's links while a request runs: a path is checked and
 then used, not held open in between.
 
-- **Reading.** `GET /workspace/browse` lists a folder (for the Browse dialogs). `GET /workspace/file`
+- **Reading.** `GET /workspace/browse` lists a folder (for the Browse dialog). `GET /workspace/file`
   returns a model file's text, so it loads exactly like an upload. Every folder and regular file
-  is listed by name, so a person can see what is in the workspace, including the pipelines they
-  saved. Only `.swarch` files are read, and only up to `GENERATOR_MAX_MODEL_BYTES`. Other files
-  are never opened. Links that leave the workspace are not listed.
-- **Saving.** `POST /generate` with `save_to` writes each pipeline into that workspace folder
-  (created if needed) under the platform's own file name, replacing a file of that name. The write
-  goes to a temporary file that is renamed into place, so a failure part way does not leave half a
-  pipeline at the target (a hard kill of the process can leave the temporary `.saving-` file).
-  A failed save is reported next to the pipeline, which is still returned. When a file of that name
-  was already there, the result says it was replaced. A link of that name is replaced by the new
-  file, never written through. Saving is not a preview: the content written is the generated
-  pipeline, which carries the model's own values (a command named in the model ends up in the
-  pipeline), so a model should be trusted as much as the pipeline it produces.
+  is listed by name, so a person can see what is in the workspace. Only `.swarch` files are read,
+  and only up to `GENERATOR_MAX_MODEL_BYTES`. Other files are never opened. Links that leave the
+  workspace are not listed.
+- **No writing.** Nothing is ever written into the workspace. A generated pipeline is shown and
+  downloaded in the browser, and kept in the pipeline history.
 
 ## The pipeline history
 
@@ -97,8 +89,8 @@ facts:
 
 So every request runs in its own scratch directory, seeded with a copy of the compiled
 transformations, and the directory is deleted afterwards. Nothing the caller supplies is used to
-build a path there: the model is always written under a fixed name. (The workspace folder, below,
-is the one place a caller's path reaches the disk, and it is confined.)
+build a path there: the model is always written under a fixed name. (The workspace folder, above,
+is the one place a caller's path reaches the disk, and it is confined and only read.)
 
 ## API
 
@@ -107,11 +99,11 @@ is the one place a caller's path reaches the disk, and it is confined.)
 | `GET /health` | Used by the Dockerfile's `HEALTHCHECK`. |
 | `GET /platforms` | The platforms the engine can generate for end to end. |
 | `POST /inspect` | Body: `filename`, `content`. Returns `element`, `attributes` (name and value, in file order) and `model_validation` (`valid` plus `issues`). An invalid model is a normal `200` answer. |
-| `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path` and `save_to`. Checks the request, answers `202` with a `job_id`, and generates afterwards. An empty `save_to` is refused; omit it to save nothing. |
-| `GET /generate/{job_id}` | The generation's `state`: `running`, `failed` (with a generic `error`; the cause is in the service log) or `done`. A done job has `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms`, `saved_to`, `replaced`, `save_error` and `error`. One platform failing is reported in its own entry and does not discard the others. |
+| `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path`. Checks the request, answers `202` with a `job_id`, and generates afterwards. |
+| `GET /generate/{job_id}` | The generation's `state`: `running`, `failed` (with a generic `error`; the cause is in the service log) or `done`. A done job has `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms` and `error`. One platform failing is reported in its own entry and does not discard the others. |
 | `GET /pipelines` | The generated pipelines, newest first: `id`, `swarch_name`, `source_path`, `platforms`, `outputs`, `generated_at`. |
-| `GET /pipelines/{id}` | One pipeline in full, including the model `content`, `save_to` and `results`. `404` for an unknown id. |
-| `GET /workspace/browse` | Query: `path`, `dirs_only`. Returns `path`, `parent`, `entries` (name and `dir` or `file`) and `truncated`. |
+| `GET /pipelines/{id}` | One pipeline in full, including the model `content` and `results`. `404` for an unknown id. |
+| `GET /workspace/browse` | Query: `path`. Returns `path`, `parent`, `entries` (name and `dir` or `file`) and `truncated`. |
 | `GET /workspace/file` | Query: `path`. Returns `filename`, `path` and `content`. |
 | `POST /validate` | Body: `platform`, `content` (the pipeline text). Returns `valid` and `checks`, each with `status` (`pass`, `fail` or `skipped`) and `details`. |
 
@@ -126,7 +118,7 @@ is the one place a caller's path reaches the disk, and it is confined.)
 | Content or a workspace file over the size limit | `413` |
 | `validator_agent` unreachable | `502` |
 | The workspace folder is not mounted | `503` |
-| A workspace file or folder could not be read, listed or written | `500`, with a generic message (the cause is in the service log) |
+| A workspace file or folder could not be read or listed | `500`, with a generic message (the cause is in the service log) |
 | The engine failed to run or produced no output for a platform | `200`, with that platform's `error` set to a generic message |
 
 The engine's own error text can contain stack traces and server paths, so it is written to the
@@ -195,11 +187,11 @@ A platform is supported when the engine has an end-to-end command for it. To add
 
 ## Boundaries
 
-The workspace folder is the part of the host's disk this service reads or writes. The API has no
-authentication, like the other services, so what protects the workspace is who can reach the UI:
-`docker-compose.yml` publishes the UI's port on this machine only. Anyone who can reach it can list
-the workspace's folders and files, read its `.swarch` files, and have pipeline files written into
-it, so mount a folder you are comfortable exposing that way.
+The workspace folder is the part of the host's disk this service reads, and it is mounted
+read-only. The API has no authentication, like the other services, so what protects the workspace
+is who can reach the UI: `docker-compose.yml` publishes the UI's port on this machine only. Anyone
+who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
+a folder you are comfortable exposing that way.
 
 This is the service that runs the engine's own command, a deliberate exception described in
 `ai/CLAUDE.md` (the fifth exception). It never imports Java code: it starts the engine as a

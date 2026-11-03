@@ -50,7 +50,7 @@ export function useGenerate() {
   const { adopt } = model;
   const { restore } = generation;
 
-  // Brings a saved pipeline back: its model, the settings it was made with
+  // Brings a saved pipeline back: its model, the platforms it was made for
   // and the result it produced.
   const openSaved = useCallback(
     async (pipelineId: string) => {
@@ -69,7 +69,6 @@ export function useGenerate() {
         restore({
           results: record.results,
           platformIds: record.platforms.map((platform) => platform.id),
-          saveTo: record.save_to,
           pipelineId: record.id,
         });
         await loading;

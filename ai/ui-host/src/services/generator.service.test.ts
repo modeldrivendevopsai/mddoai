@@ -47,14 +47,13 @@ describe("generatorService", () => {
     return mock
   }
 
-  it("generatePipelines posts the platforms, source path and save folder, then fetches the finished job", async () => {
+  it("generatePipelines posts the platforms and source path, then fetches the finished job", async () => {
     const mock = stubFetchSequence({ job_id: "j1" }, { state: "done", pipeline_id: "p1", results: [] })
     const request = {
       filename: "app.swarch",
       content: "<x/>",
       platforms: ["gitlab", "bamboo"],
       source_path: "/repos/app.swarch",
-      save_to: "./ci-output/",
     }
 
     expect(await generatePipelines(request)).toEqual({ pipeline_id: "p1", results: [] })
@@ -72,7 +71,7 @@ describe("generatorService", () => {
         { state: "running" },
         { state: "done", pipeline_id: "p1", results: [] }
       )
-      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
       const result = generatePipelines(request)
       await vi.runAllTimersAsync()
@@ -86,7 +85,7 @@ describe("generatorService", () => {
 
   it("generatePipelines throws the job's error when the generation failed", async () => {
     stubFetchSequence({ job_id: "j1" }, { state: "failed", error: "The pipeline generator failed." })
-    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
     await expect(generatePipelines(request)).rejects.toThrow("The pipeline generator failed.")
   })
@@ -100,7 +99,7 @@ describe("generatorService", () => {
         .mockResolvedValueOnce({ ok: false, status: 502, json: async () => ({}) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ state: "done", pipeline_id: "p1", results: [] }) })
       vi.stubGlobal("fetch", mock)
-      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
       const result = generatePipelines(request)
       await vi.runAllTimersAsync()
@@ -115,14 +114,14 @@ describe("generatorService", () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ job_id: "j1" }) })
       .mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ detail: "No such generation. It may have been lost in a restart." }) }))
-    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
     await expect(generatePipelines(request)).rejects.toThrow("lost in a restart")
   })
 
   it("generatePipelines refuses an answer it does not understand instead of waiting forever", async () => {
     stubFetchSequence({ job_id: "j1" }, { state: "paused" })
-    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
     await expect(generatePipelines(request)).rejects.toThrow("unexpected answer")
   })
@@ -131,7 +130,7 @@ describe("generatorService", () => {
     const mock = stubFetchSequence({ job_id: "j1" }, { state: "running" })
     const controller = new AbortController()
     controller.abort()
-    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+    const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
     await expect(generatePipelines(request, controller.signal)).rejects.toThrow()
     expect(mock).toHaveBeenCalledTimes(1)
@@ -142,7 +141,7 @@ describe("generatorService", () => {
     try {
       const mock = stubFetchSequence({ job_id: "j1" }, { state: "running" })
       const controller = new AbortController()
-      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null, save_to: null }
+      const request = { filename: "a.swarch", content: "<x/>", platforms: ["gitlab"], source_path: null }
 
       const settled = expect(generatePipelines(request, controller.signal)).rejects.toThrow()
       await vi.advanceTimersByTimeAsync(0)
@@ -179,15 +178,14 @@ describe("generatorService", () => {
     expect(mock.mock.calls[0][0]).toBe("/generator-api/pipelines/a%2Fb")
   })
 
-  it("browseWorkspace sends the path and whether to list folders only, encoded", async () => {
+  it("browseWorkspace sends the path, encoded", async () => {
     const mock = stubFetch({ ok: true, json: async () => ({ path: "/", parent: null, entries: [], truncated: false }) })
 
-    await browseWorkspace("/my repos/a&b", true)
+    await browseWorkspace("/my repos/a&b")
 
     const url = new URL(mock.mock.calls[0][0], "http://x")
     expect(url.pathname).toBe("/generator-api/workspace/browse")
     expect(url.searchParams.get("path")).toBe("/my repos/a&b")
-    expect(url.searchParams.get("dirs_only")).toBe("true")
   })
 
   it("readWorkspaceFile sends the path as a query parameter", async () => {
@@ -231,7 +229,6 @@ describe("generatorService", () => {
       content: "b",
       platforms: ["gitlab"],
       source_path: null,
-      save_to: null,
     }).catch((e) => e)
 
     expect(error.message).toBe("The model is not valid.")

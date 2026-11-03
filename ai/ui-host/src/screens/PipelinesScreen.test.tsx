@@ -97,19 +97,45 @@ describe("PipelinesScreen", () => {
     vi.mocked(service.listPipelines).mockResolvedValue(ROWS)
     renderScreen()
 
-    const name = await screen.findByText("hello-java-ci.swarch")
+    const name = (await screen.findByText("hello-java-ci.swarch")).closest("th")
 
-    expect(name.getAttribute("title")).toBe("/repos/hello-java-ci/swarch/hello-java-ci.swarch")
-    expect(screen.getByText("payments-service.swarch").getAttribute("title")).toBeNull()
+    expect(name?.getAttribute("title")).toBe("/repos/hello-java-ci/swarch/hello-java-ci.swarch")
+    expect(screen.getByText("payments-service.swarch").closest("th")?.getAttribute("title")).toBeNull()
   })
 
-  it("opens the pipeline whose open link is clicked", async () => {
+  it("opens a pipeline when its row is pressed anywhere, with no separate open link", async () => {
     vi.mocked(service.listPipelines).mockResolvedValue(ROWS)
     const onOpen = vi.fn()
     renderScreen({ onOpen })
 
-    fireEvent.click(await screen.findByRole("button", { name: "open payments-service.swarch" }))
+    fireEvent.click((await screen.findByText("GitLab CI, Bamboo")).closest("tr") as HTMLElement)
 
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(onOpen).toHaveBeenCalledWith("p2")
+    expect(screen.queryByText("open")).toBeNull()
+  })
+
+  it("does not open a pipeline when the press only ends selecting text in its row", async () => {
+    vi.mocked(service.listPipelines).mockResolvedValue(ROWS)
+    const onOpen = vi.fn()
+    renderScreen({ onOpen })
+    const cell = await screen.findByText("GitLab CI, Bamboo")
+    window.getSelection()?.selectAllChildren(cell)
+
+    fireEvent.click(cell)
+
+    expect(onOpen).not.toHaveBeenCalled()
+    window.getSelection()?.removeAllRanges()
+  })
+
+  it("opens a pipeline once when its name, the keyboard's way into the row, is pressed", async () => {
+    vi.mocked(service.listPipelines).mockResolvedValue(ROWS)
+    const onOpen = vi.fn()
+    renderScreen({ onOpen })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open payments-service.swarch" }))
+
+    expect(onOpen).toHaveBeenCalledTimes(1)
     expect(onOpen).toHaveBeenCalledWith("p2")
   })
 

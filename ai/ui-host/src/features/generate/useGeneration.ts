@@ -16,8 +16,8 @@ interface Options {
 }
 
 /**
- * Generating: a real call to ai/pipeline_generator for the platforms and save
- * folder the person chose. Choosing is useGenerationSettings's job and
+ * Generating: a real call to ai/pipeline_generator for the platforms the
+ * person chose. Choosing is useGenerationSettings's job and
  * validating what came back is useValidation's.
  *
  * Whatever invalidated an in-flight request (a different file, generating
@@ -27,7 +27,7 @@ interface Options {
  */
 export function useGeneration({ guard, source, platforms }: Options) {
   const settings = useGenerationSettings(platforms);
-  const { chosen, saveTo, apply: applySettings } = settings;
+  const { chosen, apply: applySettings } = settings;
   const [results, setResults] = useState<GenerationResult[] | null>(null);
   const [pipelineId, setPipelineId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -66,7 +66,6 @@ export function useGeneration({ guard, source, platforms }: Options) {
           content: source.content,
           platforms: chosen.map((platform) => platform.id),
           source_path: source.path,
-          save_to: saveTo.trim() === '' ? null : saveTo.trim(),
         },
         controller.signal
       );
@@ -80,14 +79,14 @@ export function useGeneration({ guard, source, platforms }: Options) {
     } finally {
       if (guard.isCurrent(current)) setGenerating(false);
     }
-  }, [chosen, source, saveTo, guard, reset]);
+  }, [chosen, source, guard, reset]);
 
-  // A saved pipeline brought back: its result, and the settings it was made with.
+  // A saved pipeline brought back: its result, and the platforms it was made for.
   const restore = useCallback(
-    (saved: { results: GenerationResult[]; platformIds: string[]; saveTo: string | null; pipelineId: string }) => {
+    (saved: { results: GenerationResult[]; platformIds: string[]; pipelineId: string }) => {
       setResults(saved.results);
       setPipelineId(saved.pipelineId);
-      applySettings(saved.platformIds, saved.saveTo);
+      applySettings(saved.platformIds);
     },
     [applySettings]
   );
@@ -95,7 +94,6 @@ export function useGeneration({ guard, source, platforms }: Options) {
   return {
     selected: settings.selected,
     chosen,
-    saveTo,
     results,
     pipelineId,
     generating,
@@ -105,7 +103,6 @@ export function useGeneration({ guard, source, platforms }: Options) {
     validating: validation.validating,
     validateErrors: validation.errors,
     toggle: settings.toggle,
-    setSaveTo: settings.setSaveTo,
     generate,
     validate: validation.validate,
     reset,

@@ -8,25 +8,24 @@ interface PathFieldProps {
   // Shown beside the label, for example that a file is loaded.
   note?: ReactNode;
   value: string;
-  placeholder?: string;
+  placeholder: string;
   // Shown on hover; what the path is relative to.
-  title?: string;
+  title: string;
   disabled: boolean;
   error?: string | null;
   onChange: (value: string) => void;
   // Pressing Enter in the field, or leaving it: the text is final.
-  onCommit?: () => void;
+  onCommit: () => void;
   onBrowse: () => void;
-  // Only the input-file field offers an upload from the person's own computer.
-  onUpload?: (file: File) => void;
+  onUpload: (file: File) => void;
   browseLabel: string;
-  uploadLabel?: string;
+  uploadLabel: string;
 }
 
 /**
  * A workspace path typed into a text field, with a Browse button that picks
- * one from the workspace folder and, for a model file, an Upload button that
- * takes one from the person's own computer.
+ * one from the workspace folder and an Upload button that takes a file from
+ * the person's own computer.
  */
 export function PathField({
   label,
@@ -47,7 +46,7 @@ export function PathField({
   const fileInput = useRef<HTMLInputElement>(null);
 
   const commitOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') onCommit?.();
+    if (event.key === 'Enter') onCommit();
   };
 
   return (
@@ -74,26 +73,22 @@ export function PathField({
         <Button variant="secondary" disabled={disabled} onClick={onBrowse}>
           {browseLabel}
         </Button>
-        {onUpload && (
-          <>
-            <Button variant="secondary" disabled={disabled} onClick={() => fileInput.current?.click()}>
-              {uploadLabel}
-            </Button>
-            <input
-              ref={fileInput}
-              type="file"
-              hidden
-              accept={MODEL_FILE_ACCEPT}
-              aria-label={uploadLabel}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onUpload(file);
-                // Lets the same file be chosen again after an edit on disk.
-                event.target.value = '';
-              }}
-            />
-          </>
-        )}
+        <Button variant="secondary" disabled={disabled} onClick={() => fileInput.current?.click()}>
+          {uploadLabel}
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          hidden
+          accept={MODEL_FILE_ACCEPT}
+          aria-label={uploadLabel}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) onUpload(file);
+            // Lets the same file be chosen again after an edit on disk.
+            event.target.value = '';
+          }}
+        />
       </div>
       {error && (
         <p className="mdd-generate__error" role="alert">

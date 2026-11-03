@@ -148,7 +148,6 @@ class PipelineHistory:
         swarch_name: str,
         source_path: str | None,
         content: str,
-        save_to: str | None,
         results: list[dict],
         generated_at: str | None = None,
     ) -> str:
@@ -175,7 +174,7 @@ class PipelineHistory:
             staging = self._directory / f"{_WRITING_PREFIX}{uuid.uuid4().hex}"
             staging.mkdir()
             try:
-                self._write_folder(staging, meta, content, save_to, results)
+                self._write_folder(staging, meta, content, results)
                 self._put_in_place(staging, self._directory / pipeline_id)
             except BaseException:
                 shutil.rmtree(staging, ignore_errors=True)
@@ -183,7 +182,7 @@ class PipelineHistory:
             self._forget_the_oldest(keep=pipeline_id)
         return pipeline_id
 
-    def _write_folder(self, folder: Path, meta: dict, content: str, save_to: str | None, results: list[dict]) -> None:
+    def _write_folder(self, folder: Path, meta: dict, content: str, results: list[dict]) -> None:
         _write_text(folder / _MODEL_FILENAME, content)
         for result in results:
             # Only generations that produced a pipeline are recorded.
@@ -195,7 +194,7 @@ class PipelineHistory:
                 path = platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])
                 _write_text(path, intermediate["content"])
         stored_results = [_stored_result(result) for result in results]
-        _write_json(folder / "record.json", {**meta, "save_to": save_to, "results": stored_results})
+        _write_json(folder / "record.json", {**meta, "results": stored_results})
         _write_json(folder / "meta.json", meta)
 
     def _put_in_place(self, staging: Path, target: Path) -> None:
@@ -242,7 +241,6 @@ class PipelineHistory:
         filename: str,
         content: str,
         source_path: str | None,
-        save_to: str | None,
         generated: list[dict],
     ) -> str | None:
         """Records what was just generated, so it can be reopened. `source_path`
@@ -262,7 +260,6 @@ class PipelineHistory:
                 swarch_name=filename,
                 source_path=source_path,
                 content=content,
-                save_to=save_to,
                 results=generated,
             )
         except (OSError, ValueError) as e:

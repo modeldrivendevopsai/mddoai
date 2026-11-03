@@ -339,7 +339,7 @@ services:
       # The one port the browser uses: the app, every remote, the
       # orchestrator's API and the generator's API. This machine only:
       # nothing here has a login, and the generator's API can read model
-      # files from and write pipeline files into the workspace folder.
+      # files from the workspace folder.
       # UI_PORT is from the environment's config.env.
       - "127.0.0.1:${UI_PORT:?}:80"
 
@@ -546,15 +546,16 @@ services:
       - ../main/src/main/resources/transformations:/engine-transformations:ro
       # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
       # is the one host folder for everything the stack generates and keeps.
-      # Its workspace/ is the folder the screen's "Input path" and "Save output
-      # to" fields work inside: models are picked from it and generated
-      # pipeline files are written to it. A web page cannot reach the user's
-      # disk itself, so the folder is mounted in. Both folders must exist
-      # before the first start: Docker would create a missing one owned by
-      # root, which the person could not add models to.
+      # Its workspace/ is the folder the screen's "Input path" field works
+      # inside: models are picked from it, and nothing is written to it, so it
+      # is mounted read-only. A web page cannot reach the user's disk itself,
+      # so the folder is mounted in. Both folders must exist before the first
+      # start: Docker would create a missing one owned by root, which the
+      # person could not add models to.
       - type: bind
         source: ${MDDOAI_DATA_DIR:?}/workspace
         target: /workspace
+        read_only: true
         bind:
           create_host_path: false
       # The data folder's pipelines/: what "Your pipelines" lists, kept across

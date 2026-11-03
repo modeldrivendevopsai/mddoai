@@ -14,10 +14,10 @@ interface PlatformResultProps {
 }
 
 /**
- * One platform's outcome: the pipeline itself first, since it is the point
- * of the screen, how it checked out, where it was saved, and the
- * intermediate models the engine passed through tucked behind a disclosure
- * for anyone curious how it was built.
+ * One platform's outcome: how the pipeline checked out, the Download button,
+ * the pipeline itself, and the intermediate models the engine passed through
+ * tucked behind a disclosure for anyone curious how it was built. Download
+ * comes before the code so it is in view whatever the pipeline's length.
  */
 export function PlatformResult({ result, validation, validating, validateError, onRetryValidation }: PlatformResultProps) {
   const { platform, pipeline } = result;
@@ -33,7 +33,7 @@ export function PlatformResult({ result, validation, validating, validateError, 
     );
   }
 
-  const savedAs = downloadName(result.output_filename);
+  const downloadAs = downloadName(result.output_filename);
 
   return (
     <section className="mdd-generate__result" aria-label={platform.name}>
@@ -49,38 +49,27 @@ export function PlatformResult({ result, validation, validating, validateError, 
         />
       </div>
 
-      <div className="mdd-generate__code">
-        <CodeBlock code={pipeline} title={result.output_filename} lang="yaml" />
-      </div>
-
       <div className="mdd-generate__row">
         <Button
           variant="secondary"
           size="sm"
           icon="Download"
-          onClick={() => downloadText(savedAs, pipeline)}
+          onClick={() => downloadText(downloadAs, pipeline)}
         >
           Download {result.output_filename}
         </Button>
       </div>
 
-      {savedAs !== result.output_filename && (
+      {downloadAs !== result.output_filename && (
         <p className="mdd-generate__hint">
           {platform.name} needs this file to be named {result.output_filename}. Your browser may save a download
           without the leading dot; rename it if it does.
         </p>
       )}
-      {result.saved_to && (
-        <p className="mdd-generate__hint">
-          Saved to {result.saved_to}
-          {result.replaced && ' (replaced the file that was there)'}
-        </p>
-      )}
-      {result.save_error && (
-        <p className="mdd-generate__error" role="alert">
-          Could not save the file: {result.save_error}
-        </p>
-      )}
+
+      <div className="mdd-generate__code">
+        <CodeBlock code={pipeline} title={result.output_filename} lang="yaml" />
+      </div>
 
       {result.intermediates.length > 0 && (
         <details className="mdd-generate__details">

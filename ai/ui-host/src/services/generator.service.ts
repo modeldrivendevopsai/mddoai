@@ -48,18 +48,13 @@ export interface PlatformRef {
 }
 
 // One platform's outcome. A platform whose generation failed carries `error`
-// and no pipeline; one whose pipeline could not be saved to the requested
-// folder still has its pipeline, with `save_error` saying why.
+// and no pipeline.
 export interface GenerationResult {
   platform: PlatformRef
   output_filename: string
   pipeline: string | null
   intermediates: IntermediateModel[]
   duration_ms: number | null
-  saved_to: string | null
-  // True when a file of that name was already in the folder and was replaced.
-  replaced: boolean
-  save_error: string | null
   error: string | null
 }
 
@@ -69,8 +64,6 @@ export interface GenerateRequest {
   platforms: string[]
   // Where in the workspace the model was loaded from; null for an upload.
   source_path: string | null
-  // The workspace folder to save each generated file into; null saves nothing.
-  save_to: string | null
 }
 
 // How often a running generation is checked. Each platform takes seconds
@@ -105,7 +98,6 @@ export interface PipelineSummary {
 
 export interface PipelineRecord extends PipelineSummary {
   content: string
-  save_to: string | null
   results: GenerationResult[]
 }
 
@@ -270,8 +262,8 @@ export function getPipeline(id: string): Promise<PipelineRecord> {
   return get(`/pipelines/${encodeURIComponent(id)}`, "Pipeline")
 }
 
-export function browseWorkspace(path: string, dirsOnly: boolean): Promise<WorkspaceListing> {
-  return get("/workspace/browse", "Browse", { query: { path, dirs_only: String(dirsOnly) } })
+export function browseWorkspace(path: string): Promise<WorkspaceListing> {
+  return get("/workspace/browse", "Browse", { query: { path } })
 }
 
 export function readWorkspaceFile(path: string): Promise<WorkspaceFile> {

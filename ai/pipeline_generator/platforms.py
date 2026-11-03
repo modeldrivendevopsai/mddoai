@@ -25,9 +25,9 @@ class Platform:
     # The CLI's own <Type> argument for the full SWArch -> platform chain.
     command: str
     # The file the engine's code generator writes into the output folder: one
-    # plain file name. The workspace writer saves it under exactly that name, so
-    # a name with a folder in it is refused when the platform is defined, not
-    # on every save.
+    # plain file name. The engine runner and the pipeline history both join it
+    # onto a folder, so a name with a folder in it is refused when the platform
+    # is defined, not on every generation.
     output_filename: str
     intermediates: tuple[Intermediate, ...]
 

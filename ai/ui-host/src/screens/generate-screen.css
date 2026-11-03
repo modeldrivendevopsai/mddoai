@@ -114,14 +114,14 @@
   font-weight: 500;
   color: var(--neutral-950);
 }
-/* Read by a screen reader, not shown: a column header with no visible text. */
-.mdd-generate__sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+/* A row opens its pipeline wherever it is pressed. Same tint as the sidebar's
+   pipeline rows. */
+.mdd-generate__table tbody tr {
+  cursor: pointer;
+}
+.mdd-generate__table tbody tr:hover,
+.mdd-generate__table tbody tr:focus-within {
+  background: var(--tint-pipeline);
 }
 .mdd-generate__mono {
   font-family: var(--font-mono);
@@ -502,10 +502,6 @@
 .mdd-generate__entries button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
-}
-.mdd-generate__dialog-footer {
-  display: flex;
-  justify-content: flex-end;
 }
 
 @media (max-width: 640px) {

@@ -14,7 +14,7 @@ interface GenerateScreenProps {
 
 /**
  * GenerateScreen - the "Generate CI/CD Pipeline" screen: inputs on the left
- * (the model file, the platforms, where to save), the pipeline on the right.
+ * (the model file and the platforms), the pipeline on the right.
  * There is deliberately no run, chat or stage review here (that is the
  * platform-integration screen's job). Beyond checking the file and the
  * pipeline, the only thing kept is the list of pipelines on the screen
@@ -23,16 +23,15 @@ interface GenerateScreenProps {
 export default function GenerateScreen({ pipelineId, onBack }: GenerateScreenProps) {
   const state = useGenerate();
   const { generation, model, openSaved } = state;
-  const [browsing, setBrowsing] = useState<'file' | 'folder' | null>(null);
+  const [browsing, setBrowsing] = useState(false);
 
   useEffect(() => {
     if (pipelineId) void openSaved(pipelineId);
   }, [pipelineId, openSaved]);
 
   const handleSelect = (path: string) => {
-    if (browsing === 'file') void model.loadFromPath(path);
-    else generation.setSaveTo(path);
-    setBrowsing(null);
+    void model.loadFromPath(path);
+    setBrowsing(false);
   };
 
   return (
@@ -50,7 +49,7 @@ export default function GenerateScreen({ pipelineId, onBack }: GenerateScreenPro
           </p>
         )}
         <div className="mdd-generate__panels">
-          <InputPanel state={state} onBrowse={setBrowsing} />
+          <InputPanel state={state} onBrowse={() => setBrowsing(true)} />
           <ResultPanel
             generating={generation.generating}
             generatingNames={generation.generatingNames}
@@ -64,7 +63,7 @@ export default function GenerateScreen({ pipelineId, onBack }: GenerateScreenPro
           />
         </div>
       </div>
-      {browsing && <WorkspaceBrowser kind={browsing} onSelect={handleSelect} onClose={() => setBrowsing(null)} />}
+      {browsing && <WorkspaceBrowser onSelect={handleSelect} onClose={() => setBrowsing(false)} />}
     </div>
   );
 }

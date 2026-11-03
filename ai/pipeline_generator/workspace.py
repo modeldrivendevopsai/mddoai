@@ -1,19 +1,15 @@
-"""The user's workspace folder: where a model file can be picked from and
-where generated pipeline files are saved.
+"""The user's workspace folder: where a model file can be picked from.
 
-A web page can neither read nor write a path on the user's machine, so the
-service works inside one folder that is mounted into it. Every path a caller
-supplies is read as relative to that folder ("/repos/app/a.swarch",
-"./repos/app/a.swarch" and "repos/app/a.swarch" are the same file), and
-whatever it resolves to, links included, must still be inside it. Nothing
-outside the folder is listed, read or written, provided nothing else is
-changing the folder's links while a request runs: a path is checked and then
-used, not held open in between.
+A web page cannot read a path on the user's machine, so the service works
+inside one folder that is mounted into it. Every path a caller supplies is
+read as relative to that folder ("/repos/app/a.swarch", "./repos/app/a.swarch"
+and "repos/app/a.swarch" are the same file), and whatever it resolves to,
+links included, must still be inside it. Nothing outside the folder is listed
+or read, provided nothing else is changing the folder's links while a request
+runs: a path is checked and then used, not held open in between.
 """
 import logging
 import os
-import uuid
-from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -23,14 +19,12 @@ logger = logging.getLogger(__name__)
 MAX_LISTED_ENTRIES = 500
 
 # The only kind of file this service reads. Every file in the workspace is
-# listed by name, so a person can see what is in it (the pipelines they saved,
-# for one), but a request can only get an architecture model's content out of
-# it, never an arbitrary file.
+# listed by name, so a person can see what is in it, but a request can only
+# get an architecture model's content out of it, never an arbitrary file.
 MODEL_EXTENSION = ".swarch"
 
-# Folders never listed, read from or written to, wherever they are in the
-# workspace. The workspace is often a repository, and a generated file must
-# never land in git's own internals (hooks there run on the next git command).
+# Folders never listed or read from, wherever they are in the workspace. The
+# workspace is often a repository, and git's own internals hold no models.
 EXCLUDED_DIR_NAMES = frozenset({".git"})
 
 # What the filesystem raises for a path it cannot follow or look at. Python
@@ -77,14 +71,6 @@ class WorkspaceError(Exception):
         super().__init__(message)
         self.message = message
         self.status = status
-
-
-@dataclass(frozen=True)
-class SavedFile:
-    # Where the file went, from the workspace folder with a leading slash.
-    path: str
-    # True when a file of that name was already there and was replaced.
-    replaced: bool
 
 
 class Workspace:
@@ -139,7 +125,7 @@ class Workspace:
         except WorkspaceError:
             return None
 
-    def _offered_kind(self, entry: os.DirEntry, root: Path, dirs_only: bool) -> str | None:
+    def _offered_kind(self, entry: os.DirEntry, root: Path) -> str | None:
         """`dir`, `file` (a model, which can be opened), `other` (any other
         regular file, named but never opened), or None if `entry` is not
         offered: a name that cannot be used, anything that is neither a folder
@@ -152,7 +138,7 @@ class Workspace:
             return None
         try:
             is_dir = entry.is_dir()
-            if not is_dir and (dirs_only or not entry.is_file()):
+            if not is_dir and not entry.is_file():
                 return None
             is_model = _is_model_file(Path(entry.name))
             if entry.is_symlink():
@@ -168,7 +154,7 @@ class Workspace:
             return "dir"
         return "file" if is_model else "other"
 
-    def browse(self, relative: str, dirs_only: bool) -> dict:
+    def browse(self, relative: str) -> dict:
         directory = self._resolve(relative)
         if not _is_dir(directory):
             raise WorkspaceError("There is no such folder in the workspace.", 404)
@@ -177,7 +163,7 @@ class Workspace:
         try:
             with os.scandir(directory) as scan:
                 for entry in scan:
-                    kind = self._offered_kind(entry, root, dirs_only)
+                    kind = self._offered_kind(entry, root)
                     if kind is not None:
                         offered.append((entry.name, kind))
         except OSError as e:
@@ -217,33 +203,3 @@ class Workspace:
         except UnicodeDecodeError:
             raise WorkspaceError("That file is not text.")
         return {"filename": path.name, "path": self.display(path), "content": content}
-
-    def write_text(self, relative_dir: str, filename: str, content: str) -> SavedFile:
-        """Saves `content` as `filename` inside the folder `relative_dir`
-        (created if needed). `filename` is one plain file name, never a path.
-        An existing file of that name is replaced, and the result says so. A
-        link of that name is replaced by the new file, never written through
-        to whatever it points at."""
-        if Path(filename).name != filename or filename in ("", ".", ".."):
-            raise WorkspaceError("That is not a valid file name.")
-        directory = self._resolve(relative_dir)
-        target = directory / filename
-        replaced = os.path.lexists(target)
-        try:
-            directory.mkdir(parents=True, exist_ok=True)
-            # Written beside the target and renamed into place, so a failure
-            # part way does not leave half a pipeline file at the target. Created
-            # with the ordinary file mode (the umask applies), not a private one.
-            temporary = directory / f".saving-{uuid.uuid4().hex}"
-            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
-            try:
-                with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
-                    handle.write(content)
-                os.replace(temporary, target)
-            except BaseException:
-                temporary.unlink(missing_ok=True)
-                raise
-        except OSError as e:
-            logger.warning("could not save %s: %s", target, e)
-            raise WorkspaceError("Could not save to that folder.", 500)
-        return SavedFile(path=self.display(target), replaced=replaced)

@@ -39,8 +39,8 @@ Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top b
 - **`/generate`** — `src/screens/PipelinesScreen.tsx`, the first screen of the "Generate a CI/CD
   pipeline" mode: the pipelines already generated, and "+ New pipeline".
 - **`/generate/new`** and **`/generate/<pipeline id>`** — `src/screens/GenerateScreen.tsx`, the
-  mode's second screen: load a Software Architecture file, choose platforms and where to save,
-  generate, validate. The second route brings a saved pipeline back.
+  mode's second screen: load a Software Architecture file, choose platforms,
+  generate, validate, download. The second route brings a saved pipeline back.
 
 Where things live:
 

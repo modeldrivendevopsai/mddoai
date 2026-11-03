@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 # A JSON body is only parsed when the request says it is JSON. Without that, a
 # web page open in the person's browser could send a "simple" cross-origin POST
-# (no Content-Type, so no preflight) and make this service save files, since it
-# has no authentication. FastAPI does this by default from 0.132.0; stated here
+# (no Content-Type, so no preflight) and make this service run the engine and
+# write history files, since it has no authentication. FastAPI does this by default from 0.132.0; stated here
 # so it cannot be lost by a version change.
 app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
 app.include_router(workspace_routes.router)
@@ -58,12 +58,6 @@ class GenerateRequest(ModelRequest):
     )
     source_path: str | None = Field(
         None, max_length=MAX_PATH_CHARS, description="Where in the workspace the model was loaded from, if it was."
-    )
-    save_to: str | None = Field(
-        None,
-        min_length=1,
-        max_length=MAX_PATH_CHARS,
-        description="A workspace folder to save each generated file into. Omitted: nothing is saved.",
     )
 
 
@@ -172,7 +166,6 @@ def generate_endpoint(
         content=request.content,
         filename=request.filename,
         source_path=request.source_path,
-        save_to=request.save_to,
         platforms=platforms,
         workspace=workspace,
         history=history,

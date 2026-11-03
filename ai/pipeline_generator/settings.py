@@ -13,7 +13,7 @@ MAX_MODEL_BYTES = int(os.environ.get("GENERATOR_MAX_MODEL_BYTES", str(256 * 1024
 MAX_PATH_CHARS = 1024
 MAX_FILENAME_CHARS = 255
 
-# The folder models are picked from and pipeline files are saved to.
+# The folder models are picked from.
 WORKSPACE_DIR = Path(os.environ.get("GENERATOR_WORKSPACE_DIR", "./workspace"))
 
 # What that folder is called where the person can see it, shown in the Browse

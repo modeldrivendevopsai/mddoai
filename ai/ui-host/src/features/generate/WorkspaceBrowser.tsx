@@ -5,24 +5,24 @@ import { keepFocusInside } from './focusTrap';
 import { useWorkspaceListing } from './useWorkspaceListing';
 
 interface WorkspaceBrowserProps {
-  // 'file' picks a file; 'folder' picks the folder being looked at.
-  kind: 'file' | 'folder';
   onSelect: (path: string) => void;
   onClose: () => void;
 }
 
 const joinPath = (folder: string, name: string) => (folder === '/' ? `/${name}` : `${folder}/${name}`);
 
+// What the dialog is called, for the person and for a screen reader.
+const TITLE = 'Choose an architecture file';
+
 /**
- * A dialog for finding a file or folder inside the workspace folder, the one
- * place the service reads from and writes to. It lists what the backend
- * lists; nothing outside the workspace is ever shown.
+ * A dialog for finding an architecture file inside the workspace folder, the
+ * one place on the server's disk the service reads from. It lists what the
+ * backend lists; nothing outside the workspace is ever shown.
  */
-export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ onSelect, onClose }: WorkspaceBrowserProps) {
   const [folder, setFolder] = useState('/');
-  const { listing, error } = useWorkspaceListing(folder, kind);
+  const { listing, error } = useWorkspaceListing(folder);
   const dialog = useRef<HTMLDivElement>(null);
-  const title = kind === 'file' ? 'Choose an architecture file' : 'Choose a folder to save into';
 
   // Takes keyboard focus on open, and gives it back to what opened it.
   useEffect(() => {
@@ -47,18 +47,17 @@ export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserPr
       className="mdd-generate__backdrop"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <div ref={dialog} className="mdd-generate__dialog" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>
+      <div ref={dialog} className="mdd-generate__dialog" role="dialog" aria-modal="true" aria-label={TITLE} tabIndex={-1}>
         <header className="mdd-generate__dialog-header">
-          <h2>{title}</h2>
+          <h2>{TITLE}</h2>
           <Button variant="ghost" size="sm" aria-label="Close" onClick={onClose}>
             <Icon name="X" size={16} />
           </Button>
         </header>
         {listing && (
           <p className="mdd-generate__hint">
-            {kind === 'file'
-              ? `Showing the files in ${listing.root_label}. Only ${MODEL_FILE_ACCEPT} files can be opened. To use a file from somewhere else, close this and choose ${GENERATE_COPY.input.upload}.`
-              : `Saves go into a folder inside ${listing.root_label}.`}
+            Showing the files in {listing.root_label}. Only {MODEL_FILE_ACCEPT} files can be opened. To use a
+            file from somewhere else, close this and choose {GENERATE_COPY.input.upload}.
           </p>
         )}
         <p className="mdd-generate__dialog-path" aria-live="polite">
@@ -107,19 +106,11 @@ export function WorkspaceBrowser({ kind, onSelect, onClose }: WorkspaceBrowserPr
               )
             )}
             {listing.entries.length === 0 && (
-              <li className="mdd-generate__hint">{kind === 'file' ? 'No files here.' : 'No folders here.'}</li>
+              <li className="mdd-generate__hint">No files here.</li>
             )}
           </ul>
         )}
         {listing?.truncated && <p className="mdd-generate__hint">Only the first entries are shown.</p>}
-
-        {kind === 'folder' && (
-          <footer className="mdd-generate__dialog-footer">
-            <Button variant="primary" disabled={!listing} onClick={() => listing && onSelect(listing.path)}>
-              Select this folder
-            </Button>
-          </footer>
-        )}
       </div>
     </div>
   );

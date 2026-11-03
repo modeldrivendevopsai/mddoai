@@ -1,4 +1,4 @@
-"""The workspace and pipelines routes, and /generate's saving and recording,
+"""The workspace and pipelines routes, and /generate's recording,
 through the real app. Only the validator call and the engine subprocess are
 mocked, as in test_main.py."""
 from unittest.mock import patch
@@ -48,15 +48,6 @@ def test_browse_names_the_folder_it_is_looking_in(monkeypatch):
     assert body["root_label"] == "the MDDOAI repository"
 
 
-def test_browse_can_be_limited_to_folders(workspace_dir):
-    (workspace_dir / "repos").mkdir()
-    (workspace_dir / "a.swarch").write_text("<a/>", encoding="utf-8")
-
-    body = client.get("/workspace/browse", params={"path": "/", "dirs_only": "true"}).json()
-
-    assert [entry["name"] for entry in body["entries"]] == ["repos"]
-
-
 def test_browse_refuses_a_path_outside_the_workspace():
     response = client.get("/workspace/browse", params={"path": "../.."})
 
@@ -96,31 +87,21 @@ def test_a_workspace_that_is_not_mounted_is_reported_as_unavailable(tmp_path):
     assert client.get("/workspace/browse").status_code == 503
 
 
-# --- /generate: saving ------------------------------------------------------
+# --- /generate --------------------------------------------------------------
 
 
-def test_generate_saves_each_pipeline_into_the_requested_folder(workspace_dir):
-    body = _generate(save_to="./ci-output/").json()
+def test_generate_never_writes_into_the_workspace(workspace_dir):
+    _generate()
 
-    [result] = body["results"]
-    assert result["saved_to"] == "/ci-output/.gitlab-ci.yml"
-    assert result["save_error"] is None
-    assert (workspace_dir / "ci-output" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
-
-
-def test_generate_saves_nothing_when_no_folder_is_given(workspace_dir):
-    [result] = _generate().json()["results"]
-
-    assert result["saved_to"] is None
     assert list(workspace_dir.iterdir()) == []
 
 
-def test_a_folder_outside_the_workspace_is_reported_but_the_pipeline_is_still_returned(tmp_path):
-    [result] = _generate(save_to="../elsewhere").json()["results"]
+def test_a_request_still_naming_a_save_folder_is_accepted_and_saves_nothing(workspace_dir):
+    response = _generate(save_to="./ci-output/")
 
-    assert result["pipeline"] == "stages: [build]\n"
-    assert "outside the workspace" in result["save_error"]
-    assert not (tmp_path / "elsewhere").exists()
+    assert response.status_code == 200
+    assert "saved_to" not in response.json()["results"][0]
+    assert list(workspace_dir.iterdir()) == []
 
 
 def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure():
@@ -169,7 +150,7 @@ def test_one_unsupported_platform_refuses_the_whole_request_before_anything_runs
 
 
 def test_a_generated_pipeline_appears_in_the_list_and_can_be_reopened():
-    body = _generate(source_path="/repos/app.swarch", save_to="./ci-output/").json()
+    body = _generate(source_path="/repos/app.swarch").json()
 
     listed = client.get("/pipelines").json()["pipelines"]
     assert [row["id"] for row in listed] == [body["pipeline_id"]]
@@ -180,7 +161,6 @@ def test_a_generated_pipeline_appears_in_the_list_and_can_be_reopened():
     assert "key" not in listed[0]
     opened = client.get(f"/pipelines/{body['pipeline_id']}").json()
     assert opened["content"] == MODEL["content"]
-    assert opened["save_to"] == "./ci-output/"
     assert opened["results"][0]["pipeline"] == "stages: [build]\n"
     assert "key" not in opened
 
@@ -240,22 +220,7 @@ def test_an_unknown_pipeline_is_not_found():
 
 
 
-# --- replacing, empty folders, keys -----------------------------------------
-
-
-def test_generate_says_when_it_replaced_a_file_that_was_already_there():
-    first = _generate(save_to="./ci-output/").json()["results"][0]
-    second = _generate(save_to="./ci-output/").json()["results"][0]
-
-    assert first["replaced"] is False
-    assert second["replaced"] is True
-
-
-def test_an_empty_save_folder_is_refused_not_read_as_the_workspace_root(workspace_dir):
-    response = _generate(save_to="")
-
-    assert response.status_code == 422
-    assert list(workspace_dir.iterdir()) == []
+# --- keys -------------------------------------------------------------------
 
 
 def test_an_upload_called_like_a_workspace_path_does_not_replace_that_paths_pipeline():
@@ -267,12 +232,12 @@ def test_an_upload_called_like_a_workspace_path_does_not_replace_that_paths_pipe
 # --- review follow-ups ---------------------------------------------------------
 
 
-def test_a_body_not_sent_as_json_is_refused_and_nothing_is_saved(workspace_dir):
+def test_a_body_not_sent_as_json_is_refused_and_nothing_runs(workspace_dir):
     # What a web page can send to a local service without a CORS preflight: a
     # "simple" request with no JSON content type. It must not act.
     import json
 
-    body = json.dumps({**MODEL, "platforms": ["gitlab"], "save_to": "./ci-output/"})
+    body = json.dumps({**MODEL, "platforms": ["gitlab"]})
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
             patch("generation.run_engine", return_value=_engine_result()) as engine:
         plain = client.post("/generate", content=body, headers={"Content-Type": "text/plain"})

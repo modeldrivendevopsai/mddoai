@@ -9,8 +9,8 @@ def test_a_platform_whose_output_is_one_plain_file_name_is_accepted():
 
 @pytest.mark.parametrize("name", ["bamboo-specs/bamboo.yaml", "../x.yml", "/abs.yml"])
 def test_a_platform_whose_output_has_a_folder_in_it_is_refused_when_it_is_defined(name):
-    # The workspace saves it under exactly one file name, so such a platform
-    # would fail on every save: better to fail when it is defined.
+    # The engine runner and the history join the name onto a folder, so such a
+    # platform would fail on every generation: better to fail when it is defined.
     with pytest.raises(ValueError, match="plain file name"):
         Platform("x", "X CI", "swarch2x", name, ())
 

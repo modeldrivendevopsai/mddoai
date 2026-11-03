@@ -9,7 +9,7 @@ service-specific setup — this file only covers how they fit together.
 - **`ui-host/`** — React SPA, the Module Federation host/shell (routing, the persistent layout, `useIntegration.ts`'s state hub, every real backend service call), built into static files and served by nginx, published on `UI_PORT`: the one port the browser uses. Its proxy (`ui-host/nginx/default.conf.template`) serves the app, forwards `/remotes/<name>/` to each `ui-remote-*` container, and forwards to `orchestrator` (the platform-integration mode) and to `pipeline_generator` (the "Generate a CI/CD pipeline" mode) by their Docker Compose service names, one proxy path per backend. It renders the chat column, the stepper, and each pipeline stage panel by loading them at runtime from their own `ui-remote-*` containers below, not by importing their source directly. See [ui-host/README.md](./ui-host/README.md).
 - **`ui-remote-*/`** — one Module Federation remote per independently-liftable piece of the integration screen (the chat column, the stepper, and one per real pipeline stage), each its own image and container, built into static files served by nginx and reached through `ui-host`'s proxy under `/remotes/<name>/`, consumed by `ui-host` at runtime via a federated import. Each can be rebuilt and restarted on its own; the page picks it up on its next load. `ui-host/src/features/integration/stages/registry.ts` is the current, exact list of which remote exposes which stage panel; `ui-host/vite.config.ts`'s `federation()` `remotes` map is the current, exact list of every remote, and `docker-compose.yml` sets the path each is served under. See any `ui-remote-*/README.md` for the shared Module Federation mechanics, and `ui-host/README.md`'s own Docker section for the Docker Compose topology all of them share.
 - **`validator_agent/`** — wraps `main/`'s headless `.ecore`/`.atl`/`.mtl`/`.swarch` validators as an HTTP service, internal-only (no host port). The one deliberate exception to "nothing in `ai/` talks to the Java/Eclipse backend" — see [validator_agent/README.md](./validator_agent/README.md) and `ai/CLAUDE.md`'s folder-boundaries section.
-- **`pipeline_generator/`** — the backend of the "Generate a CI/CD pipeline" mode: checks a Software Architecture model (uploaded, or picked from a mounted workspace folder), runs the engine's real end-to-end command on it for each chosen platform, saves the result into the workspace folder, remembers what was generated so it can be reopened, and checks the generated pipeline. Internal-only (no host port); reached only through `ui-host`'s proxy, calls `validator_agent` for the real model check. See [pipeline_generator/README.md](./pipeline_generator/README.md) and `ai/CLAUDE.md`'s fifth exception.
+- **`pipeline_generator/`** — the backend of the "Generate a CI/CD pipeline" mode: checks a Software Architecture model (uploaded, or picked from a mounted workspace folder), runs the engine's real end-to-end command on it for each chosen platform, remembers what was generated so it can be reopened, and checks the generated pipeline. Internal-only (no host port); reached only through `ui-host`'s proxy, calls `validator_agent` for the real model check. See [pipeline_generator/README.md](./pipeline_generator/README.md) and `ai/CLAUDE.md`'s fifth exception.
 - **`orchestrator/`** — the chat and REST gateway: the backend `ui-host` calls for the platform-integration mode, and the only place LLM tool-calling and narration live. Internal-only (no host port). Calls `ai-layer` for chat completions and `integration_runner` for everything about the pipeline itself (running a stage, reviewing it, adding a constraint) — it has no knowledge of the pipeline's own state machine, that all lives on `integration_runner`'s side. See [orchestrator/README.md](./orchestrator/README.md) for the full module layout.
 - **`integration_runner/`** — the pipeline state machine: its own separately deployed service, reached only by `orchestrator`, over HTTP, never as a Python import. Calls `ai-layer` for the `generation` stage's LLM completion (the one remaining LLM-prompt placeholder), `retrieval` for the docs stage's real crawl, `serialization_agent` for the serialization stage's concept labeling, `psm_agent` for the `psm` stage's own real generation-or-drift-check, and `validator_agent` for the `pim`/`atl`/`acceleo` stages' own real validation of their (currently mock) DSL output. See [integration_runner/README.md](./integration_runner/README.md).
 - **`retrieval/`** — FastAPI backend that fetches a CI/CD platform's documentation. Internal-only (no host port); reached only by `integration_runner`, never directly by `orchestrator` or `ui-host`. See [retrieval/README.md](./retrieval/README.md).
@@ -57,7 +57,7 @@ mkdir -p ai/data/workspace ai/data/pipelines
 ```
 ai/data/
   workspace/        the "Generate a CI/CD pipeline" mode's workspace: the models you pick
-                    and the pipeline files you save
+                    (mounted read-only)
   pipelines/<id>/   that mode's "Your pipelines": meta.json, record.json, model.swarch,
                     <platform>/<pipeline file>, <platform>/intermediates/<models the
                     engine passed through>
@@ -65,7 +65,7 @@ ai/data/
 
 | Folder | Written by | Read by others through |
 |---|---|---|
-| `workspace/` | `pipeline_generator` (pipeline files), you (models) | `pipeline_generator`'s Browse API |
+| `workspace/` | you (models) | `pipeline_generator`'s Browse API |
 | `pipelines/` | `pipeline_generator` | `pipeline_generator`'s `/pipelines` API |
 
 Other files, and why they are not in the data folder:
@@ -78,10 +78,10 @@ Why a bind-mounted folder and not named Docker volumes: Docker's own guidance pr
 Things to know about that choice:
 
 - **Create the folders first.** Docker would otherwise create a missing folder owned by root, and you could not add models to it. `docker-compose.yml` refuses to create them, so a missing folder is an error that names it.
-- **Root-owned files.** The services write as root inside their containers, so on Linux the pipeline files saved into the workspace and everything under `pipelines/` are owned by root. Use `sudo` to delete them by hand.
-- **Host write access.** A bind mount lets a container write to the host. `pipeline_generator` only writes pipeline files under their platform's file name, inside the workspace folder, and its history inside `pipelines/`.
+- **Root-owned files.** The services write as root inside their containers, so on Linux everything under `pipelines/` is owned by root. Use `sudo` to delete them by hand.
+- **Host write access.** A bind mount lets a container write to the host. `pipeline_generator` only writes its history inside `pipelines/`. The workspace folder is mounted read-only.
 - **Cleanup risk.** `git clean -x` in this repository deletes the data folder along with other ignored files.
-- **Who can see the workspace.** Anyone who can reach the UI can list the files in `workspace/`, read its `.swarch` files, and have pipeline files written into it. Keep only files there that you are comfortable exposing that way.
+- **Who can see the workspace.** Anyone who can reach the UI can list the files in `workspace/` and read its `.swarch` files. Keep only files there that you are comfortable exposing that way.
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 
