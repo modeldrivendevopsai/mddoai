@@ -27,6 +27,3 @@ data
 # folder and not in Docker.
 pipeline_generator/data
 pipeline_generator/workspace
-# The generator's committed platform files: Compose mounts them, so the image
-# carries no second copy that could go stale.
-pipeline_generator/platforms

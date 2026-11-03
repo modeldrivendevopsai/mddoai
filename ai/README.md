@@ -48,7 +48,7 @@ Every environment on the same machine reads the same `~/.claude` folder (see `ai
 
 ## Where files live
 
-Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its folders before the first start (the generator's platforms are not here: they are committed files under `pipeline_generator/platforms/`):
+Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its `workspace/` and `pipelines/` folders before the first start (`platforms/` is committed, so it is already there):
 
 ```bash
 mkdir -p ai/data/workspace ai/data/pipelines
@@ -58,6 +58,9 @@ mkdir -p ai/data/workspace ai/data/pipelines
 ai/data/
   workspace/        the "Generate a CI/CD pipeline" mode's workspace: the models you pick
                     (mounted read-only)
+  platforms/        committed: the files each platform is run from (metamodel.ecore,
+                    transformation.atl, template.mtl, platform.json per version, and
+                    swarch2pim.atl). Read-only for the stack.
   pipelines/<id>/   that mode's "Your pipelines": meta.json, record.json, model.swarch,
                     <platform>/<pipeline file>, <platform>/intermediates/<models the
                     generation passed through>
@@ -67,6 +70,7 @@ ai/data/
 |---|---|---|
 | `workspace/` | you (models) | `pipeline_generator`'s Browse API |
 | `pipelines/` | `pipeline_generator` | `pipeline_generator`'s `/pipelines` API |
+| `platforms/` | you (committed to git) | `pipeline_generator`'s `/platforms` API |
 
 Other files, and why they are not in the data folder:
 

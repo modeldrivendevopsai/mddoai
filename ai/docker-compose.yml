@@ -522,7 +522,7 @@ services:
 
   # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
   # Software Architecture model into a pipeline for each chosen platform, by
-  # running that platform's own files (committed in pipeline_generator/
+  # running that platform's own files (committed in the data folder's
   # platforms/) through execution-agent, and checks the model (via
   # validator-agent) and the generated pipeline. UI-facing, the way
   # orchestrator is for the platform-integration mode, but with no pipeline
@@ -556,15 +556,21 @@ services:
         target: /data/pipelines
         bind:
           create_host_path: false
-      # The committed files each platform is run from, read-only. The service
-      # reads them on every request, so a file edited here applies to the next
-      # generation without a rebuild.
-      - ./pipeline_generator/platforms:/platforms:ro
+      # The data folder's platforms/: the committed files each platform is run
+      # from, read-only. The service reads them on every request, so a file
+      # edited here applies to the next generation without a rebuild. Unlike
+      # the rest of the data folder they are in the repository, so this folder
+      # is only there when the data folder is the repository's own ai/data.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/platforms
+        target: /data/platforms
+        read_only: true
+        bind:
+          create_host_path: false
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
-      - GENERATOR_PLATFORMS_DIR=/platforms
       # How the Browse dialog names the workspace to the person: its host
       # folder.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace

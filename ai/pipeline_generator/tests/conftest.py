@@ -1,8 +1,15 @@
+import os
 import shutil
+from pathlib import Path
 
-import pytest
+# Before the service's modules are imported, which read their settings once:
+# unless a data folder is given (as it is inside the Docker stack), the tests
+# use the repository's own, where the committed platforms are.
+os.environ.setdefault("GENERATOR_DATA_DIR", str(Path(__file__).resolve().parents[2] / "data"))
 
-import main
+import pytest  # noqa: E402
+
+import main  # noqa: E402
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from generation_jobs import GenerationJobs

@@ -69,5 +69,7 @@ infra/environments/*/config.env
 /.local/
 
 # The stack's data folder: everything the services generate and keep (see
-# ai/README.md's "Where files live")
-ai/data/
+# ai/README.md's "Where files live"), except the platforms the generator runs,
+# which are committed.
+ai/data/*
+!ai/data/platforms/

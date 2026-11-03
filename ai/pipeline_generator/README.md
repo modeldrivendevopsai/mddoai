@@ -74,8 +74,9 @@ then put in place, so the list never shows a pipeline whose files are not all th
 
 ## The platforms
 
-The platforms are committed files in this service's `platforms/` folder (in Docker, mounted
-read-only at `/platforms`):
+The platforms are in the data folder's `platforms/` (in Docker, mounted read-only at
+`/data/platforms`). Unlike the rest of the data folder, these files are committed to the
+repository:
 
 ```
 platforms/
@@ -95,9 +96,10 @@ are read on every request, so a changed file applies to the next generation. Not
 to run a platform.
 
 These files belong to this service and are changed here. They do not follow `main/`, which is a
-separate codebase. Docker Compose mounts the folder read-only, and the image carries no copy of it,
-so the folder must be mounted (or `GENERATOR_PLATFORMS_DIR` must name it). A missing folder, or
-one with no usable platform, is logged as an error on every request that needs it.
+separate codebase. Docker Compose mounts the folder read-only, and the image carries no copy of it.
+The data folder is the repository's `ai/data` unless `MDDOAI_DATA_DIR` points elsewhere, and then
+it needs its own `platforms/`. A missing folder, or one with no usable platform, is logged as an
+error on every request that needs it.
 
 ## How a pipeline is generated
 
@@ -168,13 +170,12 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | Variable | Meaning |
 |---|---|
 | `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` | Where `validator_agent` and `execution_agent` are reached. |
-| `GENERATOR_PLATFORMS_DIR` | The folder of platforms and `swarch2pim.atl` (see above). In Docker it is `/platforms`. Unset, the committed `platforms/` folder next to the code. |
 | `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn. |
 | `GENERATOR_MAX_FINISHED_JOBS` | How many finished generations are kept for their callers to fetch. |
 | `LOG_LEVEL` | Logging verbosity. |
 | `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
 | `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. Unset, the folder's own path is shown. |
-| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it. In Docker it is `/data`, with the data folder's `pipelines/` mounted at `/data/pipelines`. |
+| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it, and the platforms, in a `platforms/` folder. In Docker it is `/data`, with the data folder's `pipelines/` and `platforms/` mounted inside it. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. One setting, so a pipeline that can be generated can always be validated. |
@@ -197,7 +198,8 @@ service's container in the running stack they do.
 
 ## Adding a platform
 
-1. Add `<platform-id>/<version>/` to `platforms/` with the four files above, and commit it.
+1. Add `<platform-id>/<version>/` to the data folder's `platforms/` with the four files above, and
+   commit it.
 2. If the pipeline has a checker of its own, add it to `CHECKERS` in `pipeline_checks.py`. Without
    one, a file ending in `.yml` or `.yaml` is only checked to be valid YAML.
 
@@ -209,7 +211,7 @@ is who can reach the UI: `docker-compose.yml` publishes the UI's port on this ma
 who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
 a folder you are comfortable exposing that way.
 
-The `platforms/` folder is trusted input. Its transformations and templates are compiled and run by
+The data folder's `platforms/` is trusted input. Its transformations and templates are compiled and run by
 `execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to it is
 reviewed like any other code change. It is committed to the repository, Docker Compose mounts it
 read-only, and no route of this service writes to it.
