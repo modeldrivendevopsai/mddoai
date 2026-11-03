@@ -24,6 +24,8 @@ clone, such as `ai/ai-layer/.env` with the LLM API keys. Each service's
 To add an environment, copy the template that fits, name the copy after the
 environment, fill in its `config.env` and commit its other files. A change to
 a template's other files must be copied into the environments made from it.
+When a template's `config.env` gains a setting, add it to each environment's own
+`config.env`. Compose refuses to start until it is set.
 
 Run `docker compose` inside an environment's folder. The Compose project is
 named after the folder, so its containers, networks and volumes are separate

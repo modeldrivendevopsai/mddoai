@@ -85,7 +85,8 @@ export default defineConfig({
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
         rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),
       },
-      // The "Generate a CI/CD pipeline" mode's own backend (ai/pipeline_generator),
+      // For `npm run dev` outside Docker; in Docker, ui-host's nginx proxies this
+      // path too. The "Generate a CI/CD pipeline" mode's own backend (ai/pipeline_generator),
       // a separate service from orchestrator: that mode has no pipeline run,
       // chat, or stages, so it isn't reached through orchestrator.
       '/generator-api': {

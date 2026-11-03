@@ -99,9 +99,10 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app into static files (`npm run build`) and
-serves them with nginx, published on the environment's `UI_PORT`, on this machine only. The same
-server is the one origin the browser uses for everything else (`nginx/default.conf.template`):
+`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app
+into static files (`npm run build`) and serves them with nginx, published on the environment's
+`UI_PORT`, on this machine only. The same server is the one origin the browser uses for
+everything else (`nginx/default.conf.template`):
 
 - `/remotes/<name>/` is forwarded to the `ui-remote-<name>` container. Only the remotes listed
   there are forwarded.
@@ -111,8 +112,7 @@ server is the one origin the browser uses for everything else (`nginx/default.co
 Each backend is named by its Compose service name through an environment variable
 (`ORCHESTRATOR_UPSTREAM`, `GENERATOR_UPSTREAM`), filled into the configuration when the
 container starts. Names are resolved per request, so this starts even while a backend or a
-remote is not up yet. See
-`ai/README.md` for the full compose setup.
+remote is not up yet. See `ai/README.md` for the full compose setup.
 
 Build context is `ai/`, not this folder alone, see this package's own `CLAUDE.md`'s Docker
 section for why (`package.json` depends on the sibling `design-system` and `orchestrator-types`
