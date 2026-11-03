@@ -20,7 +20,7 @@ Same reasoning as `validator_agent`'s own README: a fresh `java` process per cal
 ## How a request flows
 
 1. A caller `POST`s real content (not a file path, this service shares no filesystem with its callers) to `/execute/atl` or `/execute/acceleo`: the real `.atl`/`.mtl` source, a real model instance (XMI text), and the target platform's own real metamodel (Ecore text).
-2. `execution_runner.py` writes each of those to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ExecutorCli> ...` as a subprocess, along with a temp output file (ATL) or output directory (Acceleo, which can legitimately generate more than one file).
+2. `execution_runner.py` writes each of those to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ExecutorCli> ...` as a subprocess, along with a temp output file (ATL) or output directory (Acceleo, which can legitimately generate more than one file). The subprocess runs in that same temporary directory: the transformer writes intermediate files relative to its working directory and deletes them afterwards, so two calls at once must never share one.
 3. The Java side prints one line of JSON to stdout: `{"success":true}` (ATL) or `{"success":true,"files":[...]}` (Acceleo) with the real output already written to the given output path, or `{"success":false,"error":"..."}` for a real, describable failure (bad input, a genuine ATL/Acceleo compile or runtime error), never an infrastructure problem, since a nonzero exit code is reserved for that instead.
 4. `execution_runner.py` reads the real output back off disk, and the response is built from that content, not from re-parsing the subprocess's own stdout.
 

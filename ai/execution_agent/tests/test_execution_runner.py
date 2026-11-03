@@ -43,6 +43,24 @@ def test_run_atl_executor_reads_the_real_output_file_back(tmp_path):
     assert result == {"output_xmi": "<real-output/>"}
 
 
+def test_every_call_runs_in_its_own_working_directory_so_concurrent_calls_cannot_share_one():
+    directories = []
+
+    def fake_run(argv, **kwargs):
+        directories.append(kwargs["cwd"])
+        assert Path(kwargs["cwd"]).is_dir()
+        Path(argv[-1]).write_text("<out/>", encoding="utf-8")
+        return fake_completed_process(stdout='{"success":true}\n')
+
+    with patch("execution_runner.subprocess.run", side_effect=fake_run):
+        run_atl_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_from_swarch_executor("atl", "<swarch/>")
+
+    assert len(set(directories)) == 3
+    assert not any(Path(directory).exists() for directory in directories)
+
+
 def test_run_atl_executor_raises_execution_failed_for_a_real_reported_failure():
     with patch(
         "execution_runner.subprocess.run",
