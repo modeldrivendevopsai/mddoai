@@ -19,6 +19,7 @@ TEMPLATE="$SETUP_DIR/../../environments/templates/public/config.env"
 # checkout leaves them alone.
 CONFIG="$TEST_DIR/repo/infra/environments/test/config.env"
 LLM_KEYS="$TEST_DIR/repo/ai/ai-layer/.env"
+DATA_DIR="$TEST_DIR/repo/ai/data"
 
 # All of it belongs to the developer's user, who runs update.sh.
 install -d -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR"
@@ -37,6 +38,9 @@ if [[ ! -f "$CONFIG" ]]; then
   sed -i "s|^OAUTH2_COOKIE_SECRET=.*|OAUTH2_COOKIE_SECRET=$cookie_secret|" "$CONFIG"
   log "Created $CONFIG. Fill it in."
 fi
+# The generator's data folders, as the template's ./data names them. Docker
+# would create them owned by root, so setup makes them for the developer.
+install -d -o "$DEV_USER" -g "$DEV_USER" "$DATA_DIR" "$DATA_DIR/workspace" "$DATA_DIR/pipelines"
 if [[ ! -f "$LLM_KEYS" ]]; then
   install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/repo/ai/ai-layer/.env.example" "$LLM_KEYS"
   log "Created $LLM_KEYS. Fill in the LLM API keys."

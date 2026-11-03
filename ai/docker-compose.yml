@@ -544,19 +544,34 @@ services:
       # narrow shape as the repo's documented third exception; each request
       # copies it into its own scratch directory.
       - ../main/src/main/resources/transformations:/engine-transformations:ro
-      # The folder the screen's "Input path" and "Save output to" fields work
-      # inside: models are picked from it and generated pipeline files are
-      # written to it. A web page cannot reach the user's disk itself, so the
-      # folder is mounted in. GENERATOR_WORKSPACE_HOST_DIR is from the
-      # environment's config.env.
-      - ${GENERATOR_WORKSPACE_HOST_DIR:?}:/workspace
-      # The pipelines listed on "Your pipelines", kept across restarts.
-      - generator-data:/data
+      # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
+      # is the one host folder for everything the stack generates and keeps.
+      # Its workspace/ is the folder the screen's "Input path" and "Save output
+      # to" fields work inside: models are picked from it and generated
+      # pipeline files are written to it. A web page cannot reach the user's
+      # disk itself, so the folder is mounted in. Both folders must exist
+      # before the first start: Docker would create a missing one owned by
+      # root, which the person could not add models to.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/workspace
+        target: /workspace
+        bind:
+          create_host_path: false
+      # The data folder's pipelines/: what "Your pipelines" lists, kept across
+      # restarts.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/pipelines
+        target: /data/pipelines
+        bind:
+          create_host_path: false
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
       - GENERATOR_WORKSPACE_DIR=/workspace
+      # How the Browse dialog names the workspace to the person: its host
+      # folder.
+      - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
       - GENERATOR_DATA_DIR=/data
     depends_on:
       gradle-builder:
@@ -570,4 +585,3 @@ volumes:
   main-gradle-cache:
   main-build-output:
   pipeline-runs:
-  generator-data:

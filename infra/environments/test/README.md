@@ -39,7 +39,7 @@ again and fill them in.
 
 - **One Compose project, `test`,** named after this folder and run from it in the clone. `compose.yaml` pulls in the repository's `ai/docker-compose.yml` and this folder's `gateway.yaml`, both filled in from `config.env`. `gateway.yaml` only adds `cloudflared` and `oauth2-proxy`; it changes nothing in the stack. The UI and `ai-layer` ports are on `127.0.0.1` only, next to the dev environment's. The gateway publishes no port.
 - **The secrets** (tunnel token, OAuth client secret, cookie secret) are in `config.env`, readable by `dev` only. Anyone with root can still read them.
-- **Its data** is separate from the dev environment's, and everyone on the list shares it. Integration runs, the generator's history and build caches are in the project's own Docker volumes. The generator's workspace is the host folder set by `GENERATOR_WORKSPACE_HOST_DIR` in `config.env`. Uploaded attachments are in the clone, in each agent's `attachments/` folder under `ai/`, which is gitignored.
+- **Its data** is separate from the dev environment's, and everyone on the list shares it. Integration runs and build caches are in the project's own Docker volumes. The generator's workspace and history are in the data folder set by `MDDOAI_DATA_DIR` in `config.env`, in the clone and ignored by git. Uploaded attachments are in the clone, in each agent's `attachments/` folder under `ai/`, which is gitignored.
 - **The updater:** `mddoai-test-update.timer` runs `update.sh` as `dev` shortly after boot, then a few minutes after each run ends. Each run:
   1. fetches the repository;
   2. stops there if `main` has no new commit and the stack is up;

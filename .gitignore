@@ -68,6 +68,6 @@ infra/environments/*/config.env
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
 
-# The example workspace folder in the environment templates: the models
-# ai/pipeline_generator reads and the pipeline files it saves
-ai/generator-workspace/
+# The stack's data folder: everything the services generate and keep (see
+# ai/README.md's "Where files live")
+ai/data/

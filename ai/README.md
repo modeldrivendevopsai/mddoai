@@ -36,6 +36,7 @@ Every copy of the stack is an environment under `infra/environments/`, which set
 ```bash
 cd infra/environments/dev
 cp ../templates/dev/config.env config.env    # once, then fill it in
+mkdir -p ../../../ai/data/workspace ../../../ai/data/pipelines    # once, if MDDOAI_DATA_DIR is ./data
 docker compose up --build
 ```
 
@@ -45,7 +46,42 @@ The app has no login of its own. Before opening it under a public name, for exam
 
 Every environment on the same machine reads the same `~/.claude` folder (see `ai-layer` below).
 
-The "Generate a CI/CD pipeline" mode works inside one host folder, its workspace: models are picked from it and generated pipeline files are saved into it. Set `GENERATOR_WORKSPACE_HOST_DIR` in the environment's `config.env` to that folder. The setting is required. See [pipeline_generator/README.md](./pipeline_generator/README.md#the-workspace).
+## Where files live
+
+Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its folders before the first start:
+
+```bash
+mkdir -p ai/data/workspace ai/data/pipelines
+```
+
+```
+ai/data/
+  workspace/        the "Generate a CI/CD pipeline" mode's workspace: the models you pick
+                    and the pipeline files you save
+  pipelines/<id>/   that mode's "Your pipelines": meta.json, record.json, model.swarch,
+                    <platform>/<pipeline file>, <platform>/intermediates/<models the
+                    engine passed through>
+```
+
+| Folder | Written by | Read by others through |
+|---|---|---|
+| `workspace/` | `pipeline_generator` (pipeline files), you (models) | `pipeline_generator`'s Browse API |
+| `pipelines/` | `pipeline_generator` | `pipeline_generator`'s `/pipelines` API |
+
+Other files, and why they are not in the data folder:
+
+- **Prompt edits and uploaded attachments**, in each agent's own folder (`ai/<agent>/prompts/`, `ai/<agent>/attachments/`): user-authored configuration whose defaults are committed next to the agent that uses them.
+- **Scratch files** the engine and the validators write while working: per call, in temporary folders, deleted afterwards. Anything worth keeping is copied into the data folder.
+
+Why a bind-mounted folder and not named Docker volumes: Docker's own guidance prefers volumes for container data, but recommends bind mounts when files generated in a container must be reachable from the host ([volumes](https://docs.docker.com/engine/storage/volumes/), [bind mounts](https://docs.docker.com/engine/storage/bind-mounts/)). These files are meant to be opened, compared and copied from the host, for example in an editor, so they are bind-mounted.
+
+Things to know about that choice:
+
+- **Create the folders first.** Docker would otherwise create a missing folder owned by root, and you could not add models to it. `docker-compose.yml` refuses to create them, so a missing folder is an error that names it.
+- **Root-owned files.** The services write as root inside their containers, so on Linux the pipeline files saved into the workspace and everything under `pipelines/` are owned by root. Use `sudo` to delete them by hand.
+- **Host write access.** A bind mount lets a container write to the host. `pipeline_generator` only writes pipeline files under their platform's file name, inside the workspace folder, and its history inside `pipelines/`.
+- **Cleanup risk.** `git clean -x` in this repository deletes the data folder along with other ignored files.
+- **Who can see the workspace.** Anyone who can reach the UI can list and read the `.swarch` files in `workspace/` and have pipeline files written into it. Keep only files there that you are comfortable exposing that way.
 
 `ai-layer` needs at least one provider API key configured just to start — with none, its container will fail on startup rather than start and error per-request. See its own README for `.env` setup.
 
