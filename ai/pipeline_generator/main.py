@@ -204,7 +204,7 @@ def validate_endpoint(request: PipelineRequest, registry: PlatformRegistry = Dep
         raise HTTPException(status_code=500, detail=_CHECKS_UNUSABLE)
     try:
         result = validator_agent_client.validate_pipeline(
-            request.content, platform.output_filename, platform.name, schema, list(platform.rules)
+            request.content, platform.output_filename, platform.name, schema
         )
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 413:

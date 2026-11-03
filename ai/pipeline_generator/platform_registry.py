@@ -8,8 +8,7 @@ Committed files, one folder per platform and one subfolder per version:
         transformation.atl        PIM to platform model
         template.mtl              platform model to pipeline file
         platform.json             name, output file name, name of the model the
-                                  transformation creates, and optionally the
-                                  named rule sets its pipeline is checked with
+                                  transformation creates
         schema.json               optional: the JSON schema its pipeline must follow
 
 The files are read on every request, so a changed file applies to the next
@@ -73,11 +72,6 @@ class PlatformRegistry:
                     raise ValueError(f"{field} must be a non-empty string")
             if type(raw.get("version")) is not int:
                 raise ValueError("version must be a whole number")
-            rules = raw.get("rules", [])
-            if not isinstance(rules, list) or not all(isinstance(rule, str) and rule for rule in rules):
-                raise ValueError("rules must be a list of names")
-            if len(set(rules)) != len(rules):
-                raise ValueError("rules must name each rule set once")
             for filename in (_METAMODEL, _TRANSFORMATION, _TEMPLATE):
                 if not (folder / filename).is_file():
                     raise ValueError(f"{filename} is missing")
@@ -87,7 +81,6 @@ class PlatformRegistry:
                 version=raw["version"],
                 output_filename=raw["output_filename"],
                 output_model_name=raw["output_model_name"],
-                rules=tuple(rules),
             )
         except (OSError, ValueError) as e:
             logger.warning("ignoring platform version %s: %s", folder, e)

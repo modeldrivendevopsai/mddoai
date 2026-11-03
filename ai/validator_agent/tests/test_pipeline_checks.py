@@ -1,5 +1,5 @@
 """pipeline_checks.py: the checklist for a generated file. The GitLab cases use
-the committed GitLab platform's real schema and rules (see gitlab_platform.py);
+the committed GitLab platform's real schema (see gitlab_platform.py);
 the rest hand the checker small schemas of their own."""
 import pytest
 
@@ -14,8 +14,8 @@ SCHEMA = {
 }
 
 
-def _check(content="name: a\n", filename=".x.yml", schema=None, rules=()):
-    return check_pipeline(content, filename, "X CI", schema, list(rules))
+def _check(content="name: a\n", filename=".x.yml", schema=None):
+    return check_pipeline(content, filename, "X CI", schema)
 
 
 def _statuses(result):
@@ -48,18 +48,12 @@ def test_a_pipeline_that_breaks_the_schema_fails_and_says_where():
     assert any("name" in detail for detail in result["checks"][1]["details"])
 
 
-def test_yaml_that_does_not_parse_fails_and_everything_after_it_is_skipped():
-    result = _check("a: [b\n", schema=SCHEMA, rules=["gitlab-references"])
+def test_yaml_that_does_not_parse_fails_and_the_schema_check_is_skipped():
+    result = _check("a: [b\n", schema=SCHEMA)
 
     assert result["valid"] is False
     assert "line" in result["checks"][0]["details"][0]
-    assert _statuses(result) == {
-        "yaml": "fail",
-        "schema": "skipped",
-        "jobs": "skipped",
-        "stages": "skipped",
-        "needs": "skipped",
-    }
+    assert _statuses(result) == {"yaml": "fail", "schema": "skipped"}
 
 
 def test_a_top_level_list_is_not_a_pipeline():
@@ -76,20 +70,7 @@ def test_a_file_that_is_not_yaml_is_skipped_as_a_whole_not_passed():
     assert _statuses(result) == {"format": "skipped"}
 
 
-def test_a_rule_set_that_is_asked_for_is_applied():
-    result = _check("job:\n  stage: nowhere\n  script: [a]\n", rules=["gitlab-references"])
-
-    assert _statuses(result)["stages"] == "fail"
-    assert result["valid"] is False
-
-
-# --- what cannot be used is an error, found first, whatever the file holds ----
-
-
-@pytest.mark.parametrize("content, filename", [("name: a\n", ".x.yml"), ("a: [b\n", ".x.yml"), ("anything", "Jenkinsfile")])
-def test_a_rule_set_that_does_not_exist_is_an_error_whatever_the_file(content, filename):
-    with pytest.raises(PlatformChecksError, match="no-such-rules"):
-        _check(content, filename, rules=["no-such-rules"])
+# --- what cannot be used is an error --------------------------------------------
 
 
 @pytest.mark.parametrize("content, filename", [("name: a\n", ".x.yml"), ("a: [b\n", ".x.yml"), ("anything", "Jenkinsfile")])
@@ -150,10 +131,10 @@ def test_content_the_yaml_reader_cannot_handle_is_a_failed_check_not_an_error(co
     assert _statuses(result)["schema"] == "skipped"
 
 
-# --- GitLab, with its real schema and rules -----------------------------------
+# --- GitLab, with its real schema ---------------------------------------------
 
 
-def test_a_good_gitlab_pipeline_passes_every_check():
+def test_a_good_gitlab_pipeline_passes_both_checks():
     from gitlab_platform import check_gitlab_pipeline
 
     content = (
@@ -166,7 +147,7 @@ def test_a_good_gitlab_pipeline_passes_every_check():
     result = check_gitlab_pipeline(content)
 
     assert result["valid"] is True, result
-    assert [entry["status"] for entry in result["checks"]] == ["pass"] * 5
+    assert [entry["status"] for entry in result["checks"]] == ["pass"] * 2
     assert result["checks"][1]["title"] == "The settings follow GitLab CI's format"
 
 

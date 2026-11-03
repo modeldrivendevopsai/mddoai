@@ -177,11 +177,10 @@ class SwarchValidateRequest(BaseModel):
     content: str = Field(..., min_length=1, description="Raw .swarch (XMI) content.")
 
 
-# The longest file name and platform name, and the most rule sets, a request
-# may carry. Engineering guesses, far beyond anything real.
+# The longest file name and platform name a request may carry. Engineering
+# guesses, far beyond anything real.
 _MAX_FILENAME_CHARS = 255
 _MAX_PLATFORM_NAME_CHARS = 100
-_MAX_RULES = 20
 
 
 class PipelineValidateRequest(BaseModel):
@@ -189,14 +188,6 @@ class PipelineValidateRequest(BaseModel):
     filename: str = Field(..., min_length=1, max_length=_MAX_FILENAME_CHARS, description="The pipeline file's name; its ending says whether it is YAML.")
     platform_name: str = Field(..., min_length=1, max_length=_MAX_PLATFORM_NAME_CHARS, description="How the checks name the platform.")
     json_schema: dict | None = Field(None, description="The platform's JSON schema, if it has one.")
-    rules: list[str] = Field(default_factory=list, max_length=_MAX_RULES, description="Names of the rule sets to apply.")
-
-    @field_validator("rules")
-    @classmethod
-    def _rules_are_named_once(cls, rules: list[str]) -> list[str]:
-        if any(not rule for rule in rules) or len(set(rules)) != len(rules):
-            raise ValueError("rules must be non-empty names, each given once")
-        return rules
 
 
 @app.get("/health")
@@ -305,9 +296,7 @@ def validate_pipeline_endpoint(request: PipelineValidateRequest) -> PipelineVali
 
     logger.info("POST /validate/pipeline platform=%s filename=%s bytes=%d", request.platform_name, request.filename, content_bytes)
     try:
-        result = check_pipeline(
-            request.content, request.filename, request.platform_name, request.json_schema, request.rules
-        )
+        result = check_pipeline(request.content, request.filename, request.platform_name, request.json_schema)
     except PlatformChecksError as e:
         logger.warning("POST /validate/pipeline unusable checks for %s: %s", request.platform_name, e)
         raise HTTPException(status_code=422, detail=str(e))

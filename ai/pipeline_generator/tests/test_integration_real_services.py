@@ -67,11 +67,11 @@ def test_the_real_output_passes_the_real_pipeline_checks(gitlab, registry):
 
     result = run_platform(model, gitlab, registry)
     checked = validator_agent_client.validate_pipeline(
-        result["pipeline"], gitlab.output_filename, gitlab.name, registry.schema(gitlab), list(gitlab.rules)
+        result["pipeline"], gitlab.output_filename, gitlab.name, registry.schema(gitlab)
     )
 
     assert checked["valid"] is True, checked
-    assert [entry["status"] for entry in checked["checks"]] == ["pass"] * 5
+    assert [entry["status"] for entry in checked["checks"]] == ["pass"] * 2
 
 
 def test_concurrent_runs_do_not_mix_up_each_others_output(gitlab, registry):

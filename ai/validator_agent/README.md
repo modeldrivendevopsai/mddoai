@@ -94,10 +94,10 @@ The content is untrusted, so it is parsed with DOCTYPE declarations rejected out
 
 ```json
 // request
-{"content": "stages: [build]\n...", "filename": ".gitlab-ci.yml", "platform_name": "GitLab CI", "json_schema": {"type": "object"}, "rules": ["gitlab-references"]}
+{"content": "stages: [build]\n...", "filename": ".gitlab-ci.yml", "platform_name": "GitLab CI", "json_schema": {"type": "object"}}
 
 // response (200)
-{"valid": false, "checks": [{"id": "stages", "title": "Every job belongs to a declared stage", "status": "fail", "details": ["Job 'ship' uses the stage 'deploy', which is not one of the pipeline's stages"]}]}
+{"valid": false, "checks": [{"id": "schema", "title": "The settings follow GitLab CI's format", "status": "fail", "details": ["build: Additional properties are not allowed ('scrpt' was unexpected)"]}]}
 ```
 
 Checks a generated pipeline file. It is plain Python, with no JVM, and it knows no platform: the
@@ -106,27 +106,20 @@ caller says what to check against. The checks, in order:
 1. The file parses as YAML. Only `.yml` and `.yaml` files can be checked: any other file gets one
    skipped check.
 2. It follows `json_schema`. With no schema this check is skipped, with the reason shown.
-3. It passes each rule set named in `rules`. A rule set is code in this service, for what a schema
-   cannot see. `gitlab-references` is GitLab CI's: the pipeline defines a job, each job's stage is
-   declared, and each `needs:` points at a real job.
 
 A check that cannot be made is `skipped`, never `pass`. A pipeline that fails its checks is still a
 `200` with `valid: false`.
 
 The pipeline is untrusted. Its YAML is size-checked with every alias expanded before anything walks
 it, and content the YAML reader cannot handle (a number too long to read, a date as a setting name)
-is a failed check, not an error. The schema and the rule names are the caller's, not the pipeline's. A schema that is not a valid
-JSON schema, or a rule name that does not exist, is a `422` with the reason, whatever the file
-holds. So is a schema that refers to something it does not contain (it is built with no way to
-fetch a reference, so it must be self-contained) or cannot be applied (a reference loop, say), as
-soon as the pipeline reaches the part that does. A schema is trusted input: it is committed with
-its platform, and a pathological one can take very long to apply. Content over `MAX_PIPELINE_BYTES`
-(512 KiB by default, because parsing YAML costs seconds per megabyte) and a schema over
-`MAX_SCHEMA_BYTES` (2 MiB) are `413`.
-
-To add a rule set, write a function from a parsed pipeline (or `None` when it did not parse) to a
-list of checks in its own module, register it by name in `RULE_SETS` in `pipeline_checks.py`, and
-have the platform's `platform.json` list that name in its `rules`.
+is a failed check, not an error. The schema is the caller's, not the pipeline's. A schema that is
+not a valid JSON schema is a `422` with the reason, whatever the file holds. So is a schema that
+refers to something it does not contain (it is built with no way to fetch a reference, so it must
+be self-contained) or cannot be applied (a reference loop, say), as soon as the pipeline reaches
+the part that does. A schema is trusted input: it is committed with its platform, and a
+pathological one can take very long to apply. Content over `MAX_PIPELINE_BYTES` (512 KiB by
+default, because parsing YAML costs seconds per megabyte) and a schema over `MAX_SCHEMA_BYTES`
+(2 MiB) are `413`.
 
 ### `GET /health`
 
@@ -196,7 +189,7 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Window
 pytest
 ```
 
-The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks*.py`, `test_gitlab_references.py` and `test_pipeline_route.py` run plain Python and mock nothing; the GitLab ones read the committed GitLab platform and skip themselves without it. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
+The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks*.py` and `test_pipeline_route.py` run plain Python and mock nothing; the GitLab ones read the committed GitLab platform and skip themselves without it. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest

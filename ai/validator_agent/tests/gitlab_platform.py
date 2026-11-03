@@ -1,6 +1,6 @@
-"""The committed GitLab CI platform as these tests need it: its schema and
-rules, for checking real GitLab pipelines. Test-only: the service itself reads
-no platform data, it is given a schema and rule names with each request.
+"""The committed GitLab CI platform as these tests need it: its schema, for
+checking real GitLab pipelines. Test-only: the service itself reads
+no platform data, it is given a schema with each request.
 Modules that import this skip themselves when the platform is not there (the
 service's own container holds only the service)."""
 import json
@@ -19,8 +19,7 @@ _META = json.loads((_FOLDER / "platform.json").read_text(encoding="utf-8"))
 SCHEMA = json.loads((_FOLDER / "schema.json").read_text(encoding="utf-8"))
 NAME = _META["name"]
 FILENAME = _META["output_filename"]
-RULES = _META["rules"]
 
 
 def check_gitlab_pipeline(content: str):
-    return check_pipeline(content, FILENAME, NAME, SCHEMA, RULES)
+    return check_pipeline(content, FILENAME, NAME, SCHEMA)

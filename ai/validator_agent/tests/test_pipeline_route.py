@@ -14,13 +14,11 @@ def _post(**overrides):
     return client.post("/validate/pipeline", json=body)
 
 
-def test_a_pipeline_is_checked_against_the_schema_and_rules_it_comes_with():
-    response = _post(json_schema=SCHEMA, rules=["gitlab-references"])
+def test_a_pipeline_is_checked_against_the_schema_it_comes_with():
+    response = _post(json_schema=SCHEMA)
 
     assert response.status_code == 200
-    body = response.json()
-    assert [(c["id"], c["status"]) for c in body["checks"]][:2] == [("yaml", "pass"), ("schema", "pass")]
-    assert body["checks"][2]["id"] == "jobs"
+    assert [(c["id"], c["status"]) for c in response.json()["checks"]] == [("yaml", "pass"), ("schema", "pass")]
 
 
 def test_a_failing_pipeline_is_still_a_normal_200_answer():
@@ -42,18 +40,6 @@ def test_a_schema_that_is_not_a_json_schema_is_refused_with_the_reason():
 
     assert response.status_code == 422
     assert "not a valid JSON schema" in response.json()["detail"]
-
-
-def test_a_rule_set_that_does_not_exist_is_refused_naming_it():
-    response = _post(rules=["no-such-rules"])
-
-    assert response.status_code == 422
-    assert "no-such-rules" in response.json()["detail"]
-
-
-def test_a_rule_set_named_twice_or_empty_is_refused():
-    assert _post(rules=["gitlab-references", "gitlab-references"]).status_code == 422
-    assert _post(rules=[""]).status_code == 422
 
 
 def test_content_over_the_limit_is_refused(monkeypatch):

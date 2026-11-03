@@ -2,17 +2,15 @@
 rather than a raw schema dump, since the reader is not a DevOps engineer.
 
 Pure Python, no JVM, and no knowledge of any platform: the caller says what to
-check against. That is the platform's JSON schema, and the named rule sets for
-what a schema cannot see (a cross-reference). The checks are: the file parses
-as YAML, it follows the schema, and it passes each named rule set. A check
-that cannot be made is reported as skipped, never as passed.
+check against, which is the platform's JSON schema if it has one. The checks
+are: the file parses as YAML, and it follows the schema. A check that cannot be
+made is reported as skipped, never as passed.
 
 The content is untrusted, so the document is size-checked before anything
 walks it: YAML aliases make a tiny file expand into an astronomically large
 tree, and a schema validator walks the expanded tree.
 """
 import json
-from collections.abc import Callable
 
 import yaml
 from jsonschema.exceptions import SchemaError, best_match
@@ -20,13 +18,7 @@ from jsonschema.validators import validator_for
 from referencing import Registry
 from referencing.exceptions import Unresolvable
 
-import gitlab_references
 from check_results import Check, PipelineValidation, check, skipped
-
-# Named rule sets a caller can ask for.
-RULE_SETS: dict[str, Callable[[dict | None], list[Check]]] = {
-    "gitlab-references": gitlab_references.check_references,
-}
 
 # The file endings a pipeline can be checked as YAML for.
 _YAML_SUFFIXES = (".yml", ".yaml")
@@ -41,9 +33,9 @@ _SCHEMA_FAULTS = (RecursionError, TypeError, AttributeError, ValueError)
 
 class PlatformChecksError(ValueError):
     """What the caller asked to check against cannot be used: a schema that is
-    not a valid JSON schema, one that refers to something it does not contain,
-    or a rule set that does not exist. That is a fault in the platform's files,
-    not in the pipeline, so it is an error and never a verdict on the file."""
+    not a valid JSON schema, or one that refers to something it does not
+    contain. That is a fault in the platform's files, not in the pipeline, so it
+    is an error and never a verdict on the file."""
 
 
 # Ceilings on a document, measured with aliases expanded. Engineering guesses,
@@ -145,30 +137,16 @@ def _schema_check(platform_name: str, validator, document: dict | None) -> Check
     return check("schema", title, _schema_problems(validator, document))
 
 
-def _rule_set(name: str) -> Callable[[dict | None], list[Check]]:
-    rule_set = RULE_SETS.get(name)
-    if rule_set is None:
-        raise PlatformChecksError(f"no rule set is named '{name}'")
-    return rule_set
-
-
-def check_pipeline(
-    content: str, filename: str, platform_name: str, schema: dict | None, rules: list[str]
-) -> PipelineValidation:
+def check_pipeline(content: str, filename: str, platform_name: str, schema: dict | None) -> PipelineValidation:
     """The checklist for a generated file. `filename` says whether it is YAML,
-    `platform_name` is how the checks name the platform, `schema` is its JSON
-    schema if it has one, and `rules` names the rule sets to apply. Raises
-    PlatformChecksError if the schema or a rule set cannot be used. A schema
-    that is not a valid JSON schema, and a rule set that does not exist, are
-    found first, whatever the file holds. A schema that refers to something it
-    does not contain, or cannot be applied, is found when the pipeline reaches
-    the part that does."""
+    `platform_name` is how the checks name the platform, and `schema` is its
+    JSON schema if it has one. Raises PlatformChecksError if the schema cannot
+    be used. A schema that is not a valid JSON schema is found first, whatever
+    the file holds. A schema that refers to something it does not contain, or
+    cannot be applied, is found when the pipeline reaches the part that does."""
     validator = _validator(schema) if schema is not None else None
-    rule_sets = [_rule_set(name) for name in rules]
     if not filename.lower().endswith(_YAML_SUFFIXES):
         return {"valid": True, "checks": [skipped("format", "The file can be checked", ["Only YAML pipeline files can be checked."])]}
     document, load_problems = _load_document(content)
     checks = [check("yaml", "The file is valid YAML", load_problems), _schema_check(platform_name, validator, document)]
-    for rule_set in rule_sets:
-        checks += rule_set(document)
     return {"valid": all(entry["status"] != "fail" for entry in checks), "checks": checks}

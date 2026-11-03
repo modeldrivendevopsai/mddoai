@@ -162,7 +162,7 @@ def validate_swarch(content: str, filename: str) -> dict:
     return response.json()
 
 
-def validate_pipeline(content: str, filename: str, platform_name: str, json_schema: dict | None, rules: list[str]) -> dict:
+def validate_pipeline(content: str, filename: str, platform_name: str, json_schema: dict | None) -> dict:
     """POSTs to validator-agent's /validate/pipeline, returns its parsed JSON
     response directly: {"valid": bool, "checks": [...]}. A pipeline that fails
     its checks is still an HTTP 200 with valid=false. A schema or rule name
@@ -175,7 +175,6 @@ def validate_pipeline(content: str, filename: str, platform_name: str, json_sche
             "filename": filename,
             "platform_name": platform_name,
             "json_schema": json_schema,
-            "rules": rules,
         },
         timeout=VALIDATE_TIMEOUT,
     )

@@ -114,7 +114,7 @@ def _store_platform(tmp_path, platform_id, name, output_filename):
         (folder / filename).write_text("placeholder", encoding="utf-8")
 
 
-def test_validate_for_a_platform_with_no_schema_sends_none_and_no_rules(tmp_path):
+def test_validate_for_a_platform_with_no_schema_sends_none(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
     answer = {"valid": True, "checks": []}
 
@@ -122,20 +122,17 @@ def test_validate_for_a_platform_with_no_schema_sends_none_and_no_rules(tmp_path
         body = client.post("/validate", json={"platform": "other", "content": "a: b\n"}).json()
 
     assert body == answer
-    assert validate.call_args.args == ("a: b\n", "other.yml", "Other CI", None, [])
+    assert validate.call_args.args == ("a: b\n", "other.yml", "Other CI", None)
 
 
-def test_validate_sends_the_schema_and_rules_the_platform_has(tmp_path):
+def test_validate_sends_the_schema_the_platform_has(tmp_path):
     _store_platform(tmp_path, "other", "Other CI", "other.yml")
-    version = tmp_path / "platforms" / "other" / "1"
-    (version / "schema.json").write_text('{"type": "object"}', encoding="utf-8")
-    meta = json.loads((version / "platform.json").read_text(encoding="utf-8"))
-    (version / "platform.json").write_text(json.dumps({**meta, "rules": ["gitlab-references"]}), encoding="utf-8")
+    (tmp_path / "platforms" / "other" / "1" / "schema.json").write_text('{"type": "object"}', encoding="utf-8")
 
     with patch("main.validator_agent_client.validate_pipeline", return_value={"valid": True, "checks": []}) as validate:
         client.post("/validate", json={"platform": "other", "content": "a: b\n"})
 
-    assert validate.call_args.args[3:] == ({"type": "object"}, ["gitlab-references"])
+    assert validate.call_args.args[3] == {"type": "object"}
 
 
 def test_validate_with_a_schema_file_that_cannot_be_read_is_a_generic_error_and_asks_nobody(tmp_path):
