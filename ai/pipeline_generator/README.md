@@ -91,8 +91,13 @@ platforms/
 
 Generation uses each platform's latest version. A version without a usable `platform.json`, or
 missing one of its files, is skipped with a log line, and the version before it is used. The files
-are read on every request, so a changed file applies to the next generation, with no rebuild.
-Nothing else is read to run a platform, and nothing is copied anywhere.
+are read on every request, so a changed file applies to the next generation. Nothing else is read
+to run a platform.
+
+These files belong to this service and are changed here. They do not follow `main/`, which is a
+separate codebase. Docker Compose mounts the folder read-only, and the image carries no copy of it,
+so the folder must be mounted (or `GENERATOR_PLATFORMS_DIR` must name it). A missing folder, or
+one with no usable platform, is logged as an error on every request that needs it.
 
 ## How a pipeline is generated
 
@@ -186,8 +191,9 @@ PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
 
-`pytest` alone runs the fast suite on any machine. The real-service tests run the shipped GitLab
-platform through a real `execution_agent`, and skip themselves unless it answers. Inside this service's container in the running stack they do.
+`pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
+platform through a real `execution_agent`, and skip themselves unless it answers. Inside this
+service's container in the running stack they do.
 
 ## Adding a platform
 
@@ -205,8 +211,8 @@ a folder you are comfortable exposing that way.
 
 The `platforms/` folder is trusted input. Its transformations and templates are compiled and run by
 `execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to it is
-reviewed like any other code change. It is committed to the repository and mounted read-only, and
-no route of this service writes to it.
+reviewed like any other code change. It is committed to the repository, Docker Compose mounts it
+read-only, and no route of this service writes to it.
 
 This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent` and
 `execution_agent` through the shared `clients/` package, like every other service.

@@ -1,4 +1,4 @@
-"""What a CI/CD platform is, to this service: one stored version of it. Where
+"""What a CI/CD platform is, to this service: one version of it. Where
 platforms are kept and how they are run is the registry's and the runner's
 business, not this module's."""
 from dataclasses import dataclass

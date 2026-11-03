@@ -101,13 +101,16 @@ class PlatformRegistry:
     def latest(self) -> list[Platform]:
         """Every platform's latest usable version, by name."""
         if not self._directory.is_dir():
+            logger.error("the platforms folder %s does not exist", self._directory)
             return []
         found = []
         for entry in self._directory.iterdir():
-            if entry.is_dir() and _ID_PATTERN.fullmatch(entry.name):
+            if _ID_PATTERN.fullmatch(entry.name):
                 versions = self._versions(entry.name)
                 if versions:
                     found.append(versions[-1])
+        if not found:
+            logger.error("the platforms folder %s holds no usable platform", self._directory)
         return sorted(found, key=lambda platform: platform.name.lower())
 
     def get(self, platform_id: str) -> Platform | None:

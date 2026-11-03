@@ -70,9 +70,18 @@ def test_a_failing_step_is_reported_as_a_run_error(failure):
         _run(atl=failure)
 
 
-def test_a_failing_first_step_is_reported_too():
-    with pytest.raises(PlatformRunError):
-        _run(to_pim=AgentServiceError(422, {"message": "invalid model"}))
+def test_a_failing_first_step_is_reported_and_no_later_step_runs():
+    with patch(
+        "platform_runner.execution_agent_client.execute_atl_from_swarch",
+        side_effect=AgentServiceError(422, {"message": "invalid model"}),
+    ), patch("platform_runner.execution_agent_client.execute_atl") as run_atl, patch(
+        "platform_runner.execution_agent_client.execute_acceleo"
+    ) as run_acceleo:
+        with pytest.raises(PlatformRunError):
+            run_platform("<swarch/>", PLATFORM, _Registry(_Artifacts()))
+
+    run_atl.assert_not_called()
+    run_acceleo.assert_not_called()
 
 
 @pytest.mark.parametrize("error", [FileNotFoundError("gone"), UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad")])

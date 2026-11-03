@@ -32,8 +32,8 @@ def folder(tmp_path):
 def test_the_committed_platforms_are_listed():
     registry = PlatformRegistry(PLATFORMS_DIR)
 
-    assert registry.latest() == [Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM")]
-    assert registry.get("gitlab") == registry.latest()[0]
+    assert Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM") in registry.latest()
+    assert registry.get("gitlab") == Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM")
 
 
 def test_a_platform_gives_back_its_three_files():
@@ -99,11 +99,11 @@ def test_a_version_folder_without_platform_json_is_not_listed_but_an_earlier_ver
     assert PlatformRegistry(folder).get("x").version == 1
 
 
-def test_a_leftover_staging_folder_is_ignored(folder):
+def test_a_folder_that_is_not_a_version_number_is_ignored(folder):
     _write_version(folder, "x", 1)
-    leftover = folder / "x" / ".seeding-abc"
-    leftover.mkdir()
-    (leftover / "platform.json").write_text("{}", encoding="utf-8")
+    other = folder / "x" / "draft"
+    other.mkdir()
+    (other / "platform.json").write_text("{}", encoding="utf-8")
 
     assert [p.version for p in PlatformRegistry(folder).latest()] == [1]
 
@@ -132,7 +132,6 @@ def test_a_version_that_is_skipped_is_logged_with_the_reason(folder, caplog):
     PlatformRegistry(folder).latest()
 
     assert "transformation.atl is missing" in caplog.text
-
 
 
 def test_the_committed_swarch_to_pim_transformation_is_read():
@@ -165,3 +164,15 @@ def test_a_file_in_the_folder_is_not_a_platform(folder):
     (folder / "swarch2pim.atl").write_text("not a platform", encoding="utf-8")
 
     assert [p.id for p in PlatformRegistry(folder).latest()] == ["x"]
+
+
+def test_a_missing_folder_is_logged_as_an_error_and_offers_nothing(folder, caplog):
+    assert PlatformRegistry(folder).latest() == []
+    assert "does not exist" in caplog.text
+
+
+def test_a_folder_with_no_usable_platform_is_logged_as_an_error(folder, caplog):
+    folder.mkdir()
+
+    assert PlatformRegistry(folder).latest() == []
+    assert "holds no usable platform" in caplog.text

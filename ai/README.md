@@ -48,7 +48,7 @@ Every environment on the same machine reads the same `~/.claude` folder (see `ai
 
 ## Where files live
 
-Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its folders before the first start:
+Everything the stack generates and keeps is in one host folder, the data folder. Set it with `MDDOAI_DATA_DIR` in the environment's `config.env`, which is required. A path starting with `./` starts in `ai/`, so `./data` is `ai/data/`, which git ignores. Create its folders before the first start (the generator's platforms are not here: they are committed files under `pipeline_generator/platforms/`):
 
 ```bash
 mkdir -p ai/data/workspace ai/data/pipelines
