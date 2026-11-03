@@ -8,7 +8,7 @@ files a person can open:
     record.json                        the rest of what reopening needs, without file contents
     model.swarch                       the model it was generated from
     <platform-id>/<output file>        each generated pipeline
-    <platform-id>/intermediates/<file> the models the engine passed through on the way
+    <platform-id>/intermediates/<file> the models the generation passed through on the way
 
 The list reads only the small files. A pipeline is identified by its model
 input (the workspace path it was loaded from, else the file name), and the

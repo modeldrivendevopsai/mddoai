@@ -40,7 +40,7 @@ if [[ ! -f "$CONFIG" ]]; then
 fi
 # The generator's data folders, as the template's ./data names them. Docker
 # would create them owned by root, so setup makes them for the developer.
-install -d -o "$DEV_USER" -g "$DEV_USER" "$DATA_DIR" "$DATA_DIR/workspace" "$DATA_DIR/pipelines"
+install -d -o "$DEV_USER" -g "$DEV_USER" "$DATA_DIR" "$DATA_DIR/workspace" "$DATA_DIR/pipelines" "$DATA_DIR/platforms"
 if [[ ! -f "$LLM_KEYS" ]]; then
   install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/repo/ai/ai-layer/.env.example" "$LLM_KEYS"
   log "Created $LLM_KEYS. Fill in the LLM API keys."

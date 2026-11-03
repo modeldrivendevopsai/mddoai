@@ -205,5 +205,29 @@ def check_gitlab_pipeline(content: str) -> PipelineValidation:
     return {"valid": all(check["status"] != "fail" for check in checks), "checks": checks}
 
 
-# Platform id (see platforms.PLATFORMS) -> its pipeline checker.
+# The file endings a platform's pipeline can be checked as YAML for, when the
+# platform has no checker of its own.
+_YAML_SUFFIXES = (".yml", ".yaml")
+
+
+def check_generic_pipeline(content: str, output_filename: str) -> PipelineValidation:
+    """For a platform with no checker of its own: no schema is known, so the
+    one check is that a YAML file parses. Any other kind of file has nothing
+    to check."""
+    title = "The file is valid YAML"
+    if not output_filename.lower().endswith(_YAML_SUFFIXES):
+        return {"valid": True, "checks": [_skipped("yaml", title)]}
+    _document, problems = _load_document(content)
+    return {"valid": not problems, "checks": [_check("yaml", title, problems)]}
+
+
+# Platform id -> its own pipeline checker.
 CHECKERS: dict[str, Callable[[str], PipelineValidation]] = {"gitlab": check_gitlab_pipeline}
+
+
+def check_pipeline(platform, content: str) -> PipelineValidation:
+    """The platform's own checker, or the generic check when it has none."""
+    checker = CHECKERS.get(platform.id)
+    if checker is None:
+        return check_generic_pipeline(content, platform.output_filename)
+    return checker(content)

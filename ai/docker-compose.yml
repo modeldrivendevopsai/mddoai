@@ -544,13 +544,13 @@ services:
     expose:
       - "8110"
 
-  # The backend of the "Generate a CI/CD pipeline" mode: runs the engine's
-  # real swarch2<platform> CLI on an uploaded Software Architecture model,
-  # and checks the model (via validator-agent) and the generated pipeline.
-  # UI-facing, the way orchestrator is for the platform-integration mode, but
-  # with no pipeline run or LLM involved. It invokes the engine's CLI directly
-  # because the engine's generator for a platform is not something
-  # execution-agent can run (the repo's documented fifth exception).
+  # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
+  # Software Architecture model into a pipeline for each chosen platform, by
+  # running that platform's own files (kept in the data folder's platforms/)
+  # through swarch-agent and execution-agent, and checks the model (via
+  # validator-agent) and the generated pipeline. UI-facing, the way
+  # orchestrator is for the platform-integration mode, but with no pipeline
+  # run or LLM involved.
   pipeline-generator:
     build:
       context: .
@@ -559,15 +559,6 @@ services:
       - path: ./pipeline_generator/.env
         required: false
     volumes:
-      # Read-only, same shared build-output volume validator-agent and
-      # execution-agent already mount: the real engine CLI's classpath.
-      - main-build-output:/main-build:ro
-      # The engine loads its compiled ATL transformations by a path relative
-      # to its working directory, not from the classpath, so they have to be
-      # provided as files. A real, read-only MDE data directory, the same
-      # narrow shape as the repo's documented third exception; each request
-      # copies it into its own scratch directory.
-      - ../main/src/main/resources/transformations:/engine-transformations:ro
       # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
       # is the one host folder for everything the stack generates and keeps.
       # Its workspace/ is the folder the screen's "Input path" field works
@@ -589,19 +580,28 @@ services:
         target: /data/pipelines
         bind:
           create_host_path: false
+      # The data folder's platforms/: the files each platform is run from. The
+      # service copies the platforms it ships with in when they are missing.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/platforms
+        target: /data/platforms
+        bind:
+          create_host_path: false
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
-      - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
+      - SWARCH_AGENT_URL=http://swarch-agent:8110
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
       # How the Browse dialog names the workspace to the person: its host
       # folder.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
       - GENERATOR_DATA_DIR=/data
     depends_on:
-      gradle-builder:
-        condition: service_completed_successfully
       validator-agent:
+        condition: service_healthy
+      swarch-agent:
+        condition: service_healthy
+      execution-agent:
         condition: service_healthy
     expose:
       - "8100"

@@ -1,7 +1,7 @@
 """Generations in progress and just finished, so POST /generate can answer at
 once and the caller can fetch the outcome when it is ready. A generation can
 outlast a proxy's request timeout: each platform runs one after another, and
-each one starts the engine's JVM."""
+each one is three steps in other services."""
 import logging
 import threading
 import uuid
@@ -22,7 +22,7 @@ class GenerationJobs:
 
     Keeps the newest `max_finished` finished jobs; running jobs are never
     dropped. Runs at most `max_running` jobs at once, each generation
-    starting the engine's JVM; the rest wait, reported as running. Its own
+    running steps in other services; the rest wait, reported as running. Its own
     threads, not FastAPI's BackgroundTasks: a job can take minutes, and
     would hold one of the threads Starlette shares with every request.
     `run` replaces that for tests, with one that runs the work at once."""

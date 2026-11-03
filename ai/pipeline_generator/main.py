@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -9,16 +10,16 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
-from engine_runner import MAX_PIPELINE_BYTES
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
-from pipeline_checks import CHECKERS, PipelineValidation
+from pipeline_checks import PipelineValidation, check_pipeline
 from pipeline_history import PipelineHistory
-from platforms import PLATFORMS, Platform, get_platform
+from platform_registry import PlatformRegistry
+from platforms import Platform
 from routes import pipelines as pipelines_routes
 from routes import workspace as workspace_routes
-from routes.dependencies import get_history, get_jobs, get_workspace
-from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS
+from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
+from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS, MAX_PIPELINE_BYTES, PLATFORM_SEEDS_DIR
 from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
 
@@ -28,12 +29,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Stores the platforms this service ships with before it serves anything."""
+    get_registry().seed(PLATFORM_SEEDS_DIR)
+    yield
+
+
 # A JSON body is only parsed when the request says it is JSON. Without that, a
 # web page open in the person's browser could send a "simple" cross-origin POST
-# (no Content-Type, so no preflight) and make this service run the engine and
+# (no Content-Type, so no preflight) and make this service run generations and
 # write history files, since it has no authentication. FastAPI does this by default from 0.132.0; stated here
 # so it cannot be lost by a version change.
-app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
+app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True, lifespan=lifespan)
 app.include_router(workspace_routes.router)
 app.include_router(pipelines_routes.router)
 
@@ -81,17 +90,17 @@ def _require_size(content: str, limit: int, what: str) -> None:
         raise HTTPException(status_code=413, detail=f"{what} exceeds {limit} bytes")
 
 
-def _require_platform(platform_id: str) -> Platform:
-    platform = get_platform(platform_id)
+def _require_platform(platform_id: str, registry: PlatformRegistry) -> Platform:
+    platform = registry.get(platform_id)
     if platform is None:
-        supported = ", ".join(sorted(PLATFORMS))
+        supported = ", ".join(sorted(offered.id for offered in registry.latest()))
         raise HTTPException(status_code=422, detail=f"Unsupported platform '{platform_id}'. Supported: {supported}")
     return platform
 
 
-def _require_platforms(platform_ids: list[str]) -> list[Platform]:
+def _require_platforms(platform_ids: list[str], registry: PlatformRegistry) -> list[Platform]:
     """Each named platform once, in the order given."""
-    return [_require_platform(platform_id) for platform_id in dict.fromkeys(platform_ids)]
+    return [_require_platform(platform_id, registry) for platform_id in dict.fromkeys(platform_ids)]
 
 
 def _check_model(request: ModelRequest) -> dict:
@@ -115,10 +124,10 @@ def health():
 
 
 @app.get("/platforms")
-def list_platforms():
+def list_platforms(registry: PlatformRegistry = Depends(get_registry)):
     return {
         "platforms": [
-            {"id": p.id, "name": p.name, "output_filename": p.output_filename} for p in PLATFORMS.values()
+            {"id": p.id, "name": p.name, "output_filename": p.output_filename} for p in registry.latest()
         ]
     }
 
@@ -143,13 +152,14 @@ def generate_endpoint(
     request: GenerateRequest,
     workspace: Workspace = Depends(get_workspace),
     history: PipelineHistory = Depends(get_history),
+    registry: PlatformRegistry = Depends(get_registry),
     jobs: GenerationJobs = Depends(get_jobs),
 ):
     """Checks the request, then generates after answering: the outcome is
     fetched from GET /generate/{job_id}. A request that cannot be generated
     at all (an unknown platform, an invalid model) is refused here, at once."""
     _require_size(request.content, MAX_MODEL_BYTES, "content")
-    platforms = _require_platforms(request.platforms)
+    platforms = _require_platforms(request.platforms, registry)
     logger.info("POST /generate filename=%r platforms=%s", request.filename, [p.id for p in platforms])
 
     # Re-checked here, not trusted from an earlier /inspect: this endpoint is
@@ -167,6 +177,7 @@ def generate_endpoint(
         filename=request.filename,
         source_path=request.source_path,
         platforms=platforms,
+        registry=registry,
         workspace=workspace,
         history=history,
     )
@@ -184,10 +195,12 @@ def generation_job_endpoint(job_id: str, jobs: GenerationJobs = Depends(get_jobs
 
 
 @app.post("/validate")
-def validate_endpoint(request: PipelineRequest) -> PipelineValidation:
+def validate_endpoint(
+    request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)
+) -> PipelineValidation:
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
-    platform = _require_platform(request.platform)
+    platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
-    result = CHECKERS[platform.id](request.content)
+    result = check_pipeline(platform, request.content)
     logger.info("POST /validate done platform=%s valid=%s", platform.id, result["valid"])
     return result

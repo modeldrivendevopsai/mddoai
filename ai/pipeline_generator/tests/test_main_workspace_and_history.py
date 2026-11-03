@@ -1,15 +1,14 @@
 """The workspace and pipelines routes, and /generate's recording,
-through the real app. Only the validator call and the engine subprocess are
-mocked, as in test_main.py."""
+through the real app. Only the validator call and the generation steps in
+other services are mocked, as in test_main.py."""
+import json
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 import main
 from helpers import generate
-import platforms
-from engine_runner import EngineError
-from platforms import Platform
+from platform_runner import PlatformRunError
 
 client = TestClient(main.app)
 
@@ -23,7 +22,7 @@ def _engine_result(text="stages: [build]\n"):
 
 def _generate(**overrides):
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine", return_value=_engine_result()):
+            patch("generation.run_platform", return_value=_engine_result()):
         return generate(client, {**MODEL, "platforms": ["gitlab"], **overrides})
 
 
@@ -104,17 +103,27 @@ def test_a_request_still_naming_a_save_folder_is_accepted_and_saves_nothing(work
     assert list(workspace_dir.iterdir()) == []
 
 
-def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure():
-    other = Platform("other", "Other CI", "swarch2other", "other.yml", ())
+def _store_platform(tmp_path, platform_id, name, output_filename):
+    """A second platform in the registry's folder. Its files are placeholders:
+    what runs them is mocked in these tests."""
+    folder = tmp_path / "platforms" / platform_id / "1"
+    folder.mkdir(parents=True)
+    meta = {"id": platform_id, "name": name, "version": 1, "output_filename": output_filename, "output_model_name": "XMM"}
+    (folder / "platform.json").write_text(json.dumps(meta), encoding="utf-8")
+    for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
+        (folder / filename).write_text("placeholder", encoding="utf-8")
 
-    def engine(content, platform):
+
+def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_failure(tmp_path):
+    _store_platform(tmp_path, "other", "Other CI", "other.yml")
+
+    def run(content, platform, registry):
         if platform.id == "other":
-            raise EngineError("boom at /secret")
+            raise PlatformRunError("boom at /secret")
         return _engine_result()
 
-    with patch.dict(platforms.PLATFORMS, {"other": other}), \
-            patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine", side_effect=engine):
+    with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
+            patch("generation.run_platform", side_effect=run):
         response = generate(client, {**MODEL, "platforms": ["gitlab", "other"]})
 
     results = response.json()["results"]
@@ -126,7 +135,7 @@ def test_generate_with_several_platforms_returns_one_result_each_and_isolates_a_
 
 def test_naming_a_platform_twice_generates_it_once():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine", return_value=_engine_result()) as engine:
+            patch("generation.run_platform", return_value=_engine_result()) as engine:
         results = generate(client, {**MODEL, "platforms": ["gitlab", "gitlab"]}).json()["results"]
 
     assert len(results) == 1
@@ -139,7 +148,7 @@ def test_generate_needs_at_least_one_platform():
 
 def test_one_unsupported_platform_refuses_the_whole_request_before_anything_runs():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine") as engine:
+            patch("generation.run_platform") as engine:
         response = generate(client, {**MODEL, "platforms": ["gitlab", "jenkins"]})
 
     assert response.status_code == 422
@@ -188,7 +197,7 @@ def test_a_source_path_outside_the_workspace_is_not_stored():
 
 def test_a_failed_generation_is_not_recorded():
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine", side_effect=EngineError("boom")):
+            patch("generation.run_platform", side_effect=PlatformRunError("boom")):
         body = generate(client, {**MODEL, "platforms": ["gitlab"]}).json()
 
     assert body["pipeline_id"] is None
@@ -239,7 +248,7 @@ def test_a_body_not_sent_as_json_is_refused_and_nothing_runs(workspace_dir):
 
     body = json.dumps({**MODEL, "platforms": ["gitlab"]})
     with patch("main.validator_agent_client.validate_swarch", return_value=OK), \
-            patch("generation.run_engine", return_value=_engine_result()) as engine:
+            patch("generation.run_platform", return_value=_engine_result()) as engine:
         plain = client.post("/generate", content=body, headers={"Content-Type": "text/plain"})
         bare = client.post("/generate", content=body)
 
