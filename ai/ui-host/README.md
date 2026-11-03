@@ -134,7 +134,9 @@ else on the page keeps working; see this package's own `CLAUDE.md` for why (`Rem
 
 The app's code lives under `src/` (and the Docker proxy's configuration under `nginx/`): `screens/` holds the app's screens, `layout/` holds the
 persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
-host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
+host (see CLAUDE.md's Design System section for the full breakdown), `features/generate/` holds
+the "Generate a CI/CD pipeline" mode's components and hooks, `config/` holds copy and settings as
+data, `federated/` holds the
 ambient TypeScript declarations for every federated import, `services/` holds the files that call
 the backend or provide mock data, and `hooks/` holds `useIntegration`. Shared component/token
 primitives live in the sibling `design-system` package (`ai/design-system`); the shared
