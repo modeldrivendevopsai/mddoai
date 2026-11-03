@@ -102,7 +102,7 @@ def _run_cli(argv: list[str], cwd: Path) -> tuple[dict, int]:
     return result, duration_ms
 
 
-def run_atl_executor(
+def run_atl_from_pim_executor(
     atl_source: str, pim_model_xmi: str, target_ecore: str, output_model_name: str
 ) -> AtlExecutionResult:
     with tempfile.TemporaryDirectory() as tmp:
@@ -130,7 +130,7 @@ def run_atl_executor(
 def run_atl_from_swarch_executor(atl_source: str, swarch_model_xmi: str) -> AtlExecutionResult:
     """Runs a SWArch-to-PIM transformation: a Software Architecture model in,
     a PIM out. Both metamodels are MDDOAI's own compiled ones, so unlike
-    run_atl_executor no target metamodel or output model name is passed."""
+    run_atl_from_pim_executor no target metamodel or output model name is passed."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         atl_file = tmp_path / "transformation.atl"

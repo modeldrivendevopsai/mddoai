@@ -152,7 +152,7 @@ def gen_stage(context: dict) -> str:
 
     with reserved_attempt(run_id, "generation") as attempt_dir:
         try:
-            psm_instance = execution_agent_client.execute_atl(
+            psm_instance = execution_agent_client.execute_atl_from_pim(
                 atl_source, pim_instance, target_ecore, output_model_name
             )
         except Exception as e:

@@ -36,7 +36,7 @@ class _Artifacts:
 def _run(registry=None, *, to_pim="<pim/>", atl="<psm/>", acceleo=None, content="<swarch/>"):
     acceleo = {".x-ci.yml": "stages: [build]\n"} if acceleo is None else acceleo
     with patch("platform_runner.execution_agent_client.execute_atl_from_swarch", side_effect=to_pim if isinstance(to_pim, Exception) else None, return_value=to_pim) as pim, \
-            patch("platform_runner.execution_agent_client.execute_atl", side_effect=atl if isinstance(atl, Exception) else None, return_value=atl) as run_atl, \
+            patch("platform_runner.execution_agent_client.execute_atl_from_pim", side_effect=atl if isinstance(atl, Exception) else None, return_value=atl) as run_atl, \
             patch("platform_runner.execution_agent_client.execute_acceleo", return_value=acceleo) as run_acceleo:
         result = run_platform(content, PLATFORM, registry or _Registry(_Artifacts()))
     return result, pim, run_atl, run_acceleo
@@ -74,7 +74,7 @@ def test_a_failing_first_step_is_reported_and_no_later_step_runs():
     with patch(
         "platform_runner.execution_agent_client.execute_atl_from_swarch",
         side_effect=AgentServiceError(422, {"message": "invalid model"}),
-    ), patch("platform_runner.execution_agent_client.execute_atl") as run_atl, patch(
+    ), patch("platform_runner.execution_agent_client.execute_atl_from_pim") as run_atl, patch(
         "platform_runner.execution_agent_client.execute_acceleo"
     ) as run_acceleo:
         with pytest.raises(PlatformRunError):

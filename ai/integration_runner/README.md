@@ -17,7 +17,7 @@ bundled import), `psm_agent` (`POST /psm`, for the `psm` stage's own real genera
 routed automatically by platform — see [`ai/psm_agent`](../psm_agent)), `validator-agent` (`POST
 /validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`atl`/`acceleo` stages' own
 real validation of their DSL output, and internally by `psm_agent` itself when generating a new
-metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, for the
+metamodel), and `execution-agent` (`POST /execute/atl/pim`/`POST /execute/acceleo`, for the
 `generation` stage's own real ATL/Acceleo execution against a real PIM model instance — see
 [`ai/execution_agent`](../execution_agent)).
 
@@ -583,7 +583,7 @@ touches this package's real `runs/` directory.
   (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_generation_stage.py`** — the real (non-placeholder) `gen_stage` agent
-  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl()` then
+  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl_from_pim()` then
   `execute_acceleo()` with the real context and PIM sample instance, joins more than one generated
   file by name, and raises a clear error when the given ATL source has no real output model name.
 - **`tests/stages/test_mock_validated_stages.py`** — `pim`'s own real, fixed metamodel content +

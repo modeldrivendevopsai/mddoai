@@ -61,7 +61,7 @@ client = TestClient(main.app)
 
 
 def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample_pim():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -84,14 +84,14 @@ def test_real_concurrent_atl_executions_do_not_break_each_other():
     ecore = GITLAB_ECORE_PATH.read_text(encoding="utf-8")
 
     with ThreadPoolExecutor(max_workers=4) as pool:
-        results = list(pool.map(lambda _: execution_runner.run_atl_executor(atl, pim, ecore, "GitLabMM"), range(4)))
+        results = list(pool.map(lambda _: execution_runner.run_atl_from_pim_executor(atl, pim, ecore, "GitLabMM"), range(4)))
 
     assert all(result["output_xmi"] == results[0]["output_xmi"] for result in results)
     assert "gitlabMM:Pipeline" in results[0]["output_xmi"]
 
 
 def test_real_atl_execution_of_a_non_pim_model_returns_422():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": "<?xml version=\"1.0\"?><root/>",
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -102,7 +102,7 @@ def test_real_atl_execution_of_a_non_pim_model_returns_422():
 
 
 def test_real_acceleo_execution_produces_real_gitlab_yaml_from_a_real_atl_produced_psm_instance():
-    atl_response = client.post("/execute/atl", json={
+    atl_response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -140,7 +140,7 @@ def test_real_chain_from_a_swarch_model_reproduces_the_engines_own_expected_gitl
     })
     assert pim.status_code == 200, pim.text
 
-    psm = client.post("/execute/atl", json={
+    psm = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": pim.json()["output_xmi"],
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),

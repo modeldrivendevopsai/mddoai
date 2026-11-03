@@ -61,7 +61,7 @@ def run_platform(content: str, platform: Platform, registry: PlatformRegistry) -
         raise PlatformRunError(f"could not read the files of platform {platform.id} v{platform.version}: {e}") from e
     try:
         pim = execution_agent_client.execute_atl_from_swarch(pim_transformation, content)
-        platform_model = execution_agent_client.execute_atl(
+        platform_model = execution_agent_client.execute_atl_from_pim(
             artifacts.transformation, pim, artifacts.metamodel, platform.output_model_name
         )
         files = execution_agent_client.execute_acceleo(artifacts.template, platform_model, artifacts.metamodel)

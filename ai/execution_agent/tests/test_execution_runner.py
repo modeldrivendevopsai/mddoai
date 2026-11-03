@@ -14,7 +14,7 @@ from execution_runner import (
     ExecutionFailedError,
     ExecutionInfraError,
     run_acceleo_executor,
-    run_atl_executor,
+    run_atl_from_pim_executor,
     run_atl_from_swarch_executor,
 )
 
@@ -36,9 +36,9 @@ def _write_output_file(argv, **kwargs):
     return fake_completed_process(stdout='{"success":true}\n')
 
 
-def test_run_atl_executor_reads_the_real_output_file_back(tmp_path):
+def test_run_atl_from_pim_executor_reads_the_real_output_file_back(tmp_path):
     with patch("execution_runner.subprocess.run", side_effect=_write_output_file):
-        result = run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+        result = run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
     assert result == {"output_xmi": "<real-output/>"}
 
@@ -53,44 +53,44 @@ def test_every_call_runs_in_its_own_working_directory_so_concurrent_calls_cannot
         return fake_completed_process(stdout='{"success":true}\n')
 
     with patch("execution_runner.subprocess.run", side_effect=fake_run):
-        run_atl_executor("atl", "<pim/>", "<ecore/>", "OUT")
-        run_atl_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_from_pim_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_from_pim_executor("atl", "<pim/>", "<ecore/>", "OUT")
         run_atl_from_swarch_executor("atl", "<swarch/>")
 
     assert len(set(directories)) == 3
     assert not any(Path(directory).exists() for directory in directories)
 
 
-def test_run_atl_executor_raises_execution_failed_for_a_real_reported_failure():
+def test_run_atl_from_pim_executor_raises_execution_failed_for_a_real_reported_failure():
     with patch(
         "execution_runner.subprocess.run",
         return_value=fake_completed_process(stdout='{"success":false,"error":"not a real Pipeline instance"}\n'),
     ):
         with pytest.raises(ExecutionFailedError, match="not a real Pipeline instance"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_for_a_nonzero_exit():
+def test_run_atl_from_pim_executor_raises_infra_error_for_a_nonzero_exit():
     with patch(
         "execution_runner.subprocess.run",
         return_value=fake_completed_process(returncode=1, stderr="PimExecutorCli: unexpected error"),
     ):
         with pytest.raises(ExecutionInfraError, match="unexpected error"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_when_java_is_missing():
+def test_run_atl_from_pim_executor_raises_infra_error_when_java_is_missing():
     with patch("execution_runner.subprocess.run", side_effect=FileNotFoundError("java")):
         with pytest.raises(ExecutionInfraError, match="java executable not found"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_for_a_generic_oserror():
+def test_run_atl_from_pim_executor_raises_infra_error_for_a_generic_oserror():
     # Matches validator_runner.py's own defense-in-depth OSError case (e.g.
     # a real "Argument list too long").
     with patch("execution_runner.subprocess.run", side_effect=OSError("Argument list too long")):
         with pytest.raises(ExecutionInfraError, match="Argument list too long"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
 def _write_generated_files(argv, **kwargs):

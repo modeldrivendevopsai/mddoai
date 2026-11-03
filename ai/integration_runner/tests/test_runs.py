@@ -1,7 +1,7 @@
 """runs.py unit tests: process-wide run management, which run is current,
 the history of every run this process has seen, and every one-line
 operation this service's own main.py exposes over REST. No real API
-calls, execution_agent_client's execute_atl/execute_acceleo /
+calls, execution_agent_client's execute_atl_from_pim/execute_acceleo /
 retrieval_client.httpx are mocked.
 
 Tests verify:
