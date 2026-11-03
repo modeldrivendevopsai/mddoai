@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 import main
@@ -5,7 +7,7 @@ from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from generation_jobs import GenerationJobs
 from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
-from settings import PLATFORM_SEEDS_DIR
+from settings import PLATFORMS_DIR
 from workspace import Workspace
 
 
@@ -23,10 +25,10 @@ def history(tmp_path):
 
 @pytest.fixture
 def registry(tmp_path):
-    """A platforms folder holding the platforms the service ships with."""
-    registry = PlatformRegistry(tmp_path / "platforms")
-    registry.seed(PLATFORM_SEEDS_DIR)
-    return registry
+    """A copy of the committed platforms folder, so a test can add a platform
+    or damage one without touching the committed files."""
+    shutil.copytree(PLATFORMS_DIR, tmp_path / "platforms")
+    return PlatformRegistry(tmp_path / "platforms")
 
 
 @pytest.fixture(autouse=True)

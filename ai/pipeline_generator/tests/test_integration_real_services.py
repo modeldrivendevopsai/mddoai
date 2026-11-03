@@ -1,6 +1,5 @@
-"""Real end-to-end test: nothing mocked. Runs the shipped GitLab platform
-through the real swarch-agent and execution-agent. Auto-skips when they are
-not reachable, so the fast suite (plain `pytest`) runs standalone anywhere. In
+"""Real end-to-end test: nothing mocked. Runs the committed GitLab platform
+through the real execution-agent. Auto-skips when it is not reachable, so the fast suite (plain `pytest`) runs standalone anywhere. In
 the Docker stack, run it inside the pipeline-generator container, where
 docker-compose.yml sets the services' addresses.
 """
@@ -10,7 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from clients import execution_agent_client, swarch_agent_client
+from clients import execution_agent_client
 from pipeline_checks import check_gitlab_pipeline
 from platform_runner import run_platform
 
@@ -25,8 +24,8 @@ def _reachable(url: str) -> bool:
 
 
 pytestmark = pytest.mark.skipif(
-    not (_reachable(swarch_agent_client.SWARCH_AGENT_URL) and _reachable(execution_agent_client.EXECUTION_AGENT_URL)),
-    reason="swarch-agent and execution-agent are not reachable",
+    not _reachable(execution_agent_client.EXECUTION_AGENT_URL),
+    reason="execution-agent is not reachable",
 )
 
 

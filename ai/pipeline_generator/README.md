@@ -13,7 +13,7 @@ separate service. This mode has no pipeline run, no chat and no stages, and it c
 1. **Inspect** (`POST /inspect`). Reads the uploaded model's attributes for display, and asks
    `validator_agent` whether the real EMF validator accepts it.
 2. **Generate** (`POST /generate`). Checks the model again and answers at once with a job id.
-   Then, for each chosen platform, it runs that platform's files through `swarch_agent` and
+   Then, for each chosen platform, it runs that platform's files through
    `execution_agent` and keeps the generated pipeline plus the intermediate models it passed
    through, for
    `GET /generate/{job_id}` to return. It records the generation so it can be reopened. A
@@ -74,28 +74,31 @@ then put in place, so the list never shows a pipeline whose files are not all th
 
 ## The platforms
 
-A platform is a folder of files, kept in the data folder's `platforms/` (in Docker, `/data/platforms`):
+The platforms are committed files in this service's `platforms/` folder (in Docker, mounted
+read-only at `/platforms`):
 
 ```
-<platform-id>/<version>/
-  metamodel.ecore      the platform's metamodel
-  transformation.atl   the transformation from the PIM to the platform's model
-  template.mtl         the Acceleo template from that model to the pipeline file
-  platform.json        id, name, version, the pipeline's file name, and the name the
-                       transformation gives the model it creates (the `GitLabMM` in
-                       `create OUT : GitLabMM from IN : PIM;`)
+platforms/
+  swarch2pim.atl                the transformation every platform starts with
+  <platform-id>/<version>/
+    metamodel.ecore             the platform's metamodel
+    transformation.atl          the transformation from the PIM to the platform's model
+    template.mtl                the Acceleo template from that model to the pipeline file
+    platform.json               id, name, version, the pipeline's file name, and the name the
+                                transformation gives the model it creates (the `GitLabMM` in
+                                `create OUT : GitLabMM from IN : PIM;`)
 ```
 
-Generation uses each platform's latest version. A version without a complete `platform.json` is
-never listed. At startup the service copies the platforms it ships with (`platform_seeds/`, which
-holds GitLab CI) into that folder, unless the version is stored already. A stored version is never
-overwritten, so a change made to it survives a restart. Nothing else is read to run a platform.
+Generation uses each platform's latest version. A version without a usable `platform.json`, or
+missing one of its files, is skipped with a log line, and the version before it is used. The files
+are read on every request, so a changed file applies to the next generation, with no rebuild.
+Nothing else is read to run a platform, and nothing is copied anywhere.
 
 ## How a pipeline is generated
 
 For each platform, `platform_runner.py` makes three calls, each to the service that owns the step:
 
-1. `swarch_agent` turns the model into a PIM, the model every platform starts from.
+1. `execution_agent` runs `swarch2pim.atl` on the model, giving the PIM every platform starts from.
 2. `execution_agent` runs the platform's `transformation.atl` on the PIM, giving the platform's
    own model.
 3. `execution_agent` runs the platform's `template.mtl` on that model, giving the pipeline file.
@@ -159,19 +162,20 @@ folder next to the service: create `workspace` first, or the workspace routes an
 
 | Variable | Meaning |
 |---|---|
-| `VALIDATOR_AGENT_URL`, `SWARCH_AGENT_URL`, `EXECUTION_AGENT_URL` | Where `validator_agent`, `swarch_agent` and `execution_agent` are reached. |
+| `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` | Where `validator_agent` and `execution_agent` are reached. |
+| `GENERATOR_PLATFORMS_DIR` | The folder of platforms and `swarch2pim.atl` (see above). In Docker it is `/platforms`. Unset, the committed `platforms/` folder next to the code. |
 | `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn. |
 | `GENERATOR_MAX_FINISHED_JOBS` | How many finished generations are kept for their callers to fetch. |
 | `LOG_LEVEL` | Logging verbosity. |
 | `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
 | `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. Unset, the folder's own path is shown. |
-| `GENERATOR_DATA_DIR` | Where the pipeline history and the platforms are kept, in `pipelines/` and `platforms/` folders inside it. In Docker it is `/data`, with the data folder's `pipelines/` and `platforms/` mounted inside it. |
+| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it. In Docker it is `/data`, with the data folder's `pipelines/` mounted at `/data/pipelines`. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. One setting, so a pipeline that can be generated can always be validated. |
 
 In Docker, `ai/docker-compose.yml` sets the services' addresses and mounts the workspace folder
-(read-only), the pipeline history and the platforms.
+(read-only), the pipeline history and the platforms folder (read-only).
 
 ## Run and test
 
@@ -183,13 +187,11 @@ pytest
 ```
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the shipped GitLab
-platform through a real `swarch_agent` and `execution_agent`, and skip themselves unless both
-answer. Inside this service's container in the running stack they do.
+platform through a real `execution_agent`, and skip themselves unless it answers. Inside this service's container in the running stack they do.
 
 ## Adding a platform
 
-1. Create `<platform-id>/<version>/` in the data folder's `platforms/` with the four files above.
-   To ship it with the service, add it to `platform_seeds/` instead.
+1. Add `<platform-id>/<version>/` to `platforms/` with the four files above, and commit it.
 2. If the pipeline has a checker of its own, add it to `CHECKERS` in `pipeline_checks.py`. Without
    one, a file ending in `.yml` or `.yaml` is only checked to be valid YAML.
 
@@ -201,12 +203,10 @@ is who can reach the UI: `docker-compose.yml` publishes the UI's port on this ma
 who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
 a folder you are comfortable exposing that way.
 
-The data folder's `platforms/` is trusted input. Its transformations and templates are compiled
-and run by `execution_agent`, and an Acceleo template can call Java code (`invoke`), so only people
-who may run code on the machine should be able to write there. No route of this service writes to
-it: only the startup copy of the platforms it ships with does, and it needs `platforms/` writable
-to do that.
+The `platforms/` folder is trusted input. Its transformations and templates are compiled and run by
+`execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to it is
+reviewed like any other code change. It is committed to the repository and mounted read-only, and
+no route of this service writes to it.
 
-This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent`,
-`swarch_agent` and `execution_agent` through the shared `clients/` package, like every other
-service.
+This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent` and
+`execution_agent` through the shared `clients/` package, like every other service.

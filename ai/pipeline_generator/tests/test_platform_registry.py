@@ -4,7 +4,7 @@ import pytest
 
 from platform_registry import PlatformRegistry
 from platforms import Platform
-from settings import PLATFORM_SEEDS_DIR
+from settings import PLATFORMS_DIR
 
 
 def _write_version(directory, platform_id, version, *, name="X CI", output_filename=".x-ci.yml", meta=None):
@@ -29,18 +29,15 @@ def folder(tmp_path):
     return tmp_path / "stored"
 
 
-def test_the_shipped_platforms_are_stored_and_listed(folder):
-    registry = PlatformRegistry(folder)
-
-    registry.seed(PLATFORM_SEEDS_DIR)
+def test_the_committed_platforms_are_listed():
+    registry = PlatformRegistry(PLATFORMS_DIR)
 
     assert registry.latest() == [Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM")]
     assert registry.get("gitlab") == registry.latest()[0]
 
 
-def test_a_stored_platform_gives_back_its_three_files(folder):
-    registry = PlatformRegistry(folder)
-    registry.seed(PLATFORM_SEEDS_DIR)
+def test_a_platform_gives_back_its_three_files():
+    registry = PlatformRegistry(PLATFORMS_DIR)
 
     artifacts = registry.artifacts(registry.get("gitlab"))
 
@@ -48,32 +45,6 @@ def test_a_stored_platform_gives_back_its_three_files(folder):
     assert "create OUT : GitLabMM from IN : PIM;" in artifacts.transformation
     assert "[module generate(" in artifacts.template
     assert "gitlabMM" in artifacts.metamodel
-
-
-def test_seeding_never_overwrites_a_version_that_is_stored(folder):
-    registry = PlatformRegistry(folder)
-    registry.seed(PLATFORM_SEEDS_DIR)
-    template = folder / "gitlab" / "1" / "template.mtl"
-    template.write_text("changed by hand", encoding="utf-8")
-
-    registry.seed(PLATFORM_SEEDS_DIR)
-
-    assert template.read_text(encoding="utf-8") == "changed by hand"
-
-
-def test_seeding_adds_a_version_that_is_missing_beside_the_ones_stored(folder, tmp_path):
-    seeds = tmp_path / "seeds"
-    _write_version(seeds, "x", 1)
-    _write_version(seeds, "x", 2)
-    _write_version(folder, "x", 1)
-    (folder / "x" / "1" / "template.mtl").write_text("changed by hand", encoding="utf-8")
-    registry = PlatformRegistry(folder)
-
-    registry.seed(seeds)
-
-    assert registry.get("x").version == 2
-    assert (folder / "x" / "1" / "template.mtl").read_text(encoding="utf-8") == "changed by hand"
-    assert not list((folder / "x").glob(".seeding-*"))
 
 
 def test_each_platform_is_offered_at_its_latest_version_by_name(folder):
@@ -163,27 +134,34 @@ def test_a_version_that_is_skipped_is_logged_with_the_reason(folder, caplog):
     assert "transformation.atl is missing" in caplog.text
 
 
-def test_seeding_ignores_a_stray_file_among_the_shipped_platforms(folder, tmp_path):
-    seeds = tmp_path / "seeds"
-    _write_version(seeds, "x", 1)
-    (seeds / "README.txt").write_text("not a platform", encoding="utf-8")
-    (seeds / "x" / "notes.txt").write_text("not a version", encoding="utf-8")
+
+def test_the_committed_swarch_to_pim_transformation_is_read():
+    transformation = PlatformRegistry(PLATFORMS_DIR).pim_transformation()
+
+    assert "module swarch2pim;" in transformation
+    assert "create OUT : PIMMM from IN : SWArchMM;" in transformation
+
+
+def test_the_swarch_to_pim_transformation_is_read_on_every_call(folder):
+    folder.mkdir()
+    (folder / "swarch2pim.atl").write_text("first", encoding="utf-8")
     registry = PlatformRegistry(folder)
+    assert registry.pim_transformation() == "first"
 
-    registry.seed(seeds)
+    (folder / "swarch2pim.atl").write_text("second", encoding="utf-8")
 
-    assert [p.id for p in registry.latest()] == ["x"]
+    assert registry.pim_transformation() == "second"
 
 
-def test_a_staging_folder_left_by_a_crash_is_replaced_at_the_next_seeding(folder, tmp_path):
-    seeds = tmp_path / "seeds"
-    _write_version(seeds, "x", 1)
-    stale = folder / "x" / ".seeding-1"
-    stale.mkdir(parents=True)
-    (stale / "left-over.txt").write_text("from a crash", encoding="utf-8")
-    registry = PlatformRegistry(folder)
+def test_a_missing_swarch_to_pim_transformation_is_an_error_not_an_empty_one(folder):
+    folder.mkdir()
 
-    registry.seed(seeds)
+    with pytest.raises(OSError):
+        PlatformRegistry(folder).pim_transformation()
 
-    assert registry.get("x").version == 1
-    assert not stale.exists()
+
+def test_a_file_in_the_folder_is_not_a_platform(folder):
+    _write_version(folder, "x", 1)
+    (folder / "swarch2pim.atl").write_text("not a platform", encoding="utf-8")
+
+    assert [p.id for p in PlatformRegistry(folder).latest()] == ["x"]

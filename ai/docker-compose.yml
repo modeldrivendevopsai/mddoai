@@ -520,34 +520,10 @@ services:
     expose:
       - "8090"
 
-  # SWArch-level capabilities, starting with turning a Software Architecture
-  # model into a PIM: it checks the model with validator-agent, then has
-  # execution-agent run the SWArch-to-PIM transformation on it. It owns which
-  # transformation that is (an .atl source file it reads on every request),
-  # so an improved transformation is a file swap here, with no Java change.
-  swarch-agent:
-    build:
-      context: .
-      dockerfile: swarch_agent/Dockerfile
-    env_file:
-      - path: ./swarch_agent/.env
-        required: false
-    environment:
-      - LOG_LEVEL=INFO
-      - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - EXECUTION_AGENT_URL=http://execution-agent:8090
-    depends_on:
-      validator-agent:
-        condition: service_healthy
-      execution-agent:
-        condition: service_healthy
-    expose:
-      - "8110"
-
   # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
   # Software Architecture model into a pipeline for each chosen platform, by
-  # running that platform's own files (kept in the data folder's platforms/)
-  # through swarch-agent and execution-agent, and checks the model (via
+  # running that platform's own files (committed in pipeline_generator/
+  # platforms/) through execution-agent, and checks the model (via
   # validator-agent) and the generated pipeline. UI-facing, the way
   # orchestrator is for the platform-integration mode, but with no pipeline
   # run or LLM involved.
@@ -580,26 +556,21 @@ services:
         target: /data/pipelines
         bind:
           create_host_path: false
-      # The data folder's platforms/: the files each platform is run from. The
-      # service copies the platforms it ships with in when they are missing,
-      # and nobody but the service writes here, so Docker may create the
-      # folder (owned by root) when it is not there.
-      - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/platforms
-        target: /data/platforms
+      # The committed files each platform is run from, read-only. The service
+      # reads them on every request, so a file edited here applies to the next
+      # generation without a rebuild.
+      - ./pipeline_generator/platforms:/platforms:ro
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - SWARCH_AGENT_URL=http://swarch-agent:8110
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
+      - GENERATOR_PLATFORMS_DIR=/platforms
       # How the Browse dialog names the workspace to the person: its host
       # folder.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
       - GENERATOR_DATA_DIR=/data
     depends_on:
       validator-agent:
-        condition: service_healthy
-      swarch-agent:
         condition: service_healthy
       execution-agent:
         condition: service_healthy

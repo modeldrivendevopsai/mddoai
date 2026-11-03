@@ -1,7 +1,6 @@
 import functools
 import logging
 import os
-from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -19,7 +18,7 @@ from platforms import Platform
 from routes import pipelines as pipelines_routes
 from routes import workspace as workspace_routes
 from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
-from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS, MAX_PIPELINE_BYTES, PLATFORM_SEEDS_DIR
+from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS, MAX_PIPELINE_BYTES
 from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
 
@@ -30,19 +29,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    """Stores the platforms this service ships with before it serves anything."""
-    get_registry().seed(PLATFORM_SEEDS_DIR)
-    yield
-
-
 # A JSON body is only parsed when the request says it is JSON. Without that, a
 # web page open in the person's browser could send a "simple" cross-origin POST
 # (no Content-Type, so no preflight) and make this service run generations and
 # write history files, since it has no authentication. FastAPI does this by default from 0.132.0; stated here
 # so it cannot be lost by a version change.
-app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True, lifespan=lifespan)
+app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
 app.include_router(workspace_routes.router)
 app.include_router(pipelines_routes.router)
 

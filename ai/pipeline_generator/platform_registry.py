@@ -1,27 +1,24 @@
-"""Where the platforms this service generates for are kept, and how they are
-read.
+"""The platforms this service generates for, and how they are read.
 
-One folder per platform, one subfolder per version:
+Committed files, one folder per platform and one subfolder per version:
 
+    swarch2pim.atl                the transformation every platform starts with
     <platform-id>/<version>/
-        metamodel.ecore      the platform's metamodel
-        transformation.atl   PIM to platform model
-        template.mtl         platform model to pipeline file
-        platform.json        name, output file name, name of the model the transformation creates
+        metamodel.ecore           the platform's metamodel
+        transformation.atl        PIM to platform model
+        template.mtl              platform model to pipeline file
+        platform.json             name, output file name, name of the model the
+                                  transformation creates
 
-Generation uses each platform's latest version. A version is only listed when
-platform.json is usable and the three files are all there, so a version that
-is unfinished or damaged is skipped (and logged) and the one before it is used.
-
-The platforms this service ships with are copied in at startup (`seed`), so a
-fresh data folder works at once; after that these files are the platform, and
-the service reads nothing else to run it.
+The files are read on every request, so a changed file applies to the next
+generation. Generation uses each platform's latest version. A version is only
+listed when platform.json is usable and the three files are all there, so a
+version that is unfinished or damaged is skipped (and logged) and the one
+before it is used.
 """
 import json
 import logging
-import os
 import re
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,6 +37,8 @@ _METAMODEL = "metamodel.ecore"
 _TRANSFORMATION = "transformation.atl"
 _TEMPLATE = "template.mtl"
 _META = "platform.json"
+# The step every platform starts with, beside the platform folders.
+_PIM_TRANSFORMATION = "swarch2pim.atl"
 
 
 @dataclass(frozen=True)
@@ -105,7 +104,7 @@ class PlatformRegistry:
             return []
         found = []
         for entry in self._directory.iterdir():
-            if _ID_PATTERN.fullmatch(entry.name):
+            if entry.is_dir() and _ID_PATTERN.fullmatch(entry.name):
                 versions = self._versions(entry.name)
                 if versions:
                     found.append(versions[-1])
@@ -126,21 +125,6 @@ class PlatformRegistry:
             template=_read_text(folder / _TEMPLATE),
         )
 
-    def seed(self, seed_directory: Path) -> None:
-        """Copies each platform version in `seed_directory` that is not stored
-        yet. A version that is stored is never overwritten, so a change made to
-        a stored platform survives a restart. A version is copied beside its
-        final name and renamed into place, so it appears whole or not at all."""
-        for platform_folder in sorted(p for p in seed_directory.iterdir() if p.is_dir()):
-            for version_folder in sorted(v for v in platform_folder.iterdir() if v.is_dir()):
-                target = self._directory / platform_folder.name / version_folder.name
-                if target.exists():
-                    continue
-                target.parent.mkdir(parents=True, exist_ok=True)
-                # A fixed staging name, so one left by a crash is replaced by
-                # the next start instead of piling up.
-                staging = target.parent / f".seeding-{version_folder.name}"
-                shutil.rmtree(staging, ignore_errors=True)
-                shutil.copytree(version_folder, staging)
-                os.rename(staging, target)
-                logger.info("stored platform %s version %s", platform_folder.name, version_folder.name)
+    def pim_transformation(self) -> str:
+        """The SWArch-to-PIM transformation, as ATL source text."""
+        return _read_text(self._directory / _PIM_TRANSFORMATION)

@@ -23,6 +23,9 @@ class _Registry:
             raise self._error
         return self._artifacts
 
+    def pim_transformation(self):
+        return "module swarch2pim;"
+
 
 class _Artifacts:
     metamodel = "<ecore/>"
@@ -32,7 +35,7 @@ class _Artifacts:
 
 def _run(registry=None, *, to_pim="<pim/>", atl="<psm/>", acceleo=None, content="<swarch/>"):
     acceleo = {".x-ci.yml": "stages: [build]\n"} if acceleo is None else acceleo
-    with patch("platform_runner.swarch_agent_client.to_pim", side_effect=to_pim if isinstance(to_pim, Exception) else None, return_value=to_pim) as pim, \
+    with patch("platform_runner.execution_agent_client.execute_atl_from_swarch", side_effect=to_pim if isinstance(to_pim, Exception) else None, return_value=to_pim) as pim, \
             patch("platform_runner.execution_agent_client.execute_atl", side_effect=atl if isinstance(atl, Exception) else None, return_value=atl) as run_atl, \
             patch("platform_runner.execution_agent_client.execute_acceleo", return_value=acceleo) as run_acceleo:
         result = run_platform(content, PLATFORM, registry or _Registry(_Artifacts()))
@@ -42,7 +45,7 @@ def _run(registry=None, *, to_pim="<pim/>", atl="<psm/>", acceleo=None, content=
 def test_runs_the_three_steps_in_order_with_the_platforms_own_files():
     result, pim, run_atl, run_acceleo = _run()
 
-    pim.assert_called_once_with("<swarch/>")
+    pim.assert_called_once_with("module swarch2pim;", "<swarch/>")
     run_atl.assert_called_once_with("module t;", "<pim/>", "<ecore/>", "XMM")
     run_acceleo.assert_called_once_with("[module g/]", "<psm/>", "<ecore/>")
     assert result["pipeline"] == "stages: [build]\n"
@@ -74,7 +77,7 @@ def test_a_failing_first_step_is_reported_too():
 
 @pytest.mark.parametrize("error", [FileNotFoundError("gone"), UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad")])
 def test_files_that_cannot_be_read_are_a_run_error_and_no_step_runs(error):
-    with patch("platform_runner.swarch_agent_client.to_pim") as pim:
+    with patch("platform_runner.execution_agent_client.execute_atl_from_swarch") as pim:
         with pytest.raises(PlatformRunError, match="could not read the files"):
             run_platform("<swarch/>", PLATFORM, _Registry(error=error))
 

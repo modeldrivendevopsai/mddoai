@@ -27,13 +27,13 @@ WORKSPACE_DIR = Path(os.environ.get("GENERATOR_WORKSPACE_DIR", "./workspace"))
 # passes the host folder's name; run directly, the folder's own path is it.
 WORKSPACE_LABEL = os.environ.get("GENERATOR_WORKSPACE_LABEL") or str(WORKSPACE_DIR)
 
-# Where generated pipelines are kept so they can be reopened later, and where
-# the platforms this service generates for are kept.
+# Where generated pipelines are kept so they can be reopened later.
 DATA_DIR = Path(os.environ.get("GENERATOR_DATA_DIR", "./data"))
 
-# The platforms this service ships with, copied into the data folder's
-# platforms/ at startup when they are not there yet.
-PLATFORM_SEEDS_DIR = Path(__file__).resolve().parent / "platform_seeds"
+# The platforms this service generates for, and the SWArch-to-PIM
+# transformation every one of them starts with: committed files, read from
+# here on every request. Unset, the committed folder next to this code.
+PLATFORMS_DIR = Path(os.environ.get("GENERATOR_PLATFORMS_DIR", str(Path(__file__).resolve().parent / "platforms")))
 
 # How many generated pipelines are kept; the oldest are forgotten beyond this.
 # Engineering guess: far more than anyone reopens, small enough that the list

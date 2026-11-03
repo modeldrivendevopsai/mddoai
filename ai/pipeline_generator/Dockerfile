@@ -1,6 +1,6 @@
 # Build context is ai/ (not ./pipeline_generator) in docker-compose.yml, so
 # this can reach its one real sibling dependency: clients/ (the HTTP clients
-# for validator-agent, swarch-agent and execution-agent). Other services that
+# for validator-agent and execution-agent). Other services that
 # call a sibling use the same multi-folder pattern.
 #
 # Plain Python: the transformations run in execution-agent's JVM, so this

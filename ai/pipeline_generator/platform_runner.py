@@ -2,7 +2,8 @@
 
 Three steps, each done by the service that owns it:
 
-1. swarch-agent turns the model into a PIM.
+1. execution-agent runs the SWArch-to-PIM transformation on the model, giving
+   the PIM every platform starts from.
 2. execution-agent runs the platform's transformation on the PIM, giving the
    platform's own model.
 3. execution-agent runs the platform's template on that model, giving the
@@ -17,7 +18,7 @@ from typing import TypedDict
 
 import httpx
 
-from clients import execution_agent_client, swarch_agent_client
+from clients import execution_agent_client
 from clients.agent_service_errors import AgentServiceError
 from platform_registry import PlatformRegistry
 from platforms import Platform
@@ -55,10 +56,11 @@ def run_platform(content: str, platform: Platform, registry: PlatformRegistry) -
     start = time.monotonic()
     try:
         artifacts = registry.artifacts(platform)
+        pim_transformation = registry.pim_transformation()
     except (OSError, ValueError) as e:
         raise PlatformRunError(f"could not read the files of platform {platform.id} v{platform.version}: {e}") from e
     try:
-        pim = swarch_agent_client.to_pim(content)
+        pim = execution_agent_client.execute_atl_from_swarch(pim_transformation, content)
         platform_model = execution_agent_client.execute_atl(
             artifacts.transformation, pim, artifacts.metamodel, platform.output_model_name
         )
