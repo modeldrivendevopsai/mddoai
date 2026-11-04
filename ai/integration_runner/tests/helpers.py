@@ -21,7 +21,7 @@ def _fast_forward_to_generation(o: "pipeline.IntegrationRun") -> None:
     retrieval fetch). generation is real now too (see
     stages/generation/agent.py) - a test landing here for its own real
     execution behavior mocks clients.execution_agent_client's own
-    execute_atl/execute_acceleo (see _mocked_generation_execution below and
+    execute_atl_from_pim/execute_acceleo (see _mocked_generation_execution below and
     _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME's own real context requirement);
     generation no longer reads context["constraints"] at all (there's
     nothing a real ATL/Acceleo execution could do with a free-text
@@ -44,11 +44,11 @@ _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME = "create OUT : GitLabMM from IN : PIM;\n"
 def _mocked_generation_execution(
     execute_atl_kwargs: dict | None = None, execute_acceleo_kwargs: dict | None = None
 ):
-    """Patches execution_agent_client.execute_atl/execute_acceleo together,
+    """Patches execution_agent_client.execute_atl_from_pim/execute_acceleo together,
     and stages.generation.agent.PIM_SAMPLE_INSTANCE_PATH to a throwaway
     real file (gen_stage reads that file directly off disk before ever
-    calling execute_atl, so it needs to genuinely exist even when
-    execute_atl itself is mocked) - gen_stage's own real boundary,
+    calling execute_atl_from_pim, so it needs to genuinely exist even when
+    execute_atl_from_pim itself is mocked) - gen_stage's own real boundary,
     replacing ai_layer_client.chat() for every pipeline-mechanics test that
     just needs to get PAST the generation stage, not test its own real
     execution logic (see test_generation_stage.py for that). Defaults to a
@@ -64,7 +64,7 @@ def _mocked_generation_execution(
         fixture_path.write_text("<pimMM:Pipeline/>", encoding="utf-8")
         with (
             patch.object(generation_agent, "PIM_SAMPLE_INSTANCE_PATH", fixture_path),
-            patch.object(execution_agent_client, "execute_atl", **execute_atl_kwargs) as mock_execute_atl,
+            patch.object(execution_agent_client, "execute_atl_from_pim", **execute_atl_kwargs) as mock_execute_atl,
             patch.object(execution_agent_client, "execute_acceleo", **execute_acceleo_kwargs) as mock_execute_acceleo,
         ):
             yield mock_execute_atl, mock_execute_acceleo

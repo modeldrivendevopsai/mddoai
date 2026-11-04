@@ -1,5 +1,5 @@
-"""execution_agent_client.py unit tests: execute_atl()/execute_acceleo()
-POST to execution-agent's real /execute/atl and /execute/acceleo and return
+"""execution_agent_client.py unit tests: execute_atl_from_pim()/execute_acceleo()
+POST to execution-agent's real /execute/atl/pim and /execute/acceleo and return
 the real output directly. Mocks httpx.post directly (the real network
 boundary), matching test_psm_agent_client.py's own pattern. A 422 (a real,
 describable execution failure) raises AgentServiceError, not a raw httpx
@@ -29,10 +29,10 @@ def test_execute_atl_posts_the_real_payload_shape_and_returns_the_output():
         "execution_agent_client.httpx.post",
         return_value=_fake_httpx_response_raw({"output_xmi": "<real-output/>"}),
     ) as mock_post:
-        result = execution_agent_client.execute_atl("atl source", "<pim/>", "<ecore/>", "GitLabMM")
+        result = execution_agent_client.execute_atl_from_pim("atl source", "<pim/>", "<ecore/>", "GitLabMM")
 
     mock_post.assert_called_once_with(
-        f"{execution_agent_client.EXECUTION_AGENT_URL}/execute/atl",
+        f"{execution_agent_client.EXECUTION_AGENT_URL}/execute/atl/pim",
         json={
             "atl_source": "atl source", "pim_model_xmi": "<pim/>",
             "target_ecore": "<ecore/>", "output_model_name": "GitLabMM",
@@ -47,7 +47,7 @@ def test_execute_atl_defaults_output_model_name():
         "execution_agent_client.httpx.post",
         return_value=_fake_httpx_response_raw({"output_xmi": "<real-output/>"}),
     ) as mock_post:
-        execution_agent_client.execute_atl("atl source", "<pim/>", "<ecore/>")
+        execution_agent_client.execute_atl_from_pim("atl source", "<pim/>", "<ecore/>")
 
     assert mock_post.call_args.kwargs["json"]["output_model_name"] == "OUT"
 
@@ -58,10 +58,36 @@ def test_execute_atl_raises_agent_service_error_for_a_real_execution_failure():
         return_value=_fake_error_response(422, "not a real Pipeline instance"),
     ):
         with pytest.raises(AgentServiceError) as exc_info:
-            execution_agent_client.execute_atl("atl source", "<pim/>", "<ecore/>")
+            execution_agent_client.execute_atl_from_pim("atl source", "<pim/>", "<ecore/>")
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.detail == "not a real Pipeline instance"
+
+
+def test_execute_atl_from_swarch_posts_the_real_payload_shape_and_returns_the_pim():
+    with patch(
+        "execution_agent_client.httpx.post",
+        return_value=_fake_httpx_response_raw({"output_xmi": "<pim/>"}),
+    ) as mock_post:
+        result = execution_agent_client.execute_atl_from_swarch("atl source", "<swarch/>")
+
+    mock_post.assert_called_once_with(
+        f"{execution_agent_client.EXECUTION_AGENT_URL}/execute/atl/swarch",
+        json={"atl_source": "atl source", "swarch_model_xmi": "<swarch/>"},
+        timeout=execution_agent_client.EXECUTE_TIMEOUT,
+    )
+    assert result == "<pim/>"
+
+
+def test_execute_atl_from_swarch_raises_agent_service_error_for_a_real_execution_failure():
+    with patch(
+        "execution_agent_client.httpx.post",
+        return_value=_fake_error_response(422, "not a real Software Architecture model"),
+    ):
+        with pytest.raises(AgentServiceError) as exc_info:
+            execution_agent_client.execute_atl_from_swarch("atl source", "<pim/>")
+
+    assert exc_info.value.status_code == 422
 
 
 def test_execute_acceleo_posts_the_real_payload_shape_and_returns_the_generated_files():

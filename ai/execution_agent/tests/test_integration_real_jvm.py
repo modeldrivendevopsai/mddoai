@@ -12,6 +12,7 @@ distribution, or that wider checkout aren't available, so the fast suite
 in-container suite skips cleanly instead of crashing on a missing tree.
 """
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -60,7 +61,7 @@ client = TestClient(main.app)
 
 
 def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample_pim():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -74,8 +75,23 @@ def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample
     assert "deploy-prod" in output_xmi
 
 
+def test_real_concurrent_atl_executions_do_not_break_each_other():
+    # The transformer writes intermediate files relative to its working
+    # directory and deletes them afterwards, so two calls sharing a directory
+    # fail. Each call runs in its own.
+    atl = ATL_SOURCE_PATH.read_text(encoding="utf-8")
+    pim = PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8")
+    ecore = GITLAB_ECORE_PATH.read_text(encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda _: execution_runner.run_atl_from_pim_executor(atl, pim, ecore, "GitLabMM"), range(4)))
+
+    assert all(result["output_xmi"] == results[0]["output_xmi"] for result in results)
+    assert "gitlabMM:Pipeline" in results[0]["output_xmi"]
+
+
 def test_real_atl_execution_of_a_non_pim_model_returns_422():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": "<?xml version=\"1.0\"?><root/>",
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -86,7 +102,7 @@ def test_real_atl_execution_of_a_non_pim_model_returns_422():
 
 
 def test_real_acceleo_execution_produces_real_gitlab_yaml_from_a_real_atl_produced_psm_instance():
-    atl_response = client.post("/execute/atl", json={
+    atl_response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -108,6 +124,55 @@ def test_real_acceleo_execution_produces_real_gitlab_yaml_from_a_real_atl_produc
     assert "install-deps" in generated_yaml
     assert "docker-build" in generated_yaml
     assert "stages:" in generated_yaml
+
+
+SWARCH2PIM_ATL_PATH = REPO_ROOT / "main" / "src" / "main" / "resources" / "transformations" / "swarch2pim" / "swarch2pim.atl"
+E2E_DIR = REPO_ROOT / "main" / "src" / "test" / "resources" / "testCases" / "e2e"
+
+
+def test_real_chain_from_a_swarch_model_reproduces_the_engines_own_expected_gitlab_yaml():
+    # Every step run from its source text through this service (SWArch to
+    # PIM, PIM to the GitLab model, the GitLab model to YAML) must give
+    # exactly what the engine's own swarch2gitlab command is tested to give.
+    pim = client.post("/execute/atl/swarch", json={
+        "atl_source": SWARCH2PIM_ATL_PATH.read_text(encoding="utf-8"),
+        "swarch_model_xmi": (E2E_DIR / "input1.swarch").read_text(encoding="utf-8"),
+    })
+    assert pim.status_code == 200, pim.text
+
+    psm = client.post("/execute/atl/pim", json={
+        "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
+        "pim_model_xmi": pim.json()["output_xmi"],
+        "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
+        "output_model_name": "GitLabMM",
+    })
+    assert psm.status_code == 200, psm.text
+
+    yaml = client.post("/execute/acceleo", json={
+        "mtl_source": MTL_SOURCE_PATH.read_text(encoding="utf-8"),
+        "psm_model_xmi": psm.json()["output_xmi"],
+        "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
+    })
+    assert yaml.status_code == 200, yaml.text
+
+    # The GitLab template's source and the engine's precompiled copy of it
+    # differ by one line that holds only spaces, so such lines are left out
+    # of the comparison; every line with content must match exactly.
+    def content_lines(text):
+        return [line for line in text.replace("\r\n", "\n").split("\n") if line.strip() or line == ""]
+
+    expected = (E2E_DIR / "expected1.yml").read_text(encoding="utf-8")
+    actual = yaml.json()["generated_files"][".gitlab-ci.yml"]
+    assert content_lines(actual) == content_lines(expected)
+
+
+def test_real_swarch_execution_of_a_non_swarch_model_returns_422():
+    response = client.post("/execute/atl/swarch", json={
+        "atl_source": SWARCH2PIM_ATL_PATH.read_text(encoding="utf-8"),
+        "swarch_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
+    })
+
+    assert response.status_code == 422
 
 
 def test_real_acceleo_execution_of_a_non_gitlab_model_returns_422():

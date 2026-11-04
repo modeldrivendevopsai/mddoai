@@ -1,0 +1,245 @@
+[comment encoding = UTF-8 /]
+[module generate('http://www.mddoai.com/mddoai/metamodel/gitlab')]
+
+
+[template public generateElement(aPipeline : Pipeline)]
+[comment @main/]
+[file ('.gitlab-ci.yml', false, 'UTF-8')]
+#######################################################################
+# Copyright (c) 2025 MDDOAI All rights reserved.
+#
+# This file was automatically generated.
+# DO NOT EDIT MANUALLY. Any changes will be lost upon regeneration.
+# For more information, visit: https://mddoai.com
+#######################################################################
+
+[generateWorkflow(aPipeline.workflow)/]
+[if (aPipeline.default <> null)][generateDefault(aPipeline.default)/]
+[/if][generateStages(aPipeline.stages)/]
+[generateVariables(aPipeline.variables)/]
+[if (aPipeline.jobs->notEmpty())]
+[for (j: Job | aPipeline.jobs)]
+[generateJob(j)/]
+[/for]
+[/if]
+[/file]
+[/template]
+
+[template public generateWorkflow(workflow : Workflow)]
+[if (workflow <> null)]
+workflow:
+  rules:
+[for (r: GitlabRule | workflow.rules)]
+    - if: [r.gitlabIf/]
+[if (r.when <> null)]
+      when: [r.when/]
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateDefault(d : Default)]
+[if (d <> null)]
+default:
+[if (d.image <> null)]
+  image: [d.image.name/]
+[/if]
+  [generateServices(d.services)/]
+[if (d.beforeScript <> null and d.beforeScript.commands->notEmpty())]
+  before_script:
+[for (command: Command | d.beforeScript.commands)]
+    - [command.command/]
+[/for]
+[/if]
+[/if]
+[/template]
+
+[template public generateStages(stages : OrderedSet(String))]
+stages:
+[for (stage: String | stages)]
+  - [stage/]
+[/for]
+[/template]
+
+[template public generateVariables(variables: Variables)]
+[if (variables <> null and variables.variables->notEmpty())]
+variables:
+[for (variable : Variable | variables.variables)]
+  [variable.name/]: [variable.value/]
+[/for]
+[/if]
+[/template]
+
+[template public generateJob(job: Job)]
+[job.name/]:
+  stage: [job.stage/]
+  [if (job.image <> null)]
+  image: [job.image.name/]
+  [/if]
+  [generateServices(job.services)/][generateBeforeScript(job.beforeScript)/][generateScript(job.script)/][generateNeeds(job)/][generateJobVariables(job.variables)/][generateAllowFailure(job.allowFailure)/][generateTimeout(job.timeout)/][generateRetry(job.retry)/][generateParallel(job.parallel)/][generateRules(job.rules)/][generateCache(job.cache)/][generateArtifacts(job.artifacts)/][generateOnly(job.only)/]
+[/template]
+
+[comment][generateTags(job.tags)/][/comment]
+[template public generateScript(script: Script)]
+[if (script <> null and script.commands->notEmpty())]
+script:
+[for (command: Command | script.commands)]
+  - [command.command/]
+[/for]
+[/if]
+[/template]
+
+[template public generateBeforeScript(script: BeforeScript)]
+[if (script <> null and script.commands->notEmpty())]
+before_script:
+[for (command: Command | script.commands)]
+  - [command.command/]
+[/for]
+[/if]
+[/template]
+
+[template public generateTags(tags: Tags)]
+[if (tags <> null and tags.tags->notEmpty())]
+tags:
+[for (tag: Tag | tags.tags)]
+  - [tag.tag/]
+[/for]
+[/if]
+[/template]
+
+[template public generateOnly(only: Only)]
+[if (only <> null and only.branches->notEmpty())]
+only:
+[for (onlyBranch: OnlyBranches | only.branches)]
+  - [onlyBranch.branch/]
+[/for]
+[/if]
+[/template]
+
+[template public generateDependencies(dependencies: Dependencies)]
+[if (dependencies <> null and dependencies.dependencies->notEmpty())]
+dependencies:
+[for (dependency: Dependency | dependencies.dependencies)]
+  - [dependency.dependency/]
+[/for]
+[/if]
+[/template]
+
+[template public generateNeeds(job: Job)]
+[if (job.needs->notEmpty())]
+needs:
+[for (need : Need | job.needs)]
+  - job: "[need.job/]"
+[if (need.artifacts <> null and need.artifacts = false)]
+    artifacts: false
+[/if]
+[if (need.optional <> null and need.optional = true)]
+    optional: true
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateArtifacts(a : Artifact)]
+[if (a <> null)]
+artifacts:
+[if (a.paths->notEmpty())]
+  paths:
+  [for (p : Path | a.paths)]
+    - [p.path/]
+  [/for]  
+[/if]
+[if (a <> null and a.when <> null)]
+  when: [a.when/]
+[/if]
+[if (a.reports <> null and a.reports.junit <> null)]
+  [generateReport(a.reports)/]
+[/if]
+[/if]
+[/template]
+
+[template public generateReport(report: Report)]
+reports:
+  junit: [report.junit/]
+[/template]
+
+[template public generateJobVariables(variables: Variables)]
+[if (variables <> null and variables.variables->notEmpty())]
+variables:
+[for (variable : Variable | variables.variables)]
+  [variable.name/]: [variable.value/]
+[/for]
+[/if]
+[/template]
+
+[template public generateServices(services: OrderedSet(Service))]
+[if (services->notEmpty())]
+services:
+[for (service : Service | services)]
+  - name: [service.name/]
+[if (service.alias <> null)]
+    alias: [service.alias/]
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateAllowFailure(allowFailure: Boolean)]
+[if (allowFailure <> null and allowFailure = true)]
+allow_failure: true
+[/if]
+[/template]
+
+[template public generateTimeout(timeout: String)]
+[if (timeout <> null)]
+timeout: [timeout/]
+[/if]
+[/template]
+
+[template public generateRetry(retry: Retry)]
+[if (retry <> null)]
+retry:
+  max: [retry.max/]
+[/if]
+[/template]
+
+[template public generateParallel(parallel: Parallel)]
+[if (parallel <> null and parallel.matrix <> null)]
+parallel:
+  matrix:
+[for (axis : Axis | parallel.matrix.axes)]
+    - [axis.name/]:
+[for (value : String | axis.values)]
+        - "[value/]"
+[/for]
+[/for]
+[/if]
+[/template]
+
+[template public generateRules(rules: OrderedSet(GitlabRule))]
+[if (rules->notEmpty())]
+rules:
+[for (rule : GitlabRule | rules)]
+  - if: [rule.gitlabIf/]
+[if (rule.when <> null)]
+    when: [rule.when/]
+[/if]
+[/for]
+[/if]
+[/template]
+
+[template public generateCache(cache: Cache)]
+[if (cache <> null)]
+cache:
+[if (cache.key <> null)]
+  key: [cache.key.name/]
+[/if]
+[if (cache.paths->notEmpty())]
+  paths:
+[for (path : String | cache.paths)]
+    - [path/]
+[/for]
+[/if]
+[/if]
+[/template]
+

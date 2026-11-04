@@ -28,19 +28,33 @@ def _execute_request(path: str, payload: dict) -> dict:
     return response.json()
 
 
-def execute_atl(atl_source: str, pim_model_xmi: str, target_ecore: str, output_model_name: str = "OUT") -> str:
-    """POSTs to execution-agent's real /execute/atl: runs atl_source (real
+def execute_atl_from_pim(atl_source: str, pim_model_xmi: str, target_ecore: str, output_model_name: str = "OUT") -> str:
+    """POSTs to execution-agent's real /execute/atl/pim: runs atl_source (real
     .atl transformation text) against pim_model_xmi (a real PIM model
     instance, XMI text) to produce a real instance of target_ecore (the
     target platform's own PSM metamodel, Ecore text). Returns the real
     output model, serialized as XMI text. Raises AgentServiceError for a
     real, describable execution failure (bad input, a genuine ATL compile
     or runtime error)."""
-    result = _execute_request("/execute/atl", {
+    result = _execute_request("/execute/atl/pim", {
         "atl_source": atl_source,
         "pim_model_xmi": pim_model_xmi,
         "target_ecore": target_ecore,
         "output_model_name": output_model_name,
+    })
+    return result["output_xmi"]
+
+
+def execute_atl_from_swarch(atl_source: str, swarch_model_xmi: str) -> str:
+    """POSTs to execution-agent's /execute/atl/swarch: runs atl_source (a
+    SWArch-to-PIM transformation's .atl text) against swarch_model_xmi (a
+    Software Architecture model, a .swarch file's XMI text). Returns the PIM
+    it produced, as XMI text. Raises AgentServiceError for a real,
+    describable execution failure (not a SWArch model, a genuine ATL
+    compile or runtime error)."""
+    result = _execute_request("/execute/atl/swarch", {
+        "atl_source": atl_source,
+        "swarch_model_xmi": swarch_model_xmi,
     })
     return result["output_xmi"]
 

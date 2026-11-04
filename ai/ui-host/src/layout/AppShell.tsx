@@ -13,12 +13,15 @@ import './app-shell.css';
 interface AppShellProps {
   children: ReactNode;
   onSidebarAction?: (actionId: string) => void;
+  // Passed on to the sidebar's generated-pipelines list.
+  onOpenPipeline: (pipelineId: string) => void;
+  openPipelineId: string | undefined;
 }
 
-export function AppShell({ children, onSidebarAction }: AppShellProps) {
+export function AppShell({ children, onSidebarAction, onOpenPipeline, openPipelineId }: AppShellProps) {
   return (
     <div className="mdd-app-shell">
-      <Sidebar onAction={onSidebarAction} />
+      <Sidebar onAction={onSidebarAction} onOpenPipeline={onOpenPipeline} openPipelineId={openPipelineId} />
       <div className="mdd-app-shell__main">
         <TopBar />
         <div className="mdd-app-shell__content">{children}</div>

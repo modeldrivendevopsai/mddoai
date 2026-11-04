@@ -1,0 +1,5 @@
+.env
+# What a local (non-Docker) run keeps here: the default workspace and history
+# folders, holding model content and generated pipelines.
+data/
+workspace/

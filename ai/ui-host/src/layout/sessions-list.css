@@ -57,6 +57,23 @@
   white-space: nowrap;
 }
 
+/* A row that is a real button and has a second line under its name. */
+.mdd-sessions__item--row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+}
+.mdd-sessions__meta {
+  font-size: 10px;
+  color: var(--neutral-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mdd-sessions__warn {
   color: var(--warning-500);
   flex-shrink: 0;

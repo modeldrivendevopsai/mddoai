@@ -332,9 +332,14 @@ services:
       - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?}
       - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?}
       - ORCHESTRATOR_UPSTREAM=orchestrator:8001
+      # The "Generate a CI/CD pipeline" mode's own backend, not behind
+      # orchestrator: that mode has no run, chat or stages.
+      - GENERATOR_UPSTREAM=pipeline-generator:8100
     ports:
-      # The one port the browser uses: the app, every remote and the
-      # orchestrator's API. This machine only: nothing here has a login.
+      # The one port the browser uses: the app, every remote, the
+      # orchestrator's API and the generator's API. This machine only:
+      # nothing here has a login, and the generator's API can read model
+      # files from the workspace folder.
       # UI_PORT is from the environment's config.env.
       - "127.0.0.1:${UI_PORT:?}:80"
 
@@ -427,7 +432,8 @@ services:
     command: ["sh", "-c", "tr -d '\r' < ./gradlew | sh -s -- --no-daemon build -x test installDist"]
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
-  # .ecore (issue #313), .atl (issue #314), and .mtl/Acceleo (issue #315).
+  # .ecore (issue #313), .atl (issue #314), .mtl/Acceleo (issue #315), and .swarch.
+  # It also checks generated pipeline files in plain Python (/validate/pipeline).
   # Named validator-agent, not ecore-validator: a future validator type would
   # add another sibling /validate/<type> route to this same service.
   validator-agent:
@@ -514,6 +520,69 @@ services:
         condition: service_completed_successfully
     expose:
       - "8090"
+
+  # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
+  # Software Architecture model into a pipeline for each chosen platform, by
+  # running that platform's own files (committed in the data folder's
+  # platforms/) through execution-agent, and checks the model (via
+  # validator-agent) and the generated pipeline. UI-facing, the way
+  # orchestrator is for the platform-integration mode, but with no pipeline
+  # run or LLM involved.
+  pipeline-generator:
+    build:
+      context: .
+      dockerfile: pipeline_generator/Dockerfile
+    env_file:
+      - path: ./pipeline_generator/.env
+        required: false
+    volumes:
+      # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
+      # is the one host folder for everything the stack generates and keeps.
+      # Its workspace/ is the folder the screen's "Input path" field works
+      # inside: models are picked from it, and nothing is written to it, so it
+      # is mounted read-only. A web page cannot reach the user's disk itself,
+      # so the folder is mounted in. Both folders must exist before the first
+      # start: Docker would create a missing one owned by root, which the
+      # person could not add models to.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/workspace
+        target: /workspace
+        read_only: true
+        bind:
+          create_host_path: false
+      # The data folder's pipelines/: what "Your pipelines" lists, kept across
+      # restarts.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/pipelines
+        target: /data/pipelines
+        bind:
+          create_host_path: false
+      # The data folder's platforms/: the committed files each platform is run
+      # from, read-only. The service reads them on every request, so a file
+      # edited here applies to the next generation without a rebuild. Unlike
+      # the rest of the data folder they are in the repository, so this folder
+      # is only there when the data folder is the repository's own ai/data.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/platforms
+        target: /data/platforms
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
+      - GENERATOR_WORKSPACE_DIR=/workspace
+      # How the Browse dialog names the workspace to the person: its host
+      # folder.
+      - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
+      - GENERATOR_DATA_DIR=/data
+    depends_on:
+      validator-agent:
+        condition: service_healthy
+      execution-agent:
+        condition: service_healthy
+    expose:
+      - "8100"
 
 volumes:
   main-gradle-cache:

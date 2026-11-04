@@ -1,7 +1,8 @@
 # ui-host
 
-The UI for MDDOAI. A router-based SPA with a persistent shell (sidebar + top bar) around two
-screens: a landing page and a platform-integration dashboard. See [CLAUDE.md](./CLAUDE.md) for
+The UI for MDDOAI. A router-based SPA with a persistent shell (sidebar + top bar) around the app's
+screens: a landing page, a platform-integration dashboard, and the screens of the
+"Generate a CI/CD pipeline" mode. See [CLAUDE.md](./CLAUDE.md) for
 the full product and design spec.
 
 ## Stack
@@ -34,7 +35,12 @@ Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top b
 
 - **`/`** — `src/screens/StartScreen.tsx`, the landing page.
 - **`/integration`** — `src/screens/IntegrationScreen.tsx`, the platform-integration dashboard.
-  This is the one real "add/update a platform" flow: its docs stage is a real crawl.
+  This is the "add/update a platform" flow: its docs stage is a real crawl.
+- **`/generate`** — `src/screens/PipelinesScreen.tsx`, the first screen of the "Generate a CI/CD
+  pipeline" mode: the pipelines already generated, and "+ New pipeline".
+- **`/generate/new`** and **`/generate/<pipeline id>`** — `src/screens/GenerateScreen.tsx`, the
+  mode's second screen: load a Software Architecture file, choose platforms,
+  generate, validate, download. The second route brings a saved pipeline back.
 
 Where things live:
 
@@ -45,18 +51,25 @@ Where things live:
   `federation()` config for the current, exact remotes list), not local source under this app's
   own `src/`. Backed by its own real API client `src/services/orchestrator.service.ts` and polling
   hook `src/hooks/useIntegration.ts`.
+- **Generate-a-pipeline screens** `src/screens/PipelinesScreen.tsx` and
+  `src/screens/GenerateScreen.tsx`, their components under `src/features/generate/`, state in
+  `useGenerate.ts`, copy in `src/config/generate.config.ts`. Backed by its own API client `src/services/generator.service.ts`,
+  which talks to `ai/pipeline_generator` (not `ai/orchestrator`).
 - **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
   with mock data from `src/services/platforms.service.ts`.
-- **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
-  sourced from `src/config/sidebar.config.ts` and `src/services/sessions.service.ts`.
+- **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `PipelinesList`,
+  `TopBar`), sourced from `src/config/sidebar.config.ts`, `src/services/sessions.service.ts` (the
+  platforms tab) and `src/services/generator.service.ts` (the pipelines tab lists the pipelines
+  already generated).
 - **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
   under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
 - **REST-contract types** the sibling `orchestrator-types` package (`ai/orchestrator-types`), the
   same kind of real local npm dependency as `design-system` — see its own README.
-- **Backend contract** All real network calls go through `src/services/orchestrator.service.ts`,
-  which only ever talks to `ai/orchestrator` (never the Java backend, `ai-layer`, or
-  `ai/retrieval` directly, `ai/orchestrator` itself is the only thing that talks to those, see
-  `ai/README.md`).
+- **Backend contract** The platform-integration mode's network calls go through
+  `src/services/orchestrator.service.ts`, which talks to `ai/orchestrator` (never the Java
+  backend, `ai-layer`, or `ai/retrieval` directly, `ai/orchestrator` itself is what talks to
+  those, see `ai/README.md`). The generate mode's calls go through
+  `src/services/generator.service.ts`, which talks to `ai/pipeline_generator`.
 
 The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`) —
 `design-system` and `orchestrator-types` aren't under `src/` any more, so they're imported by their
@@ -88,18 +101,20 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app into static files (`npm run build`) and
-serves them with nginx, published on the environment's `UI_PORT`, on this machine only. The same
-server is the one origin the browser uses for everything else (`nginx/default.conf.template`):
+`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app
+into static files (`npm run build`) and serves them with nginx, published on the environment's
+`UI_PORT`, on this machine only. The same server is the one origin the browser uses for
+everything else (`nginx/default.conf.template`):
 
 - `/remotes/<name>/` is forwarded to the `ui-remote-<name>` container. Only the remotes listed
   there are forwarded.
 - `/orchestrator-api/*` is forwarded to `ai/orchestrator`.
+- `/generator-api/*` is forwarded to `ai/pipeline_generator`.
 
-The backend is named by its Compose service name through an environment variable
-(`ORCHESTRATOR_UPSTREAM`), filled into the configuration when the container starts. Names are
-resolved per request, so this starts even while the backend or a remote is not up yet. See
-`ai/README.md` for the full compose setup.
+Each backend is named by its Compose service name through an environment variable
+(`ORCHESTRATOR_UPSTREAM`, `GENERATOR_UPSTREAM`), filled into the configuration when the
+container starts. Names are resolved per request, so this starts even while a backend or a
+remote is not up yet. See `ai/README.md` for the full compose setup.
 
 Build context is `ai/`, not this folder alone, see this package's own `CLAUDE.md`'s Docker
 section for why (`package.json` depends on the sibling `design-system` and `orchestrator-types`
@@ -121,7 +136,9 @@ else on the page keeps working; see this package's own `CLAUDE.md` for why (`Rem
 
 The app's code lives under `src/` (and the Docker proxy's configuration under `nginx/`): `screens/` holds the app's screens, `layout/` holds the
 persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
-host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
+host (see CLAUDE.md's Design System section for the full breakdown), `features/generate/` holds
+the "Generate a CI/CD pipeline" mode's components and hooks, `config/` holds copy and settings as
+data, `federated/` holds the
 ambient TypeScript declarations for every federated import, `services/` holds the files that call
 the backend or provide mock data, and `hooks/` holds `useIntegration`. Shared component/token
 primitives live in the sibling `design-system` package (`ai/design-system`); the shared

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE swarch:SoftwareArchitecture [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<swarch:SoftwareArchitecture xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:swarch="http://www.mddoai.com/mddoai/metamodel/swarch" name="&xxe;" type="framework" build_system="docker" language="python"/>

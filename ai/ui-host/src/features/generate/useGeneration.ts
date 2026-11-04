@@ -1,0 +1,111 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { generatePipelines } from '@/services/generator.service';
+import type { GenerationResult, GeneratorPlatform } from '@/services/generator.service';
+import { toStepError } from './stepError';
+import type { StepError } from './stepError';
+import type { ModelSource } from './types';
+import { useGenerationSettings } from './useGenerationSettings';
+import type { StaleGuard } from './useStaleGuard';
+import { useValidation } from './useValidation';
+
+interface Options {
+  // Shared with the model-source state, see useStaleGuard.
+  guard: StaleGuard;
+  source: ModelSource | null;
+  platforms: GeneratorPlatform[];
+}
+
+/**
+ * Generating: a real call to ai/pipeline_generator for the platforms the
+ * person chose. Choosing is useGenerationSettings's job and
+ * validating what came back is useValidation's.
+ *
+ * Whatever invalidated an in-flight request (a different file, generating
+ * again) is the one that clears the busy flags the request would have
+ * cleared, via reset() or the start of generate(): a dropped answer never
+ * gets to do it itself.
+ */
+export function useGeneration({ guard, source, platforms }: Options) {
+  const settings = useGenerationSettings(platforms);
+  const { chosen, apply: applySettings } = settings;
+  const [results, setResults] = useState<GenerationResult[] | null>(null);
+  const [pipelineId, setPipelineId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generatingNames, setGeneratingNames] = useState<string[]>([]);
+  const [generateError, setGenerateError] = useState<StepError | null>(null);
+  const validation = useValidation({ guard, results });
+  const resetValidation = validation.reset;
+  // Stops waiting for a generation nobody will see: one replaced by a new
+  // file or a new Generate, or still running when the screen closes.
+  const waiting = useRef<AbortController | null>(null);
+  useEffect(() => () => waiting.current?.abort(), []);
+
+  // Everything downstream of the loaded model. The settings stay.
+  const reset = useCallback(() => {
+    waiting.current?.abort();
+    setResults(null);
+    setPipelineId(null);
+    setGenerating(false);
+    setGenerateError(null);
+    resetValidation();
+  }, [resetValidation]);
+
+  const generate = useCallback(async () => {
+    if (!source || chosen.length === 0) return;
+    // Also supersedes any validation still in flight for the pipelines this replaces.
+    const current = guard.next();
+    reset();
+    setGenerating(true);
+    setGeneratingNames(chosen.map((platform) => platform.name));
+    const controller = new AbortController();
+    waiting.current = controller;
+    try {
+      const response = await generatePipelines(
+        {
+          filename: source.filename,
+          content: source.content,
+          platforms: chosen.map((platform) => platform.id),
+          source_path: source.path,
+        },
+        controller.signal
+      );
+      if (guard.isCurrent(current)) {
+        setResults(response.results);
+        setPipelineId(response.pipeline_id);
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      if (guard.isCurrent(current)) setGenerateError(toStepError(err, 'Could not generate the pipeline.'));
+    } finally {
+      if (guard.isCurrent(current)) setGenerating(false);
+    }
+  }, [chosen, source, guard, reset]);
+
+  // A saved pipeline brought back: its result, and the platforms it was made for.
+  const restore = useCallback(
+    (saved: { results: GenerationResult[]; platformIds: string[]; pipelineId: string }) => {
+      setResults(saved.results);
+      setPipelineId(saved.pipelineId);
+      applySettings(saved.platformIds);
+    },
+    [applySettings]
+  );
+
+  return {
+    selected: settings.selected,
+    chosen,
+    results,
+    pipelineId,
+    generating,
+    generatingNames,
+    generateError,
+    validations: validation.validations,
+    validating: validation.validating,
+    validateErrors: validation.errors,
+    toggle: settings.toggle,
+    generate,
+    validate: validation.validate,
+    reset,
+    restore,
+  };
+}

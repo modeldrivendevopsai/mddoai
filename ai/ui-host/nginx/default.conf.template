@@ -1,7 +1,8 @@
 # The one origin the browser talks to: this app's built files, every Module
-# Federation remote under /remotes/<name>/, and the orchestrator's API. The
-# official nginx image fills in ${...} from the environment at start (its
-# /etc/nginx/templates feature); nginx's own $variables are left alone.
+# Federation remote under /remotes/<name>/, and the orchestrator's and the
+# generator's APIs. The official nginx image fills in ${...} from the
+# environment at start (its /etc/nginx/templates feature); nginx's own
+# $variables are left alone.
 
 # Docker's embedded DNS server. Names are resolved per request, not once at
 # start, so this proxy starts even while a remote or a backend is not up yet
@@ -76,10 +77,17 @@ server {
         return 404;
     }
 
-    # The orchestrator's API, the one backend the app calls.
+    # The orchestrator's API, the backend of the platform-integration mode.
     location /orchestrator-api/ {
         set $orchestrator ${ORCHESTRATOR_UPSTREAM};
         rewrite ^/orchestrator-api/(.*)$ /$1 break;
         proxy_pass http://$orchestrator;
+    }
+
+    # The generator's API, the backend of the "Generate a CI/CD pipeline" mode.
+    location /generator-api/ {
+        set $generator ${GENERATOR_UPSTREAM};
+        rewrite ^/generator-api/(.*)$ /$1 break;
+        proxy_pass http://$generator;
     }
 }

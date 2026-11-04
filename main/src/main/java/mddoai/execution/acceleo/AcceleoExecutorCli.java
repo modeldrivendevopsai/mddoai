@@ -12,14 +12,14 @@ import java.util.Map;
  * separate OS process (e.g. from a Python service) - mirrors
  * {@link main.java.mddoai.validation.acceleo.AcceleoValidatorCli}'s own
  * shape one level up (execution instead of compile-only validation). See
- * {@link main.java.mddoai.execution.atl.AtlExecutorCli}'s own docstring for
+ * {@link main.java.mddoai.execution.pim.PimExecutorCli}'s own docstring for
  * why content flows through files, not argv, on the input side. The output
  * side is a directory, not a single file, since a real Acceleo template can
  * legitimately generate more than one file - each of AcceleoExecutor's own
  * result entries is written under &lt;output-dir&gt; at its own relative
  * path, creating parent directories as needed.
  *
- * Exit codes: identical contract to AtlExecutorCli - 0 with
+ * Exit codes: identical contract to PimExecutorCli - 0 with
  * {@code {"success":true,"files":[...]}} or
  * {@code {"success":false,"error":"..."}} for a real, describable failure;
  * 2 for a usage error; 1 for the tool itself breaking unexpectedly.

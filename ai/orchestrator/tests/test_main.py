@@ -746,7 +746,7 @@ def test_review_endpoint_returns_complete_status_on_last_stage_approval():
     # own real, auto-started generation run complete successfully.
     _advance_to_acceleo(atl_artifact="create OUT : GitLabMM from IN : PIM;")
 
-    with patch.object(execution_agent_client, "execute_atl", return_value="<gitlabMM:Pipeline/>"):
+    with patch.object(execution_agent_client, "execute_atl_from_pim", return_value="<gitlabMM:Pipeline/>"):
         with patch.object(execution_agent_client, "execute_acceleo", return_value={".gitlab-ci.yml": "stages: []\n"}):
             response = client.post("/review/acceleo", json={"approved": True})
             ir_runs.wait_for_idle()

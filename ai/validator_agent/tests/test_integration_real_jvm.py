@@ -100,3 +100,26 @@ def test_real_acceleo_validation_of_invalid_fixture():
     body = response.json()
     assert body["valid"] is False
     assert any("terminated" in issue["message"].lower() for issue in body["issues"])
+
+
+def test_real_swarch_validation_of_valid_fixture():
+    content = (FIXTURES_DIR / "valid.swarch").read_text(encoding="utf-8")
+
+    response = client.post("/validate/swarch", json={"filename": "valid.swarch", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True, f"expected a clean model, got: {body['issues']}"
+    assert body["issues"] == []
+    assert body["duration_ms"] >= 0
+
+
+def test_real_swarch_validation_of_invalid_fixture():
+    content = (FIXTURES_DIR / "invalid.swarch").read_text(encoding="utf-8")
+
+    response = client.post("/validate/swarch", json={"filename": "invalid.swarch", "content": content})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is False
+    assert any("'language' of 'SoftwareArchitecture'" in issue["message"] for issue in body["issues"])

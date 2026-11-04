@@ -19,3 +19,11 @@
 **/.vscode
 **/.idea
 **/.DS_Store
+# The stack's data folder: the generator's workspace and history. It only
+# grows and is never part of any image, so it must never be sent as build
+# context for any service that builds from ai/.
+data
+# The generator's own data and workspace folders, when it is run from its own
+# folder and not in Docker.
+pipeline_generator/data
+pipeline_generator/workspace

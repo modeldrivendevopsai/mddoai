@@ -79,11 +79,19 @@ export default defineConfig({
     proxy: {
       '/orchestrator-api': {
         // For `npm run dev` outside Docker; in Docker, ui-host's nginx
-        // configuration proxies instead. Every real call ui-host makes goes
+        // configuration proxies instead. The platform-integration mode's calls go
         // through this proxy; orchestrator itself is what talks to
         // ai-layer/retrieval (see ai/README.md).
         target: process.env.VITE_ORCHESTRATOR_PROXY_TARGET || 'http://localhost:8001',
         rewrite: (path) => path.replace(/^\/orchestrator-api/, ''),
+      },
+      // For `npm run dev` outside Docker; in Docker, ui-host's nginx proxies this
+      // path too. The "Generate a CI/CD pipeline" mode's own backend (ai/pipeline_generator),
+      // a separate service from orchestrator: that mode has no pipeline run,
+      // chat, or stages, so it isn't reached through orchestrator.
+      '/generator-api': {
+        target: process.env.VITE_GENERATOR_PROXY_TARGET || 'http://localhost:8100',
+        rewrite: (path) => path.replace(/^\/generator-api/, ''),
       },
     },
   },
