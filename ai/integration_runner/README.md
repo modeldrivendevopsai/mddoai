@@ -17,7 +17,7 @@ bundled import), `psm_agent` (`POST /psm`, for the `psm` stage's own real genera
 routed automatically by platform — see [`ai/psm_agent`](../psm_agent)), `validator-agent` (`POST
 /validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`atl`/`acceleo` stages' own
 real validation of their DSL output, and internally by `psm_agent` itself when generating a new
-metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, for the
+metamodel), and `execution-agent` (`POST /execute/atl/pim`/`POST /execute/acceleo`, for the
 `generation` stage's own real ATL/Acceleo execution against a real PIM model instance — see
 [`ai/execution_agent`](../execution_agent)).
 
@@ -410,11 +410,12 @@ Progress through `STAGES` is tracked by an `IntegrationRun` instance
 backs the REST API.
 
 1. **`run_stage(context)`** — looks up the current stage's agent, calls it, and returns
-   `{"stage": ..., "output": ...}`. Only on success does it set `last_completed_stage` to this
-   stage — `/review`'s approval path checks that field and refuses to approve a stage whose last
-   real attempt failed or is still running, so a failure can never silently forward the previous
-   stage's stale output onward under the failed stage's own name. Doesn't advance the pipeline;
-   the current stage stays pending until a human reviews it.
+   `{"stage": ..., "output": ...}`. It clears `last_completed_stage` when the attempt starts and
+   sets it to this stage only on success. `/review`'s approval path checks that field and
+   refuses to approve a stage whose last real attempt failed or is still running. So a failure
+   can never silently forward stale output onward: neither the previous stage's output under the
+   failed stage's own name, nor this stage's own earlier output after a retry of it failed.
+   Doesn't advance the pipeline; the current stage stays pending until a human reviews it.
 2. A human reviews the stage's `output` (via `POST /review/{stage_id}`, below) — optionally
    after adding one more known page via `POST /docs/extend` first, on the docs stage.
 3. **Approve** → `record_review()` advances `current_stage_index` and, if there's a next stage,
@@ -582,7 +583,7 @@ touches this package's real `runs/` directory.
   (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_generation_stage.py`** — the real (non-placeholder) `gen_stage` agent
-  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl()` then
+  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl_from_pim()` then
   `execute_acceleo()` with the real context and PIM sample instance, joins more than one generated
   file by name, and raises a clear error when the given ATL source has no real output model name.
 - **`tests/stages/test_mock_validated_stages.py`** — `pim`'s own real, fixed metamodel content +

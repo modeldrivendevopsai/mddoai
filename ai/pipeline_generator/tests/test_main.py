@@ -1,14 +1,14 @@
 """FastAPI endpoint tests. Mocks only the real boundaries: the call to
-validator-agent and the engine subprocess. Request validation, error mapping
-and response shaping all run for real."""
+validator-agent and the generation steps in other services. Request
+validation, error mapping and response shaping all run for real."""
 from unittest.mock import patch
 
 import httpx
 from fastapi.testclient import TestClient
 
-import engine_runner
 import main
-from engine_runner import EngineError
+from helpers import generate
+from platform_runner import PlatformRunError
 
 client = TestClient(main.app)
 
@@ -28,7 +28,7 @@ def _invalid():
     }
 
 
-def _engine_result():
+def _run_result():
     return {
         "pipeline": "stages: [build]\n",
         "intermediates": [{"id": "pim", "title": "Platform-independent model", "filename": "PipelinePIM.pimmm", "content": "<pim/>"}],
@@ -40,10 +40,10 @@ def test_health():
     assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_platforms_lists_what_the_engine_can_generate():
+def test_platforms_lists_what_the_registry_holds():
     body = client.get("/platforms").json()
 
-    assert body == {"platforms": [{"id": "gitlab", "name": "GitLab CI", "output_filename": ".gitlab-ci.yml"}]}
+    assert {"id": "gitlab", "name": "GitLab CI", "output_filename": ".gitlab-ci.yml"} in body["platforms"]
 
 
 def test_inspect_returns_the_attributes_and_a_passing_model_check():
@@ -110,8 +110,8 @@ def test_inspect_rejects_an_overlong_filename():
 
 def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermediates():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
-            patch("generation.run_engine", return_value=_engine_result()) as engine:
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+            patch("generation.run_platform", return_value=_run_result()) as run:
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 200
     body = response.json()
@@ -121,34 +121,86 @@ def test_generate_returns_one_result_per_platform_with_the_pipeline_and_intermed
     assert result["pipeline"] == "stages: [build]\n"
     assert result["intermediates"][0]["id"] == "pim"
     assert result["error"] is None
-    assert engine.call_args.args[0] == MODEL["content"]
-    assert engine.call_args.args[1].id == "gitlab"
+    assert run.call_args.args[0] == MODEL["content"]
+    assert run.call_args.args[1].id == "gitlab"
+
+
+def test_generate_answers_at_once_with_a_job_to_fetch():
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_platform", return_value=_run_result()):
+        started = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        job = client.get(f"/generate/{started.json()['job_id']}")
+
+    assert started.status_code == 202
+    assert set(started.json()) == {"job_id"}
+    assert job.status_code == 200
+    assert job.json()["state"] == "done"
+    assert job.json()["pipeline_id"]
+
+
+def test_generate_answers_before_generating(workspace_dir, history, registry):
+    """With a job store that holds work back, the endpoint has answered and
+    the job is running before any platform is ever run."""
+    from generation_jobs import GenerationJobs
+    from workspace import Workspace
+
+    pending = []
+    jobs = GenerationJobs(max_finished=10, run=pending.append)
+    request = main.GenerateRequest(**MODEL, platforms=["gitlab"])
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_platform", return_value=_run_result()) as run:
+        started = main.generate_endpoint(request, Workspace(workspace_dir), history, registry, jobs)
+
+        assert jobs.get(started["job_id"]) == {"state": "running"}
+        run.assert_not_called()
+
+        pending[0]()
+
+    assert jobs.get(started["job_id"])["state"] == "done"
+
+
+def test_an_unknown_generation_job_is_404():
+    response = client.get("/generate/no-such-job")
+
+    assert response.status_code == 404
+    assert "restart" in response.json()["detail"]
+
+
+def test_a_crash_during_generation_fails_the_job_without_its_error_text():
+    with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
+            patch("generation.run_platform", side_effect=RuntimeError("boom at /secret/path")):
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
+
+    assert response.status_code == 200
+    assert response.json()["state"] == "failed"
+    assert "failed" in response.json()["error"]
+    assert "secret" not in response.text
 
 
 def test_generate_refuses_an_invalid_model_and_never_runs_the_engine():
     with patch("main.validator_agent_client.validate_swarch", return_value=_invalid()), \
-            patch("generation.run_engine") as engine:
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+            patch("generation.run_platform") as run:
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert "language" in detail["issues"][0]["message"]
     assert "tmpabc123" not in response.text
-    engine.assert_not_called()
+    run.assert_not_called()
 
 
 def test_generate_rejects_an_unsupported_platform_naming_the_supported_ones():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()):
-        response = client.post("/generate", json={**MODEL, "platforms": ["jenkins"]})
+        response = generate(client, {**MODEL, "platforms": ["jenkins"]})
 
     assert response.status_code == 422
     assert "gitlab" in response.json()["detail"]
 
 
-def test_generate_hides_the_engines_own_error_text():
+def test_generate_hides_the_other_services_own_error_text():
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()), \
-            patch("generation.run_engine", side_effect=EngineError("exited 1: java.lang.Boom at /secret/path")):
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+            patch("generation.run_platform", side_effect=PlatformRunError("exited 1: java.lang.Boom at /secret/path")):
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 200
     [result] = response.json()["results"]
@@ -160,7 +212,7 @@ def test_generate_hides_the_engines_own_error_text():
 
 def test_generate_returns_502_when_the_validator_is_unreachable():
     with patch("main.validator_agent_client.validate_swarch", side_effect=httpx.ConnectError("down")):
-        response = client.post("/generate", json={**MODEL, "platforms": ["gitlab"]})
+        response = generate(client, {**MODEL, "platforms": ["gitlab"]})
 
     assert response.status_code == 502
 
@@ -168,23 +220,57 @@ def test_generate_returns_502_when_the_validator_is_unreachable():
 def test_generate_rejects_oversized_content():
     oversized = {"filename": "x.swarch", "content": "x" * (main.MAX_MODEL_BYTES + 1), "platforms": ["gitlab"]}
 
-    assert client.post("/generate", json=oversized).status_code == 413
+    assert generate(client, oversized).status_code == 413
 
 
-def test_validate_checks_the_pipeline_for_the_platform():
-    response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build]\nbuild:\n  stage: build\n  script: [echo]\n"})
+CHECKLIST = {"valid": True, "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "pass", "details": []}]}
+
+
+def _status_error(status, text):
+    request = httpx.Request("POST", "http://validator-agent/validate/pipeline")
+    return httpx.HTTPStatusError("failed", request=request, response=httpx.Response(status, text=text, request=request))
+
+
+def test_validate_asks_validator_agent_with_the_file_and_the_name_the_platform_gives_it():
+    with patch("main.validator_agent_client.validate_pipeline", return_value=CHECKLIST) as validate:
+        response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build]\n"})
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["valid"] is True
-    assert [check["id"] for check in body["checks"]] == ["yaml", "schema", "jobs", "stages", "needs"]
+    assert response.json() == CHECKLIST
+    assert validate.call_args.args == ("stages: [build]\n", ".gitlab-ci.yml")
 
 
-def test_validate_reports_a_broken_pipeline_as_a_normal_answer():
-    response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build\n"})
+def test_validate_reports_a_pipeline_that_fails_its_checks_as_a_normal_answer():
+    failing = {"valid": False, "checks": [{"id": "yaml", "title": "t", "status": "fail", "details": ["bad"]}]}
+    with patch("main.validator_agent_client.validate_pipeline", return_value=failing):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "stages: [build\n"})
 
     assert response.status_code == 200
-    assert response.json()["valid"] is False
+    assert response.json() == failing
+
+
+def test_validate_says_the_checker_is_unavailable_when_validator_agent_cannot_be_reached():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=httpx.ConnectError("down")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "The pipeline checker is unavailable, try again shortly."
+
+
+def test_validate_treats_a_server_error_from_validator_agent_as_the_checker_being_unavailable():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=_status_error(500, "boom at /secret")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 502
+    assert "secret" not in response.text
+
+
+def test_validate_says_so_when_validator_agent_finds_the_pipeline_too_large_to_check():
+    with patch("main.validator_agent_client.validate_pipeline", side_effect=_status_error(413, "content exceeds 5 bytes")):
+        response = client.post("/validate", json={"platform": "gitlab", "content": "a: b\n"})
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "The pipeline is too large to check."
 
 
 def test_validate_rejects_an_unsupported_platform():
@@ -195,12 +281,6 @@ def test_validate_rejects_oversized_content():
     oversized = {"platform": "gitlab", "content": "x" * (main.MAX_PIPELINE_BYTES + 1)}
 
     assert client.post("/validate", json=oversized).status_code == 413
-
-
-def test_a_pipeline_the_engine_can_produce_can_always_be_validated():
-    # The generated-pipeline size ceiling and the validate ceiling are one
-    # setting, so a pipeline can never be generated and then refused.
-    assert main.MAX_PIPELINE_BYTES == engine_runner.MAX_PIPELINE_BYTES
 
 
 def _raw_json(body: str):
@@ -228,7 +308,7 @@ def test_the_validator_is_always_sent_a_fixed_filename_never_the_callers():
     # recognised downstream.
     with patch("main.validator_agent_client.validate_swarch", return_value=_valid()) as validate:
         client.post("/inspect", json={"filename": "../../evil.TXT", "content": MODEL["content"]})
-        client.post("/generate", json={"filename": "..", "content": MODEL["content"], "platforms": ["gitlab"]})
+        generate(client, {"filename": "..", "content": MODEL["content"], "platforms": ["gitlab"]})
 
     assert {call.args[1] for call in validate.call_args_list} == {"model.swarch"}
 

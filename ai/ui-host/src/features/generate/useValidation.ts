@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { validatePipeline } from '@/services/generator.service';
 import type { GenerationResult, PipelineValidation } from '@/services/generator.service';
+import { GENERATE_COPY } from '../../config/generate.config';
 import { toStepError } from './stepError';
 import type { StepError } from './stepError';
 import type { StaleGuard } from './useStaleGuard';
@@ -11,9 +12,10 @@ interface Options {
 }
 
 /**
- * Checking each generated pipeline, one platform at a time. An answer for a
- * pipeline that has since been replaced is dropped, and reset() (called by
- * whatever replaced it) clears the busy flags that answer would have cleared.
+ * Checking each generated pipeline, one platform at a time, as soon as it is
+ * on screen. An answer for a pipeline that has since been replaced is
+ * dropped, and reset() (called by whatever replaced it) clears the busy flags
+ * that answer would have cleared.
  */
 export function useValidation({ guard, results }: Options) {
   const [validations, setValidations] = useState<Record<string, PipelineValidation>>({});
@@ -38,7 +40,7 @@ export function useValidation({ guard, results }: Options) {
         if (guard.isCurrent(current)) setValidations((all) => ({ ...all, [platformId]: outcome }));
       } catch (err) {
         if (guard.isCurrent(current)) {
-          setErrors((all) => ({ ...all, [platformId]: toStepError(err, 'Could not validate the pipeline.') }));
+          setErrors((all) => ({ ...all, [platformId]: toStepError(err, GENERATE_COPY.validation.unavailableDetail) }));
         }
       } finally {
         if (guard.isCurrent(current)) setValidating((ids) => ids.filter((id) => id !== platformId));
@@ -46,6 +48,12 @@ export function useValidation({ guard, results }: Options) {
     },
     [results, guard]
   );
+
+  useEffect(() => {
+    results?.forEach((result) => {
+      if (result.pipeline !== null) void validate(result.platform.id);
+    });
+  }, [results, validate]);
 
   return { validations, validating, errors, validate, reset };
 }

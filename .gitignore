@@ -56,11 +56,20 @@ ai/acceleo_agent/prompts/*/history/
 ai/acceleo_agent/prompts/*/*.json
 !ai/acceleo_agent/prompts/*/*.default.json
 
+# A .env that Compose would read on its own: settings stay in config.env.
+ai/.env
+infra/environments/*/.env
+
+# Each environment's settings and secrets, kept only on the machine that runs
+# it. The templates are committed.
+infra/environments/*/config.env
+!infra/environments/templates/*/config.env
+
 # Internal-only working files (architecture diagrams, etc.), not for the repo
 /.local/
 
 # The stack's data folder: everything the services generate and keep (see
-# ai/README.md's "Where files live")
-ai/data/
-# Read by docker compose itself for ${VAR} values in ai/docker-compose.yml
-ai/.env
+# ai/README.md's "Where files live"), except the platforms the generator runs,
+# which are committed.
+ai/data/*
+!ai/data/platforms/

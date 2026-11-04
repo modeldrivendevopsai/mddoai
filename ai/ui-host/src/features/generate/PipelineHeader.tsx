@@ -9,29 +9,35 @@ function Band({ children }: { children: ReactNode }) {
   return <header className="mdd-generate__band">{children}</header>;
 }
 
-/** "CI/CD Pipelines", with a way back to the start screen. */
-export function PipelinesHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <Band>
-      <h1>{GENERATE_COPY.pipelines.title}</h1>
-      <button type="button" className="mdd-generate__link" onClick={onBack}>
-        <Icon name="ArrowLeft" size={14} />
-        {GENERATE_COPY.pipelines.back}
-      </button>
-    </Band>
-  );
+interface BackTitleProps {
+  title: string;
+  hint: string;
+  onBack: () => void;
 }
 
-/** "← Generate CI/CD Pipeline": the title is itself the way back to the pipelines list. */
-export function InputHeader({ onBack }: { onBack: () => void }) {
+// "← Title": the title is itself the way back, with the arrow on its left.
+// Every pipeline screen's header is this, so going back looks the same on all.
+function BackTitle({ title, hint, onBack }: BackTitleProps) {
   return (
     <Band>
       <h1>
-        <button type="button" className="mdd-generate__back" title="Back to your pipelines" onClick={onBack}>
+        <button type="button" className="mdd-generate__back" title={hint} onClick={onBack}>
           <Icon name="ArrowLeft" size={18} />
-          {GENERATE_COPY.input.title}
+          {title}
         </button>
       </h1>
     </Band>
   );
+}
+
+/** "← CI/CD Pipelines": back to the start screen. */
+export function PipelinesHeader({ onBack }: { onBack: () => void }) {
+  const copy = GENERATE_COPY.pipelines;
+  return <BackTitle title={copy.title} hint={copy.backHint} onBack={onBack} />;
+}
+
+/** "← Generate CI/CD Pipeline": back to the pipelines list. */
+export function InputHeader({ onBack }: { onBack: () => void }) {
+  const copy = GENERATE_COPY.input;
+  return <BackTitle title={copy.title} hint={copy.backHint} onBack={onBack} />;
 }

@@ -15,7 +15,8 @@ services:
       # nested default correctly and picks whichever one is actually set.
       - ${HOME:-${USERPROFILE}}/.claude:/root/.claude:ro
     ports:
-      - "8000:8000"
+      # From the environment's config.env.
+      - "${AI_LAYER_PORT:?}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
   # Python packages (orchestrator/, clients/) into one container. Before
@@ -32,7 +33,7 @@ services:
         required: false
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
-      # send_message()'s own tool-routing decision, see assistant.py), and
+      # accept_message()'s own tool-routing decision, see assistant.py), and
       # main.py's /providers proxies ai_layer_client.list_providers() too —
       # orchestrator is still the LLM-chat layer. It has no import on
       # clients/retrieval_client.py at all anymore, though: the
@@ -90,9 +91,8 @@ services:
       # via execution-agent (see the fourth exception in ai/CLAUDE.md's
       # folder-boundaries section).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # The data folder's runs/ (the one host folder that holds everything
-      # the stack generates and keeps, MDDOAI_DATA_DIR, ./data by default),
-      # mounted at the exact path integration_runner/stages/_validation.py's
+      # The data folder's runs/ (MDDOAI_DATA_DIR, from the environment's
+      # config.env, see the generator's mounts below), mounted at the exact path integration_runner/stages/_validation.py's
       # own RUNS_DIR resolves to inside this container (this Dockerfile's own
       # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
       # relative to that, not to the repo-relative path it looks like in the
@@ -117,7 +117,11 @@ services:
       # run_id, stage, or attempt at all. Get this path wrong and the two
       # services silently write to different, unrelated directories -
       # verify it against RUNS_DIR itself before changing either side.
-      - ${MDDOAI_DATA_DIR:-./data}/runs:/app/integration_runner/runs
+      # Only the services write to it, so unlike the generator's folders it
+      # may be created by Docker, owned by root.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/runs
+        target: /app/integration_runner/runs
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -172,9 +176,8 @@ services:
       # Dockerfile's own final WORKDIR, /app/psm_agent, not /app). Read-write
       # and scoped to just this directory, not the whole psm_agent/ source
       # tree: a Save through the running dev container needs to land on the
-      # host's real git checkout (these files are committed, not gitignored)
-      # the same way ui-host/ui-remote-* already bind-mount their own
-      # live-editable source, applied here to backend config instead.
+      # host's real git checkout (these files are committed, not
+      # gitignored).
       - ./psm_agent/prompts:/app/psm_agent/prompts
       # Real human-uploaded "file" attachments (routes/uploads.py) - a
       # separate, writable directory from both the read-only meta_models
@@ -301,231 +304,121 @@ services:
       ai-layer:
         condition: service_healthy
 
-  # Overrides the Dockerfile's static build with Vite's own dev server.
-  # Build context is ai/, not ai/ui-host/: package.json depends on
-  # design-system and orchestrator-types via local "file:../..." paths, and
-  # Docker can't COPY from outside its build context (see ui-host/Dockerfile's
-  # own comment). Both get their own bind mount below for the same reason
-  # ui-host itself does — so live edits to their source reach the running dev
-  # server without an image rebuild, matching the symlink's real target path
-  # (a sibling of /app) that npm ci baked into the image at build time.
-  # Each bind mount hides whatever the image put at that path, including the
-  # node_modules npm ci installed there. The anonymous /design-system/node_modules
-  # and /orchestrator-types/node_modules volumes keep the image's copies visible,
-  # the same way /app/node_modules does for ui-host's own, so the dev server
-  # works on a fresh clone with no node_modules on the host. Each volume is a
-  # copy made when the container is first created: after a dependency change,
-  # recreate them with `docker compose up -d --build --renew-anon-volumes`.
+  # The UI is built into static files, served by nginx. Build context is ai/,
+  # not ai/ui-host/: package.json depends on design-system and
+  # orchestrator-types via local "file:../..." paths, and Docker can't COPY
+  # from outside its build context (see ui-host/Dockerfile's own comment). A
+  # change to the UI's code takes `docker compose up -d --build` of the
+  # service it is in.
   ui-host:
     build:
       context: .
       dockerfile: ui-host/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
+      args:
+        # Where the browser loads each remote below from: this service's own
+        # proxy, which forwards /remotes/<name>/ to ui-remote-<name>. Built
+        # into the app, so changing one means rebuilding this image.
+        - VITE_REMOTE_CHAT_URL=/remotes/chat
+        - VITE_REMOTE_STEPPER_URL=/remotes/stepper
+        - VITE_REMOTE_STAGE_DOCS_URL=/remotes/stage-docs
+        - VITE_REMOTE_STAGE_SERIALIZATION_URL=/remotes/stage-serialization
+        - VITE_REMOTE_STAGE_PIM_URL=/remotes/stage-pim
+        - VITE_REMOTE_STAGE_PSM_URL=/remotes/stage-psm
+        - VITE_REMOTE_STAGE_ATL_URL=/remotes/stage-atl
+        - VITE_REMOTE_STAGE_ACCELEO_URL=/remotes/stage-acceleo
+        - VITE_REMOTE_STAGE_GENERATION_URL=/remotes/stage-generation
     environment:
-      - VITE_ORCHESTRATOR_PROXY_TARGET=http://orchestrator:8001
-      # The "Generate a CI/CD pipeline" mode's own backend (see
-      # pipeline-generator below), reached through its own proxy path, not
-      # via orchestrator: that mode has no pipeline run, chat, or stages.
-      - VITE_GENERATOR_PROXY_TARGET=http://pipeline-generator:8100
-      # See vite.config.ts's server.watch comment: without this, edits to a
-      # bind-mounted file on the host can silently stop triggering HMR.
-      - CHOKIDAR_USEPOLLING=true
-      # Browser-resolvable URLs for each Module Federation remote below —
-      # see vite.config.ts's own remote() helper for why these have to be
-      # real localhost:xxxx addresses rather than Docker service names
-      # (unlike VITE_ORCHESTRATOR_PROXY_TARGET above, the browser itself
-      # fetches these directly, not this container's own dev server).
-      - VITE_REMOTE_CHAT_URL=http://localhost:5174
-      - VITE_REMOTE_STEPPER_URL=http://localhost:5175
-      - VITE_REMOTE_STAGE_DOCS_URL=http://localhost:5176
-      - VITE_REMOTE_STAGE_SERIALIZATION_URL=http://localhost:5177
-      - VITE_REMOTE_STAGE_PIM_URL=http://localhost:5178
-      - VITE_REMOTE_STAGE_PSM_URL=http://localhost:5179
-      - VITE_REMOTE_STAGE_ATL_URL=http://localhost:5180
-      - VITE_REMOTE_STAGE_ACCELEO_URL=http://localhost:5181
-      - VITE_REMOTE_STAGE_GENERATION_URL=http://localhost:5182
-    volumes:
-      - ./ui-host:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
+      # Filled into the proxy's configuration when the container starts.
+      # The host names the app may be opened under. Any other Host header is
+      # refused, so a page using DNS rebinding cannot reach the APIs. The
+      # names come from UI_ALLOWED_HOSTS in the environment's config.env.
+      - UI_ALLOWED_HOSTS=${UI_ALLOWED_HOSTS:?}
+      # From the environment's config.env.
+      - UI_MAX_BODY_SIZE=${UI_MAX_BODY_SIZE:?}
+      - UI_PROXY_READ_TIMEOUT=${UI_PROXY_READ_TIMEOUT:?}
+      - ORCHESTRATOR_UPSTREAM=orchestrator:8001
+      # The "Generate a CI/CD pipeline" mode's own backend, not behind
+      # orchestrator: that mode has no run, chat or stages.
+      - GENERATOR_UPSTREAM=pipeline-generator:8100
     ports:
-      # This machine only. The generate mode's API, reached through this
-      # port, can read model files from and write pipeline files into the
-      # workspace folder, and like every service here it has no
-      # authentication, so it is not published on the network.
-      - "127.0.0.1:5173:5173"
-    depends_on:
-      orchestrator:
-        condition: service_healthy
+      # The one port the browser uses: the app, every remote, the
+      # orchestrator's API and the generator's API. This machine only:
+      # nothing here has a login, and the generator's API can read model
+      # files from the workspace folder.
+      # UI_PORT is from the environment's config.env.
+      - "127.0.0.1:${UI_PORT:?}:80"
 
   # Every ui-remote-* service below follows the same shape: a Module
-  # Federation remote, own container, own port, exposing one piece of the
+  # Federation remote, its own image and container, exposing one piece of the
   # integration screen for ui-host to load as a federated import (see
   # ui-host/src/features/integration/stages/registry.ts and
-  # IntegrationScreen.tsx for where each one is actually consumed). No
-  # depends_on chain to ui-host or each other: unlike the backend services
-  # above, nothing here calls another service at container-start time, only
-  # the browser fetches a remote's remoteEntry.js, later, and can retry
-  # independently — so there's no health-check ordering to get right, a
-  # real simplification versus the backend chain's own depends_on graph.
-  # Each gets the sibling design-system and orchestrator-types bind mounts, and
-  # the anonymous node_modules volume under each, for the same reasons ui-host does (see
-  # ui-host/Dockerfile's own comment and the comment above ui-host).
+  # IntegrationScreen.tsx for where each one is actually consumed). Each is
+  # built into static files served by nginx, reached only through ui-host's
+  # proxy under /remotes/<name>/, so it publishes no port. PUBLIC_PATH must
+  # match that path. A remote can be rebuilt and restarted on its own; the
+  # page picks it up on its next load.
   ui-remote-chat:
     build:
       context: .
       dockerfile: ui-remote-chat/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-chat:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5174:5174"
+      args:
+        - PUBLIC_PATH=/remotes/chat/
 
   ui-remote-stepper:
     build:
       context: .
       dockerfile: ui-remote-stepper/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stepper:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5175:5175"
+      args:
+        - PUBLIC_PATH=/remotes/stepper/
 
   ui-remote-stage-docs:
     build:
       context: .
       dockerfile: ui-remote-stage-docs/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-docs:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5176:5176"
+      args:
+        - PUBLIC_PATH=/remotes/stage-docs/
 
   ui-remote-stage-serialization:
     build:
       context: .
       dockerfile: ui-remote-stage-serialization/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-serialization:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5177:5177"
+      args:
+        - PUBLIC_PATH=/remotes/stage-serialization/
 
   ui-remote-stage-pim:
     build:
       context: .
       dockerfile: ui-remote-stage-pim/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-pim:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5178:5178"
+      args:
+        - PUBLIC_PATH=/remotes/stage-pim/
 
   ui-remote-stage-psm:
     build:
       context: .
       dockerfile: ui-remote-stage-psm/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-psm:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5179:5179"
+      args:
+        - PUBLIC_PATH=/remotes/stage-psm/
 
   ui-remote-stage-atl:
     build:
       context: .
       dockerfile: ui-remote-stage-atl/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-atl:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5180:5180"
+      args:
+        - PUBLIC_PATH=/remotes/stage-atl/
 
   ui-remote-stage-acceleo:
     build:
       context: .
       dockerfile: ui-remote-stage-acceleo/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-acceleo:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5181:5181"
+      args:
+        - PUBLIC_PATH=/remotes/stage-acceleo/
 
   ui-remote-stage-generation:
     build:
       context: .
       dockerfile: ui-remote-stage-generation/Dockerfile
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./ui-remote-stage-generation:/app
-      - /app/node_modules
-      - ./design-system:/design-system
-      - ./orchestrator-types:/orchestrator-types
-      - /design-system/node_modules
-      - /orchestrator-types/node_modules
-    ports:
-      - "5182:5182"
+      args:
+        - PUBLIC_PATH=/remotes/stage-generation/
 
   # One-shot: builds main/'s Gradle distribution into the main-build-output
   # volume, so validator-agent doesn't need its own Gradle toolchain.
@@ -545,6 +438,7 @@ services:
 
   # Wraps main/'s headless model/transformation validators as an HTTP service:
   # .ecore (issue #313), .atl (issue #314), .mtl/Acceleo (issue #315), and .swarch.
+  # It also checks generated pipeline files in plain Python (/validate/pipeline).
   # Named validator-agent, not ecore-validator: a future validator type would
   # add another sibling /validate/<type> route to this same service.
   validator-agent:
@@ -577,7 +471,9 @@ services:
       # automatic expiry/cleanup of old validation runs yet - a known,
       # documented limitation, not attempted here since nobody's asked for a
       # retention policy.
-      - ${MDDOAI_DATA_DIR:-./data}/runs:/runs
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/runs
+        target: /runs
       # The same real, rich PIM model instance integration-runner's own
       # generation-stage mount above already uses (see its own comment) -
       # AtlValidator's/AcceleoValidator's own real execution smoke test reads
@@ -590,8 +486,6 @@ services:
       # identical reason (a real, read-only MDE data file, not code).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
-      - LOG_LEVEL=INFO
-      - VALIDATOR_TIMEOUT_SECONDS=60
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - VALIDATOR_OUTPUT_DIR=/runs
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
@@ -627,8 +521,6 @@ services:
       # instead (see execution_agent/README.md's own "How a request flows").
       - main-build-output:/main-build:ro
     environment:
-      - LOG_LEVEL=INFO
-      - EXECUTION_TIMEOUT_SECONDS=60
       - EXECUTION_LIB_DIR=/main-build/install/com.mddoai/lib
     depends_on:
       gradle-builder:
@@ -636,13 +528,13 @@ services:
     expose:
       - "8090"
 
-  # The backend of the "Generate a CI/CD pipeline" mode: runs the engine's
-  # real swarch2<platform> CLI on an uploaded Software Architecture model,
-  # and checks the model (via validator-agent) and the generated pipeline.
-  # UI-facing, the way orchestrator is for the platform-integration mode, but
-  # with no pipeline run or LLM involved. It invokes the engine's CLI directly
-  # because the engine's generator for a platform is not something
-  # execution-agent can run (the repo's documented fifth exception).
+  # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
+  # Software Architecture model into a pipeline for each chosen platform, by
+  # running that platform's own files (committed in the data folder's
+  # platforms/) through execution-agent, and checks the model (via
+  # validator-agent) and the generated pipeline. UI-facing, the way
+  # orchestrator is for the platform-integration mode, but with no pipeline
+  # run or LLM involved.
   pipeline-generator:
     build:
       context: .
@@ -651,42 +543,50 @@ services:
       - path: ./pipeline_generator/.env
         required: false
     volumes:
-      # Read-only, same shared build-output volume validator-agent and
-      # execution-agent already mount: the real engine CLI's classpath.
-      - main-build-output:/main-build:ro
-      # The engine loads its compiled ATL transformations by a path relative
-      # to its working directory, not from the classpath, so they have to be
-      # provided as files. A real, read-only MDE data directory, the same
-      # narrow shape as the repo's documented third exception; each request
-      # copies it into its own scratch directory.
-      - ../main/src/main/resources/transformations:/engine-transformations:ro
-      # The workspace: the folder the screen's "Input path" and "Save output
-      # to" fields work inside. Models are picked from it and generated
-      # pipeline files are written to it. A web page cannot reach the user's
-      # disk itself, so the folder is mounted in. It holds the person's own
-      # project files, so by default it is this repository (where the
-      # example models live); point GENERATOR_WORKSPACE_HOST_DIR at another
-      # folder, such as the one holding your repositories, to use that.
-      - ${GENERATOR_WORKSPACE_HOST_DIR:-..}:/workspace
-      # The data folder's pipelines/: what "Your pipelines" lists, kept
-      # across restarts, next to runs/ in the same host data folder.
-      - ${MDDOAI_DATA_DIR:-./data}/pipelines:/data/pipelines
+      # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
+      # is the one host folder for everything the stack generates and keeps.
+      # Its workspace/ is the folder the screen's "Input path" field works
+      # inside: models are picked from it, and nothing is written to it, so it
+      # is mounted read-only. A web page cannot reach the user's disk itself,
+      # so the folder is mounted in. Both folders must exist before the first
+      # start: Docker would create a missing one owned by root, which the
+      # person could not add models to.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/workspace
+        target: /workspace
+        read_only: true
+        bind:
+          create_host_path: false
+      # The data folder's pipelines/: what "Your pipelines" lists, kept across
+      # restarts.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/pipelines
+        target: /data/pipelines
+        bind:
+          create_host_path: false
+      # The data folder's platforms/: the committed files each platform is run
+      # from, read-only. The service reads them on every request, so a file
+      # edited here applies to the next generation without a rebuild. Unlike
+      # the rest of the data folder they are in the repository, so this folder
+      # is only there when the data folder is the repository's own ai/data.
+      - type: bind
+        source: ${MDDOAI_DATA_DIR:?}/platforms
+        target: /data/platforms
+        read_only: true
+        bind:
+          create_host_path: false
     environment:
-      - LOG_LEVEL=INFO
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - GENERATOR_TIMEOUT_SECONDS=60
-      - GENERATOR_LIB_DIR=/main-build/install/com.mddoai/lib
-      - ENGINE_TRANSFORMATIONS_DIR=/engine-transformations
+      - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
-      # How the Browse dialog names the workspace to the person.
-      # Set GENERATOR_WORKSPACE_LABEL yourself when the host folder is a
-      # relative path that would read poorly there.
-      - GENERATOR_WORKSPACE_LABEL=${GENERATOR_WORKSPACE_LABEL:-${GENERATOR_WORKSPACE_HOST_DIR:-the MDDOAI repository}}
+      # How the Browse dialog names the workspace to the person: its host
+      # folder.
+      - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
       - GENERATOR_DATA_DIR=/data
     depends_on:
-      gradle-builder:
-        condition: service_completed_successfully
       validator-agent:
+        condition: service_healthy
+      execution-agent:
         condition: service_healthy
     expose:
       - "8100"

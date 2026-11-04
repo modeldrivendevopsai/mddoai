@@ -1,7 +1,7 @@
 package main.java.mddoai.validation.acceleo;
 
 import main.java.mddoai.execution.acceleo.AcceleoExecutor;
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 import main.java.mddoai.utils.EMFUtils;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
@@ -177,8 +177,8 @@ public final class AcceleoValidator {
             String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
             String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
             String pimInstance = Files.readString(Path.of(pimSamplePath), StandardCharsets.UTF_8);
-            String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
-            String psmInstance = AtlExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
+            String outputModelName = PimExecutor.parseOutputModelName(atlSource);
+            String psmInstance = PimExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
             Map<String, String> generatedFiles = AcceleoExecutor.execute(mtlSource, psmInstance, targetEcore);
 
             // Every real platform this project targets produces YAML CI/CD

@@ -1,0 +1,17 @@
+# State can hold secrets and the server's details. It stays on the machine
+# that runs Terraform.
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Real values, including developer IPs. Only the example is committed.
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json

@@ -10,10 +10,6 @@ export interface StartOption {
   title: string;
   description: string;
   cta: string;
-  // True for a mode with no real backend behind it yet — the card renders
-  // but its Start button is disabled rather than silently landing on the
-  // "Add/update a CI/CD platform" flow, which is a different, real mode.
-  comingSoon?: boolean;
 }
 
 export const START_OPTIONS: StartOption[] = [

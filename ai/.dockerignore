@@ -19,7 +19,7 @@
 **/.vscode
 **/.idea
 **/.DS_Store
-# The stack's data folder: run artifacts and generator history. It only
+# The stack's data folder: run artifacts, the generator's workspace and history. It only
 # grows and is never part of any image, so it must never be sent as build
 # context for any service that builds from ai/.
 data

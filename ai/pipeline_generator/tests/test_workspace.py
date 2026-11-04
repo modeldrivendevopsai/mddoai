@@ -1,7 +1,6 @@
 """The workspace is the one place a caller-supplied path touches the disk, so
 these tests are about what it refuses as much as what it does."""
 import os
-import stat
 
 import pytest
 
@@ -169,14 +168,14 @@ def test_a_link_loop_is_reported_not_crashed_on(ws, workspace_dir):
     error = _refused(lambda: ws.read_text("/a.swarch", 1000))
 
     assert error.status in (404, 422)
-    assert ws.browse("/", False)["entries"] == []
+    assert ws.browse("/")["entries"] == []
 
 
 def test_errors_never_name_a_location_outside_the_workspace(ws, workspace_dir, outside):
     messages = [
         _refused(lambda: ws.read_text("../outside/secret.swarch", 10)).message,
         _refused(lambda: ws.read_text("/missing.swarch", 10)).message,
-        _refused(lambda: ws.browse("../outside", False)).message,
+        _refused(lambda: ws.browse("../outside")).message,
     ]
 
     for message in messages:
@@ -193,7 +192,7 @@ def test_browse_lists_folders_first_then_files_each_alphabetically(ws, workspace
     (workspace_dir / "b.swarch").write_text("", encoding="utf-8")
     (workspace_dir / "a.swarch").write_text("", encoding="utf-8")
 
-    listing = ws.browse("/", False)
+    listing = ws.browse("/")
 
     assert [(e["name"], e["kind"]) for e in listing["entries"]] == [
         ("Alpha", "dir"), ("zeta", "dir"), ("a.swarch", "file"), ("b.swarch", "file"),
@@ -205,34 +204,39 @@ def test_browse_lists_folders_first_then_files_each_alphabetically(ws, workspace
 def test_browse_reports_the_parent_of_a_subfolder(ws, workspace_dir):
     (workspace_dir / "repos" / "app").mkdir(parents=True)
 
-    listing = ws.browse("/repos/app", False)
+    listing = ws.browse("/repos/app")
 
     assert listing["path"] == "/repos/app"
     assert listing["parent"] == "/repos"
 
 
-def test_browse_lists_only_folders_and_architecture_files(ws, workspace_dir):
+def test_browse_lists_every_file_and_marks_which_ones_can_be_opened(ws, workspace_dir):
     (workspace_dir / "sub").mkdir()
     (workspace_dir / "a.swarch").write_text("", encoding="utf-8")
     (workspace_dir / "notes.txt").write_text("", encoding="utf-8")
-    (workspace_dir / ".env").write_text("", encoding="utf-8")
+    (workspace_dir / ".gitlab-ci.yml").write_text("", encoding="utf-8")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["sub", "a.swarch"]
+    assert [(e["name"], e["kind"]) for e in ws.browse("/")["entries"]] == [
+        ("sub", "dir"), (".gitlab-ci.yml", "other"), ("a.swarch", "file"), ("notes.txt", "other"),
+    ]
 
 
-def test_browse_does_not_offer_a_link_named_like_a_model_that_points_at_something_else(ws, workspace_dir):
+def test_a_file_that_is_listed_but_not_a_model_still_cannot_be_read(ws, workspace_dir):
+    (workspace_dir / "notes.txt").write_text("secret", encoding="utf-8")
+
+    assert [e["name"] for e in ws.browse("/")["entries"]] == ["notes.txt"]
+    with pytest.raises(WorkspaceError):
+        ws.read_text("/notes.txt", 1000)
+
+
+def test_browse_does_not_offer_a_link_named_like_a_model_as_a_model_when_it_points_at_something_else(ws, workspace_dir):
     (workspace_dir / ".env").write_text("SECRET=1", encoding="utf-8")
     _link(workspace_dir / ".env", workspace_dir / "arch.swarch")
     (workspace_dir / "real.swarch").write_text("", encoding="utf-8")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["real.swarch"]
-
-
-def test_browse_can_list_folders_only(ws, workspace_dir):
-    (workspace_dir / "sub").mkdir()
-    (workspace_dir / "a.swarch").write_text("", encoding="utf-8")
-
-    assert [e["name"] for e in ws.browse("/", True)["entries"]] == ["sub"]
+    assert [(e["name"], e["kind"]) for e in ws.browse("/")["entries"]] == [
+        (".env", "other"), ("arch.swarch", "other"), ("real.swarch", "file"),
+    ]
 
 
 def test_browse_does_not_offer_a_link_that_leaves_the_workspace(ws, workspace_dir, outside):
@@ -240,14 +244,14 @@ def test_browse_does_not_offer_a_link_that_leaves_the_workspace(ws, workspace_di
     _link(outside / "secret.swarch", workspace_dir / "shortcut.swarch")
     (workspace_dir / "real.swarch").write_text("", encoding="utf-8")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["real.swarch"]
+    assert [e["name"] for e in ws.browse("/")["entries"]] == ["real.swarch"]
 
 
 def test_browse_refuses_to_leave_the_workspace_or_list_a_file(ws, workspace_dir, outside):
     (workspace_dir / "a.swarch").write_text("", encoding="utf-8")
 
-    assert _refused(lambda: ws.browse("../outside", False)).status == 422
-    assert _refused(lambda: ws.browse("/a.swarch", False)).status == 404
+    assert _refused(lambda: ws.browse("../outside")).status == 422
+    assert _refused(lambda: ws.browse("/a.swarch")).status == 404
 
 
 def test_browse_stops_at_the_listing_limit_and_says_so(ws, workspace_dir, monkeypatch):
@@ -255,121 +259,10 @@ def test_browse_stops_at_the_listing_limit_and_says_so(ws, workspace_dir, monkey
     for number in range(5):
         (workspace_dir / f"f{number}.swarch").write_text("", encoding="utf-8")
 
-    listing = ws.browse("/", False)
+    listing = ws.browse("/")
 
     assert len(listing["entries"]) == 3
     assert listing["truncated"] is True
-
-
-# --- saving a file ----------------------------------------------------------
-
-
-def test_write_creates_the_folder_and_returns_where_it_went(ws, workspace_dir):
-    saved = ws.write_text("./ci-output/", ".gitlab-ci.yml", "stages: [build]\n")
-
-    assert saved.path == "/ci-output/.gitlab-ci.yml"
-    assert (workspace_dir / "ci-output" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
-
-
-def test_write_says_whether_it_replaced_an_existing_file(ws):
-    first = ws.write_text("/out", "p.yml", "old")
-    second = ws.write_text("/out", "p.yml", "new")
-
-    assert first.replaced is False
-    assert second.replaced is True
-
-
-def test_write_replaces_an_existing_file(ws, workspace_dir):
-    ws.write_text("/out", "p.yml", "old")
-    ws.write_text("/out", "p.yml", "new")
-
-    assert (workspace_dir / "out" / "p.yml").read_text(encoding="utf-8") == "new"
-
-
-def test_write_preserves_line_endings_exactly(ws, workspace_dir):
-    ws.write_text("/out", "p.yml", "a\r\nb\n")
-
-    assert (workspace_dir / "out" / "p.yml").read_bytes() == b"a\r\nb\n"
-
-
-def test_write_leaves_no_temporary_file_behind(ws, workspace_dir):
-    ws.write_text("/out", "p.yml", "x")
-
-    assert [p.name for p in (workspace_dir / "out").iterdir()] == ["p.yml"]
-
-
-def test_a_failed_write_leaves_no_temporary_file_and_reports_it(ws, workspace_dir, monkeypatch):
-    def failing_replace(source, destination):
-        raise OSError("disk full")
-
-    monkeypatch.setattr(workspace_module.os, "replace", failing_replace)
-
-    error = _refused(lambda: ws.write_text("/out", "p.yml", "x"))
-
-    assert error.message == "Could not save to that folder."
-    assert list((workspace_dir / "out").iterdir()) == []
-
-
-@pytest.mark.skipif(os.name == "nt", reason="file modes are not meaningful on Windows")
-def test_a_saved_file_gets_the_ordinary_mode_from_the_umask_not_a_private_one(ws, workspace_dir):
-    previous = os.umask(0o022)
-    try:
-        ws.write_text("/out", "p.yml", "x")
-    finally:
-        os.umask(previous)
-
-    assert stat.S_IMODE((workspace_dir / "out" / "p.yml").stat().st_mode) == 0o644
-
-
-@pytest.mark.parametrize("folder", ["../outside", "/../outside", "a/../../outside"])
-def test_write_refuses_a_folder_outside_the_workspace(ws, outside, folder):
-    error = _refused(lambda: ws.write_text(folder, "p.yml", "x"))
-
-    assert "outside the workspace" in error.message
-    assert not (outside / "p.yml").exists()
-
-
-@pytest.mark.parametrize("name", ["../p.yml", "sub/p.yml", "", ".", ".."])
-def test_write_refuses_a_file_name_that_is_not_a_plain_name(ws, name):
-    assert "valid file name" in _refused(lambda: ws.write_text("/out", name, "x")).message
-
-
-def test_a_link_in_the_way_is_replaced_never_written_through(ws, workspace_dir, outside):
-    (workspace_dir / "out").mkdir()
-    _link(outside / "secret.swarch", workspace_dir / "out" / "p.yml")
-
-    ws.write_text("/out", "p.yml", "generated")
-
-    assert (outside / "secret.swarch").read_text(encoding="utf-8") == "do not read"
-    placed = workspace_dir / "out" / "p.yml"
-    assert not placed.is_symlink()
-    assert placed.read_text(encoding="utf-8") == "generated"
-
-
-def test_a_link_to_another_file_inside_the_workspace_is_not_written_through_either(ws, workspace_dir):
-    (workspace_dir / "script.sh").write_text("echo keep me", encoding="utf-8")
-    (workspace_dir / "out").mkdir()
-    _link(workspace_dir / "script.sh", workspace_dir / "out" / "p.yml")
-
-    ws.write_text("/out", "p.yml", "generated")
-
-    assert (workspace_dir / "script.sh").read_text(encoding="utf-8") == "echo keep me"
-
-
-def test_write_refuses_a_folder_link_leading_out(ws, workspace_dir, outside):
-    _link(outside, workspace_dir / "elsewhere")
-
-    _refused(lambda: ws.write_text("/elsewhere", "p.yml", "x"))
-
-    assert not (outside / "p.yml").exists()
-
-
-def test_write_reports_a_folder_that_is_really_a_file(ws, workspace_dir):
-    (workspace_dir / "out").write_text("i am a file", encoding="utf-8")
-
-    error = _refused(lambda: ws.write_text("/out", "p.yml", "x"))
-
-    assert error.message == "Could not save to that folder."
 
 
 # --- the folder itself ------------------------------------------------------
@@ -379,8 +272,7 @@ def test_a_missing_workspace_folder_is_reported_as_unavailable(tmp_path):
     ws = Workspace(tmp_path / "not-mounted")
 
     assert ws.available is False
-    assert _refused(lambda: ws.browse("/", False)).status == 503
-    assert _refused(lambda: ws.write_text("/", "p.yml", "x")).status == 503
+    assert _refused(lambda: ws.browse("/")).status == 503
 
 
 def test_normalize_gives_the_display_form_or_none(ws):
@@ -422,7 +314,7 @@ def test_browse_skips_names_that_cannot_be_shown_or_typed_back(ws, workspace_dir
     with open(os.fsencode(workspace_dir) + b"/bad-\xff.swarch", "w", encoding="utf-8") as handle:
         handle.write("")
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["ok.swarch"]
+    assert [e["name"] for e in ws.browse("/")["entries"]] == ["ok.swarch"]
 
 
 def test_one_entry_that_cannot_be_looked_at_does_not_fail_the_whole_listing(ws, workspace_dir, monkeypatch):
@@ -431,7 +323,7 @@ def test_one_entry_that_cannot_be_looked_at_does_not_fail_the_whole_listing(ws, 
         real_entries = list(scan)
     monkeypatch.setattr(workspace_module.os, "scandir", lambda path: _Scan([_Unreadable(), *real_entries]))
 
-    assert [e["name"] for e in ws.browse("/", False)["entries"]] == ["good.swarch"]
+    assert [e["name"] for e in ws.browse("/")["entries"]] == ["good.swarch"]
 
 
 def test_a_folder_that_cannot_be_read_is_reported_not_crashed_on(ws, monkeypatch):
@@ -440,7 +332,7 @@ def test_a_folder_that_cannot_be_read_is_reported_not_crashed_on(ws, monkeypatch
 
     monkeypatch.setattr(workspace_module.os, "scandir", refusing)
 
-    error = _refused(lambda: ws.browse("/", False))
+    error = _refused(lambda: ws.browse("/"))
 
     assert error.status == 500
     assert error.message == "Could not list this folder."
@@ -457,35 +349,6 @@ def test_a_file_that_cannot_be_looked_at_reads_as_not_there(ws, workspace_dir, m
     assert _refused(lambda: ws.read_text("/a.swarch", 100)).status == 404
 
 
-def test_saving_onto_a_folder_of_that_name_is_reported_and_leaves_nothing_behind(ws, workspace_dir):
-    (workspace_dir / "out" / "p.yml").mkdir(parents=True)
-
-    error = _refused(lambda: ws.write_text("/out", "p.yml", "x"))
-
-    assert error.message == "Could not save to that folder."
-    assert [p.name for p in (workspace_dir / "out").iterdir()] == ["p.yml"]
-
-
-def test_a_dangling_link_in_the_way_counts_as_a_replaced_file(ws, workspace_dir):
-    (workspace_dir / "out").mkdir()
-    _link(workspace_dir / "nowhere.txt", workspace_dir / "out" / "p.yml")
-
-    saved = ws.write_text("/out", "p.yml", "x")
-
-    assert saved.replaced is True
-    assert not (workspace_dir / "out" / "p.yml").is_symlink()
-
-
-def test_a_save_folder_reached_through_a_link_inside_the_workspace_lands_on_the_real_folder(ws, workspace_dir):
-    (workspace_dir / "real").mkdir()
-    _link(workspace_dir / "real", workspace_dir / "alias")
-
-    saved = ws.write_text("/alias", "p.yml", "x")
-
-    assert saved.path == "/real/p.yml"
-    assert (workspace_dir / "real" / "p.yml").read_text(encoding="utf-8") == "x"
-
-
 # --- git's own folder -----------------------------------------------------------
 
 
@@ -493,18 +356,10 @@ def test_the_git_folder_is_never_listed(ws, workspace_dir):
     (workspace_dir / ".git").mkdir()
     (workspace_dir / ".github").mkdir()
 
-    names = [entry["name"] for entry in ws.browse("/", dirs_only=False)["entries"]]
+    names = [entry["name"] for entry in ws.browse("/")["entries"]]
 
     assert ".git" not in names
     assert ".github" in names
-
-
-@pytest.mark.parametrize("folder", ["/.git", "/.git/hooks", "/repos/app/.git/hooks"])
-def test_nothing_is_ever_written_into_a_git_folder(ws, workspace_dir, folder):
-    with pytest.raises(WorkspaceError):
-        ws.write_text(folder, ".gitlab-ci.yml", "stages: [build]\n")
-
-    assert not list(workspace_dir.rglob(".gitlab-ci.yml"))
 
 
 def test_a_git_folder_cannot_be_browsed_or_read_from(ws, workspace_dir):
@@ -513,7 +368,7 @@ def test_a_git_folder_cannot_be_browsed_or_read_from(ws, workspace_dir):
     (hooks / "a.swarch").write_text("<a/>", encoding="utf-8")
 
     with pytest.raises(WorkspaceError):
-        ws.browse("/.git/hooks", dirs_only=False)
+        ws.browse("/.git/hooks")
     with pytest.raises(WorkspaceError):
         ws.read_text("/.git/hooks/a.swarch", 1024)
 
@@ -523,4 +378,4 @@ def test_a_link_into_a_git_folder_is_refused_like_the_folder_itself(ws, workspac
     _link(workspace_dir / ".git" / "hooks", workspace_dir / "innocent")
 
     with pytest.raises(WorkspaceError):
-        ws.write_text("/innocent", ".gitlab-ci.yml", "stages: [build]\n")
+        ws.browse("/innocent")

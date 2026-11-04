@@ -1,7 +1,7 @@
 """pipeline.py unit tests: the pipeline state machine (STAGES,
 class IntegrationRun, run_stage, rerun, advance_stage, add_constraint,
 review, record_review, record_event, run_stage_async). No real API calls,
-execution_agent_client's execute_atl/execute_acceleo and
+execution_agent_client's execute_atl_from_pim/execute_acceleo and
 validator_agent_client's validate_* functions are mocked.
 
 Generic pipeline-mechanics tests (does run_stage() call the right agent and
@@ -103,7 +103,7 @@ def test_run_stage_calls_current_stage_agent_and_reports_its_output():
 
 def test_run_stage_threads_the_chosen_model_into_the_agent_s_context():
     # atl, not generation: generation's own real work (execution_agent's
-    # execute_atl/execute_acceleo) takes no model choice at all, unlike a
+    # execute_atl_from_pim/execute_acceleo) takes no model choice at all, unlike a
     # real LLM call - atl_agent_client.run_atl still does, matching every
     # other real, config-driven-prompt stage.
     o = pipeline.IntegrationRun()
@@ -607,6 +607,40 @@ def test_record_review_rejects_approval_after_a_failed_attempt():
         o.record_review("generation", approved=True)
 
 
+def test_record_review_rejects_approval_when_a_retry_failed_after_an_earlier_success():
+    # A stage succeeded, a retry of it (usually with a correction) then
+    # failed. Approving must not forward the earlier output: it is the one
+    # the retry was asked to change, and the human never approved it.
+    o = pipeline.IntegrationRun()
+    _fast_forward_to_generation(o)
+    with _mocked_generation_execution():
+        o.run_stage({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+    with _mocked_generation_execution(execute_atl_kwargs={"side_effect": RuntimeError("execution-agent unreachable")}):
+        with pytest.raises(RuntimeError):
+            o.run_stage({"platform_description": "A GitLab CI platform", "atl_output": _MINIMAL_ATL_WITH_OUTPUT_MODEL_NAME})
+
+    with pytest.raises(ValueError, match="hasn't completed successfully"):
+        o.record_review("generation", approved=True)
+    assert o.current_stage == "generation"
+    assert "review_approved" not in [e["type"] for e in o.events]
+
+
+def test_record_review_forwards_the_successful_retry_s_output_after_a_failed_one():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "pim")
+    failing = _validation_result(valid=False, issues=[{"severity": "error", "message": "NoSuchType", "source": None}])
+    with patch.object(validator_agent_client, "validate_ecore", return_value=failing):
+        with pytest.raises(RuntimeError, match="failed validation"):
+            o.run_stage({"platform_description": "A GitLab CI platform"})
+    with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result(valid=True)):
+        retried = o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    result = o.record_review("pim", approved=True)
+
+    assert result["status"] == "advanced"
+    assert result["context"]["pim_output"] == retried["output"]
+
+
 def test_record_review_rejects_approval_after_a_failed_validation():
     # Same real bug class as the LLM-side test above, for a mock-validated
     # stage's own failure path (raise_if_invalid(), not an LLM error). pim,
@@ -693,7 +727,7 @@ def test_record_review_records_review_approved_and_rejected_events():
 
 def test_record_event_appends_a_raw_event_and_returns_it_without_any_reaction():
     o = pipeline.IntegrationRun()
-    with patch.object(execution_agent_client, "execute_atl") as mock_execute_atl:
+    with patch.object(execution_agent_client, "execute_atl_from_pim") as mock_execute_atl:
         event = o.record_event("call_started", "docs", {"url": "https://x"})
 
     assert mock_execute_atl.call_count == 0  # no reaction of any kind, unlike before this split
@@ -708,7 +742,7 @@ def test_run_stage_async_sets_busy_synchronously_before_the_thread_finishes():
     release = threading.Event()
 
     def _blocking_execute_atl(*args, **kwargs):
-        # Blocks the background thread's one real execute_atl() call (the
+        # Blocks the background thread's one real execute_atl_from_pim() call (the
         # generation stage agent's own) until the main thread has asserted
         # busy is True and released it, otherwise a fast/mocked run could
         # finish before this assertion even runs, making the check meaningless.

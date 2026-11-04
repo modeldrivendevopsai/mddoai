@@ -1,8 +1,8 @@
 # validator_agent
 
-Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), `.mtl` Acceleo templates (issue #315), and `.swarch` Software Architecture models. The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output — see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts) — `pipeline_generator`, which calls `/validate/swarch` on every Software Architecture model it is given, and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
+Wraps `main/`'s headless model/transformation validators as an HTTP service, so other `ai/` services can validate AI-generated files without needing a JVM of their own: `.ecore` metamodels (issue #313), `.atl` transformations (issue #314), `.mtl` Acceleo templates (issue #315), and `.swarch` Software Architecture models, plus generated CI/CD pipeline files (`/validate/pipeline`, plain Python, no JVM). The real callers today are `integration_runner`'s own `pim` (`/validate/ecore`), `atl` (`/validate/atl`), and `acceleo` (`/validate/acceleo`) stage agents (`clients/validator_agent_client.py`), validating each stage's own currently-mock DSL output (see [integration_runner/README.md](../integration_runner/README.md#persisted-validation-attempts)), `pipeline_generator`, which calls `/validate/swarch` on every Software Architecture model it is given and `/validate/pipeline` on every pipeline it generates, and `psm_agent`, which calls `/validate/ecore` internally on its own generation path to check a freshly generated (real, not mock) `.ecore` before returning it — see [psm_agent/README.md](../psm_agent/README.md).
 
-Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single Java-process-spawning FastAPI wrapper, not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
+Named `validator_agent`, not `ecore_validator`, because it hosts one `/validate/<type>` route per file type behind a single FastAPI wrapper (most routes spawn a Java process, `/validate/pipeline` is plain Python), not a new microservice per file type. The `docker-compose.yml` service key stays `validator-agent` (hyphenated), matching every other service's Compose naming (`pim-agent`, `psm-agent`, `integration-runner`); only this package's own directory/import name uses an underscore.
 
 ## Why a subprocess, not an embedded JVM
 
@@ -10,16 +10,18 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 
 ## How a request flows
 
-1. A caller `POST`s file content (not a file path — this service shares no filesystem with its callers) to `/validate/ecore`, `/validate/atl`, `/validate/acceleo`, or `/validate/swarch`.
+1. A caller `POST`s file content (not a file path, because this service shares no filesystem with its callers) to `/validate/ecore`, `/validate/atl`, `/validate/acceleo`, or `/validate/swarch`.
 2. `validator_runner.py` writes that content to a temp file, then runs `java -cp <lib>/* <FQN of the matching *ValidatorCli> ...` as a subprocess (`EcoreValidatorCli <mode> <path>`, `AtlValidatorCli <path>`, `AcceleoValidatorCli <path>`, or `SwarchValidatorCli <path>`).
 3. The Java side prints one line of JSON to stdout and exits 0, whether the input is valid or not — validity lives inside the JSON, not the exit code. A nonzero exit, a timeout, or unparseable stdout is treated as an infrastructure failure, distinct from an input that's simply invalid.
 4. The JSON is parsed, `duration_ms` is added, and returned as the HTTP response.
+
+`/validate/pipeline` takes none of these steps: it is plain Python in this process, and its own section below says what it checks.
 
 | Outcome | HTTP status |
 |---|---|
 | Input validated (valid or not) | `200`, `valid` field tells you which |
 | Subprocess itself failed (missing `java`, timeout, crash, garbage stdout) | `500` |
-| Request body over `MAX_CONTENT_BYTES` | `413` |
+| Request body over `MAX_CONTENT_BYTES` (`MAX_PIPELINE_BYTES` for `/validate/pipeline`) | `413` |
 | Bad `mode` (ecore only) / missing `content` | `422` |
 
 ## API
@@ -88,13 +90,32 @@ Validates a Software Architecture model instance: it must hold exactly one top-l
 
 The content is untrusted, so it is parsed with DOCTYPE declarations rejected outright and outbound network resolution disabled, the same hardening `/validate/ecore` applies. There is no `run_id`, `stage` or `attempt`: nothing is compiled, so there is no output to persist or scope.
 
+### `POST /validate/pipeline`
+
+```json
+// request
+{"content": "stages: [build\n...", "filename": ".gitlab-ci.yml"}
+
+// response (200)
+{"valid": false, "checks": [{"id": "yaml", "title": "The file is valid YAML", "status": "fail", "details": ["while parsing a flow sequence, expected ',' or ']', but got '<document end>' (line 2)"]}]}
+```
+
+Checks a generated pipeline file. It is plain Python, with no JVM, and it knows no platform. The
+check is that the file parses as YAML. Only `.yml` and `.yaml` files can be checked: any other file
+gets one skipped check. A check that cannot be made is `skipped`, never `pass`.
+
+A pipeline that fails its check is still a `200` with `valid: false`. The pipeline is untrusted, so
+content the YAML reader cannot handle (a number too long to read, a list as a setting name, nesting
+too deep) is a failed check, not an error. Content over `MAX_PIPELINE_BYTES` (512 KiB by default,
+because parsing YAML costs seconds per megabyte) is a `413`.
+
 ### `GET /health`
 
 Used by the Dockerfile's `HEALTHCHECK`.
 
 ## Where the Java side comes from
 
-This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-compose.yml`'s `gradle-builder` service builds `main/`'s real distribution (`./gradlew --no-daemon build -x test installDist`, piped through `tr`+`sh` rather than run directly, since a Windows checkout's `gradlew` has CRLF endings that break it otherwise — no `clean`, `build/` is a volume mount point Gradle can't rmdir, and doesn't need to, nothing else writes to that volume) into a shared `main-build-output` volume; `validator-agent` mounts that volume read-only and points `VALIDATOR_LIB_DIR` at its `install/com.mddoai/lib` subdirectory. `validator-agent` won't start until `gradle-builder` finishes (`depends_on: condition: service_completed_successfully`), so `docker compose up --build` from `ai/` works from a clean checkout with no manual Gradle step.
+This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-compose.yml`'s `gradle-builder` service builds `main/`'s real distribution (`./gradlew --no-daemon build -x test installDist`, piped through `tr`+`sh` rather than run directly, since a Windows checkout's `gradlew` has CRLF endings that break it otherwise — no `clean`, `build/` is a volume mount point Gradle can't rmdir, and doesn't need to, nothing else writes to that volume) into a shared `main-build-output` volume; `validator-agent` mounts that volume read-only and points `VALIDATOR_LIB_DIR` at its `install/com.mddoai/lib` subdirectory. `validator-agent` won't start until `gradle-builder` finishes (`depends_on: condition: service_completed_successfully`), so `docker compose up --build` in an environment's folder (see `infra/README.md`) works from a clean checkout with no manual Gradle step.
 
 ## Setup
 
@@ -140,7 +161,7 @@ artifacts already live, not off in a validator-only corner.
 
 Via the full stack (recommended — builds the Java side automatically):
 ```
-cd ai && docker compose up --build
+cd infra/environments/dev && docker compose up --build
 ```
 
 Standalone (needs `main/`'s distribution already built):
@@ -157,7 +178,7 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Window
 pytest
 ```
 
-The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures — it auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
+The fast suite (`test_main.py`, `test_validator_runner.py`) mocks the subprocess boundary and needs no JDK. `test_pipeline_checks.py` and `test_pipeline_route.py` run plain Python and mock nothing. `test_integration_real_jvm.py` spawns a real `java` process against real fixtures. It auto-skips unless a JDK is on `PATH` and `VALIDATOR_LIB_DIR` (or its default, `../../main/build/install/com.mddoai/lib`) actually exists, so plain `pytest` always runs standalone. To exercise the real path:
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib pytest

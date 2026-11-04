@@ -20,12 +20,16 @@ RUN pip install --no-cache-dir -r retrieval/requirements.txt
 # needs apt-get for the OS-level Chromium dependencies.
 RUN groupadd -r retrieval && useradd -r -m -g retrieval -d /home/retrieval retrieval
 ENV HOME=/home/retrieval
-RUN crawl4ai-setup
-RUN chown -R retrieval:retrieval /home/retrieval
+# Ownership is changed in the same step that downloads the browser: a separate
+# RUN chown copies every file it touches into a new layer, which kept a second
+# copy of the browser (about 0.7 GB) in the image.
+RUN crawl4ai-setup && chown -R retrieval:retrieval /home/retrieval
 
-COPY retrieval/ ./retrieval/
-COPY clients/ ./clients/
-RUN chown -R retrieval:retrieval /app
+COPY --chown=retrieval:retrieval retrieval/ ./retrieval/
+COPY --chown=retrieval:retrieval clients/ ./clients/
+# The two folders were created by root above; their files are already the
+# user's, so only the folders themselves change owner (no copy of anything).
+RUN chown retrieval:retrieval /app /app/retrieval
 USER retrieval
 
 WORKDIR /app/retrieval

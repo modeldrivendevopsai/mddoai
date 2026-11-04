@@ -7,7 +7,7 @@ import type { useGenerate } from './useGenerate';
 
 interface InputPanelProps {
   state: ReturnType<typeof useGenerate>;
-  onBrowse: (kind: 'file' | 'folder') => void;
+  onBrowse: () => void;
 }
 
 // Why Generate is unavailable, in the order a person would fix things; null
@@ -22,8 +22,8 @@ function blockedReason({ source, model, generation }: ReturnType<typeof useGener
 }
 
 /**
- * The left-hand panel: which model, which platforms, where to save, and the
- * Generate button. Locked while a generation is running.
+ * The left-hand panel: which model, which platforms, and the Generate
+ * button. Locked while a generation is running.
  */
 export function InputPanel({ state, onBrowse }: InputPanelProps) {
   const { source, model, generation, platforms, platformsError, retryPlatforms, canGenerate } = state;
@@ -43,7 +43,7 @@ export function InputPanel({ state, onBrowse }: InputPanelProps) {
         error={model.loadError?.message ?? null}
         onChange={model.setPathText}
         onCommit={model.commitPath}
-        onBrowse={() => onBrowse('file')}
+        onBrowse={onBrowse}
         onUpload={(file) => void model.loadFromUpload(file)}
         browseLabel={copy.browse}
         uploadLabel={copy.upload}
@@ -58,17 +58,6 @@ export function InputPanel({ state, onBrowse }: InputPanelProps) {
         error={platformsError}
         onToggle={generation.toggle}
         onRetry={retryPlatforms}
-      />
-
-      <PathField
-        label={copy.saveTo}
-        value={generation.saveTo}
-        placeholder={copy.savePlaceholder}
-        title={copy.pathTitle}
-        disabled={busy}
-        onChange={generation.setSaveTo}
-        onBrowse={() => onBrowse('folder')}
-        browseLabel={copy.browse}
       />
 
       <div className="mdd-generate__row">

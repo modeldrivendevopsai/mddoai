@@ -1,15 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { GeneratorPlatform } from '@/services/generator.service';
-import { DEFAULT_SAVE_TO } from '../../config/generate.config';
 
 /**
- * What the person chooses before generating: which platforms, and which
- * workspace folder to save into. These are their own settings, so loading a
- * different model does not change them.
+ * The platforms the person has ticked. Loading a different model does not
+ * change them.
  */
 export function useGenerationSettings(platforms: GeneratorPlatform[]) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [saveTo, setSaveTo] = useState(DEFAULT_SAVE_TO);
 
   const toggle = useCallback((platformId: string) => {
     setSelected((current) =>
@@ -21,11 +18,8 @@ export function useGenerationSettings(platforms: GeneratorPlatform[]) {
   // name one that has since gone, and that one cannot be generated for.
   const chosen = useMemo(() => platforms.filter((platform) => selected.includes(platform.id)), [platforms, selected]);
 
-  // Puts back the settings a saved pipeline was made with.
-  const apply = useCallback((platformIds: string[], folder: string | null) => {
-    setSelected(platformIds);
-    setSaveTo(folder ?? '');
-  }, []);
+  // Puts back the platforms a saved pipeline was made for.
+  const apply = useCallback((platformIds: string[]) => setSelected(platformIds), []);
 
-  return { selected, chosen, saveTo, setSaveTo, toggle, apply };
+  return { selected, chosen, toggle, apply };
 }

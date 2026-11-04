@@ -32,10 +32,9 @@ function toSession(run: RunSummary): Session {
 }
 
 // Filtered by type, not just returned wholesale: every real run is
-// 'platform' (see toSession), so the "Pipelines" tab is correctly empty:
-// the "Generate a CI/CD pipeline" mode has no runs (the pipelines it has
-// generated are listed on its own first screen), and the tab must not
-// duplicate "Platforms" own list.
+// 'platform' (see toSession). The "Generate a CI/CD pipeline" mode has no
+// runs; the pipelines it has generated are listed on the "Pipelines" tab by
+// layout/PipelinesList, from the pipeline generator, not from here.
 export async function getSessions(type: SessionType): Promise<Session[]> {
   const runs = await getRuns();
   return runs.map(toSession).filter((session) => session.type === type);

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import main.java.mddoai.execution.acceleo.AcceleoExecutorCli;
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 
 public class AcceleoExecutorCliTest {
 
@@ -34,13 +34,13 @@ public class AcceleoExecutorCliTest {
 
     @Test
     public void realMtlAndPsmInstanceProduceARealGeneratedFile(@TempDir Path tmp) throws Exception {
-        // A real GitLab PSM instance, produced by AtlExecutor itself (see
-        // AtlExecutorTest/AcceleoExecutorTest for why this is preferred over
+        // A real GitLab PSM instance, produced by PimExecutor itself (see
+        // PimExecutorTest/AcceleoExecutorTest for why this is preferred over
         // the ported ai-research fixture's own stale output.gitlabmm).
         String atlSource = Files.readString(Path.of(ATL_SOURCE_PATH), StandardCharsets.UTF_8);
         String pimInstance = Files.readString(Path.of(PIM_INSTANCE_PATH), StandardCharsets.UTF_8);
         String gitlabEcore = Files.readString(Path.of(GITLAB_ECORE_PATH), StandardCharsets.UTF_8);
-        String psmInstance = AtlExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
+        String psmInstance = PimExecutor.execute(atlSource, pimInstance, gitlabEcore, "GitLabMM");
         Path psmModelFile = tmp.resolve("psm.xmi");
         Files.writeString(psmModelFile, psmInstance, StandardCharsets.UTF_8);
 

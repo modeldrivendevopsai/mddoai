@@ -14,12 +14,22 @@ export interface SidebarAction {
   id: string;
   label: string;
   icon: IconName;
-  // True for an action with no real backend behind it yet — rendered
-  // disabled rather than silently landing on the "Add/Update a CI/CD
-  // Platform" flow, a different, real mode. See startOptions.config.ts's
-  // matching comingSoon flag for the StartScreen card equivalent.
-  comingSoon?: boolean;
 }
+
+// How often the sidebar's lists refresh. What they show changes from actions
+// taken elsewhere (generating a pipeline, starting or approving a run), and
+// nothing here would otherwise hear about it. Polled on the same "MVP: poll,
+// don't add a websocket" basis as useIntegration's own event polling, but
+// slower, since a list is far less latency-sensitive than live events
+// (engineering guess: a few seconds).
+export const SIDEBAR_POLL_INTERVAL_MS = 4000;
+
+// The generated-pipelines list on the "Pipelines" tab.
+export const SIDEBAR_PIPELINES_COPY = {
+  label: 'Your pipelines',
+  empty: 'Nothing generated yet',
+  loadError: 'Could not load your pipelines',
+} as const;
 
 export const SIDEBAR_TABS: SidebarTab[] = [
   { id: 'pipeline', label: 'Pipelines' },

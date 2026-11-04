@@ -5,6 +5,7 @@
 // what's under test is the screen's own behaviour: what unlocks Generate and
 // when, what each failure shows, how a path, a browse and a saved pipeline
 // load, and that a slow answer for a replaced file never lands on the new one.
+import { StrictMode } from "react"
 import type { ReactNode } from "react"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -87,9 +88,6 @@ const GITLAB_RESULT: GenerationResult = {
   pipeline: "stages:\n  - build\n",
   intermediates: [{ id: "pim", title: "Platform-independent model", filename: "PipelinePIM.pimmm", content: "<pim/>" }],
   duration_ms: 1500,
-  saved_to: "/ci-output/.gitlab-ci.yml",
-  replaced: false,
-  save_error: null,
   error: null,
 }
 
@@ -99,7 +97,7 @@ const PASSING: PipelineValidation = {
   valid: true,
   checks: [
     { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
-    { id: "schema", title: "The settings follow GitLab's CI format", status: "pass", details: [] },
+    { id: "lint", title: "The file passes the linter", status: "pass", details: [] },
   ],
 }
 
@@ -111,7 +109,6 @@ const SAVED: PipelineRecord = {
   outputs: [".gitlab-ci.yml"],
   generated_at: "2026-01-01T10:00:00+00:00",
   content: "<swarch/>",
-  save_to: "./out/",
   results: [GITLAB_RESULT],
 }
 
@@ -121,7 +118,6 @@ function uploadFile(name: string, content = "<swarch/>") {
 }
 
 const pathField = () => screen.getByLabelText("Input path for SWArch file") as HTMLInputElement
-const saveField = () => screen.getByLabelText("Save output to") as HTMLInputElement
 const generateButton = () => screen.getByRole("button", { name: /^Generat(e|ing…)$/ }) as HTMLButtonElement
 const checkbox = (name: string) => screen.getByRole("checkbox", { name }) as HTMLInputElement
 
@@ -160,7 +156,6 @@ describe("GenerateScreen: the empty screen", () => {
     expect(checkbox("GitLab CI").checked).toBe(false)
     expect(screen.getByText(/select one or more/)).toBeTruthy()
     expect(pathField().value).toBe("")
-    expect(saveField().value).toBe("./ci-output/")
     expect(screen.getByText("Result will appear here once generated.")).toBeTruthy()
     expect(generateButton().disabled).toBe(true)
     expect(screen.getByText("Load an architecture file first.")).toBeTruthy()
@@ -391,7 +386,7 @@ describe("GenerateScreen: browsing the workspace", () => {
 
     expect(await screen.findByText("This model is valid")).toBeTruthy()
     expect(service.readWorkspaceFile).toHaveBeenCalledWith("/repos/a.swarch")
-    expect(service.browseWorkspace).toHaveBeenCalledWith("/", false)
+    expect(service.browseWorkspace).toHaveBeenCalledWith("/")
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
@@ -404,10 +399,25 @@ describe("GenerateScreen: browsing the workspace", () => {
 
     expect(
       await within(dialog).findByText(
-        "Showing .swarch files in the MDDOAI repository. To use a file from somewhere else, close this and choose Upload."
+        "Showing the files in the MDDOAI repository. Only .swarch files can be opened. To use a file from somewhere else, close this and choose Upload."
       )
     ).toBeTruthy()
     expect(within(dialog).getByText("Folder /")).toBeTruthy()
+  })
+
+  it("shows files that are not models, but does not let one be chosen", async () => {
+    vi.mocked(service.browseWorkspace).mockResolvedValue({
+      ...ROOT,
+      entries: [...ROOT.entries, { name: ".gitlab-ci.yml", kind: "other" as const }],
+    })
+    renderScreen()
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[0])
+    const dialog = await screen.findByRole("dialog", { name: "Choose an architecture file" })
+
+    expect(await within(dialog).findByText(".gitlab-ci.yml")).toBeTruthy()
+    expect(within(dialog).queryByRole("button", { name: ".gitlab-ci.yml" })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "top.swarch" })).toBeTruthy()
   })
 
   it("can go back up a folder", async () => {
@@ -420,24 +430,6 @@ describe("GenerateScreen: browsing the workspace", () => {
     fireEvent.click(await within(dialog).findByRole("button", { name: "Up one folder" }))
 
     expect(await within(dialog).findByRole("button", { name: "top.swarch" })).toBeTruthy()
-  })
-
-  it("lists folders only, and fills the save folder with the one chosen", async () => {
-    vi.mocked(service.browseWorkspace).mockImplementation(async (path) =>
-      path === "/repos" ? { ...REPOS, entries: [] } : { ...ROOT, entries: [{ name: "repos", kind: "dir" as const }] }
-    )
-    renderScreen()
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[1])
-    const dialog = await screen.findByRole("dialog", { name: "Choose a folder to save into" })
-    expect(await within(dialog).findByText("Saves go into a folder inside the MDDOAI repository.")).toBeTruthy()
-    fireEvent.click(await within(dialog).findByRole("button", { name: "repos" }))
-    await within(dialog).findByText("No folders here.")
-    fireEvent.click(within(dialog).getByRole("button", { name: "Select this folder" }))
-
-    expect(saveField().value).toBe("/repos")
-    expect(service.browseWorkspace).toHaveBeenCalledWith("/", true)
-    expect(screen.queryByRole("dialog")).toBeNull()
   })
 
   it("shows the workspace's own message when a folder cannot be listed", async () => {
@@ -465,7 +457,7 @@ describe("GenerateScreen: browsing the workspace", () => {
 })
 
 describe("GenerateScreen: generating", () => {
-  it("sends the model, platforms, source and save folder, and shows the pipeline", async () => {
+  it("sends the model, platforms and source, and shows the pipeline", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     renderScreen()
@@ -473,15 +465,28 @@ describe("GenerateScreen: generating", () => {
     await loadValidModelAndGenerate()
 
     expect(await screen.findByText(/GitLab CI pipeline generated in 1\.5 s/)).toBeTruthy()
-    expect(service.generatePipelines).toHaveBeenCalledWith({
-      filename: "app.swarch",
-      content: "<swarch/>",
-      platforms: ["gitlab"],
-      source_path: null,
-      save_to: "./ci-output/",
-    })
+    expect(service.generatePipelines).toHaveBeenCalledWith(
+      {
+        filename: "app.swarch",
+        content: "<swarch/>",
+        platforms: ["gitlab"],
+        source_path: null,
+      },
+      expect.any(AbortSignal)
+    )
     expect(screen.getByLabelText(".gitlab-ci.yml").textContent).toBe("stages:\n  - build\n")
-    expect(screen.getByText("Saved to /ci-output/.gitlab-ci.yml")).toBeTruthy()
+  })
+
+  it("puts Download above the pipeline's code, so a long pipeline does not push it off screen", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    const download = await screen.findByRole("button", { name: "Download .gitlab-ci.yml" })
+    const code = screen.getByLabelText(".gitlab-ci.yml")
+    expect(download.compareDocumentPosition(code) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("tells the service where a path-loaded model came from", async () => {
@@ -500,18 +505,6 @@ describe("GenerateScreen: generating", () => {
     expect(vi.mocked(service.generatePipelines).mock.calls[0][0].source_path).toBe("/repos/a.swarch")
   })
 
-  it("saves nothing when the save folder is emptied", async () => {
-    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
-    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
-    renderScreen()
-    fireEvent.change(saveField(), { target: { value: "  " } })
-
-    await loadValidModelAndGenerate()
-
-    await screen.findByText(/pipeline generated in/)
-    expect(vi.mocked(service.generatePipelines).mock.calls[0][0].save_to).toBeNull()
-  })
-
   it("shows the running message and locks the inputs while generating", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockImplementation(() => new Promise(() => undefined))
@@ -523,7 +516,6 @@ describe("GenerateScreen: generating", () => {
     expect(generateButton().textContent).toBe("Generating…")
     expect(generateButton().disabled).toBe(true)
     expect(pathField().disabled).toBe(true)
-    expect(saveField().disabled).toBe(true)
     for (const button of screen.getAllByRole("button", { name: "Browse" })) {
       expect((button as HTMLButtonElement).disabled).toBe(true)
     }
@@ -538,7 +530,7 @@ describe("GenerateScreen: generating", () => {
       pipeline_id: "p1",
       results: [
         GITLAB_RESULT,
-        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, output_filename: "bamboo.yaml", pipeline: "plan: x\n", saved_to: null },
+        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, output_filename: "bamboo.yaml", pipeline: "plan: x\n" },
       ],
     })
     renderScreen()
@@ -576,7 +568,7 @@ describe("GenerateScreen: generating", () => {
       pipeline_id: "p1",
       results: [
         GITLAB_RESULT,
-        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, pipeline: null, intermediates: [], duration_ms: null, saved_to: null, error: "The pipeline generator failed. Check the service logs for details." },
+        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, pipeline: null, intermediates: [], duration_ms: null, error: "The pipeline generator failed. Check the service logs for details." },
       ],
     })
     renderScreen()
@@ -590,20 +582,6 @@ describe("GenerateScreen: generating", () => {
     expect(await screen.findByText("Bamboo pipeline could not be generated")).toBeTruthy()
     expect(screen.getByText("The pipeline generator failed. Check the service logs for details.")).toBeTruthy()
     expect(screen.getByText(/GitLab CI pipeline generated/)).toBeTruthy()
-  })
-
-  it("says when a pipeline could not be saved but still shows it", async () => {
-    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
-    vi.mocked(service.generatePipelines).mockResolvedValue({
-      pipeline_id: "p1",
-      results: [{ ...GITLAB_RESULT, saved_to: null, save_error: "That path is outside the workspace folder." }],
-    })
-    renderScreen()
-
-    await loadValidModelAndGenerate()
-
-    expect(await screen.findByText(/Could not save the file: That path is outside the workspace folder\./)).toBeTruthy()
-    expect(screen.getByLabelText(".gitlab-ci.yml")).toBeTruthy()
   })
 
   it("shows why generation was refused when the backend rejects the model", async () => {
@@ -655,19 +633,17 @@ describe("GenerateScreen: generating", () => {
     expect(screen.getByText("Result will appear here once generated.")).toBeTruthy()
   })
 
-  it("keeps the chosen platforms and save folder when a different file is loaded", async () => {
+  it("keeps the chosen platforms when a different file is loaded", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     renderScreen()
     uploadFile("one.swarch")
     await screen.findByText("This model is valid")
     await pickGitlab()
-    fireEvent.change(saveField(), { target: { value: "./elsewhere/" } })
 
     uploadFile("two.swarch")
 
     await waitFor(() => expect(service.inspectModel).toHaveBeenCalledTimes(2))
     expect(checkbox("GitLab CI").checked).toBe(true)
-    expect(saveField().value).toBe("./elsewhere/")
   })
 
   it("can generate again for a new file that replaced one mid-generation", async () => {
@@ -686,55 +662,198 @@ describe("GenerateScreen: generating", () => {
   })
 })
 
+const FAILING: PipelineValidation = {
+  valid: false,
+  checks: [
+    { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
+    {
+      id: "lint",
+      title: "The file passes the linter",
+      status: "fail",
+      details: ["build: unknown key 'scrpt'"],
+    },
+    { id: "needs", title: "Every job dependency points at a real job", status: "skipped", details: [] },
+  ],
+}
+
+// The drop-down the checks sit in, found from its status line.
+const statusMenu = (label: string) => screen.getByText(label).closest("details") as HTMLDetailsElement
+
 describe("GenerateScreen: validating a pipeline", () => {
-  it("validates the generated pipeline for its platform", async () => {
+  it("checks the generated pipeline by itself, with no button to press", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
 
-    expect(await screen.findByText("All checks passed")).toBeTruthy()
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
     expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", GITLAB_RESULT.pipeline)
-    expect(screen.getByText("The file is valid YAML")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /validate/i })).toBeNull()
   })
 
-  it("lists each failed check with what to look at", async () => {
+  it("does not call a pipeline passed when some checks could not be made", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     vi.mocked(service.validatePipeline).mockResolvedValue({
-      valid: false,
+      valid: true,
       checks: [
         { id: "yaml", title: "The file is valid YAML", status: "pass", details: [] },
-        { id: "schema", title: "The settings follow GitLab's CI format", status: "fail", details: ["build: Additional properties are not allowed ('scrpt' was unexpected)"] },
-        { id: "needs", title: "Every job dependency points at a real job", status: "skipped", details: [] },
+        {
+          id: "lint",
+          title: "The file passes the linter",
+          status: "skipped",
+          details: ["The linter is not available."],
+        },
       ],
     })
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
 
-    expect(await screen.findByText("1 check failed")).toBeTruthy()
-    expect(screen.getByText(/'scrpt' was unexpected/)).toBeTruthy()
-    expect(screen.getByText("Skipped")).toBeTruthy()
+    expect(await screen.findByText("1 check passed, 1 skipped")).toBeTruthy()
+    expect(screen.queryByText(/All \d+ checks? passed/)).toBeNull()
+    fireEvent.click(statusMenu("1 check passed, 1 skipped").querySelector("summary") as HTMLElement)
+    expect(screen.getByText("The linter is not available.")).toBeTruthy()
   })
 
-  it("shows the real error when validation itself fails", async () => {
+  it("says nothing could be checked when every check was skipped", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue({
+      valid: true,
+      checks: [{ id: "format", title: "The file can be checked", status: "skipped", details: ["Only YAML pipeline files can be checked."] }],
+    })
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("Could not be checked")).toBeTruthy()
+    expect(screen.queryByText(/passed/)).toBeNull()
+  })
+
+  it("checks once even when React runs effects twice", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    render(
+      <StrictMode>
+        <GenerateScreen onBack={() => undefined} />
+      </StrictMode>
+    )
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
+  })
+
+  it("checks each platform's pipeline, and skips one that produced none", async () => {
+    vi.mocked(service.getPlatforms).mockResolvedValue([GITLAB, BAMBOO])
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue({
+      pipeline_id: "p1",
+      results: [
+        GITLAB_RESULT,
+        { ...GITLAB_RESULT, platform: { id: "bamboo", name: "Bamboo" }, pipeline: null, intermediates: [], duration_ms: null, error: "The pipeline generator failed." },
+      ],
+    })
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen()
+
+    uploadFile("app.swarch")
+    await screen.findByText("This model is valid")
+    fireEvent.click(await screen.findByRole("checkbox", { name: "GitLab CI" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Bamboo" }))
+    fireEvent.click(generateButton())
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(1)
+    expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", GITLAB_RESULT.pipeline)
+  })
+
+  it("closes the drop-down on Escape or a press outside it, not on a press inside", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen()
+    await loadValidModelAndGenerate()
+    await screen.findByText("All 2 checks passed")
+    const menu = statusMenu("All 2 checks passed")
+    const open = () => fireEvent.click(menu.querySelector("summary") as HTMLElement)
+
+    open()
+    fireEvent.pointerDown(screen.getByText("The file is valid YAML"))
+    expect(menu.open).toBe(true)
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(menu.open).toBe(false)
+
+    open()
+    fireEvent.pointerDown(document.body)
+    expect(menu.open).toBe(false)
+  })
+
+  it("keeps each check under a drop-down next to the status", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+    await screen.findByText("All 2 checks passed")
+
+    const menu = statusMenu("All 2 checks passed")
+    expect(menu.open).toBe(false)
+    expect(within(menu).getByText("The file is valid YAML")).toBeTruthy()
+    fireEvent.click(menu.querySelector("summary") as HTMLElement)
+    expect(menu.open).toBe(true)
+  })
+
+  it("counts the failed checks and lists what to look at", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline).mockResolvedValue(FAILING)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+
+    expect(await screen.findByText("1 of 3 checks failed")).toBeTruthy()
+    const menu = statusMenu("1 of 3 checks failed")
+    expect(within(menu).getByText(/unknown key 'scrpt'/)).toBeTruthy()
+    expect(within(menu).getByText("Skipped")).toBeTruthy()
+  })
+
+  it("shows the real error when the check itself fails", async () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
     vi.mocked(service.validatePipeline).mockRejectedValue(new service.GeneratorError("Validate request failed: 500", 500))
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
 
-    expect(await screen.findByText("Validate request failed: 500")).toBeTruthy()
+    expect(await screen.findByText("Could not check the pipeline")).toBeTruthy()
+    expect(within(statusMenu("Could not check the pipeline")).getByText("Validate request failed: 500")).toBeTruthy()
   })
 
-  it("does not show the old pipeline's validation after generating again", async () => {
+  it("offers to try again when the check itself could not run", async () => {
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline)
+      .mockRejectedValueOnce(new service.GeneratorError("Validate request failed: 502", 502))
+      .mockResolvedValueOnce(PASSING)
+    renderScreen()
+    await loadValidModelAndGenerate()
+    await screen.findByText("Could not check the pipeline")
+
+    fireEvent.click(within(statusMenu("Could not check the pipeline")).getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledTimes(2)
+  })
+
+  it("says it is checking until the answer arrives", async () => {
     let resolveValidation: (value: PipelineValidation) => void = () => undefined
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
@@ -742,18 +861,44 @@ describe("GenerateScreen: validating a pipeline", () => {
     renderScreen()
 
     await loadValidModelAndGenerate()
-    fireEvent.click(await screen.findByRole("button", { name: "Validate pipeline" }))
-    await screen.findByRole("button", { name: "Validating…" })
+
+    expect(await screen.findByText("Checking the pipeline…")).toBeTruthy()
+    resolveValidation(PASSING)
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(screen.queryByText("Checking the pipeline…")).toBeNull()
+  })
+
+  it("checks a saved pipeline when it is brought back", async () => {
+    vi.mocked(service.getPipeline).mockResolvedValue(SAVED)
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.validatePipeline).mockResolvedValue(PASSING)
+    renderScreen({ pipelineId: "p1" })
+
+    expect(await screen.findByText("All 2 checks passed")).toBeTruthy()
+    expect(service.validatePipeline).toHaveBeenCalledWith("gitlab", SAVED.results[0].pipeline)
+  })
+
+  it("does not show the old pipeline's validation after generating again", async () => {
+    let resolveFirst: (value: PipelineValidation) => void = () => undefined
+    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
+    vi.mocked(service.generatePipelines).mockResolvedValue(RESPONSE)
+    vi.mocked(service.validatePipeline)
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockResolvedValueOnce(FAILING)
+    renderScreen()
+
+    await loadValidModelAndGenerate()
+    await screen.findByText("Checking the pipeline…")
 
     fireEvent.click(generateButton())
-    await waitFor(() => expect(vi.mocked(service.generatePipelines)).toHaveBeenCalledTimes(2))
-    resolveValidation(PASSING)
+    expect(await screen.findByText("1 of 3 checks failed")).toBeTruthy()
+    resolveFirst(PASSING)
     // Let the late answer land before looking: asserting on the very next tick
     // would pass whether or not it was (wrongly) applied.
     await act(async () => undefined)
 
-    expect(screen.queryByText("All checks passed")).toBeNull()
-    expect(screen.queryByRole("button", { name: "Validating…" })).toBeNull()
+    expect(screen.queryByText("All 2 checks passed")).toBeNull()
+    expect(screen.getByText("1 of 3 checks failed")).toBeTruthy()
   })
 })
 
@@ -777,7 +922,7 @@ describe("GenerateScreen: the platform list", () => {
 })
 
 describe("GenerateScreen: bringing a saved pipeline back", () => {
-  it("restores the model, the settings and the result it was made with", async () => {
+  it("restores the model, the platforms and the result it was made with", async () => {
     vi.mocked(service.getPipeline).mockResolvedValue(SAVED)
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     renderScreen({ pipelineId: "p1" })
@@ -785,7 +930,6 @@ describe("GenerateScreen: bringing a saved pipeline back", () => {
     expect(await screen.findByText(/GitLab CI pipeline generated in 1\.5 s/)).toBeTruthy()
     expect(service.getPipeline).toHaveBeenCalledWith("p1")
     expect(pathField().value).toBe("/repos/app.swarch")
-    expect(saveField().value).toBe("./out/")
     expect((await screen.findByRole("checkbox", { name: "GitLab CI" }) as HTMLInputElement).checked).toBe(true)
     expect(screen.getByText("✓ File loaded")).toBeTruthy()
     // Checked again, so a model that has since changed rules is not trusted from the record.
@@ -808,7 +952,6 @@ describe("GenerateScreen: bringing a saved pipeline back", () => {
       filename: "app.swarch",
       source_path: "/repos/app.swarch",
       platforms: ["gitlab"],
-      save_to: "./out/",
     })
   })
 
@@ -883,7 +1026,7 @@ describe("GenerateScreen: failures and what the person is told", () => {
     vi.mocked(service.inspectModel).mockResolvedValue(VALID)
     vi.mocked(service.generatePipelines).mockResolvedValue({
       pipeline_id: null,
-      results: [{ ...GITLAB_RESULT, pipeline: null, intermediates: [], saved_to: null, error: "The pipeline generator failed. Check the service logs for details." }],
+      results: [{ ...GITLAB_RESULT, pipeline: null, intermediates: [], error: "The pipeline generator failed. Check the service logs for details." }],
     })
     renderScreen()
 
@@ -891,19 +1034,6 @@ describe("GenerateScreen: failures and what the person is told", () => {
 
     await screen.findByText("GitLab CI pipeline could not be generated")
     expect(screen.queryByText("This pipeline could not be added to your pipelines list.")).toBeNull()
-  })
-
-  it("says when saving replaced a file that was already there", async () => {
-    vi.mocked(service.inspectModel).mockResolvedValue(VALID)
-    vi.mocked(service.generatePipelines).mockResolvedValue({
-      pipeline_id: "p1",
-      results: [{ ...GITLAB_RESULT, replaced: true }],
-    })
-    renderScreen()
-
-    await loadValidModelAndGenerate()
-
-    expect(await screen.findByText(/Saved to \/ci-output\/\.gitlab-ci\.yml \(replaced the file that was there\)/)).toBeTruthy()
   })
 })
 

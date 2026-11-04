@@ -4,6 +4,9 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
+from check_results import PipelineValidation
+from pipeline_checks import check_pipeline
+
 from validator_runner import (
     AcceleoValidationResult,
     AtlValidationResult,
@@ -25,6 +28,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MDDOAI Validator Agent")
 
 MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
+# The largest pipeline file /validate/pipeline accepts. A real pipeline is a
+# few KB, and parsing YAML costs seconds per megabyte, so this is far below
+# MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
+MAX_PIPELINE_BYTES = int(os.environ.get("MAX_PIPELINE_BYTES", str(512 * 1024)))
 
 # Every request model below that takes a run_id (it scopes where a real
 # compiled artifact lands - EcoreValidator's codegen output, AtlValidator's
@@ -165,6 +172,16 @@ class SwarchValidateRequest(BaseModel):
     content: str = Field(..., min_length=1, description="Raw .swarch (XMI) content.")
 
 
+# The longest file name a request may carry (engineering guess, far beyond
+# anything real).
+_MAX_FILENAME_CHARS = 255
+
+
+class PipelineValidateRequest(BaseModel):
+    content: str = Field(..., min_length=1, description="The generated pipeline file's text.")
+    filename: str = Field(..., min_length=1, max_length=_MAX_FILENAME_CHARS, description="The pipeline file's name; its ending says whether it is YAML.")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -258,4 +275,16 @@ def validate_swarch_endpoint(request: SwarchValidateRequest) -> SwarchValidation
         raise HTTPException(status_code=500, detail=str(e))
     logger.info("POST /validate/swarch done filename=%s valid=%s duration_ms=%d",
                 request.filename, result["valid"], result["duration_ms"])
+    return result
+
+
+@app.post("/validate/pipeline", response_model=PipelineValidation)
+def validate_pipeline_endpoint(request: PipelineValidateRequest) -> PipelineValidation:
+    content_bytes = len(request.content.encode("utf-8"))
+    if content_bytes > MAX_PIPELINE_BYTES:
+        raise HTTPException(status_code=413, detail=f"content exceeds {MAX_PIPELINE_BYTES} bytes")
+
+    logger.info("POST /validate/pipeline filename=%s bytes=%d", request.filename, content_bytes)
+    result = check_pipeline(request.content, request.filename)
+    logger.info("POST /validate/pipeline done filename=%s valid=%s", request.filename, result["valid"])
     return result

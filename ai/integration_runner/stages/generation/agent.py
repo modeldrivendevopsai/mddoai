@@ -69,7 +69,7 @@ PIM_SAMPLE_INSTANCE_PATH = Path(
 # line just above it. Parsed directly out of the real generated source
 # rather than reconstructed from a platform name string this stage doesn't
 # otherwise have: the ATL source itself is the one place that name is
-# declared, and it must match exactly for AtlExecutor's own output model
+# declared, and it must match exactly for PimExecutor's own output model
 # to resolve.
 _OUTPUT_MODEL_NAME_PATTERN = re.compile(r"create\s+OUT\s*:\s*(\w+)\s+from")
 
@@ -152,7 +152,7 @@ def gen_stage(context: dict) -> str:
 
     with reserved_attempt(run_id, "generation") as attempt_dir:
         try:
-            psm_instance = execution_agent_client.execute_atl(
+            psm_instance = execution_agent_client.execute_atl_from_pim(
                 atl_source, pim_instance, target_ecore, output_model_name
             )
         except Exception as e:

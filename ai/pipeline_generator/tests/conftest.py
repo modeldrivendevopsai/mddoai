@@ -1,8 +1,20 @@
-import pytest
+import os
+import shutil
+from pathlib import Path
 
-import main
+# Before the service's modules are imported, which read their settings once:
+# unless a data folder is given (as it is inside the Docker stack), the tests
+# use the repository's own, where the committed platforms are.
+os.environ.setdefault("GENERATOR_DATA_DIR", str(Path(__file__).resolve().parents[2] / "data"))
+
+import pytest  # noqa: E402
+
+import main  # noqa: E402
 from pipeline_history import PipelineHistory
-from routes.dependencies import get_history, get_workspace
+from platform_registry import PlatformRegistry
+from generation_jobs import GenerationJobs
+from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
+from settings import PLATFORMS_DIR
 from workspace import Workspace
 
 
@@ -18,11 +30,23 @@ def history(tmp_path):
     return PipelineHistory(tmp_path / "data")
 
 
+@pytest.fixture
+def registry(tmp_path):
+    """A copy of the committed platforms folder, so a test can add a platform
+    or damage one without touching the committed files."""
+    shutil.copytree(PLATFORMS_DIR, tmp_path / "platforms")
+    return PlatformRegistry(tmp_path / "platforms")
+
+
 @pytest.fixture(autouse=True)
-def isolated_storage(workspace_dir, history):
-    """Every test gets its own workspace folder and history, so none of them
-    reads or writes the service's real ones."""
+def isolated_storage(workspace_dir, history, registry):
+    """Every test gets its own workspace folder, history, platforms and
+    generation jobs, so none of them reads or writes the service's real ones."""
     main.app.dependency_overrides[get_workspace] = lambda: Workspace(workspace_dir)
     main.app.dependency_overrides[get_history] = lambda: history
+    main.app.dependency_overrides[get_registry] = lambda: registry
+    # Runs each generation at once, so a test's GET finds it finished.
+    jobs = GenerationJobs(max_finished=10, run=lambda task: task())
+    main.app.dependency_overrides[get_jobs] = lambda: jobs
     yield
     main.app.dependency_overrides.clear()

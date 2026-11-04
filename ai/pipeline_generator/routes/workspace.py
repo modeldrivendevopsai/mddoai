@@ -10,13 +10,12 @@ router = APIRouter(prefix="/workspace")
 @router.get("/browse")
 def browse(
     path: str = Query("/", max_length=MAX_PATH_CHARS),
-    dirs_only: bool = False,
     workspace: Workspace = Depends(get_workspace),
 ):
-    """A folder's contents, for the Browse dialogs, with the name of the
+    """A folder's contents, for the Browse dialog, with the name of the
     folder the paths are inside, so the dialog can say where it is looking."""
     try:
-        return {**workspace.browse(path, dirs_only), "root_label": WORKSPACE_LABEL}
+        return {**workspace.browse(path), "root_label": WORKSPACE_LABEL}
     except WorkspaceError as e:
         raise HTTPException(status_code=e.status, detail=e.message)
 
