@@ -43,7 +43,7 @@ again and fill them in.
   2. stops there if `main` has no new commit and the stack is up;
   3. otherwise checks out the newest commit, rebuilds when it is new, and starts the stack.
 
-  A run that cannot reach GitHub changes nothing. If a build fails, the previous containers keep running and the clone stays on their commit. If the start fails, some containers may already be replaced, and the clone goes back to the previous commit. Either way, every run after that tries again until a new commit arrives, which costs CPU on the shared VM.
+  A run that cannot reach GitHub changes nothing. If the checkout or a build fails, the previous containers keep running and the clone is put back on their commit. If the start fails, some containers may already be replaced, and the clone goes back to the previous commit. Either way, every run after that tries again until a new commit arrives, which costs CPU on the shared VM. If Test stays behind `main`, `journalctl -u mddoai-test-update` says why. A folder in the clone owned by root makes the checkout fail with "Permission denied": give it back to `dev` with `sudo chown`.
 - **Prompt edits are reset.** Prompt changes saved through the app's UI are written into the clone, so each new commit replaces them with the version in `main`.
 
 The tunnel's routes are set in the Cloudflare dashboard, not in this folder,

@@ -31,10 +31,11 @@ if [[ "$commit" == "$deployed" ]] && [[ -n "$(cd "$ENV_DIR" && docker compose ps
 fi
 
 echo "Starting $commit"
-git checkout --quiet --force "$commit"
-# The running containers mount files from the clone, so a failed build or
-# start puts the clone back on the commit they run.
+# The running containers mount files from the clone, so a failed checkout,
+# build or start puts the clone back on the commit they run. A checkout that
+# fails part way leaves a mix of both commits behind.
 trap 'git checkout --quiet --force "$deployed"' ERR
+git checkout --quiet --force "$commit"
 
 cd "$ENV_DIR"
 if [[ "$commit" != "$deployed" ]]; then
