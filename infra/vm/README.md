@@ -186,11 +186,12 @@ Claude Code and image builds.
    scp -i ~/.ssh/mddoai_dev -r infra/vm/setup root@<ip>:infra/vm/
    scp -i ~/.ssh/mddoai_dev -r infra/environments/templates root@<ip>:infra/environments/
    ssh -i ~/.ssh/mddoai_dev root@<ip> "bash infra/vm/setup/setup.sh"
+   ssh -i ~/.ssh/mddoai_dev root@<ip> "rm -rf infra"
    ```
 
-   - The copy goes into the logged-in user's home folder, in the same layout as the repository.
+   - The copy goes into the logged-in user's home folder, in the same layout as the repository. The last command removes it, since nothing uses it once setup has run.
    - The first command clears any copy from an earlier run. Without it, `scp` would copy into the old folder instead of replacing it, and files deleted from the repository would still run.
-   - The script stops at the first failing step. Fix the cause and run it again.
+   - The script stops at the first failing step. Fix the cause and run it again. Skip the last command until it succeeds, so the copy stays for you to read.
    - If it ends with "Updates need a reboot", run `ssh -i ~/.ssh/mddoai_dev root@<ip> reboot`.
 
 6. Connect your PC with the connect script (see "Connecting your PC"). It logs in as `dev`, so it works only after the setup script.
@@ -215,7 +216,7 @@ It calls the steps in `connect/steps/`, and each one skips work already done:
 - `10-firewall-ip.ps1`: when your public IPv4 address is not in `ssh_allowed_cidrs` in `terraform.tfvars` yet, writes it there and runs `terraform apply`. Check that the plan only updates `hcloud_firewall.dev`, then answer `yes`. If the apply does not complete (an error, `no`, or Ctrl+C), `terraform.tfvars` is put back as it was.
 - `20-vscode-extension.ps1`: installs VS Code's Remote - SSH extension.
 - `30-ssh-config.ps1`: writes Terraform's `ssh_config` output to its own file, `~/.ssh/<server_name>.conf` (`mddoai-dev.conf` with the example's `server_name`), and adds an `Include` line for it to the top of `~/.ssh/config`. The rest of `~/.ssh/config` is left as it is.
-- `40-run-setup.ps1`: copies `infra/vm/setup/` and `infra/environments/templates/` to the VM, in the same layout as the repository, and runs the setup script there as `dev` with `sudo`. Runs only with `-RunSetup`.
+- `40-run-setup.ps1`: copies `infra/vm/setup/` and `infra/environments/templates/` to the VM, in the same layout as the repository, runs the setup script there as `dev` with `sudo`, and removes the copy again. Runs only with `-RunSetup`.
 - `50-open-vscode.ps1`: opens VS Code connected to the VM, in `/home/dev`. Skipped with `-NoOpen`.
 
 Notes:
@@ -291,6 +292,7 @@ works and how to set it up.
   scp -r infra/vm/setup mddoai-dev:infra/vm/
   scp -r infra/environments/templates mddoai-dev:infra/environments/
   ssh mddoai-dev "sudo DEV_USER=dev bash infra/vm/setup/setup.sh"
+  ssh mddoai-dev "rm -rf infra"
   ```
 
   If `31-docker-logs.sh` changes the log settings, it restarts Docker, which stops running containers. Existing containers keep their old log settings until they are recreated with `docker compose up -d --force-recreate` in each environment's folder.
