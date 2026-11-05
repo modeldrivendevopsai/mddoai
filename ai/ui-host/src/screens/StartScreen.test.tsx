@@ -2,8 +2,9 @@
 //
 // The start screen: the picture of how the two options connect, and the list
 // under it that follows the sidebar's tab. Only the network boundary and the
-// visual primitives are mocked (see GenerateScreen.test.tsx for why
-// design-system is stubbed).
+// visual primitives are mocked: the primitives have their own tests inside
+// design-system, and its own copy of react (a symlinked file: dependency)
+// would load a second React instance under Vitest.
 import { Fragment, useLayoutEffect } from "react"
 import type { ReactNode } from "react"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"

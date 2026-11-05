@@ -2,7 +2,9 @@
 //
 // The first screen of the platforms mode: the platforms already supported,
 // with a button to add one. Only the data boundary and the visual primitives
-// are mocked (see GenerateScreen.test.tsx for why design-system is stubbed).
+// are mocked: the primitives have their own tests inside design-system, and
+// its own copy of react (a symlinked file: dependency) would load a second
+// React instance under Vitest.
 import type { ReactNode } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"

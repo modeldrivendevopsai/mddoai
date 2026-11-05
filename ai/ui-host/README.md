@@ -32,7 +32,8 @@ Open the URL Vite prints (default [http://localhost:5173](http://localhost:5173)
 
 Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top bar), and
 `src/screens/` holds one file per screen. The list of routes is not repeated here, so it cannot go
-stale. The app has two modes, and each opens on a list of what already exists: the platforms
+stale. Each route's path is defined once, in `src/config/`, and every route, link and redirect
+reads it from there. The app has two modes, and each opens on a list of what already exists: the platforms
 already supported, or the pipelines already generated. The start screen offers both. Behind the
 platforms list is the platform-integration dashboard (the "add/update a platform" flow, whose docs
 stage is a real crawl). Behind the pipelines list is the screen that loads a Software Architecture
@@ -55,6 +56,9 @@ Where things live:
   cycle, and the list under it follows the sidebar's tab: the latest pipelines on Pipelines, the
   supported platforms on Platforms. That platforms list is shared with the platforms screen and
   uses mock data from the platforms service in `src/services/`.
+- **Shared components**: `src/components/` holds the pieces several screens use and that belong to
+  neither the shell nor one mode, such as the back control every screen's header uses, so going
+  back looks the same everywhere.
 - **Shell**: `src/layout/` holds the sidebar, its lists and the top bar. They are configured from
   `src/config/` and fed by the clients in `src/services/`: the Platforms tab lists integration
   runs, and the Pipelines tab lists the pipelines already generated. The sidebar's active tab is

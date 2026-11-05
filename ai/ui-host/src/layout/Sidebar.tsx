@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Tabs, Icon } from 'design-system';
+import { ROUTES } from '../config/routes.config';
 import { SIDEBAR_TABS } from '../config/sidebar.config';
 import { SidebarActions } from './SidebarActions';
 import { PipelinesList } from './PipelinesList';
@@ -39,9 +40,9 @@ export function Sidebar({ onAction, onOpenPipeline, openPipelineId }: SidebarPro
   const [collapsed, setCollapsed] = useState(false);
   const { pathname } = useLocation();
 
-  // Landing on /platforms or /integration (reached via the StartScreen's "Add
+  // Landing on a platforms-mode screen (reached via the StartScreen's "Add
   // or update a CI/CD platform" card, or a sidebar action on that tab) or
-  // anywhere under /generate (the "Generate a CI/CD pipeline" card, or "New
+  // on any pipelines-mode screen (the "Generate a CI/CD pipeline" card, or "New
   // pipeline") makes it obvious which tab you actually want to see - switch to it
   // once, the same way opening a document switches focus to it, without
   // fighting a later manual tab click on this same visit. useLayoutEffect,
@@ -50,8 +51,8 @@ export function Sidebar({ onAction, onOpenPipeline, openPipelineId }: SidebarPro
   // would otherwise only ever be set once and never react to a later route
   // change.
   useLayoutEffect(() => {
-    if (pathname === '/platforms' || pathname === '/integration') setActiveTab('platform');
-    if (pathname === '/generate' || pathname.startsWith('/generate/')) setActiveTab('pipeline');
+    if (pathname === ROUTES.platforms || pathname === ROUTES.integration) setActiveTab('platform');
+    if (pathname === ROUTES.pipelines || pathname.startsWith(`${ROUTES.pipelines}/`)) setActiveTab('pipeline');
   }, [pathname, setActiveTab]);
 
   return (

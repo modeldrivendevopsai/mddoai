@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Button, Panel } from 'design-system';
 import { CYCLE_COPY, START_OPTIONS } from '../../config/startOptions.config';
 import './start-cycle.css';
@@ -19,12 +20,14 @@ interface StartCycleProps {
   onSelectOption?: (optionId: string) => void;
 }
 
-// The ring's drawing box. The stylesheet gives the picture the same width to
-// height ratio, so the drawing and the cards laid over it scale together. The
-// numbers are a design choice, found by eye: they make the arcs rise clear of
-// the cards.
+// The ring's drawing box. The picture is given the same width to height ratio
+// (see CYCLE_STYLE), so the drawing and the cards laid over it scale together.
+// The numbers are a design choice, found by eye: they make the arcs rise clear
+// of the cards.
 const BOX_WIDTH = 860;
 const BOX_HEIGHT = 390;
+// Hands the box's ratio to the stylesheet, which sizes the picture with it.
+const CYCLE_STYLE = { '--cycle-ratio': `${BOX_WIDTH} / ${BOX_HEIGHT}` } as CSSProperties;
 // How far the ring stays in from the box's sides, and from its top and bottom
 // (so the stroke and the arrowheads are not clipped). Inset from the sides is
 // where the ring runs behind the cards.
@@ -49,7 +52,7 @@ const UNDERNEATH = `M ${RIGHT} ${CENTER_Y} ${arcTo(CENTER_X, BOTTOM)} ${arcTo(LE
 
 export function StartCycle({ onSelectOption }: StartCycleProps) {
   return (
-    <div className="mdd-cycle">
+    <div className="mdd-cycle" style={CYCLE_STYLE}>
       <svg
         className="mdd-cycle__ring"
         viewBox={`0 0 ${BOX_WIDTH} ${BOX_HEIGHT}`}

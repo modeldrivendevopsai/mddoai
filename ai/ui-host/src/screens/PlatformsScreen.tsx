@@ -1,6 +1,7 @@
-import { Button, Icon } from 'design-system';
+import { Button } from 'design-system';
 import { PLATFORMS_COPY } from '../config/platforms.config';
 import { PlatformsList } from '../features/platforms/PlatformsList';
+import { BackTitle } from '../components/BackTitle';
 import './platforms-screen.css';
 
 interface PlatformsScreenProps {
@@ -19,13 +20,9 @@ export default function PlatformsScreen({ onBack, onNew }: PlatformsScreenProps)
 
   return (
     <div className="mdd-platforms">
-      {/* "← Title": the title is itself the way back, as on the pipeline screens. */}
       <header className="mdd-platforms__band">
         <h1>
-          <button type="button" className="mdd-platforms__back" title={copy.backHint} onClick={onBack}>
-            <Icon name="ArrowLeft" size={18} />
-            {copy.title}
-          </button>
+          <BackTitle title={copy.title} hint={copy.backHint} onBack={onBack} />
         </h1>
       </header>
       <div className="mdd-platforms__body">

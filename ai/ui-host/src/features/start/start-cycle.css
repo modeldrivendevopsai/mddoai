@@ -2,12 +2,14 @@
    captions sit in that box in percentages, so the picture scales as one.
    Blue is the pipelines' colour and purple the platforms', as everywhere. */
 
-/* The ratio is the ring's drawing box (see StartCycle), so the cards and the
-   drawing scale together. */
+/* The ratio is the ring's drawing box, set by the component from the box's own
+   numbers, so the cards and the drawing scale together. The proportions below
+   (the cards' share of the width, where the captions sit) were chosen by eye,
+   so the cards stay clear of the arcs. */
 .mdd-cycle {
   position: relative;
   width: 100%;
-  aspect-ratio: 860 / 390;
+  aspect-ratio: var(--cycle-ratio);
 }
 
 .mdd-cycle__ring {
@@ -17,7 +19,8 @@
   height: 100%;
 }
 
-/* Each arc takes the colour of the side it leaves from. */
+/* Each arc takes the colour of the side it leaves from. The stroke width is
+   in the drawing box's units, so it scales with the ring. */
 .mdd-cycle__arc {
   fill: none;
   stroke-width: 2.5;
@@ -52,10 +55,10 @@
 }
 .mdd-cycle__node {
   pointer-events: auto;
-  padding: 20px 22px;
+  padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   box-shadow: var(--shadow-xs);
 }
 .mdd-cycle__node--pipeline {
@@ -69,14 +72,14 @@
 .mdd-cycle__node h2 {
   font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
   margin: 0;
   color: var(--neutral-950);
 }
 .mdd-cycle__node p {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--neutral-700);
 }
@@ -96,7 +99,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   text-align: center;
   font-size: var(--text-sm);
   line-height: 1.35;
@@ -104,7 +107,7 @@
 }
 .mdd-cycle__caption strong {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 .mdd-cycle__caption--pipeline {
   top: 16%;
@@ -163,7 +166,7 @@
   }
   .mdd-cycle__caption--pipeline::before,
   .mdd-cycle__caption--platform::before {
-    font-size: 1.25rem;
+    font-size: var(--text-lg);
     line-height: 1;
   }
   .mdd-cycle__caption--pipeline::before {

@@ -1,4 +1,6 @@
 .mdd-recent {
+  /* Room for a typical model file name before it is cut off (judged by eye). */
+  --recent-name-width: 220px;
   overflow: hidden;
 }
 
@@ -9,7 +11,7 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  padding: 11px var(--space-4);
+  padding: var(--space-3) var(--space-4);
   font: inherit;
   text-align: left;
   color: inherit;
@@ -34,7 +36,7 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--neutral-950);
-  width: 220px;
+  width: var(--recent-name-width);
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
