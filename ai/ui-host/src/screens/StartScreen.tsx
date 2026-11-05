@@ -1,4 +1,4 @@
-import { CYCLE_COPY, START_LISTS } from '../config/startOptions.config';
+import { START_LISTS } from '../config/startOptions.config';
 import { PlatformsList } from '../features/platforms/PlatformsList';
 import { RecentPipelines } from '../features/start/RecentPipelines';
 import { StartCycle } from '../features/start/StartCycle';
@@ -24,9 +24,6 @@ export function StartScreen({ onSelectOption, onOpenPipeline }: StartScreenProps
   return (
     <div className="mdd-start-screen">
       <p className="mdd-start-screen__subtitle">Choose how you want to start</p>
-      <p className="mdd-start-screen__intro">
-        <strong>{CYCLE_COPY.introLead}</strong> {CYCLE_COPY.intro}
-      </p>
 
       <StartCycle onSelectOption={onSelectOption} />
 

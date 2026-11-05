@@ -23,14 +23,3 @@
   width: 180px;
   flex-shrink: 0;
 }
-
-.mdd-platforms-list__link {
-  color: var(--info-500);
-  font-size: var(--text-sm);
-  text-decoration: none;
-  margin-left: auto;
-  padding-left: var(--space-3);
-}
-.mdd-platforms-list__link:hover {
-  text-decoration: underline;
-}

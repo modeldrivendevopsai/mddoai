@@ -47,6 +47,14 @@ describe("PlatformsScreen", () => {
     expect(screen.getByText("Needs attention")).toBeTruthy()
   })
 
+  it("has no link that does nothing: each row is a status and a name", async () => {
+    renderScreen()
+    await screen.findByText("GitLab CI v1.7")
+
+    expect(screen.queryByRole("link")).toBeNull()
+    expect(screen.queryByText("view breakdown")).toBeNull()
+  })
+
   it("starts a new platform, and goes back to the start screen", async () => {
     const onNew = vi.fn()
     const onBack = vi.fn()

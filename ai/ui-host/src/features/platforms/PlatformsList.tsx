@@ -5,9 +5,10 @@ import type { Platform } from '../../services/platforms.service';
 import './platforms-list.css';
 
 /**
- * The supported CI/CD platforms, each with its status. It loads its own rows
- * from the platforms data service, so the start screen and the platforms screen
- * show the same list without either knowing where it comes from.
+ * The supported CI/CD platforms, each with its status and name, and nothing
+ * that does not work yet. It loads its own rows from the platforms data
+ * service, so the start screen and the platforms screen show the same list
+ * without either knowing where it comes from.
  */
 export function PlatformsList() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -22,14 +23,6 @@ export function PlatformsList() {
         <div key={p.id} className="mdd-platforms-list__row">
           <StatusPill variant={p.status}>{p.statusLabel}</StatusPill>
           <span className="mdd-platforms-list__name">{p.name}</span>
-          {p.resumable && (
-            <a href="#" className="mdd-platforms-list__link">
-              resume →
-            </a>
-          )}
-          <a href="#" className="mdd-platforms-list__link">
-            view breakdown
-          </a>
         </div>
       ))}
     </Panel>

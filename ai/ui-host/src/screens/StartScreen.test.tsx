@@ -94,15 +94,22 @@ beforeEach(() => {
 })
 
 describe("the picture of the two options", () => {
-  it("explains in a sentence how the two options connect, and what each arrow means", () => {
+  it("says what each arrow means in a few words, with no paragraph to read", () => {
     renderStart()
 
-    expect(screen.getByText("How they connect:")).toBeTruthy()
-    expect(screen.getByText(/generating a pipeline can show a gap in a platform/)).toBeTruthy()
-    expect(screen.getByText("Gap found")).toBeTruthy()
+    expect(screen.getByText("Gap in the pipeline")).toBeTruthy()
     expect(screen.getByText("Update the platform")).toBeTruthy()
     expect(screen.getByText("Platform fixed")).toBeTruthy()
-    expect(screen.getByText("Generate the pipeline again")).toBeTruthy()
+    expect(screen.getByText("Generate again")).toBeTruthy()
+    expect(screen.queryByText(/How they connect/)).toBeNull()
+  })
+
+  it("gives each option one short line, in plain words", () => {
+    renderStart()
+
+    expect(screen.getByText("From your architecture file.")).toBeTruthy()
+    expect(screen.getByText("From its documentation.")).toBeTruthy()
+    expect(screen.queryByText(/SWArch/)).toBeNull()
   })
 
   it("opens each option with a button called Open, never Start", () => {
@@ -138,6 +145,8 @@ describe("the list under the picture", () => {
     expect(screen.getByRole("heading", { name: "Supported CI/CD platforms" })).toBeTruthy()
     expect(await screen.findByText("GitLab CI v1.7")).toBeTruthy()
     expect(screen.getByText("Bamboo v2.1.2")).toBeTruthy()
+    // Status and name only, with no link that does nothing.
+    expect(screen.queryByRole("link")).toBeNull()
     expect(screen.queryByRole("heading", { name: "Latest pipelines" })).toBeNull()
     expect(screen.queryByText("model-2.swarch")).toBeNull()
     expect(generator.listPipelines).not.toHaveBeenCalled()

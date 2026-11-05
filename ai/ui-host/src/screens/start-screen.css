@@ -11,21 +11,7 @@
   text-align: center;
   font-size: var(--text-md);
   color: var(--neutral-500);
-  margin: 0 0 var(--space-3);
-}
-
-/* The sentence that explains the picture under it. */
-.mdd-start-screen__intro {
-  max-width: 560px;
-  margin: 0 auto var(--space-6);
-  text-align: center;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--neutral-700);
-}
-.mdd-start-screen__intro strong {
-  font-weight: 600;
-  color: var(--neutral-950);
+  margin: 0 0 var(--space-6);
 }
 
 .mdd-start-screen__heading {

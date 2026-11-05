@@ -18,28 +18,24 @@ export const START_OPTIONS: StartOption[] = [
     id: 'generate-pipeline',
     tone: 'pipeline',
     title: 'Generate a CI/CD pipeline',
-    description:
-      'Upload a SWArch file, pick a supported CI/CD platform, get a CI/CD pipeline back.',
+    description: 'From your architecture file.',
     cta: 'Open',
   },
   {
     id: 'add-update-platform',
     tone: 'platform',
     title: 'Add or update a CI/CD platform',
-    description:
-      'Describe a CI/CD platform or upload its docs, MDDOAI generates or updates support for it.',
+    description: 'From its documentation.',
     cta: 'Open',
   },
 ];
 
-// What the picture of the two options says. The two arrows are the two ways
-// round the cycle: `lead` names what happened, `then` what to do next.
+// What the picture of the two options says, and all it says: the first screen
+// is read at a glance. The two arrows are the two ways round the cycle: `lead`
+// names what happened, `then` what to do next.
 export const CYCLE_COPY = {
-  introLead: 'How they connect:',
-  intro:
-    'generating a pipeline can show a gap in a platform. Fix the platform, then generate the pipeline again.',
-  gapFound: { lead: 'Gap found', then: 'Update the platform' },
-  platformFixed: { lead: 'Platform fixed', then: 'Generate the pipeline again' },
+  gapFound: { lead: 'Gap in the pipeline', then: 'Update the platform' },
+  platformFixed: { lead: 'Platform fixed', then: 'Generate again' },
 } as const;
 
 // How many pipelines the start screen lists. It is a reminder of recent work,
