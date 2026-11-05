@@ -3,25 +3,43 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams } fro
 import GenerateScreen from "@/screens/GenerateScreen"
 import IntegrationScreen from "@/screens/IntegrationScreen"
 import PipelinesScreen from "@/screens/PipelinesScreen"
+import PlatformsScreen from "@/screens/PlatformsScreen"
 import { AppShell } from "@/layout/AppShell"
+import { SidebarTabProvider } from "@/layout/SidebarTabProvider"
 import { StartScreen } from "@/screens/StartScreen"
 
-// Where each StartScreen card goes. "Add or update a CI/CD platform" is the
-// integration screen (its docs stage IS that flow: it fetches the platform's
-// documentation as the first of its stages); "Generate a CI/CD
-// pipeline" is its own mode, with its own backend, and opens on the list of
-// pipelines already generated, so someone coming back starts from their work.
+// Where each StartScreen card goes. Both open on the list of what already
+// exists, so someone coming back starts from their work: "Generate a CI/CD
+// pipeline" is its own mode, with its own backend, and opens on the pipelines
+// already generated; "Add or update a CI/CD platform" opens on the platforms
+// already supported. The integration screen (its docs stage IS the add/update
+// flow: it fetches the platform's documentation as the first of its stages) is
+// behind the "+ New platform" button.
 const START_OPTION_ROUTES: Record<string, string> = {
   "generate-pipeline": "/generate",
-  "add-update-platform": "/integration",
+  "add-update-platform": "/platforms",
 }
+
+// A blank integration run. It needs ?new=1, not a bare "/integration": the
+// comment on SIDEBAR_ROUTES below says why.
+const NEW_PLATFORM_PATH = "/integration?new=1"
 
 // Where a saved pipeline is shown. Used by the pipelines list and by the sidebar.
 const pipelinePath = (pipelineId: string) => `/generate/${pipelineId}`
 
 function StartScreenRoute() {
   const navigate = useNavigate()
-  return <StartScreen onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? "/integration")} />
+  return (
+    <StartScreen
+      onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? "/platforms")}
+      onOpenPipeline={(pipelineId) => navigate(pipelinePath(pipelineId))}
+    />
+  )
+}
+
+function PlatformsScreenRoute() {
+  const navigate = useNavigate()
+  return <PlatformsScreen onBack={() => navigate("/")} onNew={() => navigate(NEW_PLATFORM_PATH)} />
 }
 
 function PipelinesScreenRoute() {
@@ -62,7 +80,7 @@ function GenerateScreenRoute() {
 // the same real action its own Restart button takes.
 const SIDEBAR_ROUTES: Record<string, string> = {
   "new-pipeline": "/generate/new",
-  "add-platform": "/integration?new=1",
+  "add-platform": NEW_PLATFORM_PATH,
 }
 
 function useSidebarNavigation() {
@@ -89,48 +107,60 @@ function AppShellRoute({ children }: { children: ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <AppShellRoute>
-              <StartScreenRoute />
-            </AppShellRoute>
-          }
-        />
-        <Route
-          path="/generate"
-          element={
-            <AppShellRoute>
-              <PipelinesScreenRoute />
-            </AppShellRoute>
-          }
-        />
-        <Route
-          path="/generate/new"
-          element={
-            <AppShellRoute>
-              <GenerateScreenRoute />
-            </AppShellRoute>
-          }
-        />
-        <Route
-          path="/generate/:pipelineId"
-          element={
-            <AppShellRoute>
-              <GenerateScreenRoute />
-            </AppShellRoute>
-          }
-        />
-        <Route
-          path="/integration"
-          element={
-            <AppShellRoute>
-              <IntegrationScreen />
-            </AppShellRoute>
-          }
-        />
-      </Routes>
+      {/* Above the routes, so the sidebar's tab and the screens that follow it
+          (StartScreen) read one value that survives moving between screens. */}
+      <SidebarTabProvider>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <AppShellRoute>
+                <StartScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path="/generate"
+            element={
+              <AppShellRoute>
+                <PipelinesScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path="/generate/new"
+            element={
+              <AppShellRoute>
+                <GenerateScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path="/generate/:pipelineId"
+            element={
+              <AppShellRoute>
+                <GenerateScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path="/platforms"
+            element={
+              <AppShellRoute>
+                <PlatformsScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path="/integration"
+            element={
+              <AppShellRoute>
+                <IntegrationScreen />
+              </AppShellRoute>
+            }
+          />
+        </Routes>
+      </SidebarTabProvider>
     </BrowserRouter>
   )
 }

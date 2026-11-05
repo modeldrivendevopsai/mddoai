@@ -1,0 +1,176 @@
+/* The ring is an SVG in a box with its own aspect ratio, and the cards and
+   captions sit in that box in percentages, so the picture scales as one.
+   Blue is the pipelines' colour and purple the platforms', as everywhere. */
+
+/* The ratio is the ring's drawing box (see StartCycle), so the cards and the
+   drawing scale together. */
+.mdd-cycle {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 860 / 390;
+}
+
+.mdd-cycle__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each arc takes the colour of the side it leaves from. */
+.mdd-cycle__arc {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.mdd-cycle__arc--pipeline {
+  stroke: var(--info-500);
+}
+.mdd-cycle__arc--platform {
+  stroke: var(--brand);
+}
+.mdd-cycle__head--pipeline path {
+  fill: var(--info-500);
+}
+.mdd-cycle__head--platform path {
+  fill: var(--brand);
+}
+
+/* The two cards share one row of a grid laid over the ring, so they are always
+   the same height and their buttons line up, whatever their titles wrap to.
+   The cards are opaque, so the ring runs behind them and only shows between
+   and around them. The layer itself lets presses and text selection through
+   to what is under it. */
+.mdd-cycle__nodes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 36% 1fr 36%;
+  align-content: center;
+  pointer-events: none;
+}
+.mdd-cycle__node {
+  pointer-events: auto;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-xs);
+}
+.mdd-cycle__node--pipeline {
+  grid-column: 1;
+  border-color: var(--tint-pipeline-border);
+}
+.mdd-cycle__node--platform {
+  grid-column: 3;
+  border-color: var(--tint-platform-border);
+}
+.mdd-cycle__node h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--neutral-950);
+}
+.mdd-cycle__node p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+/* At the bottom of the card, so the two buttons sit on one line. */
+.mdd-cycle__node button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* What each arrow means, in the free middle between the cards. */
+.mdd-cycle__caption {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--neutral-700);
+}
+.mdd-cycle__caption strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.mdd-cycle__caption--pipeline {
+  top: 16%;
+}
+.mdd-cycle__caption--pipeline strong {
+  color: var(--info-500);
+}
+.mdd-cycle__caption--platform {
+  bottom: 16%;
+}
+.mdd-cycle__caption--platform strong {
+  color: var(--brand-strong);
+}
+
+/* Too narrow for a ring: the two cards stack, with each arrow's caption
+   between them, pointing the way it goes. The container is the start screen,
+   whose width is what is left beside the sidebar, not the window's. Below 760px
+   the cards (36% of it each) would be under about 275px wide and their text
+   cramped (judged from screenshots, not measured). */
+@container start-screen (max-width: 759px) {
+  .mdd-cycle {
+    aspect-ratio: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .mdd-cycle__ring {
+    display: none;
+  }
+  /* The grid layer steps aside, so the cards become items of the column above
+     and take their place in the order below. */
+  .mdd-cycle__nodes {
+    display: contents;
+  }
+  .mdd-cycle__node--pipeline,
+  .mdd-cycle__node--platform {
+    grid-column: auto;
+  }
+  .mdd-cycle__caption {
+    position: static;
+    transform: none;
+    width: auto;
+  }
+  .mdd-cycle__node--pipeline {
+    order: 1;
+  }
+  .mdd-cycle__caption--pipeline {
+    order: 2;
+  }
+  .mdd-cycle__node--platform {
+    order: 3;
+  }
+  .mdd-cycle__caption--platform {
+    order: 4;
+  }
+  .mdd-cycle__caption--pipeline::before,
+  .mdd-cycle__caption--platform::before {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .mdd-cycle__caption--pipeline::before {
+    content: '↓';
+    color: var(--info-500);
+  }
+  .mdd-cycle__caption--platform::before {
+    content: '↑';
+    color: var(--brand-strong);
+  }
+}

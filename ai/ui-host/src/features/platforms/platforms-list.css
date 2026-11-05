@@ -1,0 +1,36 @@
+.mdd-platforms-list {
+  overflow: hidden;
+}
+
+.mdd-platforms-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 11px var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mdd-platforms-list__row:last-child {
+  border-bottom: none;
+}
+.mdd-platforms-list__row:hover {
+  background: var(--surface-sunken);
+}
+
+.mdd-platforms-list__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.mdd-platforms-list__link {
+  color: var(--info-500);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  margin-left: auto;
+  padding-left: var(--space-3);
+}
+.mdd-platforms-list__link:hover {
+  text-decoration: underline;
+}

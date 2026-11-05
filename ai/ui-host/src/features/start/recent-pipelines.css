@@ -1,0 +1,64 @@
+.mdd-recent {
+  overflow: hidden;
+}
+
+/* A row opens its pipeline wherever it is pressed. Same blue tint as the
+   pipelines screen's rows. */
+.mdd-recent__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 11px var(--space-4);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.mdd-recent__row:last-child {
+  border-bottom: none;
+}
+.mdd-recent__row:hover,
+.mdd-recent__row:focus-visible {
+  background: var(--tint-pipeline);
+}
+.mdd-recent__row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.mdd-recent__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  width: 220px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mdd-recent__platforms {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-700);
+}
+.mdd-recent__when {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+  white-space: nowrap;
+}
+
+.mdd-recent__message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-600);
+}

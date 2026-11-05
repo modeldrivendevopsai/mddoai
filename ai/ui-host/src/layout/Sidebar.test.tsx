@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Sidebar } from "./Sidebar"
+import { useSidebarTab } from "./sidebarTab"
+import { SidebarTabProvider } from "./SidebarTabProvider"
 import * as generator from "../services/generator.service"
 import * as sessions from "../services/sessions.service"
 
@@ -48,10 +50,18 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-const renderSidebar = (onOpenPipeline = vi.fn(), openPipelineId?: string) =>
+// Shows the tab the sidebar has shared, as a screen that follows it would read it.
+function TabProbe() {
+  return <p data-testid="shared-tab">{useSidebarTab().activeTab}</p>
+}
+
+const renderSidebar = (onOpenPipeline = vi.fn(), openPipelineId?: string, path = "/") =>
   render(
-    <MemoryRouter>
-      <Sidebar onOpenPipeline={onOpenPipeline} openPipelineId={openPipelineId} />
+    <MemoryRouter initialEntries={[path]}>
+      <SidebarTabProvider>
+        <Sidebar onOpenPipeline={onOpenPipeline} openPipelineId={openPipelineId} />
+        <TabProbe />
+      </SidebarTabProvider>
     </MemoryRouter>
   )
 
@@ -79,5 +89,29 @@ describe("the sidebar's tabs", () => {
 
     expect(await screen.findByText("Open sessions")).toBeTruthy()
     expect(screen.queryByText("shop.swarch")).toBeNull()
+  })
+
+  it("shares the tab that is on, so a screen can follow it", async () => {
+    renderSidebar()
+    await screen.findByText("shop.swarch")
+    expect(screen.getByTestId("shared-tab").textContent).toBe("pipeline")
+
+    fireEvent.click(screen.getByRole("button", { name: "Platforms" }))
+    expect(screen.getByTestId("shared-tab").textContent).toBe("platform")
+
+    fireEvent.click(screen.getByRole("button", { name: "Pipelines" }))
+    expect(screen.getByTestId("shared-tab").textContent).toBe("pipeline")
+  })
+
+  it.each([
+    ["/platforms", "platform"],
+    ["/integration", "platform"],
+    ["/generate", "pipeline"],
+    ["/generate/p1", "pipeline"],
+  ])("switches to the tab of %s when a screen is opened there", async (path, tab) => {
+    renderSidebar(vi.fn(), undefined, path)
+    await screen.findByTestId("shared-tab")
+
+    expect(screen.getByTestId("shared-tab").textContent).toBe(tab)
   })
 })

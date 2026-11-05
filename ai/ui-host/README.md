@@ -33,9 +33,13 @@ Open the URL Vite prints (default [http://localhost:5173](http://localhost:5173)
 
 Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top bar):
 
-- **`/`** — `src/screens/StartScreen.tsx`, the landing page.
+- **`/`** — `src/screens/StartScreen.tsx`, the landing page: a picture of how the two options
+  connect, each with an "Open" button, and under it a short list that follows the sidebar's tab.
+- **`/platforms`** — `src/screens/PlatformsScreen.tsx`, the first screen of the "Add or update a
+  CI/CD platform" mode: the supported platforms, and "+ New platform".
 - **`/integration`** — `src/screens/IntegrationScreen.tsx`, the platform-integration dashboard.
-  This is the "add/update a platform" flow: its docs stage is a real crawl.
+  This is the "add/update a platform" flow: its docs stage is a real crawl. "+ New platform" and
+  the sidebar's "Add a new platform" open it with a blank run.
 - **`/generate`** — `src/screens/PipelinesScreen.tsx`, the first screen of the "Generate a CI/CD
   pipeline" mode: the pipelines already generated, and "+ New pipeline".
 - **`/generate/new`** and **`/generate/<pipeline id>`** — `src/screens/GenerateScreen.tsx`, the
@@ -55,12 +59,18 @@ Where things live:
   `src/screens/GenerateScreen.tsx`, their components under `src/features/generate/`, state in
   `useGenerate.ts`, copy in `src/config/generate.config.ts`. Backed by its own API client `src/services/generator.service.ts`,
   which talks to `ai/pipeline_generator` (not `ai/orchestrator`).
-- **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
-  with mock data from `src/services/platforms.service.ts`.
+- **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`.
+  Its picture of the two options is `src/features/start/StartCycle.tsx`. The list under it is the
+  latest pipelines (`src/features/start/RecentPipelines.tsx`, from `generator.service.ts`) while
+  the sidebar's Pipelines tab is on, and the supported platforms while its Platforms tab is on.
+- **Platforms** `src/screens/PlatformsScreen.tsx`, copy in `src/config/platforms.config.ts`. The
+  list of supported platforms, `src/features/platforms/PlatformsList.tsx`, is shared with the
+  landing page and uses mock data from `src/services/platforms.service.ts`.
 - **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `PipelinesList`,
   `TopBar`), sourced from `src/config/sidebar.config.ts`, `src/services/sessions.service.ts` (the
   platforms tab) and `src/services/generator.service.ts` (the pipelines tab lists the pipelines
-  already generated).
+  already generated). The sidebar's active tab is shared state (`sidebarTab.ts`, held above the
+  routes by `SidebarTabProvider`), so a screen can follow it.
 - **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
   under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
 - **REST-contract types** the sibling `orchestrator-types` package (`ai/orchestrator-types`), the
@@ -137,7 +147,8 @@ else on the page keeps working; see this package's own `CLAUDE.md` for why (`Rem
 The app's code lives under `src/` (and the Docker proxy's configuration under `nginx/`): `screens/` holds the app's screens, `layout/` holds the
 persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
 host (see CLAUDE.md's Design System section for the full breakdown), `features/generate/` holds
-the "Generate a CI/CD pipeline" mode's components and hooks, `config/` holds copy and settings as
+the "Generate a CI/CD pipeline" mode's components and hooks, `features/start/` holds the landing
+page's components, `features/platforms/` holds the platforms list, `config/` holds copy and settings as
 data, `federated/` holds the
 ambient TypeScript declarations for every federated import, `services/` holds the files that call
 the backend or provide mock data, and `hooks/` holds `useIntegration`. Shared component/token
