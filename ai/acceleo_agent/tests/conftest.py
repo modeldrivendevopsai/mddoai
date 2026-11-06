@@ -15,7 +15,7 @@ import pytest
 _AI_DIR = Path(__file__).resolve().parents[2]
 _session_dir = Path(tempfile.mkdtemp(prefix="acceleo-agent-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-shutil.copytree(_AI_DIR / "data" / "input" / "prompts" / "acceleo", _session_dir / "prompts")
+shutil.copytree(_AI_DIR / "data" / "prompts" / "acceleo", _session_dir / "prompts")
 os.environ["ACCELEO_AGENT_PROMPT_CONFIG_DIR"] = str(_session_dir / "prompts")
 os.environ["ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR"] = str(_session_dir / "attachments")
 

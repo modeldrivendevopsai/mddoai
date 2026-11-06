@@ -76,7 +76,7 @@ then put in place, so the list never shows a pipeline whose files are not all th
 
 The platforms are in the folder `GENERATOR_PLATFORMS_DIR` names (in Docker, the platforms folder set
 in `config.env`, mounted read-only). The repository ships the starting platform in
-`ai/data/input/platforms`:
+`ai/data/platforms`:
 
 ```
 platforms/
@@ -190,7 +190,7 @@ pip install -r requirements.txt
 export GENERATOR_WORKSPACE_DIR=/path/to/your/models
 export GENERATOR_WORKSPACE_LABEL=/path/to/your/models
 export GENERATOR_PIPELINES_DIR=/path/to/a/folder
-export GENERATOR_PLATFORMS_DIR=$PWD/../data/input/platforms
+export GENERATOR_PLATFORMS_DIR=$PWD/../data/platforms
 PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
@@ -206,7 +206,7 @@ service's container in the running stack they do.
 ## Adding a platform
 
 Add `<platform-id>/<version>/` to the platforms folder, holding each file listed in the layout
-above. To ship it with the repository, add it under `ai/data/input/platforms` and commit it.
+above. To ship it with the repository, add it under `ai/data/platforms` and commit it.
 
 ## Boundaries
 

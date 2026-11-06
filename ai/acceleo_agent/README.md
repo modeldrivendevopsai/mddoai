@@ -150,7 +150,7 @@ Compose read-only bind mount `ai/docker-compose.yml`'s `acceleo-agent` service e
 defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and
 `ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service does not start
 without them, and the error names the one that is missing. For a local run, point the first at
-your prompts folder (the repository ships a starting one in `ai/data/input/prompts/acceleo`) and
+your prompts folder (the repository ships a starting one in `ai/data/prompts/acceleo`) and
 the second at a writable folder of your own.
 
 ## Run
@@ -164,7 +164,7 @@ outside this folder, `PYTHONPATH` needs to include the parent `ai/` directory to
 
 ```bash
 # from ai/acceleo_agent/
-export ACCELEO_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/input/prompts/acceleo
+export ACCELEO_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/prompts/acceleo
 export ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 PYTHONPATH=.. uvicorn main:app --reload --port 8080
 ```

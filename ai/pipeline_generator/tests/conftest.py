@@ -15,7 +15,7 @@ os.environ["GENERATOR_WORKSPACE_LABEL"] = "the test workspace"
 os.environ["GENERATOR_PIPELINES_DIR"] = str(_session_dir / "pipelines")
 # The tests prove the real platform files work, so they read the starting ones
 # the repository ships. They never write to them.
-os.environ["GENERATOR_PLATFORMS_DIR"] = str(Path(__file__).resolve().parents[2] / "data" / "input" / "platforms")
+os.environ["GENERATOR_PLATFORMS_DIR"] = str(Path(__file__).resolve().parents[2] / "data" / "platforms")
 
 import pytest  # noqa: E402
 

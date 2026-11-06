@@ -138,7 +138,7 @@ mount `ai/docker-compose.yml`'s `atl-agent` service entry sets it to. `VALIDATOR
 local-dev port. `ATL_AGENT_PROMPT_CONFIG_DIR` and `ATL_AGENT_ATTACHMENT_UPLOADS_DIR` are
 required, with no default: the service does not start without them, and the error names the one
 that is missing. For a local run, point the first at your prompts folder (the repository ships a
-starting one in `ai/data/input/prompts/atl`) and the second at a writable folder of your own.
+starting one in `ai/data/prompts/atl`) and the second at a writable folder of your own.
 
 ## Run
 
@@ -151,7 +151,7 @@ outside this folder, `PYTHONPATH` needs to include the parent `ai/` directory to
 
 ```bash
 # from ai/atl_agent/
-export ATL_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/input/prompts/atl
+export ATL_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/prompts/atl
 export ATL_AGENT_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 PYTHONPATH=.. uvicorn main:app --reload --port 8070
 ```

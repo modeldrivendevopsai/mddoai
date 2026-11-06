@@ -27,10 +27,8 @@ LLM_KEYS="$TEST_DIR/ai/ai-layer/.env"
 # outside the clone, which every update replaces. The workspace is made for the
 # developer, who adds models to it. Docker makes the others.
 STATE_DIR=/var/lib/mddoai-test
-INPUT_DIR="$STATE_DIR/input"
-OUTPUT_DIR="$STATE_DIR/output"
-WORKSPACE_DIR="$INPUT_DIR/workspace"
-CLONE_INPUT_DIR="$TEST_DIR/ai/data/input"
+WORKSPACE_DIR="$STATE_DIR/workspace"
+CLONE_DATA_DIR="$TEST_DIR/ai/data"
 
 # The clone belongs to the developer's user, who runs the updater.
 install -d -m 0755 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR"
@@ -62,18 +60,18 @@ set_if_empty() {
   log "Set $name in $CONFIG"
 }
 set_if_empty MDDOAI_WORKSPACE_DIR "$WORKSPACE_DIR"
-set_if_empty MDDOAI_PLATFORMS_DIR "$CLONE_INPUT_DIR/platforms"
+set_if_empty MDDOAI_PLATFORMS_DIR "$CLONE_DATA_DIR/platforms"
 for agent in psm atl acceleo; do
   upper="${agent^^}"
-  set_if_empty "MDDOAI_${upper}_PROMPTS_DIR" "$CLONE_INPUT_DIR/prompts/$agent"
-  set_if_empty "MDDOAI_${upper}_ATTACHMENTS_DIR" "$INPUT_DIR/attachments/$agent"
+  set_if_empty "MDDOAI_${upper}_PROMPTS_DIR" "$CLONE_DATA_DIR/prompts/$agent"
+  set_if_empty "MDDOAI_${upper}_ATTACHMENTS_DIR" "$STATE_DIR/attachments/$agent"
 done
-set_if_empty MDDOAI_RUNS_DIR "$OUTPUT_DIR/runs"
-set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$OUTPUT_DIR/validator-output"
-set_if_empty MDDOAI_PIPELINES_DIR "$OUTPUT_DIR/pipelines"
+set_if_empty MDDOAI_RUNS_DIR "$STATE_DIR/runs"
+set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$STATE_DIR/validator-output"
+set_if_empty MDDOAI_PIPELINES_DIR "$STATE_DIR/pipelines"
 # Docker would create a missing workspace owned by root, which the developer
 # could not add models to, so setup makes it for them.
-install -d -o "$DEV_USER" -g "$DEV_USER" "$STATE_DIR" "$INPUT_DIR" "$WORKSPACE_DIR"
+install -d -o "$DEV_USER" -g "$DEV_USER" "$STATE_DIR" "$WORKSPACE_DIR"
 if [[ ! -f "$LLM_KEYS" ]]; then
   install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/ai/ai-layer/.env.example" "$LLM_KEYS"
   log "Created $LLM_KEYS. Fill in the LLM API keys."

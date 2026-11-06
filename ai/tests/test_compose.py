@@ -22,9 +22,9 @@ REQUIRED_SETTING = re.compile(r"\$\{([A-Z0-9_]+):\?")
 # built from another setting's path and never shared between mounts.
 HOST_FOLDER_SETTING = re.compile(r"^\$\{(MDDOAI_[A-Z0-9_]+):\?\}$")
 
-# The folders people supply and that must already hold content: Docker must not
-# create them, and the stack only reads the workspace and the platforms.
-INPUT_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
+# The folders people fill in before the first start, which must already hold content:
+# Docker must not create them. The stack only reads the workspace and the platforms.
+MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
 READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS)_DIR:\?\}$")
 
 # The one setting that carries a host setting's value into a container: the name
@@ -178,7 +178,7 @@ def test_every_mount_from_a_host_setting_is_written_in_long_form():
 
 @pytest.mark.parametrize("service_name,source", _host_folder_mounts(), ids=lambda argument: str(argument))
 def test_a_folder_that_must_already_hold_content_is_never_created_by_docker(service_name, source):
-    if not INPUT_FOLDER_SETTING.match(source):
+    if not MUST_HOLD_CONTENT_SETTING.match(source):
         pytest.skip("Docker may create this folder")
     mount = next(v for v in _services()[service_name]["volumes"] if isinstance(v, dict) and v.get("source") == source)
 

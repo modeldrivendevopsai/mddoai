@@ -160,7 +160,7 @@ folder set in `config.env`):
 
 `ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write from the
 prompts folder set in `config.env`, which must already hold the starting configs (the repository
-ships them in `ai/data/input/prompts/psm`), so a save through the running container lands there
+ships them in `ai/data/prompts/psm`), so a save through the running container lands there
 and `history/` sits beside it.
 
 **Promoting a run's own live corrections into the permanent config**: `POST
@@ -199,14 +199,14 @@ read-only bind mount `ai/docker-compose.yml`'s `psm-agent` service entry sets it
 services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` and
 `PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service does not start without
 them, and the error names the one that is missing. For a local run, point the first at
-your prompts folder (the repository ships a starting one in `ai/data/input/prompts/psm`) and the
+your prompts folder (the repository ships a starting one in `ai/data/prompts/psm`) and the
 second at a writable folder of your own.
 
 ## Run
 
 ```bash
 # from ai/psm_agent/
-export PSM_PROMPT_CONFIG_DIR=$PWD/../data/input/prompts/psm
+export PSM_PROMPT_CONFIG_DIR=$PWD/../data/prompts/psm
 export PSM_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 uvicorn main:app --reload --port 8040
 ```
