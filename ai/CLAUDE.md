@@ -8,9 +8,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   that needs something from another one calls it over real HTTP, never by importing the other
   service's Python internals directly — see [ai/README.md](./README.md)'s services list and
   request-path description for which services exist today and how they actually call each other.
-- `clients/`, `generation_toolkit/`, `design-system/`, and `orchestrator-types/` are the four
-  folders under `ai/` that aren't themselves deployed services: no port, no Dockerfile, no entry in
-  `docker-compose.yml`. `clients/` is a shared package of thin HTTP wrapper functions (one module
+- `clients/`, `generation_toolkit/`, `design-system/`, `orchestrator-types/`, `data/` and `tests/`
+  are folders under `ai/` that aren't themselves deployed services: no port, no Dockerfile, no entry
+  in `docker-compose.yml`. `tests/` checks the combined compose file (see the shared infrastructure point below).
+  `data/` holds the starting platform files and prompt configs and a layout for the stack's host
+  folders (see its README).
+  `clients/` is a shared package of thin HTTP wrapper functions (one module
   per sibling service it can reach), imported directly as a Python package by whichever service
   needs to make that outbound call — this is how real cross-service communication happens in `ai/`,
   not a second, competing mechanism alongside it. `generation_toolkit/` is a shared, stage-agnostic
@@ -61,50 +64,15 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   here. This exception does not extend to any `ui-*` package, `design-system`, or `ai-layer`,
   and does not license any other future `ai/` service to reach into `main/` without the same
   explicit justification.
-- Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service.
-- **Second exception, also deliberate**: `integration_runner` and `validator_agent` share one Docker
-  volume (`pipeline-runs` in `ai/docker-compose.yml`) for real, on-disk pipeline artifacts. This
-  covers every stage's own `persist_attempt()` output (the artifact plus its validation result, and,
-  for a stage with a real, UI-editable prompt config, a third file, `prompt.json`, recording the
-  exact prompt and config version that produced this attempt — see
-  `integration_runner/stages/_validation.py`) and every real compiled artifact `validator_agent`'s
-  own deep checks produce (`EcoreValidator`'s codegen classes, `AtlValidator`'s `.asm`,
-  `AcceleoValidator`'s `.emtl`, none of which validator_agent itself ever deletes anymore). These
-  are meant to be genuinely reusable pipeline artifacts, not disposable debugging output. The
-  concrete, stated direction is assembling them into a real conversion pipeline once the full
-  integration chain is done, not just keeping them around for a human to inspect a failed check,
-  so they land in one shared `runs/<run_id>/` tree instead of two disconnected per-service
-  locations. For `atl`/`acceleo`/`psm`, that shared tree is a real nested layout, not just a shared
-  top-level directory: each stage reserves its own `attempt_N/` directory before it (or, for `psm`,
-  before `psm_agent`'s own generation code, called on its behalf) ever calls validator-agent
-  (`stages/_validation.py`'s own `reserve_attempt_dir()`), then forwards its own stage name and
-  that attempt's name as the request's `stage` and `attempt` fields alongside `run_id`, and
-  validator-agent joins all three onto its own output root (`validator_runner.py`'s own
-  `_scoped_output_env()`) before ever invoking the Java CLI. `AtlValidator`'s `.asm`,
-  `AcceleoValidator`'s `.emtl`, and `EcoreValidator`'s codegen classes (on `psm`'s own real
-  generation path) land inside that same `attempt_N/` directory
-  (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`), not merely as a sibling of it under
-  the same `run_id`, and not missing the `stage` segment either (which would risk two stages' own
-  same-numbered attempts colliding). `psm` is the one case where the calling service and the
-  service that reserves the attempt directory are different processes: `integration_runner`'s own
-  `stages/psm/agent.py` reserves the attempt directory and forwards `stage`/`attempt` over HTTP to
-  `psm_agent`, which has no attempt-numbering concept of its own and just carries those two values
-  through its own real generate-validate-retry loop (`psm_agent/generation.py`) unchanged, once per
-  round, so every regeneration round's own real compiled Ecore classes land inside that same one
-  attempt directory, each in its own uniquely-named subfolder, rather than scattered as orphaned
-  siblings under the run root. `pim` only ever validates reflectively today, which produces nothing
-  worth scoping, so it never sends `run_id`, `stage`, or `attempt` at all.
-  This is the one place in `ai/` where two independently deployed services share a filesystem
-  rather than only talking over HTTP: `integration_runner` writes its own side of that tree
-  directly, `validator_agent` returns its side's real path as `generated_source_path` for the
-  calling stage's own `persist_attempt()` to record, so the two sides of the same run still get
-  reconciled through a real API response, not a hidden read of the other service's own files.
-  Whoever changes either container's mount path must re-derive it from that service's own code
-  (`integration_runner`'s `RUNS_DIR`, `validator_agent`'s `VALIDATOR_OUTPUT_DIR` usage), not just
-  copy the other container's mount string, since the two Dockerfiles have different `WORKDIR`s, so
-  the same volume is deliberately mounted at different absolute paths in each (see both mounts' own
-  comments in `ai/docker-compose.yml`).
-- **Third exception, also deliberate and narrow**: a stage-agent service that needs to read real,
+- Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service. The checks of that infrastructure (the compose file against itself and against the environment templates) live in `ai/tests/`.
+- **Services do not share what they generate.** Every service keeps what it generates in folders of
+  its own (see [ai/README.md](./README.md)'s "Where files live"), and other services reach it only
+  through that service's API. For example, `integration_runner` keeps each run's attempts, and
+  `validator_agent` keeps its compiled output in its own folder, under the `run_id`, `stage` and
+  `attempt` a request names, and returns the path in its response as `generated_source_path`.
+  `integration_runner` records that path in the attempt's `result.json`. It is a path in
+  `validator_agent`'s own storage, which `integration_runner` never opens.
+- **Second exception, also deliberate and narrow**: a stage-agent service that needs to read real,
   pre-existing MDE-engine data (a metamodel, a real model instance) it doesn't own gets a read-only
   Docker bind mount of that specific data, not a copy into its own image, so a metamodel change
   doesn't need a service rebuild. `psm_agent` mounts the whole `meta_models/` tree this way
@@ -117,7 +85,7 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   two single real files the same narrow way: `PIM_METAMODEL_PATH` (the project's own real, fixed
   PIM metamodel, which `stages/pim/agent.py` returns as that stage's real, no longer mock, output)
   and a real sample PIM model instance, `main/`'s own real Java test fixture (`stages/generation/
-  agent.py`'s own real input to the real ATL/Acceleo execution it runs, see the fourth exception
+  agent.py`'s own real input to the real ATL/Acceleo execution it runs, see the third exception
   below for the execution side of that same stage, a temporary stand-in until a real
   SWArch-driven PIM extraction replaces it). `validator_agent` mounts that same sample PIM instance
   too, for the same reason one level earlier in the pipeline: `AtlValidator`/`AcceleoValidator`'s own
@@ -125,12 +93,12 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   against it, catching a real runtime-only failure a compile-only check can never see, during
   atl_stage's/acceleo_stage's own retry loop instead of only later, with no retries left. This is a
   read of real MDE *data*, never Java/Eclipse *code*, a distinction that separates it from the first
-  exception above (`validator_agent`'s own reach into `mddoai.validation`) and the fourth exception
+  exception above (`validator_agent`'s own reach into `mddoai.validation`) and the third exception
   below (`execution_agent`'s own). This exception does not extend
   to any `ui-*` package, `design-system`, or `ai-layer`, and does not license any other future `ai/`
   service to reach into `main/`, `meta_models/`, or `code_generation/` without the same explicit
   justification.
-- **Fourth exception, deliberate and narrow, mirroring the first**: `execution_agent/` wraps
+- **Third exception, deliberate and narrow, mirroring the first**: `execution_agent/` wraps
   headless model/code executors (`main/src/main/java/mddoai/execution/`, one subpackage per DSL
   type) as HTTP routes, actually *running* a real ATL transformation or Acceleo template against a
   real model instance, not just compiling it to check for errors (`validator_agent`'s own, separate
@@ -139,13 +107,20 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   proliferation (`/validate/<type>`), and its licensed reach into `main/` is scoped, by name and
   path, to `*ValidatorCli.java` under `mddoai.validation`; neither extends to execution. Its Python
   code lives in `ai/execution_agent/`; it also owns every
-  `main/src/main/java/mddoai/execution/**/*ExecutorCli.java` class (recursive, any depth under
-  `execution/`), a thin entrypoint that `execution_agent` invokes as a subprocess
-  (`java -cp .../lib/* ...*ExecutorCli <args>`), reading structured JSON off stdout; it never links
-  against or imports Java code directly. Everything else under `mddoai.execution` is owned by the
-  Java/Eclipse work, not by `execution_agent`. This exception does not extend to any `ui-*` package,
-  `design-system`, or `ai-layer`, and does not license any other future `ai/` service to reach into
-  `main/` without the same explicit justification.
+  `main/src/main/java/mddoai/execution/**/*Executor.java` class and its
+  `main/src/main/java/mddoai/execution/**/*ExecutorCli.java` entrypoint (recursive, any depth under
+  `execution/`, one such pair per DSL type). The executor class holds the execution logic, which
+  exists only to serve this service: the Java/Eclipse engine does not call it. The `*ExecutorCli`
+  class is a thin entrypoint that `execution_agent` invokes as a subprocess
+  (`java -cp .../lib/* ...*ExecutorCli <args>`), reading structured JSON off stdout; the Python code
+  never links against or imports Java code directly. Supporting a new kind of input model means
+  adding a new pair in its own subpackage, not editing an existing one. Everything else under
+  `mddoai.execution` is owned by the Java/Eclipse work, not by `execution_agent`. Like the first
+  exception, both rules (subprocess boundary, ownership split) are stated by naming pattern and
+  path, not by enumerating specific classes, so adding a new executor never requires an edit here.
+  This exception does not extend to any `ui-*` package, `design-system`, or `ai-layer`, and does
+  not license any other future `ai/` service to reach into `main/` without the same explicit
+  justification.
 
 See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 

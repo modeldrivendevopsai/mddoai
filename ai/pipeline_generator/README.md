@@ -29,8 +29,8 @@ Around these, more concerns have their own modules: the **workspace** (`workspac
 ## The workspace
 
 A web page cannot read a path on the user's machine, so the service works inside one folder that
-is mounted into it. In Docker Compose that is the data folder's `workspace/` on the host
-(`MDDOAI_DATA_DIR` in the environment's `config.env`, see [ai/README.md](../README.md)'s "Where
+is mounted into it. In Docker Compose that is your own workspace folder on the host
+(`MDDOAI_WORKSPACE_DIR` in the environment's `config.env`, see [ai/README.md](../README.md)'s "Where
 files live"), seen read-only as `/workspace` inside the container. Put the models you want to pick
 in it, or use Upload. The Browse dialog names the folder it is showing, from
 `GENERATOR_WORKSPACE_LABEL`, which compose sets to the host folder (`GET /workspace/browse`
@@ -53,9 +53,9 @@ then used, not held open in between.
 
 ## The pipeline history
 
-Each successful generation is recorded under `GENERATOR_DATA_DIR/pipelines` (in Docker, the data
-folder's `pipelines/`, see [ai/README.md](../README.md)'s "Where files live"), one folder per
-pipeline named by a random id, holding the generation as real files:
+Each successful generation is recorded under `GENERATOR_PIPELINES_DIR` (in Docker, the
+pipelines folder set in `config.env`, see [ai/README.md](../README.md)'s "Where
+files live"), one folder per pipeline named by a random id, holding the generation as real files:
 
 ```
 <pipeline-id>/
@@ -74,9 +74,9 @@ then put in place, so the list never shows a pipeline whose files are not all th
 
 ## The platforms
 
-The platforms are in the data folder's `platforms/` (in Docker, mounted read-only at
-`/data/platforms`). Unlike the rest of the data folder, these files are committed to the
-repository:
+The platforms are in the folder `GENERATOR_PLATFORMS_DIR` names (in Docker, the platforms folder set
+in `config.env`, mounted read-only). The repository ships the starting platform in
+`ai/data/platforms`:
 
 ```
 platforms/
@@ -96,10 +96,9 @@ are read on every request, so a changed file applies to the next generation. Not
 to run a platform.
 
 These files belong to this service and are changed here. They do not follow `main/`, which is a
-separate codebase. Docker Compose mounts the folder read-only, and the image carries no copy of it.
-The data folder is the repository's `ai/data` unless `MDDOAI_DATA_DIR` points elsewhere, and then
-it needs its own `platforms/`. A missing folder, or one with no usable platform, is logged as an
-error on every request that needs it.
+separate codebase. The service has no platforms of its own: it reads the folder it is given on every request,
+so a changed file applies to the next generation without a rebuild. A missing folder, or one
+with no usable platform, is logged as an error on every request that needs it.
 
 ## How a pipeline is generated
 
@@ -160,8 +159,10 @@ checked.
 
 ## Configuration
 
-Every setting has a default. For a local run the defaults name a `./workspace` and a `./data`
-folder next to the service: create `workspace` first, or the workspace routes answer `503`.
+The folder settings have no default and are required: the service does not start without
+them, and the error names the one that is missing. Neither an unset nor an empty value is
+accepted. For a run outside Docker, export them in your shell (see `.env.example` for the names)
+with folders of your own. Every other setting has a default.
 
 | Variable | Meaning |
 |---|---|
@@ -169,24 +170,34 @@ folder next to the service: create `workspace` first, or the workspace routes an
 | `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn. |
 | `GENERATOR_MAX_FINISHED_JOBS` | How many finished generations are kept for their callers to fetch. |
 | `LOG_LEVEL` | Logging verbosity. |
-| `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
-| `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. Unset, the folder's own path is shown. |
-| `GENERATOR_DATA_DIR` | Where the pipeline history is kept, in a `pipelines/` folder inside it, and the platforms, in a `platforms/` folder. In Docker it is `/data`, with the data folder's `pipelines/` and `platforms/` mounted inside it. |
+| `GENERATOR_WORKSPACE_DIR` | Required. The workspace folder (see above). In Docker it is `/workspace`. |
+| `GENERATOR_WORKSPACE_LABEL` | Required. How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
+| `GENERATOR_PIPELINES_DIR` | Required. Where the pipeline history is kept. |
+| `GENERATOR_PLATFORMS_DIR` | Required. The platforms folder (see above). In Docker it is `/data/platforms`. |
 | `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. `validator_agent`'s own `MAX_PIPELINE_BYTES` must be at least as large, or it refuses a pipeline this service accepted (the answer is then `413`). |
 
-In Docker, `ai/docker-compose.yml` sets the services' addresses and mounts the workspace folder
-(read-only), the pipeline history and the platforms folder (read-only).
+In Docker, `ai/docker-compose.yml` sets the services' addresses, mounts the workspace folder
+(read-only), the platforms folder (read-only) and the pipeline history, and sets the folder
+settings to where they are mounted.
 
 ## Run and test
 
 ```
 cd ai/pipeline_generator
 pip install -r requirements.txt
+export GENERATOR_WORKSPACE_DIR=/path/to/your/models
+export GENERATOR_WORKSPACE_LABEL=/path/to/your/models
+export GENERATOR_PIPELINES_DIR=/path/to/a/folder
+export GENERATOR_PLATFORMS_DIR=$PWD/../data/platforms
 PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
+
+The `export` lines are the required folder settings: nothing reads `.env` for you, so set
+them in the shell you start the service from. `pytest` needs none of them, it gives itself
+folders of its own.
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
 platform through a real `execution_agent`, and skip themselves unless it answers. Inside this
@@ -194,8 +205,8 @@ service's container in the running stack they do.
 
 ## Adding a platform
 
-Add `<platform-id>/<version>/` to the data folder's `platforms/`, holding each file listed in the
-layout above, and commit it.
+Add `<platform-id>/<version>/` to the platforms folder, holding each file listed in the layout
+above. To ship it with the repository, add it under `ai/data/platforms` and commit it.
 
 ## Boundaries
 
@@ -205,10 +216,10 @@ is who can reach the UI: `docker-compose.yml` publishes the UI's port on this ma
 who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
 a folder you are comfortable exposing that way.
 
-The data folder's `platforms/` is trusted input. Its transformations and templates are compiled and run by
+The platforms folder is trusted input. Its transformations and templates are compiled and run by
 `execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to it is
-reviewed like any other code change. It is committed to the repository, Docker Compose mounts it
-read-only, and no route of this service writes to it.
+reviewed like any other code change. Docker Compose mounts the folder read-only, and no route
+of this service writes to it.
 
 This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent` and
 `execution_agent` through the shared `clients/` package, like every other service.

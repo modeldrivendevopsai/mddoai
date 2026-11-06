@@ -20,9 +20,8 @@ real PSM metamodel checked into `meta_models/`.
   documented Phase 1 plan, not built here). Every round's own real compiled Ecore classes are
   kept, not deleted after the check (see [validator_agent's own
   README](../validator_agent/README.md#setup)). This stage forwards `stage`/`attempt` (see
-  `POST /psm` below) so all of them nest inside the one attempt directory
-  `integration_runner`'s own `psm_stage` reserved for this call, instead of scattering as
-  orphaned siblings under the run root.
+  `POST /psm` below) so `validator_agent` keeps all of them together under the one stage and
+  attempt `integration_runner`'s own `psm_stage` reserved for this call, in its own folder.
 - **An existing metamodel (known platform)** → the **Knowledge Agent** (`comparison.py`'s
   `compare()`, unchanged): a real LLM comparison of the docs against the existing `.ecore` to
   find drift (missing/outdated concepts). Informational only — a gap is surfaced alongside the
@@ -76,7 +75,7 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   },
   "validation": {
     "valid": true, "mode": "codegen", "issues": [], "duration_ms": 120,
-    "generated_source_path": "/runs/run-123/psm/attempt_1/ecore-validate-abc123"
+    "generated_source_path": "<validator output folder>/run-123/psm/attempt_1/ecore-validate-abc123"
   },
   "rounds": 2,
   "prompt_version": null
@@ -135,9 +134,10 @@ it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP 
 `routes/`, this service's own equivalent of `integration_runner/routes/`, and are wired into
 `main.py` via `app.include_router(...)`.
 
-Configs live under `prompts/{name}/`, `name` one of `"generation"`/`"comparison"` (matching this
-service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, overridable via
-`PSM_PROMPT_CONFIG_DIR`, defaulting to `psm_agent/prompts/` next to this service's own source):
+Configs live under `{name}/` in the prompt folder, `name` one of `"generation"`/`"comparison"` (matching this
+service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, set by the required
+`PSM_PROMPT_CONFIG_DIR`, which has no default; in Docker it is a folder mounted from the prompts
+folder set in `config.env`):
 
 - `default.default.json`: the immutable, git-committed shipped default. Every `name` ships one,
   seeded from the real experiment with the most already-proven `learned_constraints` at the time
@@ -158,9 +158,10 @@ service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.p
   the shipped default included, never touches it, so a promoted constraint stays permanent through
   every one of them (see `generation_toolkit/README.md`'s own `learned_constraints.py` section).
 
-`ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write
-(`./psm_agent/prompts:/app/psm_agent/prompts`), so a save through the running dev container lands
-on the real host git checkout, and `history/` is git-visible too.
+`ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write from the
+prompts folder set in `config.env`, which must already hold the starting configs (the repository
+ships them in `ai/data/prompts/psm`), so a save through the running container lands there
+and `history/` sits beside it.
 
 **Promoting a run's own live corrections into the permanent config**: `POST
 /prompt-config/{name}/learned-constraints` (and its `DELETE` counterpart) persist a change to
@@ -195,15 +196,22 @@ pip install -r requirements.txt
 dev. Override it only if `meta_models/` is reachable somewhere else, e.g. the Docker Compose
 read-only bind mount `ai/docker-compose.yml`'s `psm-agent` service entry sets it to.
 `PIM_AGENT_URL`/`VALIDATOR_AGENT_URL` (both `ai/clients/` modules) point at those sibling
-services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` is optional too,
-defaulting to `psm_agent/prompts/` next to this service's own source (see "Prompt configuration"
-above) — override only if that directory is bind-mounted somewhere else.
+services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` and
+`PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service does not start without
+them, and the error names the one that is missing. For a local run, point the first at
+your prompts folder (the repository ships a starting one in `ai/data/prompts/psm`) and the
+second at a writable folder of your own.
 
 ## Run
 
 ```bash
+# from ai/psm_agent/
+export PSM_PROMPT_CONFIG_DIR=$PWD/../data/prompts/psm
+export PSM_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 uvicorn main:app --reload --port 8040
 ```
+
+The two `export` lines are the required folder settings (nothing reads a `.env` file for you).
 
 ## Test
 

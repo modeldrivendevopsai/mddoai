@@ -21,11 +21,21 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Sibling to stages/ itself (ai/integration_runner/runs/), so this travels
-# with the service in any deployment, local or Docker, without needing a
-# separately mounted path, mounting it externally for durability across a
-# container restart is a real future concern, deliberately not solved here.
-RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
+
+def _required(name: str) -> str:
+    """The value of a required setting. Unset or empty stops the service: an
+    empty folder setting would otherwise be read as the current folder."""
+    value = os.environ[name].strip()
+    if not value:
+        raise KeyError(f"{name} is set but empty")
+    return value
+
+
+# Where every run's attempts and manifest are kept. Whoever runs the service
+# sets it (in Docker, compose does, with a folder that outlives the
+# container), and the service does not start without it: no default, and no
+# folder worked out from where this code sits.
+RUNS_DIR = Path(_required("INTEGRATION_RUNNER_RUNS_DIR"))
 
 # Serializes manifest.json's own read-modify-write (_update_manifest())
 # process-wide, sufficient because this service runs single-process, no
@@ -99,11 +109,9 @@ def reserved_attempt(run_id: str | None, stage: str):
     unlisted directory on disk or silently skip an attempt number on the
     next retry. "Recorded" means result.json exists: persist_attempt() always
     writes it, and it is the last of the two attempt files it writes, so its
-    absence means nothing real was persisted here even if a half-finished
-    validator round already nested its own compiled output under this
-    directory (psm's codegen validation does exactly that, once per retry
-    round). Yields None (nothing reserved, nothing to undo) when there is no
-    run_id."""
+    absence means nothing real was persisted here, whatever else the
+    directory holds. Yields None (nothing reserved, nothing to undo) when
+    there is no run_id."""
     attempt_dir = reserve_attempt_dir(run_id, stage) if run_id else None
     try:
         yield attempt_dir

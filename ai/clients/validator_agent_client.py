@@ -37,8 +37,8 @@ def validate_ecore(
     in-memory content with no real source file of its own. stage and
     attempt name the calling stage (e.g. "psm") and its own reserved attempt
     directory (e.g. "attempt_2"), joined in that order onto run_id, so a
-    codegen-mode call's real compiled output nests inside that exact
-    attempt directory rather than only scoped by run_id. Only ever matters
+    codegen-mode call's real compiled output is kept under that exact
+    stage and attempt rather than only scoped by run_id. Only ever matters
     for a real codegen-mode call: a reflective-only caller never passes
     either, since reflective mode produces nothing worth scoping in the
     first place."""
@@ -73,8 +73,8 @@ def validate_atl(
     validate_ecore's own generated_source_path for why this is kept). stage
     and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
-    output nests inside the exact attempt directory rather than only scoped
-    by run_id. metamodel_ecore, when given, is the target platform's own
+    output is kept under that exact stage and attempt rather than only
+    scoped by run_id. metamodel_ecore, when given, is the target platform's own
     real PSM .ecore content: beyond letting any platform's metamodel resolve
     (mirroring validate_acceleo's own metamodel_ecore), it also makes the
     real Java validator actually RUN the compiled transformation against a
@@ -114,8 +114,8 @@ def validate_acceleo(
     .emtl module's real path on disk, when compiling actually produced one.
     stage and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
-    output nests inside the exact attempt directory rather than only scoped
-    by run_id. metamodel_ecore, when given, is the target platform's own
+    output is kept under that exact stage and attempt rather than only
+    scoped by run_id. metamodel_ecore, when given, is the target platform's own
     real PSM .ecore content, dynamically registered by the real Java
     validator before compiling — needed for any platform besides the ones
     main/'s own EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab),

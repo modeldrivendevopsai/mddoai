@@ -4,6 +4,7 @@ other services are mocked, as in test_main.py."""
 import json
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 import main
@@ -274,18 +275,22 @@ def test_an_id_that_is_not_an_id_is_simply_not_found():
         assert client.get(f"/pipelines/{bad}").status_code == 404
 
 
-def test_the_workspace_label_falls_back_to_the_folders_own_path(monkeypatch):
+@pytest.mark.parametrize(
+    "name", ["GENERATOR_WORKSPACE_DIR", "GENERATOR_WORKSPACE_LABEL", "GENERATOR_PIPELINES_DIR", "GENERATOR_PLATFORMS_DIR"]
+)
+@pytest.mark.parametrize("value", [None, "", "   "], ids=["unset", "empty", "blank"])
+def test_the_service_does_not_start_without_a_folder_setting(monkeypatch, name, value):
     import importlib
 
     import settings
 
-    monkeypatch.delenv("GENERATOR_WORKSPACE_LABEL", raising=False)
-    monkeypatch.setenv("GENERATOR_WORKSPACE_DIR", "/some/workspace")
+    if value is None:
+        monkeypatch.delenv(name)
+    else:
+        monkeypatch.setenv(name, value)
     try:
-        reloaded = importlib.reload(settings)
-        assert reloaded.WORKSPACE_LABEL == str(reloaded.WORKSPACE_DIR)
-        monkeypatch.setenv("GENERATOR_WORKSPACE_LABEL", "the MDDOAI repository")
-        assert importlib.reload(settings).WORKSPACE_LABEL == "the MDDOAI repository"
+        with pytest.raises(KeyError, match=name):
+            importlib.reload(settings)
     finally:
         monkeypatch.undo()
         importlib.reload(settings)
