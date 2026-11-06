@@ -100,17 +100,15 @@ class EcoreValidateRequest(BaseModel):
     mode: str = Field(default="reflective", pattern="^(reflective|codegen)$")
     run_id: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     # Names the calling stage (e.g. "atl"), joined onto run_id before
-    # attempt below, matching integration_runner's own real
-    # runs/<run_id>/<stage>/attempt_N/ layout exactly (see
-    # _validation.py's reserve_attempt_dir()) - not used by pim_stage today
+    # attempt below, so the output folder is <run_id>/<stage>/<attempt>
+    # inside this service's own output folder - not used by pim_stage today
     # (see clients/validator_agent_client.py's own validate_ecore
     # docstring), accepted here for parity with AtlValidateRequest/
     # AcceleoValidateRequest below.
     stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
-    # Names the calling stage's own reserved attempt directory (e.g.
-    # "attempt_2"), joined after stage above, so a codegen-mode call's real
-    # compiled output nests inside that specific attempt rather than only
-    # scoped by run_id.
+    # Names the calling stage's own reserved attempt (e.g. "attempt_2"),
+    # joined after stage above, so a codegen-mode call's real compiled output
+    # is scoped to that specific attempt rather than only by run_id.
     attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))

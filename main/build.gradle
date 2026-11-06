@@ -176,6 +176,11 @@ def standardTestLogging = {
     showStandardStreams = true
 }
 
+// The validators require a folder to keep their compiled output in (see
+// ValidatorOutputRoot), so every test task gives them one under build/, which
+// a clean removes.
+def validatorOutputForTests = "$buildDir/validator-output"
+
 task integrationTest(type: Test) {
     finalizedBy 'integrationJacocoTestReport'
     
@@ -186,6 +191,7 @@ task integrationTest(type: Test) {
     description = "Runs the integration tests."
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
+    environment 'VALIDATOR_OUTPUT_DIR', validatorOutputForTests
 
     useJUnitPlatform()
     testLogging standardTestLogging
@@ -201,6 +207,7 @@ task e2eTest(type: Test) {
     description = "Runs the end-to-end tests."
     testClassesDirs = sourceSets.e2eTest.output.classesDirs
     classpath = sourceSets.e2eTest.runtimeClasspath
+    environment 'VALIDATOR_OUTPUT_DIR', validatorOutputForTests
 
     useJUnitPlatform()
     testLogging standardTestLogging
@@ -214,6 +221,7 @@ test {
     }
 
     description = "Runs all tests."
+    environment 'VALIDATOR_OUTPUT_DIR', validatorOutputForTests
 
     useJUnitPlatform()
     testLogging standardTestLogging

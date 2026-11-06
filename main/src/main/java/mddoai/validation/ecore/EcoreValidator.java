@@ -2,6 +2,7 @@ package main.java.mddoai.validation.ecore;
 
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ValidatorOutputRoot;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
@@ -85,16 +86,6 @@ public final class EcoreValidator {
         return ValidationResult.of(issues);
     }
 
-    // Where generated .genmodel/src-gen/classes-out output is persisted after a
-    // codegen validation actually produces something, instead of being wiped
-    // before any caller can see it. ai/docker-compose.yml points this at a
-    // dedicated writable volume for validator-agent's container; unset in
-    // local/non-Docker dev falls back to the JVM's own temp directory (still
-    // not deleted below - no automatic cleanup of old runs exists yet, a
-    // known, documented limitation, not a regression from before).
-    private static final String OUTPUT_ROOT =
-            System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
-
     public static EcoreCodegenResult validateViaCodegen(String ecoreFilePath) {
         requireNonBlank(ecoreFilePath);
 
@@ -119,8 +110,12 @@ public final class EcoreValidator {
         // compile needs to see. Only genuinely empty/broken attempts (an exception, or
         // GenModelBuilder itself failing) get cleaned up.
         boolean keepOutput = false;
+        // Read before the try: a missing setting is a misconfiguration, not a
+        // finding about this model, so it must fail loudly instead of being
+        // reported below as a validation issue.
+        File outputRoot = new File(ValidatorOutputRoot.get());
         try {
-            workDir = new File(OUTPUT_ROOT, "ecore-validate-" + java.util.UUID.randomUUID());
+            workDir = new File(outputRoot, "ecore-validate-" + java.util.UUID.randomUUID());
             if (!workDir.mkdirs()) {
                 throw new java.io.IOException("Could not create validator output directory: " + workDir);
             }
