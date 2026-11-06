@@ -76,6 +76,7 @@ services:
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - PIM_METAMODEL_PATH=/pim_metamodel.ecore
       - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
+      - INTEGRATION_RUNNER_RUNS_DIR=/data/runs
     volumes:
       # The project's own real, git-committed PIM metamodel - a single real
       # file, not a whole meta_models/ tree (narrower than psm-agent's own
@@ -88,40 +89,16 @@ services:
       # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's
       # own PIM concepts), the one real file stages/generation/agent.py
       # needs as its real input to the real ATL/Acceleo execution it runs
-      # via execution-agent (see the fourth exception in ai/CLAUDE.md's
+      # via execution-agent (see the third exception in ai/CLAUDE.md's
       # folder-boundaries section).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # The data folder's runs/ (MDDOAI_DATA_DIR, from the environment's
-      # config.env, see the generator's mounts below), mounted at the exact path integration_runner/stages/_validation.py's
-      # own RUNS_DIR resolves to inside this container (this Dockerfile's own
-      # final WORKDIR is /app/integration_runner, not /app - RUNS_DIR is
-      # relative to that, not to the repo-relative path it looks like in the
-      # Python source). Shared with validator-agent's own mount of the same
-      # folder below: this is where every stage's persist_attempt() writes
-      # (the real artifact + result.json + manifest.json), and where
-      # validator-agent's own compiled output (Ecore's codegen classes, ATL's
-      # .asm, Acceleo's .emtl - all real, reusable pipeline artifacts per
-      # this project's stated direction, not just validation debris) lands
-      # too. For atl/acceleo/psm, that compiled output nests one level inside
-      # the exact attempt directory persist_attempt() writes its own artifact
-      # and result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
-      # <uuid>/), because those stages reserve their own attempt directory
-      # before validator-agent ever gets called and forward both their own
-      # stage name and that attempt's name as the stage/attempt fields (see
-      # stages/atl/agent.py, stages/acceleo/agent.py, stages/psm/agent.py,
-      # and validator_runner.py's own _scoped_output_env()) - for psm
-      # specifically, integration_runner reserves the attempt directory and
-      # forwards those two fields over HTTP to psm_agent, which just carries
-      # them through its own real generate-validate-retry loop unchanged;
-      # pim only ever validates reflectively today, so it never scopes by
-      # run_id, stage, or attempt at all. Get this path wrong and the two
-      # services silently write to different, unrelated directories -
-      # verify it against RUNS_DIR itself before changing either side.
-      # Only the services write to it, so unlike the generator's folders it
-      # may be created by Docker, owned by root.
+      # Every run's attempts and manifest: what this service keeps. The host
+      # folder is its own setting in the environment's config.env. Only this
+      # service writes to it, so Docker may create it, owned by root. The
+      # service is told where it is mounted, and works out nothing from it.
       - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/runs
-        target: /app/integration_runner/runs
+        source: ${MDDOAI_RUNS_DIR:?}
+        target: /data/runs
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -168,24 +145,26 @@ services:
       - META_MODELS_DIR=/meta_models
       - PIM_AGENT_URL=http://pim-agent:8030
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - PSM_PROMPT_CONFIG_DIR=/data/prompts
+      - PSM_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
       - ../meta_models:/meta_models:ro
-      # Real, editable, UI-built prompt configs (generation_toolkit.prompt_config)
-      # - the real generation/comparison JSON files this service's own
-      # prompt_paths.PROMPT_CONFIG_DIR resolves to (relative to this
-      # Dockerfile's own final WORKDIR, /app/psm_agent, not /app). Read-write
-      # and scoped to just this directory, not the whole psm_agent/ source
-      # tree: a Save through the running dev container needs to land on the
-      # host's real git checkout (these files are committed, not
-      # gitignored).
-      - ./psm_agent/prompts:/app/psm_agent/prompts
-      # Real human-uploaded "file" attachments (routes/uploads.py) - a
-      # separate, writable directory from both the read-only meta_models
-      # mount above and the git-committed prompts/ one: an upload is
-      # per-deployment content a human added, not a real pre-existing repo
-      # file and not curated starting prompt material (see the root
-      # .gitignore's own matching entry for this same directory).
-      - ./psm_agent/attachments:/app/psm_agent/attachments
+      # The prompt configs people edit in the UI: the live files, their history
+      # and the learned constraints, kept next to the starting config each one
+      # begins from. Read-write. The folder is its own setting and must already
+      # hold the starting configs, so Docker is told not to create it.
+      - type: bind
+        source: ${MDDOAI_PSM_PROMPTS_DIR:?}
+        target: /data/prompts
+        bind:
+          create_host_path: false
+      # The files people upload as attachments: content added to this
+      # deployment, in a writable folder of its own, apart from the prompt
+      # configs, so an upload never needs write access to them. Only this
+      # service writes to it, so Docker may create it, owned by root.
+      - type: bind
+        source: ${MDDOAI_PSM_ATTACHMENTS_DIR:?}
+        target: /data/attachments
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -214,13 +193,25 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - ATL_AGENT_PROMPT_CONFIG_DIR=/data/prompts
+      - ATL_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
-      # Same reasoning as psm-agent's own prompts/ and attachments/ mounts:
-      # git-committed prompt config read-write so a Save through the running
-      # dev container lands on the host's real git checkout, uploads kept in
-      # their own separate writable directory.
-      - ./atl_agent/prompts:/app/atl_agent/prompts
-      - ./atl_agent/attachments:/app/atl_agent/attachments
+      # The prompt configs people edit in the UI: the live files, their history
+      # and the learned constraints, kept next to the starting config each one
+      # begins from. Read-write. The folder is its own setting and must already
+      # hold the starting configs, so Docker is told not to create it.
+      - type: bind
+        source: ${MDDOAI_ATL_PROMPTS_DIR:?}
+        target: /data/prompts
+        bind:
+          create_host_path: false
+      # The files people upload as attachments: content added to this
+      # deployment, in a writable folder of its own, apart from the prompt
+      # configs, so an upload never needs write access to them. Only this
+      # service writes to it, so Docker may create it, owned by root.
+      - type: bind
+        source: ${MDDOAI_ATL_ATTACHMENTS_DIR:?}
+        target: /data/attachments
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -244,9 +235,25 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
+      - ACCELEO_AGENT_PROMPT_CONFIG_DIR=/data/prompts
+      - ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
-      - ./acceleo_agent/prompts:/app/acceleo_agent/prompts
-      - ./acceleo_agent/attachments:/app/acceleo_agent/attachments
+      # The prompt configs people edit in the UI: the live files, their history
+      # and the learned constraints, kept next to the starting config each one
+      # begins from. Read-write. The folder is its own setting and must already
+      # hold the starting configs, so Docker is told not to create it.
+      - type: bind
+        source: ${MDDOAI_ACCELEO_PROMPTS_DIR:?}
+        target: /data/prompts
+        bind:
+          create_host_path: false
+      # The files people upload as attachments: content added to this
+      # deployment, in a writable folder of its own, apart from the prompt
+      # configs, so an upload never needs write access to them. Only this
+      # service writes to it, so Docker may create it, owned by root.
+      - type: bind
+        source: ${MDDOAI_ACCELEO_ATTACHMENTS_DIR:?}
+        target: /data/attachments
     depends_on:
       ai-layer:
         condition: service_healthy
@@ -449,31 +456,18 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # Writable, shared with integration-runner's own runs/ mount above (the
-      # same data folder, mounted at each service's own real path - see that
-      # mount's own comment for why the paths differ but the storage doesn't).
-      # EcoreValidator's codegen path, AtlValidator, and AcceleoValidator all
-      # persist their real compiled output here instead of deleting it (see
-      # each one's own OUTPUT_ROOT constant), scoped under a per-run_id
-      # subfolder when the caller has one, and two levels deeper still under
-      # the caller's own stage/attempt subfolders when it has reserved one
-      # (validator_runner.py's own _scoped_output_env(), given run_id, stage,
-      # and attempt together by atl_stage/acceleo_stage's own direct calls
-      # here, or by psm_agent's own generation code, using the same two
-      # values stages/psm/agent.py reserved and forwarded to it over HTTP -
-      # see stages/_validation.py's own reserve_attempt_dir()). That nests the
-      # compiled artifact inside the exact attempt_N/ directory
-      # integration_runner's own persist_attempt() writes its artifact and
-      # result.json into (runs/<run_id>/<stage>/attempt_N/<type>-validate-
-      # <uuid>/), not beside it. Separate from the read-only main-build-output mount above
-      # (unrelated build artifacts) - a distinct folder, not a subpath of it,
-      # so a bad write here can never touch the real build output. No
-      # automatic expiry/cleanup of old validation runs yet - a known,
-      # documented limitation, not attempted here since nobody's asked for a
-      # retention policy.
+      # The compiled output the validators produce (Ecore's generated classes,
+      # ATL's bytecode, Acceleo's modules): what this service keeps. Its host
+      # folder is its own setting, not shared with any other service: the run,
+      # stage and attempt a caller sends name the subfolder, and the path comes
+      # back in the response. Separate from the read-only main-build-output
+      # mount above (unrelated build artifacts), so a bad write here can never
+      # touch the real build output. Nothing deletes old output yet, a known
+      # limitation. Only this service writes to it, so Docker may create it,
+      # owned by root.
       - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/runs
-        target: /runs
+        source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
+        target: /data/output
       # The same real, rich PIM model instance integration-runner's own
       # generation-stage mount above already uses (see its own comment) -
       # AtlValidator's/AcceleoValidator's own real execution smoke test reads
@@ -481,13 +475,13 @@ services:
       # Acceleo pair that compiles but crashes at runtime (e.g. instantiating
       # an abstract classifier) gets caught during atl_stage's/acceleo_stage's
       # own retry loop, not only later at the pipeline's final execution
-      # stage with no retries left. Extends the existing "third exception" in
+      # stage with no retries left. Extends the existing "second exception" in
       # ai/CLAUDE.md's folder-boundaries section to this service too, for the
       # identical reason (a real, read-only MDE data file, not code).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
-      - VALIDATOR_OUTPUT_DIR=/runs
+      - VALIDATOR_OUTPUT_DIR=/data/output
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
     depends_on:
       gradle-builder:
@@ -514,7 +508,7 @@ services:
     volumes:
       # Read-only, same shared build-output volume validator-agent already
       # mounts (see its own comment) - no second Gradle build needed. No
-      # data-folder runs/ mount, unlike validator-agent: the real output here
+      # output folder of its own, unlike validator-agent: the real output here
       # (a transformed model instance, or generated CI/CD text) is exactly
       # what a caller needs back, not a debug-only compiled artifact worth
       # persisting for its own sake, so it's returned inline over HTTP
@@ -530,8 +524,8 @@ services:
 
   # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
   # Software Architecture model into a pipeline for each chosen platform, by
-  # running that platform's own files (committed in the data folder's
-  # platforms/) through execution-agent, and checks the model (via
+  # running that platform's own files (from the platforms folder it is
+  # given) through execution-agent, and checks the model (via
   # validator-agent) and the generated pipeline. UI-facing, the way
   # orchestrator is for the platform-integration mode, but with no pipeline
   # run or LLM involved.
@@ -543,46 +537,45 @@ services:
       - path: ./pipeline_generator/.env
         required: false
     volumes:
-      # The data folder (MDDOAI_DATA_DIR, from the environment's config.env)
-      # is the one host folder for everything the stack generates and keeps.
-      # Its workspace/ is the folder the screen's "Input path" field works
-      # inside: models are picked from it, and nothing is written to it, so it
-      # is mounted read-only. A web page cannot reach the user's disk itself,
-      # so the folder is mounted in. Both folders must exist before the first
-      # start: Docker would create a missing one owned by root, which the
-      # person could not add models to.
+      # The workspace: the folder the screen's "Input path" field works
+      # inside. Models are picked from it and nothing is written to it, so it
+      # is mounted read-only. It is the person's own folder, which they add
+      # models to, so it must exist before the first start: Docker would create
+      # a missing one owned by root, which they could not add models to. A web
+      # page cannot reach the person's disk itself, so the folder is mounted in.
       - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/workspace
+        source: ${MDDOAI_WORKSPACE_DIR:?}
         target: /workspace
         read_only: true
         bind:
           create_host_path: false
-      # The data folder's pipelines/: what "Your pipelines" lists, kept across
-      # restarts.
+      # The platforms this service generates for: each one's metamodel,
+      # transformation and template, and the SWArch-to-PIM transformation they
+      # all start with. Read on every request, so a changed file applies to the
+      # next generation. Read-only, since no route of this service writes them.
+      # The folder is its own setting and must already hold them.
       - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/pipelines
-        target: /data/pipelines
-        bind:
-          create_host_path: false
-      # The data folder's platforms/: the committed files each platform is run
-      # from, read-only. The service reads them on every request, so a file
-      # edited here applies to the next generation without a rebuild. Unlike
-      # the rest of the data folder they are in the repository, so this folder
-      # is only there when the data folder is the repository's own ai/data.
-      - type: bind
-        source: ${MDDOAI_DATA_DIR:?}/platforms
+        source: ${MDDOAI_PLATFORMS_DIR:?}
         target: /data/platforms
         read_only: true
         bind:
           create_host_path: false
+      # The pipelines generated so far, what "Your pipelines" lists, kept
+      # across restarts. Only this service writes to it, so Docker may create
+      # it, owned by root.
+      - type: bind
+        source: ${MDDOAI_PIPELINES_DIR:?}
+        target: /data/pipelines
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
       # How the Browse dialog names the workspace to the person: its host
-      # folder.
-      - GENERATOR_WORKSPACE_LABEL=${MDDOAI_DATA_DIR:?}/workspace
-      - GENERATOR_DATA_DIR=/data
+      # folder. The one place a host setting's value is passed into a
+      # container, by name, for display only; nothing is read from it.
+      - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
+      - GENERATOR_PIPELINES_DIR=/data/pipelines
+      - GENERATOR_PLATFORMS_DIR=/data/platforms
     depends_on:
       validator-agent:
         condition: service_healthy

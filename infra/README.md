@@ -36,7 +36,7 @@ The dev environment:
 ```sh
 cd infra/environments/dev
 cp ../templates/dev/config.env config.env    # once, then fill it in
-mkdir -p ../../../ai/data/workspace ../../../ai/data/pipelines    # once, if MDDOAI_DATA_DIR is ./data
+mkdir -p <the folder MDDOAI_WORKSPACE_DIR names>    # once; the platforms and prompts folders must already hold their content
 docker compose up -d --build
 ```
 

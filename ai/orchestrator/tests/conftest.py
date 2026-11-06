@@ -1,7 +1,21 @@
 """Shared pytest configuration for orchestrator's test suite."""
+import atexit
+import os
+import shutil
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+# Before integration_runner's modules are imported (some tests run it in
+# process), which read their settings once. Its runs folder is a required
+# setting, so the tests give it a folder of their own, always, and never one
+# a real stack was given. Every test also redirects it to its own (see the
+# autouse fixture below).
+_session_dir = Path(tempfile.mkdtemp(prefix="orchestrator-tests-"))
+atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
+os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")
 
 import assistant
 import chat_log
@@ -93,8 +107,7 @@ def _isolated_validation_runs_dir(tmp_path, monkeypatch):
     # integration_runner.main.app for real, in-process (httpx.ASGITransport,
     # not mocked), any test that reaches pim/psm/atl/acceleo for real
     # (approve()/rerun() against those stages) would otherwise write real
-    # attempt files into integration_runner's own real
-    # ai/integration_runner/runs/ directory. Matches
+    # attempt files into the session's shared runs folder. Matches
     # integration_runner/tests/conftest.py's own identical isolation for its
     # own suite, this is the same gap, just on orchestrator's side of the
     # process boundary.

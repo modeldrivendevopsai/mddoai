@@ -9,10 +9,10 @@ Tests verify:
   2. pim_output/psm_output/constraints/model are forwarded from context.
   3. Given a run_id, atl_stage reserves its own attempt directory first and
      forwards its own stage name plus that attempt's name to run_atl(), the
-     same pattern psm_stage/acceleo_stage use, so atl_agent's own real
-     compiled .asm bytecode (produced deep inside its generation.py, once
-     per regeneration round) nests inside that attempt directory instead of
-     landing as an unlinked sibling of it.
+     same pattern psm_stage/acceleo_stage use, so validator-agent can keep
+     atl_agent's own real compiled .asm bytecode (produced deep inside its
+     generation.py, once per regeneration round) under that stage and
+     attempt.
   4. The per-run "Mock" override forwards through to run_atl()'s own mock
      kwarg, defaulting to False when absent.
 """

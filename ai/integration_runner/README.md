@@ -204,14 +204,14 @@ file, not a restructuring.
   below, and forwards its own stage name and that attempt's name to `run_psm()` too: on the
   generation path, `psm_agent`'s own real generate-validate-retry loop carries those two values
   through unchanged into its own validator-agent call, once per regeneration round, so every
-  round's real compiled Ecore classes nest inside that one attempt directory instead of landing
-  as orphaned siblings under the run root.
+  round's real compiled Ecore classes are kept by `validator_agent` under that one stage and
+  attempt, not scattered under the run.
 - **`atl_stage(context)`** — reads `context["pim_output"]`/`context["psm_output"]` (no fallback
   for either) and its own recorded constraints, forwarding them to `atl_agent_client.run_atl()`,
   which runs a real generate-validate-retry loop against `atl_agent`'s own real `/generate`
-  capability, forwarding `run_id` so the real compiled `.asm` bytecode that call produces lands
-  scoped under this run (see [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `runs/` folder in
-  the data folder). Returns `(artifact, extra)`, the same shape `psm_stage` does and for the same reason.
+  capability, forwarding `run_id` so `validator_agent` keeps the real compiled `.asm` bytecode
+  that call produces scoped under this run, in its own folder. Returns `(artifact, extra)`, the
+  same shape `psm_stage` does and for the same reason.
 - **`acceleo_stage(context)`** — reads `context["psm_output"]` (no fallback) and the labeled
   platform docs (preferring `context["serialization_output"]`, then `context["docs_output"]`, then
   `context["platform_description"]`), forwarding them to `acceleo_agent_client.run_acceleo()`,
@@ -264,18 +264,18 @@ against an existing `.ecore`). `stages/_validation.py`:
   *before* calling out to `validator_agent_client` (`psm_stage` via `psm_agent_client.run_psm()`
   instead, since `psm_agent`'s own generation code is what actually calls validator-agent): that
   call is what triggers `AtlValidator`'s/`AcceleoValidator`'s/`EcoreValidator`'s own real compiled
-  output write, and that write needs the real stage name and attempt number to nest inside, not
-  land beside it as an unrelated sibling (or, missing the stage segment, collide with another
-  stage's own same-numbered attempt). See
+  output write, and `validator_agent` needs the real stage name and attempt number to scope it
+  under in its own folder (missing the stage segment, two stages' same-numbered attempts would
+  collide). See
   [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
 - **`reserved_attempt(run_id, stage)`** — a context manager wrapping `reserve_attempt_dir()` for
   exactly the pattern above: reserve the directory, then make a fallible downstream call, then
   `persist_attempt()`. If that call raises before `persist_attempt()` recorded the attempt (a
   `validator-agent` timeout or restart, a network blip), the reserved directory is removed again,
   so the failure does not strand an unlisted `attempt_N/` on disk or push the next real attempt
-  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty",
-  because `psm`'s codegen validation nests its own compiled output under the directory once per
-  retry round before any result is persisted. A recorded attempt is kept, so a normal validation
+  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty", so
+  whatever else the directory holds does not keep an attempt that never finished. A recorded
+  attempt is kept, so a normal validation
   failure still keeps its full record. Yields `None` when there is no `run_id`.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
@@ -283,10 +283,10 @@ against an existing `.ecore`). `stages/_validation.py`:
   called for an infra failure, which `validator_agent_client` itself already raises before
   `persist_attempt` runs (handled by `reserved_attempt` above).
 
-`runs/` sits at this package's own root, sibling to `stages/`, gitignored — in-memory run state's
-on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting
-it externally for durability across a container restart is a real future concern, deliberately
-not solved here.
+`runs/` is the folder named by the required `INTEGRATION_RUNNER_RUNS_DIR` setting: the service
+does not start without it, and works no folder out from where its code sits. In Docker it is the
+runs folder set in `config.env` (see [ai/README.md](../README.md)'s "Where files live"), so it outlives the
+container. Only this service writes to it.
 
 **`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
 attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
@@ -533,9 +533,14 @@ cp .env.example .env
 # somewhere else.
 ```
 
+`INTEGRATION_RUNNER_RUNS_DIR` has no default and is required: export it in the shell you start
+the service from, with a folder of your own (nothing reads `.env` for you), or the service stops
+with an error naming it. An empty value is refused too.
+
 ## Run
 
 ```bash
+export INTEGRATION_RUNNER_RUNS_DIR=/path/to/a/folder
 uvicorn main:app --reload --port 8050
 ```
 
@@ -565,9 +570,10 @@ LLM-generation proxy's own client (`psm_agent_client`/`atl_agent_client`/`accele
 `test_mock_validated_stages_real_validator.py`, is listed separately below). `record_event()`
 has no reactor concept, so exactly one real call happens per stage transition (the stage agent's
 own), never one for narration too — narration lives entirely in `orchestrator/chat_log.py`.
-`conftest.py`'s own autouse fixture redirects `stages/_validation.py`'s
+`conftest.py` gives the required `INTEGRATION_RUNNER_RUNS_DIR` setting a throwaway folder
+before anything is imported, and its own autouse fixture redirects `stages/_validation.py`'s
 `RUNS_DIR` to a throwaway `tmp_path` for every test in this whole suite, so nothing here ever
-touches this package's real `runs/` directory.
+touches a real runs folder.
 
 - **`tests/test_pipeline.py`** — the state machine: `STAGES`, `validate()`, `IntegrationRun`'s
   `run_stage`/`rerun`/`advance_stage`/`add_constraint`/`review`/`record_review`/`record_event`/

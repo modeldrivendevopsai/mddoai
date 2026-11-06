@@ -42,10 +42,11 @@ def atl_stage(context: dict) -> tuple[str, dict]:
     constraints = context.get("constraints", {}).get("atl", [])
     # Reserved before run_atl() runs, not after: run_atl() is what triggers
     # atl_agent's own real validator-agent call, once per retry round, and
-    # each one's real compiled .asm bytecode needs the real attempt path
-    # to nest inside, not land as an unlinked sibling of it. reserved_attempt()
-    # undoes the reservation if run_atl() raises before persist_attempt()
-    # records anything.
+    # each one's real compiled .asm bytecode is kept by validator-agent in
+    # its own folder, under the stage and attempt name reserved here, so one
+    # stage's attempts never mix with another's. reserved_attempt() undoes
+    # the reservation if run_atl() raises before persist_attempt() records
+    # anything.
     run_id = context.get("run_id")
     with reserved_attempt(run_id, "atl") as attempt_dir:
         result = atl_agent_client.run_atl(

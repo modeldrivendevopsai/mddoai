@@ -37,14 +37,14 @@ again and fill them in.
 
 - **One Compose project, `test`,** named after this folder and run from it in the clone. `compose.yaml` pulls in the repository's `ai/docker-compose.yml` and this folder's `gateway.yaml`, both filled in from `config.env`. `gateway.yaml` only adds `cloudflared` and `oauth2-proxy`; it changes nothing in the stack. The UI and `ai-layer` ports are on `127.0.0.1` only, next to the dev environment's. The gateway publishes no port.
 - **The secrets** (tunnel token, OAuth client secret, cookie secret) are in `config.env`, readable by `dev` only. Anyone with root can still read them.
-- **Its data** is separate from the dev environment's, and everyone on the list shares it. Integration runs and build caches are in the project's own Docker volumes. The generator's workspace and history are in the data folder set by `MDDOAI_DATA_DIR` in `config.env`, in the clone and ignored by git, except its committed `platforms/`. Uploaded attachments are in the clone, in each agent's `attachments/` folder under `ai/`, which is gitignored.
+- **Its data** is separate from the dev environment's, and everyone on the list shares it. Setup fills in the folders `config.env` names. The platforms and the prompt configs are used from the clone, where the repository ships their starting content, and git ignores the live prompt files, their history and the learned constraints. What people add (models, attachments) and what the stack generates are outside the clone. Build caches are in the project's own Docker volumes.
 - **The updater:** `mddoai-test-update.timer` runs the updater as `dev` shortly after boot, then a few minutes after each run ends. Each run:
   1. fetches the repository;
   2. stops there if `main` has no new commit and the stack is up;
   3. otherwise checks out the newest commit, rebuilds when it is new, and starts the stack.
 
   A run that cannot reach GitHub changes nothing. If the checkout or a build fails, the previous containers keep running and the clone is put back on their commit. If the start fails, some containers may already be replaced, and the clone goes back to the previous commit. Either way, every run after that tries again until a new commit arrives, which costs CPU on the shared VM. If Test stays behind `main`, `journalctl -u mddoai-test-update` says why. A folder in the clone owned by root makes the checkout fail with "Permission denied": give it back to `dev` with `sudo chown`.
-- **Prompt edits are reset.** Prompt changes saved through the app's UI are written into the clone, so each new commit replaces them with the version in `main`.
+- **Prompt edits stay.** Prompt changes saved through the app's UI are written into the prompts folders `config.env` names, which on Test are in the clone and ignored by git, so an update keeps them. The committed starting configs next to them are replaced by the version in `main`.
 
 The tunnel's routes are set in the Cloudflare dashboard, not in this folder,
 and `cloudflared` can reach any port listening on the VM's own addresses, not
