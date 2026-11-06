@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ROUTES } from '../config/routes.config';
 import './top-bar.css';
 
 /**
@@ -9,7 +10,7 @@ import './top-bar.css';
 export function TopBar() {
   return (
     <header className="mdd-topbar">
-      <Link to="/" className="mdd-topbar__brand" aria-label="MDDOAI home">
+      <Link to={ROUTES.start} className="mdd-topbar__brand" aria-label="MDDOAI home">
         {/* The real mark (mddoai-design-system/project/assets/logo/MDDOAI-mark.svg:
             "DevOps loop + transformation arrow + AI sparkle"), ported verbatim
             (path geometry only) — fills swapped for --brand/--brand-accent,

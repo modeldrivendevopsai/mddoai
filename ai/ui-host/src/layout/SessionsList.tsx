@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSessions, closeSession } from '../services/sessions.service';
 import type { Session, SessionType } from '../services/sessions.service';
 import { Icon } from 'design-system';
+import { integrationRunPath } from '../config/routes.config';
 import { SIDEBAR_POLL_INTERVAL_MS } from '../config/sidebar.config';
 import './sessions-list.css';
 
@@ -66,9 +67,9 @@ export function SessionsList({ activeTab }: SessionsListProps) {
           ]
             .filter(Boolean)
             .join(' ')}
-          onClick={() => navigate(`/integration?run=${s.id}`)}
+          onClick={() => navigate(integrationRunPath(s.id))}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') navigate(`/integration?run=${s.id}`);
+            if (e.key === 'Enter' || e.key === ' ') navigate(integrationRunPath(s.id));
           }}
         >
           <span className="mdd-sessions__name">{s.name}</span>

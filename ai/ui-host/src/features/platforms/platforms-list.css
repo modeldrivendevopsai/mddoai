@@ -1,0 +1,27 @@
+.mdd-platforms-list {
+  /* Room for a platform's name and version (judged by eye). */
+  --platforms-name-width: 180px;
+  overflow: hidden;
+}
+
+.mdd-platforms-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mdd-platforms-list__row:last-child {
+  border-bottom: none;
+}
+.mdd-platforms-list__row:hover {
+  background: var(--surface-sunken);
+}
+
+.mdd-platforms-list__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+  width: var(--platforms-name-width);
+  flex-shrink: 0;
+}

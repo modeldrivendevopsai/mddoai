@@ -1,3 +1,10 @@
+/* How wide the body of a mode's screen may grow (a number found by eye). The
+   modes' screens share it, so moving between them does not change the layout.
+   On the root, so it is defined wherever a screen is shown. */
+:root {
+  --screen-body-max-width: 1240px;
+}
+
 html,
 body,
 #root {
