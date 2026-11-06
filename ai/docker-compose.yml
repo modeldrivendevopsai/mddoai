@@ -2,9 +2,12 @@ services:
   ai-layer:
     build:
       context: ./ai-layer
+    # The file with the LLM API keys: its own setting in the environment's
+    # config.env, and it must already exist. It holds secrets, so keep it out of
+    # git and readable by its owner only.
     env_file:
-      - path: ./ai-layer/.env
-        required: false
+      - path: ${MDDOAI_LLM_KEYS_FILE:?}
+        required: true
     volumes:
       # Read-only access to the host's Claude Code credentials, so the
       # CLAUDE_CODE_OAUTH_TOKEN auto-detect fallback (~/.claude/.credentials.json)

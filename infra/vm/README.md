@@ -99,8 +99,8 @@ off, and Hetzner issues no root password because a key is given.
 - **Hetzner API token:** in `terraform/terraform.tfvars` on the Terraform owner's PC, gitignored. It never goes to the server. It can manage every resource in its Hetzner project, not just this VM, so it stays with the Terraform owner.
 - **Terraform state:** on the Terraform owner's PC, gitignored (see "Terraform state").
 - **GitHub access:** no GitHub key is stored on the VM. Git uses the developer's own key through SSH agent forwarding, only while they are connected (see "Working on the VM"). While a developer is connected, anyone with root on the VM can use their forwarded agent.
-- **LLM API keys:** in the clone's `ai/ai-layer/.env` on the VM, which is gitignored. Keep it readable by its owner only (`chmod 600`). Anyone with root can still read it.
-- **Test environment:** the Cloudflare tunnel token, the GitHub OAuth app's client secret and the login cookie secret are in `infra/environments/test/config.env` of its clone in `/opt/mddoai-test`, and its LLM API keys in that clone's `ai/ai-layer/.env`. Both are gitignored and readable by `dev` only; anyone with root can still read them. Like the dev environment, it also reads `dev`'s `~/.claude` folder.
+- **LLM API keys:** in the file that `MDDOAI_LLM_KEYS_FILE` names in the environment's `config.env`. Keep it out of git and readable by its owner only (`chmod 600`). Anyone with root can still read it.
+- **Test environment:** the Cloudflare tunnel token, the GitHub OAuth app's client secret and the login cookie secret are in `infra/environments/test/config.env` of its clone in `/opt/mddoai-test`, and its LLM API keys in the file its `config.env` names. Both are gitignored and readable by `dev` only; anyone with root can still read them. Like the dev environment, it also reads `dev`'s `~/.claude` folder.
 - **Claude Code:** each developer signs in on the VM themselves. The stack's `ai-layer` reads the `~/.claude` folder of the user who starts it, so sign in with a Claude Console account, not a personal subscription.
 
 **Adding and removing access.** A developer gets access when the Terraform

@@ -216,3 +216,34 @@ def test_no_config_env_folder_of_a_service_is_inside_another_of_its_folders(serv
     nested = [(a, b) for a in targets for b in targets if a != b and _is_at_or_under(a, b)]
 
     assert not nested, f"{service_name}: {nested}"
+
+
+def _env_file_entries() -> list[tuple[str, str, bool]]:
+    """Every env_file of every service as (service, path, required)."""
+    entries = []
+    for name, service in _services().items():
+        env_files = service.get("env_file", [])
+        if isinstance(env_files, (str, dict)):
+            env_files = [env_files]
+        for entry in env_files:
+            if isinstance(entry, str):
+                entries.append((name, entry, True))
+            else:
+                entries.append((name, entry["path"], entry.get("required", True)))
+    return entries
+
+
+def test_the_ai_layers_keys_file_is_its_own_required_setting_and_must_exist():
+    entries = [entry for entry in _env_file_entries() if entry[0] == "ai-layer"]
+
+    assert len(entries) == 1, entries
+    _, path, required = entries[0]
+    assert HOST_FOLDER_SETTING.match(path), f"{path} is not a single ${{MDDOAI_..:?}} setting"
+    assert required is True, "the keys file must exist: the service cannot start without keys"
+
+
+def test_no_host_setting_is_used_for_two_things():
+    settings = [HOST_FOLDER_SETTING.match(source).group(1) for _, source in _host_folder_mounts() if HOST_FOLDER_SETTING.match(source)]
+    settings += [HOST_FOLDER_SETTING.match(path).group(1) for _, path, _ in _env_file_entries() if HOST_FOLDER_SETTING.match(path)]
+
+    assert len(settings) == len(set(settings)), f"shared: {sorted(s for s in set(settings) if settings.count(s) > 1)}"

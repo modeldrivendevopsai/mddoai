@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the Test environment switched off: a clone of the repository in
 # TEST_DIR, and the updater that keeps it on the newest main. To start it, fill
-# in its config.env and LLM keys in the clone, then run:
+# in its config.env and the LLM keys file it names, then run:
 #
 #   sudo systemctl enable --now mddoai-test-update.timer
 #
@@ -67,12 +67,15 @@ done
 set_if_empty MDDOAI_RUNS_DIR "$DATA_DIR/runs"
 set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$DATA_DIR/validator-output"
 set_if_empty MDDOAI_PIPELINES_DIR "$DATA_DIR/pipelines"
+set_if_empty MDDOAI_LLM_KEYS_FILE "$LLM_KEYS"
 # Docker would create a missing workspace owned by root, which the developer
 # could not add models to, so setup makes it for them.
 install -d -o "$DEV_USER" -g "$DEV_USER" "$WORKSPACE_DIR"
-if [[ ! -f "$LLM_KEYS" ]]; then
-  install -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/ai/ai-layer/.env.example" "$LLM_KEYS"
-  log "Created $LLM_KEYS. Fill in the LLM API keys."
+# The keys file is the one config.env names, wherever that is.
+keys_file="$(sed -n 's/^MDDOAI_LLM_KEYS_FILE=//p' "$CONFIG" | tail -1 | tr -d "\"'")"
+if [[ ! -f "$keys_file" ]]; then
+  install -D -m 0600 -o "$DEV_USER" -g "$DEV_USER" "$TEST_DIR/ai/ai-layer/.env.example" "$keys_file"
+  log "Created $keys_file. Fill in the LLM API keys."
 fi
 
 # Outside the clone, which every update replaces.

@@ -28,7 +28,7 @@ On the VM, the stack runs from a clone of the repository in `/opt/mddoai-test`, 
 ```
 /opt/mddoai-test/
   infra/environments/test/config.env   settings and secrets, gitignored
-  ai/ai-layer/.env                     the LLM API keys, gitignored
+  ai/ai-layer/.env                     the LLM API keys, gitignored, named by MDDOAI_LLM_KEYS_FILE
 ```
 
 Edit nothing in the clone except those gitignored files: every update
@@ -77,7 +77,7 @@ Cloudflare. Steps 1 and 2 can then happen in either order.
       - `UI_PORT` and `AI_LAYER_PORT` must differ from the dev environment's.
       - `TUNNEL_TOKEN` is the tunnel token, `OAUTH2_CLIENT_ID` and `OAUTH2_CLIENT_SECRET` come from the OAuth app.
       - `GITHUB_USERS` holds the GitHub usernames that may log in, exactly as on their profiles (same capitals), separated by commas without spaces.
-   2. In `ai/ai-layer/.env`, fill in the LLM API keys. To use the same keys as the dev environment: `cp ~/mddoai/ai/ai-layer/.env /opt/mddoai-test/ai/ai-layer/.env`.
+   2. In the file `MDDOAI_LLM_KEYS_FILE` names (setup points it at `ai/ai-layer/.env` in the clone), fill in the LLM API keys. To use the same keys as the dev environment, copy the file its `config.env` names over this one.
 4. Start it:
 
    ```sh
@@ -108,7 +108,7 @@ the Test environment.
 - **Change a setting or rotate a secret:** edit `config.env` in the clone's copy of this folder, then run `docker compose up -d` there. It recreates the containers that use it.
   - A new tunnel token comes from the tunnel's page in the Cloudflare dashboard, and a new client secret from the OAuth app's page on GitHub.
   - Make a new cookie secret with `openssl rand -base64 32 | tr -- '+/' '-_'`. It logs everyone out.
-  - For the LLM keys, edit `/opt/mddoai-test/ai/ai-layer/.env` the same way.
+  - For the LLM keys, edit the file `MDDOAI_LLM_KEYS_FILE` names the same way.
 - **Files in this folder changed:** `compose.yaml` and `gateway.yaml` are read from the clone, so they follow `main`. A new setting in `templates/public/config.env` must be added to `config.env` by hand.
 - **Add or remove a user:** change `GITHUB_USERS` in `config.env`, like any other setting.
   - `oauth2-proxy` checks the list at login only, so someone removed keeps access until their cookie expires (`OAUTH2_COOKIE_EXPIRE`). To end it sooner, make a new cookie secret once the removal is running.
