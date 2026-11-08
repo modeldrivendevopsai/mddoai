@@ -30,16 +30,12 @@ def _required(name: str) -> str:
     return value
 
 
-# The folders the service reads and keeps. Whoever runs the service sets each
-# one (in Docker, compose does), and the service does not start without them:
-# no default, and no folder worked out from another one.
+# Required folders: no default, and none worked out from another.
 
 # The folder models are picked from.
 WORKSPACE_DIR = Path(_required("GENERATOR_WORKSPACE_DIR"))
 
-# What that folder is called where the person can see it, shown in the Browse
-# dialog. Inside a container WORKSPACE_DIR is only a mount point, so whoever
-# runs the service passes the folder's real name.
+# The workspace's name in Browse: inside a container WORKSPACE_DIR is only a mount point.
 WORKSPACE_LABEL = _required("GENERATOR_WORKSPACE_LABEL")
 
 # Where generated pipelines are kept so they can be reopened later.

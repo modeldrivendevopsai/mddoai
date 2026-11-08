@@ -134,12 +134,10 @@ services, caches, artifacts) is enough to smoke-test any future platform's gener
 the one it was originally authored against. Unset (e.g. a plain local run with no Docker mount),
 this endpoint simply skips execution and falls back to compile-only checking.
 
-`VALIDATOR_OUTPUT_DIR` is the folder every real compiled artifact the validators produce gets
-persisted under, instead of being deleted after the check. It is required, with no default: this
-service does not start without it, and the Java validators, which read the same variable, fail
-naming it when it is missing, so nothing is ever written to a temp folder by accident. In Docker
-it is the validator output folder set in `config.env`, which belongs to this service alone (see
-[ai/README.md](../README.md)'s "Where files live"); no other service reads or writes it. A request
+`VALIDATOR_OUTPUT_DIR` is the folder the compiled artifacts of the validators are kept in, instead of
+being deleted after the check. It is required, with no default: this service and the Java validators,
+which read the same variable, fail naming it when it is missing. In Docker it is the validator output
+folder set in `config.env`, which only this service uses. A request
 may include a validated `run_id`, in which case the compiled output is scoped under a subfolder
 named for it; every codegen-producing request (`/validate/atl`, `/validate/acceleo`, and
 `/validate/ecore` in `codegen` mode) may also include `stage` and `attempt` (the calling stage's
@@ -148,11 +146,9 @@ own name and its already-reserved `attempt_N` name, forwarded on `psm_agent`'s o
 [integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
 in which case the output is scoped two levels deeper still
 (`<run_id>/<stage>/<attempt>/<type>-validate-<uuid>/`), so two stages' same-numbered attempts
-never collide. The real path comes back as `generated_source_path` in the response, and
-`persist_attempt()` records it in the calling stage's own `result.json`. It is a path in this
-service's own storage, which the caller never opens. These are real, reusable pipeline artifacts
-(the compiled model classes, ATL bytecode, and Acceleo module a real generate-and-validate cycle
-produces), not disposable debugging output, which is why they are kept.
+never collide. The real path comes back as `generated_source_path`, and `persist_attempt()` records it in the calling
+stage's own `result.json`. It is a path in this service's own storage, which the caller never opens.
+These artifacts are real and reusable, not debugging output, so they are kept.
 
 ## Run
 

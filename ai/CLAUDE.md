@@ -10,9 +10,8 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   request-path description for which services exist today and how they actually call each other.
 - `clients/`, `generation_toolkit/`, `design-system/`, `orchestrator-types/`, `data/` and `tests/`
   are folders under `ai/` that aren't themselves deployed services: no port, no Dockerfile, no entry
-  in `docker-compose.yml`. `tests/` checks the combined compose file (see the shared infrastructure point below).
-  `data/` holds the starting platform files and prompt configs and a layout for the stack's host
-  folders (see its README).
+  in `docker-compose.yml`. `tests/` checks the compose file. `data/` holds the starting platforms and prompt configs and a
+  layout for the host folders.
   `clients/` is a shared package of thin HTTP wrapper functions (one module
   per sibling service it can reach), imported directly as a Python package by whichever service
   needs to make that outbound call — this is how real cross-service communication happens in `ai/`,
@@ -64,7 +63,7 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   here. This exception does not extend to any `ui-*` package, `design-system`, or `ai-layer`,
   and does not license any other future `ai/` service to reach into `main/` without the same
   explicit justification.
-- Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service. The checks of that infrastructure (the compose file against itself and against the environment templates) live in `ai/tests/`.
+- Shared infrastructure that spans services (the combined `docker-compose.yml`) lives directly in `ai/`, not nested inside any service. Its checks live in `ai/tests/`.
 - **Services do not share what they generate.** Every service keeps what it generates in folders of
   its own (see [ai/README.md](./README.md)'s "Where files live"), and other services reach it only
   through that service's API. For example, `integration_runner` keeps each run's attempts, and

@@ -31,10 +31,7 @@ def _required(name: str) -> str:
     return value
 
 
-# Where every run's attempts and manifest are kept. Whoever runs the service
-# sets it (in Docker, compose does, with a folder that outlives the
-# container), and the service does not start without it: no default, and no
-# folder worked out from where this code sits.
+# Where every run's attempts and manifest are kept. Required: no default.
 RUNS_DIR = Path(_required("INTEGRATION_RUNNER_RUNS_DIR"))
 
 # Serializes manifest.json's own read-modify-write (_update_manifest())

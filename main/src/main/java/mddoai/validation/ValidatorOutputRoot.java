@@ -3,13 +3,8 @@ package main.java.mddoai.validation;
 import java.util.Map;
 
 /**
- * Where the validators keep the compiled output they produce (the ATL
- * bytecode, the Acceleo modules, Ecore's generated classes). They are kept, not
- * deleted after the check, because they are real, reusable pipeline artifacts
- * and not validation debris. Whoever runs the
- * validators sets the folder in {@link #ENV_VAR}, and there is no default: a
- * missing value fails with a message naming it, instead of writing into a
- * temp folder nobody chose.
+ * Where the validators keep their compiled output. Set it in {@link #ENV_VAR}:
+ * there is no default, and a missing value fails naming the variable.
  */
 public final class ValidatorOutputRoot {
 

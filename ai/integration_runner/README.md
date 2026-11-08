@@ -283,10 +283,8 @@ against an existing `.ecore`). `stages/_validation.py`:
   called for an infra failure, which `validator_agent_client` itself already raises before
   `persist_attempt` runs (handled by `reserved_attempt` above).
 
-`runs/` is the folder named by the required `INTEGRATION_RUNNER_RUNS_DIR` setting: the service
-does not start without it, and works no folder out from where its code sits. In Docker it is the
-runs folder set in `config.env` (see [ai/README.md](../README.md)'s "Where files live"), so it outlives the
-container. Only this service writes to it.
+`runs/` is the folder `INTEGRATION_RUNNER_RUNS_DIR` names (required, no default). In Docker it is the runs
+folder set in `config.env`, see [ai/README.md](../README.md#where-files-live).
 
 **`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
 attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
@@ -533,9 +531,7 @@ cp .env.example .env
 # somewhere else.
 ```
 
-`INTEGRATION_RUNNER_RUNS_DIR` has no default and is required: export it in the shell you start
-the service from, with a folder of your own (nothing reads `.env` for you), or the service stops
-with an error naming it. An empty value is refused too.
+`INTEGRATION_RUNNER_RUNS_DIR` is required: export it in your shell, since nothing reads `.env` for you.
 
 ## Run
 
@@ -570,10 +566,9 @@ LLM-generation proxy's own client (`psm_agent_client`/`atl_agent_client`/`accele
 `test_mock_validated_stages_real_validator.py`, is listed separately below). `record_event()`
 has no reactor concept, so exactly one real call happens per stage transition (the stage agent's
 own), never one for narration too — narration lives entirely in `orchestrator/chat_log.py`.
-`conftest.py` gives the required `INTEGRATION_RUNNER_RUNS_DIR` setting a throwaway folder
-before anything is imported, and its own autouse fixture redirects `stages/_validation.py`'s
-`RUNS_DIR` to a throwaway `tmp_path` for every test in this whole suite, so nothing here ever
-touches a real runs folder.
+`conftest.py` sets `INTEGRATION_RUNNER_RUNS_DIR` to a throwaway folder before imports, and its
+autouse fixture redirects `stages/_validation.py`'s `RUNS_DIR` to a throwaway `tmp_path` for every
+test, so nothing here touches a real runs folder.
 
 - **`tests/test_pipeline.py`** — the state machine: `STAGES`, `validate()`, `IntegrationRun`'s
   `run_stage`/`rerun`/`advance_stage`/`add_constraint`/`review`/`record_review`/`record_event`/

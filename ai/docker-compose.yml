@@ -2,9 +2,7 @@ services:
   ai-layer:
     build:
       context: ./ai-layer
-    # The file with the LLM API keys: its own setting in the environment's
-    # config.env, and it must already exist. It holds secrets, so keep it out of
-    # git and readable by its owner only.
+    # LLM API keys. The file must exist.
     env_file:
       - path: ${MDDOAI_LLM_KEYS_FILE:?}
         required: true
@@ -95,10 +93,7 @@ services:
       # via execution-agent (see the third exception in ai/CLAUDE.md's
       # folder-boundaries section).
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # Every run's attempts and manifest: what this service keeps. The host
-      # folder is its own setting in the environment's config.env. Only this
-      # service writes to it, so Docker may create it, owned by root. The
-      # service is told where it is mounted, and works out nothing from it.
+      # Each run's attempts and manifest.
       - type: bind
         source: ${MDDOAI_RUNS_DIR:?}
         target: /data/runs
@@ -152,19 +147,13 @@ services:
       - PSM_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
       - ../meta_models:/meta_models:ro
-      # The prompt configs people edit in the UI: the live files, their history
-      # and the learned constraints, kept next to the starting config each one
-      # begins from. Read-write. The folder is its own setting and must already
-      # hold the starting configs, so Docker is told not to create it.
+      # Prompt configs edited in the UI. The folder must already hold the starting configs.
       - type: bind
         source: ${MDDOAI_PSM_PROMPTS_DIR:?}
         target: /data/prompts
         bind:
           create_host_path: false
-      # The files people upload as attachments: content added to this
-      # deployment, in a writable folder of its own, apart from the prompt
-      # configs, so an upload never needs write access to them. Only this
-      # service writes to it, so Docker may create it, owned by root.
+      # Files uploaded as attachments.
       - type: bind
         source: ${MDDOAI_PSM_ATTACHMENTS_DIR:?}
         target: /data/attachments
@@ -199,19 +188,13 @@ services:
       - ATL_AGENT_PROMPT_CONFIG_DIR=/data/prompts
       - ATL_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
-      # The prompt configs people edit in the UI: the live files, their history
-      # and the learned constraints, kept next to the starting config each one
-      # begins from. Read-write. The folder is its own setting and must already
-      # hold the starting configs, so Docker is told not to create it.
+      # Prompt configs edited in the UI. The folder must already hold the starting configs.
       - type: bind
         source: ${MDDOAI_ATL_PROMPTS_DIR:?}
         target: /data/prompts
         bind:
           create_host_path: false
-      # The files people upload as attachments: content added to this
-      # deployment, in a writable folder of its own, apart from the prompt
-      # configs, so an upload never needs write access to them. Only this
-      # service writes to it, so Docker may create it, owned by root.
+      # Files uploaded as attachments.
       - type: bind
         source: ${MDDOAI_ATL_ATTACHMENTS_DIR:?}
         target: /data/attachments
@@ -241,19 +224,13 @@ services:
       - ACCELEO_AGENT_PROMPT_CONFIG_DIR=/data/prompts
       - ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
     volumes:
-      # The prompt configs people edit in the UI: the live files, their history
-      # and the learned constraints, kept next to the starting config each one
-      # begins from. Read-write. The folder is its own setting and must already
-      # hold the starting configs, so Docker is told not to create it.
+      # Prompt configs edited in the UI. The folder must already hold the starting configs.
       - type: bind
         source: ${MDDOAI_ACCELEO_PROMPTS_DIR:?}
         target: /data/prompts
         bind:
           create_host_path: false
-      # The files people upload as attachments: content added to this
-      # deployment, in a writable folder of its own, apart from the prompt
-      # configs, so an upload never needs write access to them. Only this
-      # service writes to it, so Docker may create it, owned by root.
+      # Files uploaded as attachments.
       - type: bind
         source: ${MDDOAI_ACCELEO_ATTACHMENTS_DIR:?}
         target: /data/attachments
@@ -459,15 +436,7 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # The compiled output the validators produce (Ecore's generated classes,
-      # ATL's bytecode, Acceleo's modules): what this service keeps. Its host
-      # folder is its own setting, not shared with any other service: the run,
-      # stage and attempt a caller sends name the subfolder, and the path comes
-      # back in the response. Separate from the read-only main-build-output
-      # mount above (unrelated build artifacts), so a bad write here can never
-      # touch the real build output. Nothing deletes old output yet, a known
-      # limitation. Only this service writes to it, so Docker may create it,
-      # owned by root.
+      # Compiled output of the validators. Nothing deletes old output yet.
       - type: bind
         source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
         target: /data/output
@@ -540,32 +509,22 @@ services:
       - path: ./pipeline_generator/.env
         required: false
     volumes:
-      # The workspace: the folder the screen's "Input path" field works
-      # inside. Models are picked from it and nothing is written to it, so it
-      # is mounted read-only. It is the person's own folder, which they add
-      # models to, so it must exist before the first start: Docker would create
-      # a missing one owned by root, which they could not add models to. A web
-      # page cannot reach the person's disk itself, so the folder is mounted in.
+      # The person's models, read-only. It must exist first: Docker would
+      # create it owned by root.
       - type: bind
         source: ${MDDOAI_WORKSPACE_DIR:?}
         target: /workspace
         read_only: true
         bind:
           create_host_path: false
-      # The platforms this service generates for: each one's metamodel,
-      # transformation and template, and the SWArch-to-PIM transformation they
-      # all start with. Read on every request, so a changed file applies to the
-      # next generation. Read-only, since no route of this service writes them.
-      # The folder is its own setting and must already hold them.
+      # Read on every request, so a changed file applies to the next generation.
       - type: bind
         source: ${MDDOAI_PLATFORMS_DIR:?}
         target: /data/platforms
         read_only: true
         bind:
           create_host_path: false
-      # The pipelines generated so far, what "Your pipelines" lists, kept
-      # across restarts. Only this service writes to it, so Docker may create
-      # it, owned by root.
+      # What "Your pipelines" lists.
       - type: bind
         source: ${MDDOAI_PIPELINES_DIR:?}
         target: /data/pipelines
@@ -573,9 +532,7 @@ services:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
-      # How the Browse dialog names the workspace to the person: its host
-      # folder. The one place a host setting's value is passed into a
-      # container, by name, for display only; nothing is read from it.
+      # Shown in Browse. The only host setting passed into a container.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
       - GENERATOR_PIPELINES_DIR=/data/pipelines
       - GENERATOR_PLATFORMS_DIR=/data/platforms

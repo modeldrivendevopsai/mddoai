@@ -21,10 +21,8 @@ TEMPLATE="$SETUP_DIR/../../environments/templates/public/config.env"
 # checkout leaves them alone.
 CONFIG="$TEST_DIR/infra/environments/test/config.env"
 LLM_KEYS="$TEST_DIR/ai/ai-layer/.env"
-# The folders the Test environment's config.env names, all under the clone's
-# ai/data. The repository ships the starting platforms and prompt configs there,
-# and git ignores the rest, so an update leaves it alone. The workspace is made
-# for the developer, who adds models to it. Docker makes the others.
+# Every folder config.env names is under the clone's ai/data. Git ignores what is
+# not shipped there, so an update leaves it alone.
 DATA_DIR="$TEST_DIR/ai/data"
 WORKSPACE_DIR="$DATA_DIR/workspace"
 
@@ -43,9 +41,7 @@ if [[ ! -f "$CONFIG" ]]; then
   sed -i "s|^OAUTH2_COOKIE_SECRET=.*|OAUTH2_COOKIE_SECRET=$cookie_secret|" "$CONFIG"
   log "Created $CONFIG. Fill it in."
 fi
-# The folders the stack requires. Each is set only when missing or empty, so a
-# config.env made before they existed gets them too and one that already has a
-# value keeps it. Compose refuses to start without them.
+# Sets a setting only when it is missing or empty, so a value already there is kept.
 set_if_empty() {
   local name="$1" value="$2"
   grep -Eq "^${name}=[[:space:]\"']*[^[:space:]\"']" "$CONFIG" && return 0
@@ -68,8 +64,7 @@ set_if_empty MDDOAI_RUNS_DIR "$DATA_DIR/runs"
 set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$DATA_DIR/validator-output"
 set_if_empty MDDOAI_PIPELINES_DIR "$DATA_DIR/pipelines"
 set_if_empty MDDOAI_LLM_KEYS_FILE "$LLM_KEYS"
-# Docker would create a missing workspace owned by root, which the developer
-# could not add models to, so setup makes it for them.
+# Made here so Docker does not create it owned by root.
 install -d -o "$DEV_USER" -g "$DEV_USER" "$WORKSPACE_DIR"
 # The keys file is the one config.env names, wherever that is.
 keys_file="$(sed -n 's/^MDDOAI_LLM_KEYS_FILE=//p' "$CONFIG" | tail -1 | tr -d "\"'")"

@@ -93,9 +93,7 @@ concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.
 
 Configs live under `generation/` in the prompt folder (this service has only one real config name,
-`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, set by the required
-`ACCELEO_AGENT_PROMPT_CONFIG_DIR`, which has no default; in Docker it is the
-folder mounted from the prompts folder set in `config.env`):
+`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, the required `ACCELEO_AGENT_PROMPT_CONFIG_DIR`):
 
 - `default.default.json`: the immutable, git-committed shipped default, seeded from real
   constraints accumulated across GitLab and Bamboo before being carried into every later
@@ -148,10 +146,8 @@ local/non-Docker dev. Override it only if that file is reachable somewhere else,
 Compose read-only bind mount `ai/docker-compose.yml`'s `acceleo-agent` service entry sets it to.
 `VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service,
 defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and
-`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service does not start
-without them, and the error names the one that is missing. For a local run, point the first at
-your prompts folder (the repository ships a starting one in `ai/data/prompts/acceleo`) and
-the second at a writable folder of your own.
+`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or
+empty. For a local run, point them at `ai/data/prompts/acceleo` and a writable folder of your own.
 
 ## Run
 

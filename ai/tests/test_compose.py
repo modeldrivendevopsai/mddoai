@@ -1,7 +1,4 @@
-"""Checks the combined compose file against itself and against the
-environment templates, so that a path a service is told about, the mount that
-makes it exist, and the settings an operator fills in cannot silently
-disagree."""
+"""Checks the compose file against itself and the environment templates."""
 import re
 from pathlib import Path
 
@@ -18,17 +15,14 @@ LOCATION_SETTING = re.compile(r".*_(DIR|PATH)$")
 # The settings compose refuses to start without, written ${NAME:?}.
 REQUIRED_SETTING = re.compile(r"\$\{([A-Z0-9_]+):\?")
 
-# A host folder is mounted from exactly one required setting of its own, never
-# built from another setting's path and never shared between mounts.
+# A host folder is one required setting of its own, never shared.
 HOST_FOLDER_SETTING = re.compile(r"^\$\{(MDDOAI_[A-Z0-9_]+):\?\}$")
 
-# The folders people fill in before the first start, which must already hold content:
-# Docker must not create them. The stack only reads the workspace and the platforms.
+# Folders that must already hold content, so Docker must not create them.
 MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
 READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS)_DIR:\?\}$")
 
-# The one setting that carries a host setting's value into a container: the name
-# the Browse dialog shows for the workspace.
+# The one host setting passed into a container: the workspace name Browse shows.
 ALLOWED_HOST_VALUE_IN_ENVIRONMENT = {("pipeline-generator", "GENERATOR_WORKSPACE_LABEL"): "${MDDOAI_WORKSPACE_DIR:?}"}
 
 # How a service's code asks for a folder setting it cannot start without.
@@ -53,9 +47,7 @@ def _mount_targets(service: dict) -> list[str]:
         if isinstance(volume, dict):
             targets.append(volume["target"])
             continue
-        # Short syntax is "source:target[:mode]", and the source may hold colons of
-        # its own (a default, as in ${HOME:-...}), so the target is the first path
-        # that follows a colon.
+        # Short syntax is "source:target[:mode]"; the source may hold colons (${HOME:-...}).
         match = re.search(r":(/[^:]*)", volume)
         assert match, f"cannot read the target of the mount {volume!r}"
         targets.append(match.group(1))
@@ -134,9 +126,8 @@ def test_every_template_asks_for_every_setting_compose_requires(template):
 
 
 def _services_whose_code_requires_settings() -> dict[str, set[str]]:
-    """The settings each service's code cannot start without, found by reading
-    its source. A service's folder under ai/ is named like its compose service,
-    with underscores for hyphens."""
+    """The settings each service's code requires. A service's folder is named like its
+    compose service, with underscores for hyphens."""
     found = {}
     for folder in sorted(AI_DIR.iterdir()):
         if not folder.is_dir():

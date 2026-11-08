@@ -96,8 +96,7 @@ are read on every request, so a changed file applies to the next generation. Not
 to run a platform.
 
 These files belong to this service and are changed here. They do not follow `main/`, which is a
-separate codebase. The service has no platforms of its own: it reads the folder it is given on every request,
-so a changed file applies to the next generation without a rebuild. A missing folder, or one
+separate codebase. A changed file applies to the next generation. A missing folder, or one
 with no usable platform, is logged as an error on every request that needs it.
 
 ## How a pipeline is generated
@@ -159,10 +158,8 @@ checked.
 
 ## Configuration
 
-The folder settings have no default and are required: the service does not start without
-them, and the error names the one that is missing. Neither an unset nor an empty value is
-accepted. For a run outside Docker, export them in your shell (see `.env.example` for the names)
-with folders of your own. Every other setting has a default.
+The folder settings are required: the service stops at start if one is unset or empty. Outside
+Docker, export them in your shell (names in `.env.example`). Every other setting has a default.
 
 | Variable | Meaning |
 |---|---|
@@ -178,9 +175,7 @@ with folders of your own. Every other setting has a default.
 | `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
 | `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. `validator_agent`'s own `MAX_PIPELINE_BYTES` must be at least as large, or it refuses a pipeline this service accepted (the answer is then `413`). |
 
-In Docker, `ai/docker-compose.yml` sets the services' addresses, mounts the workspace folder
-(read-only), the platforms folder (read-only) and the pipeline history, and sets the folder
-settings to where they are mounted.
+In Docker, `ai/docker-compose.yml` sets the services' addresses and the folder settings, and mounts the folders.
 
 ## Run and test
 
@@ -195,9 +190,7 @@ PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
 
-The `export` lines are the required folder settings: nothing reads `.env` for you, so set
-them in the shell you start the service from. `pytest` needs none of them, it gives itself
-folders of its own.
+The `export` lines are the required folder settings. `pytest` needs none.
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
 platform through a real `execution_agent`, and skip themselves unless it answers. Inside this

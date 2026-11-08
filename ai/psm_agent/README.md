@@ -135,9 +135,8 @@ it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP 
 `main.py` via `app.include_router(...)`.
 
 Configs live under `{name}/` in the prompt folder, `name` one of `"generation"`/`"comparison"` (matching this
-service's two real LLM capabilities above), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, set by the required
-`PSM_PROMPT_CONFIG_DIR`, which has no default; in Docker it is a folder mounted from the prompts
-folder set in `config.env`):
+service's two real LLM capabilities above). The folder is `PROMPT_CONFIG_DIR` (`prompt_paths.py`), the
+required `PSM_PROMPT_CONFIG_DIR`:
 
 - `default.default.json`: the immutable, git-committed shipped default. Every `name` ships one,
   seeded from the real experiment with the most already-proven `learned_constraints` at the time
@@ -158,10 +157,9 @@ folder set in `config.env`):
   the shipped default included, never touches it, so a promoted constraint stays permanent through
   every one of them (see `generation_toolkit/README.md`'s own `learned_constraints.py` section).
 
-`ai/docker-compose.yml`'s `psm-agent` service bind-mounts this whole directory read-write from the
-prompts folder set in `config.env`, which must already hold the starting configs (the repository
-ships them in `ai/data/prompts/psm`), so a save through the running container lands there
-and `history/` sits beside it.
+`ai/docker-compose.yml` mounts this directory read-write from the prompts folder set in `config.env`, which
+must already hold the starting configs (shipped in `ai/data/prompts/psm`), so a save lands there and
+`history/` sits beside it.
 
 **Promoting a run's own live corrections into the permanent config**: `POST
 /prompt-config/{name}/learned-constraints` (and its `DELETE` counterpart) persist a change to
@@ -197,10 +195,8 @@ dev. Override it only if `meta_models/` is reachable somewhere else, e.g. the Do
 read-only bind mount `ai/docker-compose.yml`'s `psm-agent` service entry sets it to.
 `PIM_AGENT_URL`/`VALIDATOR_AGENT_URL` (both `ai/clients/` modules) point at those sibling
 services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` and
-`PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service does not start without
-them, and the error names the one that is missing. For a local run, point the first at
-your prompts folder (the repository ships a starting one in `ai/data/prompts/psm`) and the
-second at a writable folder of your own.
+`PSM_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or empty. For a local
+run, point them at `ai/data/prompts/psm` and a writable folder of your own.
 
 ## Run
 

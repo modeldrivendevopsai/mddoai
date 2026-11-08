@@ -33,10 +33,7 @@ def _required(name: str) -> str:
     return value
 
 
-# Where every compiled artifact the validators produce is kept. Whoever runs
-# the service sets it (in Docker, compose does, with a folder that outlives the
-# container), and the service does not start without it: no default, and not
-# the temp folder.
+# Where the compiled output is kept. Required: no default, and not the temp folder.
 OUTPUT_ROOT = Path(_required("VALIDATOR_OUTPUT_DIR"))
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
