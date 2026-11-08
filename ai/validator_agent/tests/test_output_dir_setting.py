@@ -1,7 +1,4 @@
-"""The output folder is a required setting: the service does not start without
-it, an empty value is refused too (it would be read as the current folder), and
-it never falls back to the temp folder. Checked in a fresh process, so no other
-test sees a reloaded module."""
+"""The validator stops at start if its output folder setting is unset or empty."""
 import os
 import subprocess
 import sys

@@ -38,8 +38,7 @@ GitLab Acceleo code-generation template
 (`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl`) — the
 master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH` and `ai/CLAUDE.md`'s folder-boundaries section for
-why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, documented exception.
+`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 

@@ -33,10 +33,8 @@ MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)
 # MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
 MAX_PIPELINE_BYTES = int(os.environ.get("MAX_PIPELINE_BYTES", str(512 * 1024)))
 
-# Every request model below that takes a run_id (it scopes where a real
-# compiled artifact lands - EcoreValidator's codegen output, AtlValidator's
-# .asm, AcceleoValidator's .emtl, all persisted under a shared, writable area
-# per ai/CLAUDE.md's folder-boundaries section) shares this same pattern and
+# Every request model below that takes a run_id (it scopes where the
+# compiled output of a check is kept) shares this same pattern and
 # validator, not three independent copies that could quietly drift out of
 # sync on a security-relevant check. stage and attempt (below) reuse the
 # exact same pattern and validator for the same reason: both are joined onto

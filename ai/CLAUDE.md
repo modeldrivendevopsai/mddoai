@@ -10,13 +10,13 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
   - `generation_toolkit/` holds the shared "build a prompt, call the LLM, validate, retry" code. A stage with a config-driven generation step uses it instead of rebuilding that loop. A stage with no validator omits `validate_fn` and gets one call.
   - `design-system/` and `orchestrator-types/` are shared frontend packages. They are local npm dependencies bundled into each consumer's build, not Module Federation remotes: every frontend piece needs them to render or compile, so a container would make them a single point of failure. `orchestrator-types` holds the type contract and nothing else, so a helper that several remotes use stays local to each.
   - `data/` holds the starting platforms and prompt configs and a layout for the host folders. `tests/` checks the compose file.
-- Frontend folders start with `ui-`. `ui-host/` is the shell: routing, `AppShell`, state and every backend call. Each `ui-remote-*/` is one Module Federation remote in its own container, loaded by `ui-host` at runtime through a federated import and never a source import. That is the frontend's version of "call over HTTP, never import internals".
+- Frontend folders start with `ui-`. `ui-host/` is the shell: routing, layout, state and backend calls. Each `ui-remote-*/` is one Module Federation remote in its own container, loaded by `ui-host` at runtime through a federated import and never a source import. That is the frontend's version of "call over HTTP, never import internals".
 - Services do not share what they generate. Each keeps it in folders of its own (see "Where files live" in [ai/README.md](./README.md)), and other services reach it through that service's API.
 - `ui-host/`, every `ui-remote-*/`, `design-system/` and `ai-layer/` never touch the Java/Eclipse code at the repository root.
-- A service reaches into `main/`, `meta_models/` or `code_generation/` in two ways only. Anything else needs explicit justification.
+- A service reaches into `main/`, `meta_models/` or `code_generation/` in these ways. Anything else needs explicit justification.
   - **Java behind a command line.** `validator_agent` owns the `*ValidatorCli.java` classes under `main/src/main/java/mddoai/validation/`. `execution_agent` owns the `*Executor.java` and `*ExecutorCli.java` classes under `main/src/main/java/mddoai/execution/`. Both go by name and path at any depth, so a new validator or executor needs no edit here. The service runs the `*Cli` class as a subprocess and reads JSON from stdout. It never links against Java code. The Java/Eclipse work owns everything else in those packages.
   - **Data behind a read-only mount.** A service that needs MDE data it does not own, such as a metamodel or a sample model instance, gets a read-only bind mount of just that data. It is never a copy in the image, so a change needs no rebuild, and it is never Java/Eclipse code. The mounts are in [docker-compose.yml](./docker-compose.yml).
- and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
+See [ai/README.md](./README.md) for how the services fit together and how to run the full stack. See each service's own `CLAUDE.md`/`README.md` for service-specific conventions (`ui-host/CLAUDE.md` has the frontend's design system and behavior spec; `ai-layer/README.md` has the backend's API and provider setup).
 
 ## Adding to `integration_runner`'s pipeline: stages and their tools
 
@@ -40,40 +40,6 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 
 **Extending an existing generic tool instead of adding a new one:** if the new capability is really a variant of an existing stage-agnostic action (e.g. a new kind of override for rerunning the current stage), extend that tool's own schema and its underlying endpoint's request model instead of creating a parallel tool. A REST endpoint already accepting a parameter and the chat tool's own schema exposing that same parameter to the LLM are two different things, both need updating — see `rerun_stage`'s own docstring in `orchestrator/tools/pipeline_control.py` for a real example of that gap and its fix.
 
-## Design System Skill
+## Design system
 
-When building or updating **user interfaces, components, or visual prototypes**, use the [MDDOAI Design System skill](/mddoai-design-system/project/SKILL.md).
-
-**Invoke with**: `/mddoai-design`
-
-**Use when**:
-- Building React components that need MDDOAI branding
-- Creating prototypes, mockups, or throwaway visual assets
-- Implementing production UI that follows brand guidelines
-- Designing pages, layouts, or interactive surfaces
-- Working with MDDOAI colors, typography, spacing, or assets
-
-**What it provides**:
-- Official brand colors, typography, and spacing tokens
-- Reusable React primitives (Button, Icon, Badge, Card, Input, Tabs, CodeBlock, etc.)
-- Ready-to-use UI kits for docs and marketing surfaces
-- Asset library (logos, fonts, icons)
-- Styling guidance and component examples
-
-**Key brand rules**:
-- Brand hue: violet `#684aeb` → `#a45eed` (use gradient sparingly)
-- Type: Space Grotesk (display), IBM Plex Sans (body), IBM Plex Mono (code)
-- Voice: second-person imperative, sentence case, **MDDOAI** always capitals, no emoji
-- Commands are first-class content — show in dark terminal CodeBlock surface
-- Semantic colors map to CI states: green=passed, amber=running, red=failed, blue=info
-
-## Working with the Skill
-
-The skill is self-guided:
-1. Invoke `/mddoai-design`
-2. Describe what you want to build or design
-3. The skill will generate HTML artifacts for prototypes or guide production code implementation
-4. For production: copy assets and follow brand rules
-5. For prototypes: use static HTML files for review
-
-See [mddoai-design-system/project/README.md](/mddoai-design-system/project/README.md) for full component documentation, color specs, and usage examples.
+For user interfaces, components or visual prototypes, use the [MDDOAI Design System skill](/mddoai-design-system/project/SKILL.md) with `/mddoai-design`. [mddoai-design-system/project/README.md](/mddoai-design-system/project/README.md) has the brand rules, components and assets.

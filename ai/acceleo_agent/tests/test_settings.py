@@ -1,7 +1,4 @@
-"""The prompt config and upload folders are required settings: the service does
-not start without either, and an empty value is refused too (it would be read
-as the current folder). Checked in a fresh process, so no other test sees a
-reloaded module."""
+"""A prompt agent stops at start if a folder setting is unset or empty."""
 import os
 import subprocess
 import sys

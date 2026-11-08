@@ -6,10 +6,6 @@ in either of those two: generation.py already imports from comparison.py
 (META_MODELS_DIR), so comparison.py importing this constant back from
 generation.py would be a real import cycle, a shared, tiny, dependency-free
 module avoids that without either module duplicating the same path logic.
-
-Both locations are required settings: whoever runs the service sets them (in
-Docker, compose does), and the service does not start without them. There is
-no default, and no folder worked out from where this code sits.
 """
 import os
 from pathlib import Path

@@ -4,10 +4,6 @@ prompt_paths.py, one real difference: REFERENCE_EXAMPLE_PATH points at the
 real master-example Acceleo template instead of an ATL transformation - see
 that constant's own comment for why this is a real file this service owns
 directly, needing no Docker bind mount.
-
-Both locations are required settings: whoever runs the service sets them (in
-Docker, compose does), and the service does not start without them. There is
-no default, and no folder worked out from where this code sits.
 """
 import os
 from pathlib import Path

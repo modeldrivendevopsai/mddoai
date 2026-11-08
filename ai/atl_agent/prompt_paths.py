@@ -5,10 +5,6 @@ master-example ATL file this service reads, a real file this service owns
 directly under its own reference_example/ (see that constant's own comment
 for why, unlike psm_agent's whole META_MODELS_DIR tree, this needs no
 Docker bind mount at all).
-
-Both locations are required settings: whoever runs the service sets them (in
-Docker, compose does), and the service does not start without them. There is
-no default, and no folder worked out from where this code sits.
 """
 import os
 from pathlib import Path

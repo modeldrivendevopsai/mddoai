@@ -22,7 +22,7 @@ HOST_FOLDER_SETTING = re.compile(r"^\$\{(MDDOAI_[A-Z0-9_]+):\?\}$")
 MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
 READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS)_DIR:\?\}$")
 
-# The one host setting passed into a container: the workspace name Browse shows.
+# The host setting passed into a container: the workspace name Browse shows.
 ALLOWED_HOST_VALUE_IN_ENVIRONMENT = {("pipeline-generator", "GENERATOR_WORKSPACE_LABEL"): "${MDDOAI_WORKSPACE_DIR:?}"}
 
 # How a service's code asks for a folder setting it cannot start without.
@@ -76,6 +76,10 @@ def _host_folder_mounts() -> list[tuple[str, str]]:
     ]
 
 
+def _mounts_matching(pattern) -> list[tuple[str, str]]:
+    return [(name, source) for name, source in _host_folder_mounts() if pattern.match(source)]
+
+
 def test_there_are_location_settings_to_check():
     assert _location_settings()
 
@@ -99,12 +103,6 @@ def test_there_are_host_folder_mounts_to_check():
 @pytest.mark.parametrize("service_name,source", _host_folder_mounts(), ids=lambda argument: str(argument))
 def test_a_host_folder_is_exactly_one_required_setting_of_its_own(service_name, source):
     assert HOST_FOLDER_SETTING.match(source), f"{service_name}: {source} is not a single ${{MDDOAI_..._DIR:?}} setting"
-
-
-def test_no_two_mounts_use_the_same_host_folder_setting():
-    settings = [HOST_FOLDER_SETTING.match(source).group(1) for _, source in _host_folder_mounts() if HOST_FOLDER_SETTING.match(source)]
-
-    assert len(settings) == len(set(settings)), f"shared: {sorted(s for s in set(settings) if settings.count(s) > 1)}"
 
 
 def _template_settings(template: Path) -> set[str]:
@@ -137,7 +135,6 @@ def _services_whose_code_requires_settings() -> dict[str, set[str]]:
             if {"tests", ".venv", "__pycache__", "node_modules"} & set(path.parts):
                 continue
             names.update(REQUIRED_IN_CODE.findall(path.read_text(encoding="utf-8")))
-        names.discard("name")
         if names:
             found[folder.name.replace("_", "-")] = names
     return found
@@ -167,19 +164,15 @@ def test_every_mount_from_a_host_setting_is_written_in_long_form():
     assert not short, f"write these as a mapping, so the checks can read them: {short}"
 
 
-@pytest.mark.parametrize("service_name,source", _host_folder_mounts(), ids=lambda argument: str(argument))
+@pytest.mark.parametrize("service_name,source", _mounts_matching(MUST_HOLD_CONTENT_SETTING), ids=lambda argument: str(argument))
 def test_a_folder_that_must_already_hold_content_is_never_created_by_docker(service_name, source):
-    if not MUST_HOLD_CONTENT_SETTING.match(source):
-        pytest.skip("Docker may create this folder")
     mount = next(v for v in _services()[service_name]["volumes"] if isinstance(v, dict) and v.get("source") == source)
 
     assert mount.get("bind", {}).get("create_host_path") is False, f"{service_name}: {source} must set create_host_path: false"
 
 
-@pytest.mark.parametrize("service_name,source", _host_folder_mounts(), ids=lambda argument: str(argument))
+@pytest.mark.parametrize("service_name,source", _mounts_matching(READ_ONLY_FOLDER_SETTING), ids=lambda argument: str(argument))
 def test_the_workspace_and_the_platforms_are_mounted_read_only(service_name, source):
-    if not READ_ONLY_FOLDER_SETTING.match(source):
-        pytest.skip("This folder is written by its service")
     mount = next(v for v in _services()[service_name]["volumes"] if isinstance(v, dict) and v.get("source") == source)
 
     assert mount.get("read_only") is True, f"{service_name}: {source} must be read_only"
@@ -238,3 +231,23 @@ def test_no_host_setting_is_used_for_two_things():
     settings += [HOST_FOLDER_SETTING.match(path).group(1) for _, path, _ in _env_file_entries() if HOST_FOLDER_SETTING.match(path)]
 
     assert len(settings) == len(set(settings)), f"shared: {sorted(s for s in set(settings) if settings.count(s) > 1)}"
+
+
+@pytest.mark.parametrize("service_name,required", sorted(_services_whose_code_requires_settings().items()), ids=lambda argument: str(argument))
+def test_each_required_location_is_the_target_of_its_own_host_folder_mount(service_name, required):
+    service = _services()[service_name]
+    targets = [
+        volume["target"]
+        for volume in service.get("volumes", [])
+        if isinstance(volume, dict) and volume.get("source", "").startswith("${MDDOAI_")
+    ]
+    values = {
+        setting: _environment(service).get(setting)
+        for setting in required
+        if (service_name, setting) not in ALLOWED_HOST_VALUE_IN_ENVIRONMENT
+    }
+
+    wrong = {setting: value for setting, value in values.items() if value not in targets}
+
+    assert not wrong, f"{service_name}: not the target of one of its host folder mounts: {wrong}"
+    assert len(set(values.values())) == len(values), f"{service_name}: two settings name the same folder: {values}"

@@ -1,9 +1,11 @@
-# Everything here is ignored except what the repository ships: the platform files
-# and the starting prompt configs. What the stack generates, and what people add
-# (models, uploads, edits to a prompt config), stays out of git.
+# Git tracks the platform files and the starting prompt configs. Everything else
+# here, such as models, uploads, runs and edits to a prompt config, is ignored.
 *
 !.gitignore
-!README.md
+!/README.md
 !*/
-!platforms/**
+!platforms/**/*.ecore
+!platforms/**/*.atl
+!platforms/**/*.mtl
+!platforms/**/*.json
 !prompts/*/*/default.default.json

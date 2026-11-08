@@ -7,11 +7,8 @@ from pathlib import Path
 
 import pytest
 
-# Before the service's modules are imported, which read their settings once.
-# Both folders are required settings. The prompt config folder is a copy of the
-# starting one the repository ships, because several tests exist to prove the
-# real default config works and none of them may write into the committed files. Uploads go to a folder of their own, never one a real
-# stack was given.
+# Required settings, set before the service modules read them. The prompt folder is a
+# copy of the shipped one, so no test writes into the committed files.
 _AI_DIR = Path(__file__).resolve().parents[2]
 _session_dir = Path(tempfile.mkdtemp(prefix="psm-agent-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)

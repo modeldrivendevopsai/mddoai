@@ -1,7 +1,4 @@
-"""The runs folder is a required setting: the service does not start without
-it, an empty value is refused too (it would be read as the current folder), and
-it never picks a folder of its own. Checked in a fresh process, so no other test
-sees a reloaded module."""
+"""The runner stops at start if its runs folder setting is unset or empty."""
 import os
 import subprocess
 import sys

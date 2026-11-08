@@ -26,8 +26,7 @@ The one real, pre-existing repo file this service reads is `main/`'s own real, w
 `pim2gitlabmodel.atl` (a real PIM→GitLab transformation, `main/src/main/resources/transformations/pim2psm/`) —
 the master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH` and `ai/CLAUDE.md`'s folder-boundaries section for
-why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, documented exception.
+`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 

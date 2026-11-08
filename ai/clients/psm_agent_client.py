@@ -38,8 +38,7 @@ def run_psm(
     - forwarded all the way through to generation.py's own real
     validator-agent call, so a generation-mode call's real compiled Ecore
     classes are kept under that stage and attempt in validator-agent's own
-    folder (see stages/psm/agent.py's own reserve_attempt_dir() call, the
-    same pattern stages/atl/agent.py and stages/acceleo/agent.py use).
+    folder.
     mock mirrors docs_stage's own per-run "Mock" override - see
     psm_agent's generation.py generate() docstring for exactly what it skips."""
     response = httpx.post(

@@ -22,15 +22,13 @@ MAX_FILENAME_CHARS = 255
 
 
 def _required(name: str) -> str:
-    """The value of a required setting. Unset or empty stops the service: an
-    empty folder setting would otherwise be read as the current folder."""
+    """A required setting. Unset or empty stops the service."""
     value = os.environ[name].strip()
     if not value:
         raise KeyError(f"{name} is set but empty")
     return value
 
 
-# Required folders: no default, and none worked out from another.
 
 # The folder models are picked from.
 WORKSPACE_DIR = Path(_required("GENERATOR_WORKSPACE_DIR"))

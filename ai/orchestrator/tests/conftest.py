@@ -8,11 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-# Before integration_runner's modules are imported (some tests run it in
-# process), which read their settings once. Its runs folder is a required
-# setting, so the tests give it a folder of their own, always, and never one
-# a real stack was given. Every test also redirects it to its own (see the
-# autouse fixture below).
+# The required runs setting of the in-process integration_runner, set before it is imported.
 _session_dir = Path(tempfile.mkdtemp(prefix="orchestrator-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")

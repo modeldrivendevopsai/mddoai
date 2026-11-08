@@ -6,10 +6,7 @@ from pathlib import Path
 
 import pytest
 
-# Before the service's modules are imported, which read their settings once.
-# The runs folder is a required setting, so the tests give it a folder of its
-# own, always, and never one a real stack was given. Every test also
-# redirects it to its own (see _isolated_validation_runs_dir).
+# The required runs setting, set before the service modules read it.
 _session_dir = Path(tempfile.mkdtemp(prefix="integration-runner-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")

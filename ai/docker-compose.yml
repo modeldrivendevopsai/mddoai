@@ -426,7 +426,7 @@ services:
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # Compiled output of the validators. Nothing deletes old output yet.
+      # Compiled output of the validators. Nothing deletes old output.
       - type: bind
         source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
         target: /data/output
@@ -492,7 +492,7 @@ services:
         required: false
     volumes:
       # The person's models, read-only. It must exist first: Docker would
-      # create it owned by root.
+      # create it, usually owned by root.
       - type: bind
         source: ${MDDOAI_WORKSPACE_DIR:?}
         target: /workspace
@@ -514,7 +514,7 @@ services:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
       - GENERATOR_WORKSPACE_DIR=/workspace
-      # Shown in Browse. The only host setting passed into a container.
+      # Shown in Browse.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
       - GENERATOR_PIPELINES_DIR=/data/pipelines
       - GENERATOR_PLATFORMS_DIR=/data/platforms

@@ -44,12 +44,7 @@ class GenerateRequest(BaseModel):
     constraints: list[str] | None = None
     model: str | None = None
     run_id: str | None = None
-    # Names the calling stage ("acceleo") and its own reserved attempt,
-    # forwarded through to generation.py's real validator-agent call so a
-    # call's compiled .emtl module is kept under that stage and attempt
-    # in validator-agent's own folder - see validator_agent's own main.py for the actual
-    # path-safety validation on these values (this service never touches
-    # the filesystem with them directly, only passes them through).
+    # The calling stage and its reserved attempt, passed to validator-agent to scope its output.
     stage: str | None = None
     attempt: str | None = None
     # The per-run "Mock" override (same opt-in as psm_agent's own) - skips

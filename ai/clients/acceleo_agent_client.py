@@ -36,8 +36,7 @@ def run_acceleo(
     calling stage ("acceleo") and its own reserved attempt -
     forwarded all the way through to generation.py's own real
     validator-agent call, so a call's real compiled .emtl module is kept
-    under that stage and attempt in validator-agent's own folder (see
-    stages/acceleo/agent.py's own reserve_attempt_dir() call). mock mirrors docs_stage's own per-run "Mock" override - see
+    under that stage and attempt in validator-agent's own folder. mock mirrors docs_stage's own per-run "Mock" override - see
     acceleo_agent's generation.py generate() docstring for exactly what it
     skips. atl_artifact, when given, is this run's own already-generated
     ATL, forwarded so validator-agent can actually RUN the candidate

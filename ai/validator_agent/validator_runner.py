@@ -25,8 +25,7 @@ LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddo
 
 
 def _required(name: str) -> str:
-    """The value of a required setting. Unset or empty stops the service: an
-    empty folder setting would otherwise be read as the current folder."""
+    """A required setting. Unset or empty stops the service."""
     value = os.environ[name].strip()
     if not value:
         raise KeyError(f"{name} is set but empty")
@@ -136,8 +135,7 @@ def _scoped_output_env(
 ) -> dict[str, str] | None:
     """Overrides VALIDATOR_OUTPUT_DIR to a per-run_id/per-stage/per-attempt
     subfolder, for a call that's about to persist a real compiled artifact
-    there (Ecore's codegen mode, ATL, Acceleo - see each *ValidatorCli's own
-    OUTPUT_ROOT), so concurrent runs' compiled output never collides, and so
+    there (Ecore's codegen mode, ATL, Acceleo), so concurrent runs' compiled output never collides, and so
     one run's attempts of different stages never mix. The output stays in
     this service's own output folder: the caller's run_id, stage and attempt
     only name the subfolder, and the path comes back in the response.

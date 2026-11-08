@@ -64,7 +64,7 @@ set_if_empty MDDOAI_RUNS_DIR "$DATA_DIR/runs"
 set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$DATA_DIR/validator-output"
 set_if_empty MDDOAI_PIPELINES_DIR "$DATA_DIR/pipelines"
 set_if_empty MDDOAI_LLM_KEYS_FILE "$LLM_KEYS"
-# Made here so Docker does not create it owned by root.
+# Made here, because Docker would create it, usually owned by root.
 install -d -o "$DEV_USER" -g "$DEV_USER" "$WORKSPACE_DIR"
 # The keys file is the one config.env names, wherever that is.
 keys_file="$(sed -n 's/^MDDOAI_LLM_KEYS_FILE=//p' "$CONFIG" | tail -1 | tr -d "\"'")"
