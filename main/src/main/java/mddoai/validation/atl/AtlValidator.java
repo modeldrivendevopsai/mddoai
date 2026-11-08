@@ -27,17 +27,8 @@ import java.util.List;
  */
 public final class AtlValidator {
 
-    // The env var real Docker deployments set (see ai/docker-compose.yml's
-    // validator-agent service) to point at a real, fixed PIM model instance
-    // - main/'s own real Java test fixture (see ai/CLAUDE.md's "second
-    // exception" for why a real model instance belongs under main/'s test
-    // resources, read-only, even for an ai/ service, and why validator_agent
-    // now bind-mounts this exact file the same narrow way integration_runner
-    // already does for the generation stage). ATL's source metamodel never
-    // varies by target platform - it's always this project's own fixed PIM
-    // - so one shared real instance is enough to smoke-test ANY future
-    // platform's generated ATL, not just the one it happened to be authored
-    // against.
+    // The env var that names a fixed sample PIM instance. ATL's source metamodel is always
+    // the project's own PIM, so one instance smoke-tests the generated ATL of any platform.
     private static final String PIM_SAMPLE_INSTANCE_PATH_ENV = "ATL_SMOKE_TEST_PIM_INSTANCE_PATH";
 
     private AtlValidator() {

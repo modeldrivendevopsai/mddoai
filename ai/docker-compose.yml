@@ -79,19 +79,9 @@ services:
       - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
       - INTEGRATION_RUNNER_RUNS_DIR=/data/runs
     volumes:
-      # The project's own real, git-committed PIM metamodel - a single real
-      # file, not a whole meta_models/ tree (narrower than psm-agent's own
-      # META_MODELS_DIR mount below, matching atl-agent's/acceleo-agent's own
-      # single-file REFERENCE_EXAMPLE_PATH convention instead), since this is
-      # the one real file stages/pim/agent.py ever needs. See
-      # ai/CLAUDE.md's folder-boundaries section for why this read is
-      # licensed (real MDE *data*, not Java/Eclipse *code*).
+      # The PIM metamodel, read-only.
       - ../meta_models/com.mddoai.metamodel.pim/model/pimMM.ecore:/pim_metamodel.ecore:ro
-      # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's
-      # own PIM concepts), the one real file stages/generation/agent.py
-      # needs as its real input to the real ATL/Acceleo execution it runs
-      # via execution-agent (see the third exception in ai/CLAUDE.md's
-      # folder-boundaries section).
+      # A sample PIM instance: the input of the generation stage's ATL and Acceleo run.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
       # Each run's attempts and manifest.
       - type: bind
@@ -440,16 +430,8 @@ services:
       - type: bind
         source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
         target: /data/output
-      # The same real, rich PIM model instance integration-runner's own
-      # generation-stage mount above already uses (see its own comment) -
-      # AtlValidator's/AcceleoValidator's own real execution smoke test reads
-      # it too now (given a real target metamodel), so a generated ATL/
-      # Acceleo pair that compiles but crashes at runtime (e.g. instantiating
-      # an abstract classifier) gets caught during atl_stage's/acceleo_stage's
-      # own retry loop, not only later at the pipeline's final execution
-      # stage with no retries left. Extends the existing "second exception" in
-      # ai/CLAUDE.md's folder-boundaries section to this service too, for the
-      # identical reason (a real, read-only MDE data file, not code).
+      # The same sample PIM instance. The validators run a generated ATL/Acceleo pair
+      # against it, so a pair that compiles but crashes at runtime fails in the retry loop.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
