@@ -85,7 +85,7 @@ def test_rewriting_replaces_the_records(journal):
 
 def test_a_failed_rewrite_leaves_the_old_file_whole_and_no_temp_file(journal, monkeypatch):
     journal.append([{"a": 1}])
-    monkeypatch.setattr("journal.os.replace", lambda *args: (_ for _ in ()).throw(OSError("full")))
+    monkeypatch.setattr("journal.file.os.replace", lambda *args: (_ for _ in ()).throw(OSError("full")))
 
     with pytest.raises(OSError):
         journal.rewrite([{"b": 2}])

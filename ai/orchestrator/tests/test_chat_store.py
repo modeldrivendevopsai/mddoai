@@ -60,7 +60,7 @@ def test_what_is_added_to_a_chat_is_written_to_its_own_journal(store):
 
     chat.add([{"type": "user_message", "text": "hi"}], raw_seen=3)
 
-    assert _records(store) == [{"raw_seen": 3}, {"event": {"type": "user_message", "text": "hi"}}]
+    assert _records(store) == [{"state": {"raw_seen": 3}}, {"event": {"type": "user_message", "text": "hi"}}]
 
 
 def test_adding_writes_only_what_is_new(store):
@@ -71,7 +71,7 @@ def test_adding_writes_only_what_is_new(store):
     chat.add([{"type": "message", "text": "short"}])
 
     assert (store._directory / "r1.jsonl").stat().st_size - before < 200
-    assert [r for r in _records(store) if "raw_seen" in r] == [{"raw_seen": 1}]
+    assert [r for r in _records(store) if "state" in r] == [{"state": {"raw_seen": 1}}]
 
 
 def test_a_chat_comes_back_as_it_was(store, tmp_path):
@@ -100,7 +100,7 @@ def test_the_disk_failing_is_logged_and_the_chat_goes_on(store, monkeypatch, cap
         chat.add([{"type": "message"}])
 
     assert len(chat.events) == 1
-    assert "could not keep the chat" in caplog.text
+    assert "could not keep chat" in caplog.text
 
 
 def test_after_an_add_that_failed_part_way_the_next_save_writes_the_chat_whole_so_no_event_is_kept_twice(store, monkeypatch):
@@ -201,7 +201,7 @@ def test_events_that_are_mirrored_but_not_narrated_are_kept_too(tmp_path):
         _restart(tmp_path)
         after = chat_log.get_events("r1")["events"]
 
-    assert kept == [{"raw_seen": 1}, {"event": raw["events"][0]}]
+    assert kept == [{"state": {"raw_seen": 1}}, {"event": raw["events"][0]}]
     assert [e["type"] for e in after] == ["constraint_added"]
 
 
@@ -230,7 +230,8 @@ def test_a_chat_cut_short_by_a_crash_loses_only_its_last_line_and_is_written_who
 
 
 @pytest.mark.parametrize("content", [
-    "{not json\n", "[]\n", '{"mystery": 1}\n', '{"event": 5}\n', '{"raw_seen": "3"}\n', '{"raw_seen": true}\n', '{"raw_seen": -1}\n',
+    "{not json\n", "[]\n", '{"mystery": 1}\n', '{"event": 5}\n', '{"raw_seen": 3}\n', '{"state": 5}\n',
+    '{"state": {"raw_seen": "3"}}\n', '{"state": {"raw_seen": true}}\n', '{"state": {"raw_seen": -1}}\n',
 ])
 def test_a_file_that_is_not_a_saved_chat_is_skipped_and_the_others_still_come_back(store, content, caplog):
     good = _chat(store, "good")
@@ -274,7 +275,7 @@ def test_a_journal_that_vanished_between_saves_is_written_whole_again(store):
 
     chat.add([{"type": "b"}])
 
-    assert _records(store) == [{"raw_seen": 1}, {"event": {"type": "a"}}, {"event": {"type": "b"}}]
+    assert _records(store) == [{"state": {"raw_seen": 1}}, {"event": {"type": "a"}}, {"event": {"type": "b"}}]
 
 
 @pytest.mark.parametrize("run_id", ["../evil", "a/b", "", "x" * 65, None])
@@ -297,7 +298,7 @@ def test_a_disk_that_stays_broken_is_logged_once(store, monkeypatch, caplog):
         for _ in range(5):
             chat.add([{"type": "a"}])
 
-    assert caplog.text.count("could not keep the chat") == 1
+    assert caplog.text.count("could not keep chat") == 1
 
 
 def test_one_thread_at_a_time_adds_to_a_chat():

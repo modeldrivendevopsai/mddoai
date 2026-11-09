@@ -27,15 +27,13 @@ def _registry(monkeypatch):
     runs._default = original_default
     runs._runs.clear()
     runs._runs.update(original_runs)
-    run_store._on_disk.clear()
-    run_store._failing.clear()
+    runs._store = run_store.RunStore()
 
 
 def _restart():
     """What a restart leaves in memory: one blank run and nothing else."""
     runs._runs.clear()
-    run_store._on_disk.clear()
-    run_store._failing.clear()
+    runs._store = run_store.RunStore()
     runs._default = runs._new_run()
     runs._runs[runs._default.run_id] = runs._default
 
@@ -176,7 +174,7 @@ def test_a_restored_run_goes_on_adding_to_the_same_journal():
 
 
 def test_a_failed_first_save_leaves_no_file(monkeypatch):
-    monkeypatch.setattr("journal.os.replace", lambda *args: (_ for _ in ()).throw(OSError("full")))
+    monkeypatch.setattr("journal.file.os.replace", lambda *args: (_ for _ in ()).throw(OSError("full")))
     run = runs._new_run()
 
     run.record_event("call_started", "docs", {})

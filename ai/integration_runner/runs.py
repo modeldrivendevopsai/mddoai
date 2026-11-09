@@ -33,9 +33,14 @@ from integration_runner.pipeline import STAGES, IntegrationRun
 _registry_lock = threading.RLock()
 
 
+# Keeps every run on disk. Forgets what it has kept when replaced, as the
+# tests do to simulate a restart.
+_store = run_store.RunStore()
+
+
 def _new_run() -> IntegrationRun:
     """A blank run that keeps itself on disk (see run_store)."""
-    return IntegrationRun(on_change=run_store.save_quietly)
+    return IntegrationRun(on_change=_store.save_quietly)
 
 
 _default = _new_run()
@@ -113,14 +118,19 @@ def list_runs() -> list[dict]:
     ]
 
 
-def get_run_events(run_id: str) -> dict | None:
-    """Same shape as the live /events response, for a specific (possibly
-    past) run rather than always _default. None if run_id is unknown."""
+def get_run_events(run_id: str, since_index: int = 0) -> dict | None:
+    """What /events answers for a run, the current one or a past one: its
+    events from since_index on, where they start (offset), and how many the run
+    has in all (total). None if run_id is unknown."""
     run = get_run(run_id)
     if run is None:
         return None
+    events = run.events
+    total = len(events)
     return {
-        "events": run.events,
+        "offset": since_index,
+        "total": total,
+        "events": events[since_index:total],
         "current_stage": run.current_stage,
         "busy": run.busy,
         "model": run.model,
@@ -325,7 +335,7 @@ def load_saved() -> None:
     alone."""
     global _default
     with _registry_lock:
-        restored = [run for run in run_store.load_all(run_store.save_quietly) if run.run_id not in _runs]
+        restored = [run for run in _store.load_all(_store.save_quietly) if run.run_id not in _runs]
         if not restored:
             return
         for run in restored:
