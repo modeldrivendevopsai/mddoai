@@ -45,7 +45,7 @@ publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_ge
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
-- **`run_store.py`**: keeps each run on disk, as `runs/<run_id>/run.json`, and reads them back.
+- **`run_store.py`**: keeps each run on disk, as the journal `runs/<run_id>/run.jsonl`, and reads them back.
 - **`publishing.py`**: publishes a completed run's platform to `pipeline_generator`. It takes the
   three files from the recorded events of the attempt behind the approved pipeline, not from the
   run's latest context, which a later attempt can have changed.
@@ -294,11 +294,12 @@ against an existing `.ecore`). `stages/_validation.py`:
 `runs/` is the folder `INTEGRATION_RUNNER_RUNS_DIR` names (required, no default). In Docker it is the runs
 folder set in `config.env`, see [ai/README.md](../README.md#where-files-live).
 
-**`runs/<run_id>/run.json`** is the run itself, everything needed to carry on with it. It is rewritten
-whole after each change. When the service starts it loads every run in the folder, and the one with the
-latest activity becomes the current run. A stage that was running when the service stopped comes back as
-failed, and can be retried. A file that is not a saved run is skipped with a log line. If the disk fails,
-that is logged and the run goes on in memory.
+**`runs/<run_id>/run.jsonl`** is the run itself, everything needed to carry on with it. It only grows:
+each save adds the events recorded since the last one, and the parts of the run's state that changed.
+When the service starts it loads every run in the folder, and the one with the latest activity becomes
+the current run. A stage that was running when the service stopped comes back as failed, and can be
+retried. A journal that is not a saved run is skipped with a log line. If the disk fails, that is logged
+and the run goes on in memory. The file format comes from the shared `journal` package.
 
 **`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
 attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
