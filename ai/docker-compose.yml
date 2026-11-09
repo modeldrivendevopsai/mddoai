@@ -19,12 +19,8 @@ services:
       # From the environment's config.env.
       - "${AI_LAYER_PORT:?}:8000"
 
-  # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
-  # Python packages (orchestrator/, clients/) into one container. Before
-  # integration_runner became its own service (see below), this also
-  # assembled integration_runner/ and serialization_agent/ into the same
-  # image — orchestrator/Dockerfile shrinking to one sibling copy is a real
-  # signal that split reduced coupling, not just relocated it.
+  # Build context is ai/ (not ./orchestrator): the image holds this service and
+  # the shared packages it uses (clients/, journal/) in one container.
   orchestrator:
     build:
       context: .
@@ -32,6 +28,11 @@ services:
     env_file:
       - path: ./orchestrator/.env
         required: false
+    volumes:
+      # Each run's chat.
+      - type: bind
+        source: ${MDDOAI_CHATS_DIR:?}
+        target: /data/chats
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
       # accept_message()'s own tool-routing decision, see assistant.py), and
@@ -43,6 +44,7 @@ services:
       # RETRIEVAL_URL isn't needed here.
       - AI_LAYER_URL=http://ai-layer:8000
       - INTEGRATION_RUNNER_URL=http://integration-runner:8050
+      - ORCHESTRATOR_CHATS_DIR=/data/chats
     depends_on:
       ai-layer:
         condition: service_healthy

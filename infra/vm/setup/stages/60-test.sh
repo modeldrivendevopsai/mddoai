@@ -61,6 +61,7 @@ for agent in psm atl acceleo; do
   set_if_empty "MDDOAI_${upper}_ATTACHMENTS_DIR" "$DATA_DIR/attachments/$agent"
 done
 set_if_empty MDDOAI_RUNS_DIR "$DATA_DIR/runs"
+set_if_empty MDDOAI_CHATS_DIR "$DATA_DIR/chats"
 set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$DATA_DIR/validator-output"
 set_if_empty MDDOAI_PIPELINES_DIR "$DATA_DIR/pipelines"
 set_if_empty MDDOAI_LLM_KEYS_FILE "$LLM_KEYS"

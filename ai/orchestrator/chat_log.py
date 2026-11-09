@@ -88,20 +88,41 @@ class ChatLog:
     integration_runner reported, plus the human's own messages and replies
     from accept_message(), one ordered, append-only list."""
 
-    def __init__(self):
+    def __init__(self, run_id: str | None = None, store=None):
+        self.run_id = run_id
         self.events: list[dict] = []
         self.raw_seen: int = 0   # how many of integration_runner's raw events are already reflected here
-        self.lock = threading.Lock()
+        # Reentrant, so add() can be called by a caller that already holds it
+        # to read the chat and add to it in one step.
+        self.lock = threading.RLock()
         self.narrating = False   # true while a background thread is writing a new comment in
+        # A chat_store.ChatStore, or None for a chat that is not kept on disk.
+        self._store = store
         # The most recently started narration thread, if any. Not used by
         # the API itself (a real client polls GET /events instead), only
         # exposed so tests can deterministically join() it rather than
         # sleep/poll — same idiom IntegrationRun._last_thread already uses.
         self._last_thread: threading.Thread | None = None
 
-    def append(self, event: dict) -> None:
+    @classmethod
+    def restore(cls, run_id: str, events: list[dict], raw_seen: int, store) -> "ChatLog":
+        """A chat as it was kept."""
+        chat = cls(run_id, store)
+        chat.events = events
+        chat.raw_seen = raw_seen
+        return chat
+
+    def add(self, events: list[dict], raw_seen: int | None = None) -> None:
+        """Adds turns to the end of the chat, and keeps the chat on disk."""
         with self.lock:
-            self.events.append(event)
+            self.events.extend(events)
+            if raw_seen is not None:
+                self.raw_seen = raw_seen
+            if self._store is not None:
+                self._store.save_quietly(self)
+
+    def append(self, event: dict) -> None:
+        self.add([event])
 
 
 class ReplyInProgressError(Exception):
@@ -130,7 +151,7 @@ def begin_reply(chat: ChatLog, message: dict) -> list[dict]:
     try:
         with chat.lock:
             history = summarize_history(chat.events)
-            chat.events.append(message)
+            chat.add([message])
     except BaseException:
         _reply_slot.release()
         raise
@@ -143,29 +164,35 @@ def end_reply(chat: ChatLog, message: dict, outcome: list[dict], new_run_chat: C
     in new_run_chat too. Only then is the reply marked as done, so a poll
     never sees "not replying" without the answer, in either run."""
     try:
-        with chat.lock:
-            chat.events.extend(outcome)
+        chat.add(outcome)
         if new_run_chat is not None:
-            with new_run_chat.lock:
-                new_run_chat.events.extend([message, *outcome])
+            new_run_chat.add([message, *outcome])
     finally:
         _reply_slot.release()
 
 
-# One chat log per run, keyed by integration_runner's real run_id, kept for
-# the life of this process. Lost on an orchestrator restart even though
-# integration_runner keeps the run itself. get_chat_log() below handles a run
-# this process has never seen: worst case is a burst of re-narration on first
-# contact, not a crash.
+# One chat log per run, keyed by integration_runner's real run_id. They are
+# kept on disk through the store set by load_saved(), and come back after a
+# restart. A run with no saved chat gets a fresh one, and its events are
+# narrated from the first.
 _chat_logs: dict[str, ChatLog] = {}
+_store = None
+
+
+def load_saved(store) -> None:
+    """Keeps every chat from now on in `store` (a chat_store.ChatStore), and
+    brings back the chats it holds. Runs once, at service start."""
+    global _store
+    _store = store
+    for run_id, chat in store.load_all().items():
+        _chat_logs.setdefault(run_id, chat)
 
 
 def get_chat_log(run_id: str) -> ChatLog:
-    """The real ChatLog for a run, creating one if this process hasn't seen
-    it yet. Used by assistant.py to record a human's message and its answer
+    """The real ChatLog for a run, creating one if there is none. Used by assistant.py to record a human's message and its answer
     without going through get_events()'s integration_runner round-trip
     first."""
-    return _chat_logs.setdefault(run_id, ChatLog())
+    return _chat_logs.setdefault(run_id, ChatLog(run_id, _store))
 
 
 def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict]) -> None:
@@ -221,8 +248,7 @@ def get_events(run_id: str | None = None, since_index: int = 0) -> dict:
     chat = get_chat_log(raw["run_id"])
     with chat.lock:
         new_raw = raw["events"][chat.raw_seen:]
-        chat.raw_seen = len(raw["events"])
-        chat.events.extend(new_raw)
+        chat.add(new_raw, raw_seen=len(raw["events"]))
         # Read under chat.lock: end_reply() records the answer under this
         # lock before it frees the slot, so "not replying" never comes
         # without the answer.

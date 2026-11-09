@@ -52,7 +52,7 @@ Every environment on the same machine reads the same `~/.claude` folder (see `ai
 Each folder a service keeps files in, and each folder of content people maintain, is its own required setting in the environment's `config.env`. A service stops at start if one of its settings is missing or empty.
 
 - **You fill in:** the models, the platforms and each prompt agent's prompt configs. These folders must already exist, and the platforms and prompt configs must already hold their content.
-- **Docker creates:** the uploads, the integration runs, the validators' compiled output and the pipelines.
+- **Docker creates:** the uploads, the integration runs, their chats, the validators' compiled output and the pipelines.
 - **The LLM keys file** is the setting `MDDOAI_LLM_KEYS_FILE`. It must exist. Keep it out of git and readable by you only.
 
 `ai/data` ships the starting platforms and prompt configs and a layout to follow (see [data/README.md](./data/README.md)).

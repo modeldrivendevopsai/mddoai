@@ -109,7 +109,7 @@ the Test environment.
   - A new tunnel token comes from the tunnel's page in the Cloudflare dashboard, and a new client secret from the OAuth app's page on GitHub.
   - Make a new cookie secret with `openssl rand -base64 32 | tr -- '+/' '-_'`. It logs everyone out.
   - For the LLM keys, edit the file `MDDOAI_LLM_KEYS_FILE` names the same way.
-- **Files in this folder changed:** `compose.yaml` and `gateway.yaml` are read from the clone, so they follow `main`. A new setting in `templates/public/config.env` must be added to `config.env` by hand.
+- **Files in this folder changed:** `compose.yaml` and `gateway.yaml` are read from the clone, so they follow `main`. A new setting in `templates/public/config.env` must be in `config.env` before the commit that needs it reaches `main`: re-run setup, which fills in a missing folder setting, or add it by hand. Until then the updater cannot build that commit and stays on the previous one.
 - **Add or remove a user:** change `GITHUB_USERS` in `config.env`, like any other setting.
   - `oauth2-proxy` checks the list at login only, so someone removed keeps access until their cookie expires (`OAUTH2_COOKIE_EXPIRE`). To end it sooner, make a new cookie secret once the removal is running.
   - Access is by username. When someone on the list renames or deletes their GitHub account, remove the old name at once: GitHub lets anyone claim a freed name.

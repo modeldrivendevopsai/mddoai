@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -5,6 +7,8 @@ from pydantic import BaseModel, Field
 
 import assistant
 import chat_log
+import settings
+from chat_store import ChatStore
 from clients import ai_layer_client, integration_runner_client
 from clients.integration_runner_client import IntegrationRunnerError
 
@@ -14,7 +18,14 @@ from clients.integration_runner_client import IntegrationRunnerError
 # startup, not as a side effect of importing assistant.py elsewhere.
 chat_log.set_reactor(assistant.react_to_event)
 
-app = FastAPI(title="MDDOAI Orchestrator")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    chat_log.load_saved(ChatStore(settings.CHATS_DIR))
+    yield
+
+
+app = FastAPI(title="MDDOAI Orchestrator", lifespan=lifespan)
 
 
 @app.exception_handler(IntegrationRunnerError)

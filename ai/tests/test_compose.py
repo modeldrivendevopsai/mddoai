@@ -8,6 +8,7 @@ import yaml
 AI_DIR = Path(__file__).resolve().parents[1]
 COMPOSE_FILE = AI_DIR / "docker-compose.yml"
 TEMPLATES_DIR = AI_DIR.parent / "infra" / "environments" / "templates"
+TEST_SETUP_SCRIPT = AI_DIR.parent / "infra" / "vm" / "setup" / "stages" / "60-test.sh"
 
 # The settings that name a place inside a container.
 LOCATION_SETTING = re.compile(r".*_(DIR|PATH)$")
@@ -251,3 +252,17 @@ def test_each_required_location_is_the_target_of_its_own_host_folder_mount(servi
 
     assert not wrong, f"{service_name}: not the target of one of its host folder mounts: {wrong}"
     assert len(set(values.values())) == len(values), f"{service_name}: two settings name the same folder: {values}"
+
+
+def test_the_test_setup_script_fills_in_every_host_setting_compose_requires():
+    """A host setting the script does not fill in leaves the Test environment unable to build the commit that adds it."""
+    script = TEST_SETUP_SCRIPT.read_text(encoding="utf-8")
+    filled = [
+        re.compile(re.sub(r"\$\{\w+\}", "[A-Z]+", name))
+        for name in re.findall(r'set_if_empty\s+"?(MDDOAI_[A-Za-z0-9_${}]+)"?', script)
+    ]
+    required = {name for name in REQUIRED_SETTING.findall(COMPOSE_FILE.read_text(encoding="utf-8")) if name.startswith("MDDOAI_")}
+
+    missing = {name for name in required if not any(pattern.fullmatch(name) for pattern in filled)}
+
+    assert required and not missing, f"60-test.sh does not fill in: {sorted(missing)}"

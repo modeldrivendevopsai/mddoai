@@ -8,10 +8,12 @@ from unittest.mock import patch
 
 import pytest
 
-# The required runs setting of the in-process integration_runner, set before it is imported.
+# The required settings: this service's chats folder, and the runs folder of the
+# in-process integration_runner. Set before either is imported.
 _session_dir = Path(tempfile.mkdtemp(prefix="orchestrator-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")
+os.environ["ORCHESTRATOR_CHATS_DIR"] = str(_session_dir / "chats")
 
 import assistant
 import chat_log

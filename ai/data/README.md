@@ -8,6 +8,7 @@ prompts/<agent>/       each prompt agent's prompt configs (starting configs ship
 attachments/<agent>/   files uploaded to an agent
 workspace/             the models you pick from
 runs/                  every platform integration run
+chats/                 the chat of each run
 validator-output/      the validators' compiled output
 pipelines/             the pipelines generated so far
 ```

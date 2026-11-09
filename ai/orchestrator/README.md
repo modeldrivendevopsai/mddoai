@@ -46,6 +46,8 @@ the Orchestrator to eventually drive the pipeline autonomously.
 - **`chat_log.py`** — this run's chat transcript: mirrors `integration_runner`'s raw events in
   immediately, narrates them in the background, and holds `accept_message()`'s own turns. See
   [The chat log](#the-chat-log-chat_logpy) below.
+- **`chat_store.py`**: keeps each run's chat on disk, in the chats folder, so a restart repeats no narration.
+- **`settings.py`**: reads this service's settings from the environment.
 - **`event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`: truncating
   long event fields before they're fed into an LLM prompt. Its own module, not part of
   `chat_log.py`, because both `chat_log.py`'s own narration and `assistant.py`'s `accept_message()`
@@ -200,9 +202,13 @@ clock, the raw event's from `integration_runner`'s — real clock skew between t
 could sort a comment before the thing it's commenting on. Keeping one single, local, append-only
 list per run side-steps that entirely.
 
-This chat log is **orchestrator-local and lost on a restart**, even though `integration_runner`
-itself keeps a run's raw history across one. The worst case is a burst of re-narration the next
-time this run is polled, not a crash.
+Each run's chat is kept on disk, in the folder `ORCHESTRATOR_CHATS_DIR` names (required, no
+default; in Docker, the chats folder set in `config.env`), as one file per run that only grows. The
+chats are loaded when the service starts. They include how many of `integration_runner`'s events
+are already in the chat, so after a restart nothing is mirrored or narrated twice. An event whose
+narration was still being written when the service stopped is not narrated afterwards, and neither are the events queued behind it. A run with
+no saved chat is narrated from its first event. If the disk fails, that is logged and the chat goes
+on in memory.
 
 ## API endpoints (`main.py`)
 
@@ -369,6 +375,8 @@ cp .env.example .env
 # else (e.g. a different port, or a Docker Compose service name).
 ```
 
+`ORCHESTRATOR_CHATS_DIR` is required: export it in your shell, since nothing reads `.env` for you.
+
 This service's production code has no import on `ai-layer`'s or `integration_runner`'s source,
 only real HTTP calls to each (see [Test](#test) below for the one test-only exception). It does
 need both actually *running* and reachable: narration, `accept_message()`'s
@@ -382,9 +390,8 @@ is a real HTTP call to `integration_runner`.
 uvicorn main:app --reload --port 8001
 ```
 
-`main.py` has no import on any sibling folder outside this one anymore (see
-[Module layout](#module-layout) above) — unlike before `integration_runner` became its own
-service, a plain local run doesn't need `PYTHONPATH` extended to the parent `ai/` directory.
+`main.py` imports the shared `clients/` and `journal/` packages from the parent `ai/` directory, so
+a plain local run needs `PYTHONPATH` to include it.
 
 ## Test
 
@@ -409,6 +416,8 @@ ASGI-routed HTTP call above, never a direct internals call.
 - **`tests/test_chat_log.py`** — the narration mechanism: synchronous mirroring, background
   narration order and history, `constraint_added` mirrored but not narrated, failure fallback,
   per-run isolation, `since_index` slicing.
+- **`tests/test_chat_store.py`**: chats kept on disk and brought back, so nothing is narrated twice.
+- **`tests/test_chats_dir_setting.py`**: the service stops at start without its chats folder setting.
 - **`tests/test_event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`'s
   own truncation contract, independent of `chat_log.py`/`assistant.py`.
 - **`tests/test_system_prompt.py`** — the system prompt template.
