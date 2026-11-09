@@ -85,7 +85,7 @@ services:
       - ../meta_models/com.mddoai.metamodel.pim/model/pimMM.ecore:/pim_metamodel.ecore:ro
       # A sample PIM instance: the input of the generation stage's ATL and Acceleo run.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # Each run's attempts and manifest.
+      # Each run's state and attempts.
       - type: bind
         source: ${MDDOAI_RUNS_DIR:?}
         target: /data/runs

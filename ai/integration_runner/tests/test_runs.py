@@ -1,12 +1,12 @@
 """runs.py unit tests: process-wide run management, which run is current,
-the history of every run this process has seen, and every one-line
+the history of every run, and every one-line
 operation this service's own main.py exposes over REST. No real API
 calls, execution_agent_client's execute_atl_from_pim/execute_acceleo /
 retrieval_client.httpx are mocked.
 
 Tests verify:
   1. Run identity: run_id auto-generation, get_run()/current_run_id()/
-     list_runs()/get_run_events() against real in-memory history.
+     list_runs()/get_run_events() against the real run history.
   2. reset_pipeline() keeps prior runs as history rather than discarding
      them, only _default changes.
   3. start_pipeline() stores the chosen model for the whole run and starts
@@ -66,7 +66,7 @@ def test_reset_pipeline_keeps_prior_runs_as_history():
         second_reset_id = runs._default.run_id
 
         assert first_reset_id != second_reset_id
-        # Both stay in _runs (in-memory session history, see list_runs()),
+        # Both stay in _runs (the session history, see list_runs()),
         # only the most recent one is _default, the one live endpoints act on.
         assert first_reset_id in runs._runs
         assert second_reset_id in runs._runs

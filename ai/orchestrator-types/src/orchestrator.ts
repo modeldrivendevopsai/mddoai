@@ -91,7 +91,7 @@ export interface EventsResponse {
   replying: boolean
 }
 
-// One entry per run the backend has seen (in-memory only) — the sidebar's
+// One entry per run, for the sidebar's
 // session list. is_current is false for anything but the live run; those
 // are read-only history.
 export interface RunSummary {

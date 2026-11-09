@@ -20,7 +20,7 @@ so there is exactly one real attempt per real run of this stage, but the
 result (the actual generated CI/CD config, and the intermediate PSM model
 instance ATL execution produced along the way) is exactly the kind of real
 artifact a human debugging a run needs to find on disk afterward, not just
-in this run's own transient in-memory event log. Still raises on a real
+in this run's event log. Still raises on a real
 execution failure (a validated-but-not-actually-runnable ATL/Acceleo pair -
 exactly the gap this stage's own real execution exists to expose, see
 execution_agent_client's own AgentServiceError): the failure is persisted

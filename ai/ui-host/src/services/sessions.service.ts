@@ -1,6 +1,6 @@
 /**
  * Sessions data service — backed by ai/orchestrator's real run history
- * (GET /runs, in-memory for the life of the backend process). Components
+ * (GET /runs). Components
  * depend only on getSessions()/closeSession()'s signatures, not on this.
  */
 import { getRuns } from './orchestrator.service';
@@ -41,8 +41,7 @@ export async function getSessions(type: SessionType): Promise<Session[]> {
 }
 
 export async function closeSession(id: string): Promise<{ id: string; closed: boolean }> {
-  // No backend "delete a run" action yet — a run is in-memory history, not
-  // something to discard individually. Matches SessionsList's existing
+  // No backend "delete a run" action yet. Matches SessionsList's existing
   // optimistic local removal; nothing to await here yet.
   return { id, closed: true };
 }

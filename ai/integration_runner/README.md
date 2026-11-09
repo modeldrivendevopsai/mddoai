@@ -36,7 +36,7 @@ publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_ge
   advancement, called from every state-transition method for every real event type this run
   produces.
 - **`runs.py`** — the process-wide run registry: which run is current (`current()`), the
-  history of every run this process has seen (`list_runs()`, `get_run_events()`), and the
+  history of every run (`list_runs()`, `get_run_events()`; `load_saved()` brings them back from disk at start), and the
   genuinely compound operations that need registry-level context (`reset_pipeline()`,
   `resume_run()`, `start_pipeline()` — serialized against each other by a module-level lock so
   two concurrent requests can't each swap in a different current run). Deliberately doesn't
@@ -45,6 +45,7 @@ publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_ge
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
+- **`run_store.py`**: keeps each run on disk, as `runs/<run_id>/run.json`, and reads them back.
 - **`publishing.py`**: publishes a completed run's platform to `pipeline_generator`. It takes the
   three files from the recorded events of the attempt behind the approved pipeline, not from the
   run's latest context, which a later attempt can have changed.
@@ -293,6 +294,12 @@ against an existing `.ecore`). `stages/_validation.py`:
 `runs/` is the folder `INTEGRATION_RUNNER_RUNS_DIR` names (required, no default). In Docker it is the runs
 folder set in `config.env`, see [ai/README.md](../README.md#where-files-live).
 
+**`runs/<run_id>/run.json`** is the run itself, everything needed to carry on with it. It is rewritten
+whole after each change. When the service starts it loads every run in the folder, and the one with the
+latest activity becomes the current run. A stage that was running when the service stopped comes back as
+failed, and can be retried. A file that is not a saved run is skipped with a log line. If the disk fails,
+that is logged and the run goes on in memory.
+
 **`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
 attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
 valid, timestamp}` records, one per `persist_attempt()` call, in the order they actually
@@ -473,7 +480,7 @@ The service starts at `http://localhost:8050`.
 | `GET /events?since_index=&run_id=` | Raw events (no narration) for the current run or a specific past one; includes `run_id` explicitly, so orchestrator can key its own chat log by it. |
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
-| `GET /runs` | Every run this process has seen, newest first. |
+| `GET /runs` | Every run, newest first. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
 | `POST /publish` | Body: optional `name`, `output_filename`, `run_id`. Publishes the completed run's platform to `pipeline_generator`, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the generator refuses what was sent. `502` if it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
@@ -586,6 +593,7 @@ test, so nothing here touches a real runs folder.
   `IntegrationRun`.
 - **`tests/test_runs.py`** — the run registry: run identity/history, `start_pipeline()`,
   `current()`.
+- **`tests/test_run_store.py`**: runs kept on disk and brought back at start.
 - **`tests/stages/test_docs_agent.py`** — the real `docs_stage` agent (`stages/docs/agent.py`).
 - **`tests/stages/test_docs_actions.py`** — `extend_with_page()`'s real appending behavior and
   event recording, against a real `IntegrationRun` (`stages/docs/actions.py`).

@@ -154,12 +154,9 @@ def end_reply(chat: ChatLog, message: dict, outcome: list[dict], new_run_chat: C
 
 # One chat log per run, keyed by integration_runner's real run_id, kept for
 # the life of this process. Lost on an orchestrator restart even though
-# integration_runner itself keeps a run's raw history across one — a new,
-# real failure mode this split introduces, not present when everything ran
-# in one process. _chat_logs.setdefault() below handles a run this process
-# has never seen locally: worst case is a burst of re-narration on first
-# contact, not a crash — the same MVP, in-memory-only tradeoff
-# integration_runner's own _runs/_default already accepts.
+# integration_runner keeps the run itself. get_chat_log() below handles a run
+# this process has never seen: worst case is a burst of re-narration on first
+# contact, not a crash.
 _chat_logs: dict[str, ChatLog] = {}
 
 

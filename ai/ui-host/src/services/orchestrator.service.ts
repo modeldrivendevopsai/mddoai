@@ -232,8 +232,7 @@ export async function getEvents(sinceIndex = 0, runId?: string): Promise<EventsR
   return res.json()
 }
 
-// In-memory only (see integration_runner/runs.py's list_runs()) — every
-// run this process has seen, newest first, not persisted across a restart.
+// Every run, newest first.
 export async function getRuns(): Promise<RunSummary[]> {
   const res = await fetch("/orchestrator-api/runs")
 

@@ -201,9 +201,8 @@ could sort a comment before the thing it's commenting on. Keeping one single, lo
 list per run side-steps that entirely.
 
 This chat log is **orchestrator-local and lost on a restart**, even though `integration_runner`
-itself keeps a run's raw history across one — a real, accepted failure mode this split
-introduces (worst case: a burst of re-narration the next time this run is polled, not a crash),
-the same MVP, in-memory-only tradeoff `integration_runner`'s own run registry already accepts.
+itself keeps a run's raw history across one. The worst case is a burst of re-narration the next
+time this run is polled, not a crash.
 
 ## API endpoints (`main.py`)
 
@@ -275,7 +274,7 @@ Response:
 
 ### `GET /runs`
 
-Every run this process has seen, newest first, proxying `integration_runner`'s own `GET /runs`.
+Every run, newest first, proxying `integration_runner`'s own `GET /runs`.
 
 ### `POST /review/{stage_id}`
 

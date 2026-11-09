@@ -1,0 +1,441 @@
+"""Runs are kept on disk and come back after a restart. A restart is simulated
+by forgetting the in-memory registry and loading from the runs folder."""
+import itertools
+import json
+import logging
+import threading
+import time
+import types
+from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+import main
+from integration_runner import pipeline, publishing, run_store, runs
+from integration_runner.stages import _validation
+
+CONTEXT = {"psm_output": "<ecore/>", "atl_output": "create OUT : W from IN : PIM;", "acceleo_output": "[m]"}
+
+
+@pytest.fixture(autouse=True)
+def _registry(monkeypatch):
+    original_default, original_runs = runs._default, dict(runs._runs)
+    ticks = itertools.count(1000)
+    monkeypatch.setattr("integration_runner.event_log.time", types.SimpleNamespace(time=lambda: float(next(ticks))))
+    yield
+    runs._default = original_default
+    runs._runs.clear()
+    runs._runs.update(original_runs)
+
+
+def _restart():
+    """What a restart leaves in memory: one blank run and nothing else."""
+    runs._runs.clear()
+    runs._default = runs._new_run()
+    runs._runs[runs._default.run_id] = runs._default
+
+
+def _file(run_id):
+    return _validation.RUNS_DIR / run_id / "run.json"
+
+
+def _completed_run():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {"platform_description": "Woodpecker CI"})
+    run.record_event("call_started", "generation", dict(CONTEXT))
+    run.record_event("call_completed", "generation", {"output": "x", "generated_files": {"ci.yml": "x"}})
+    run.current_stage_index = len(pipeline.STAGES)
+    run.last_context = dict(CONTEXT)
+    run.record_event("review_approved", "generation", {"correction": None})
+    return run
+
+
+# --- keeping a run -------------------------------------------------------------
+
+
+def test_a_run_is_written_to_its_own_file_after_an_event():
+    run = runs._new_run()
+
+    run.record_event("call_started", "docs", {"seed_url": "https://x"})
+
+    saved = json.loads(_file(run.run_id).read_text(encoding="utf-8"))
+    assert saved["run_id"] == run.run_id
+    assert [event["type"] for event in saved["events"]] == ["call_started"]
+
+
+def test_a_run_nothing_has_happened_on_is_not_written():
+    run = runs._new_run()
+    run.set_model("some-model")
+    run.release_busy()
+
+    assert not (_validation.RUNS_DIR / run.run_id).exists()
+
+
+def test_the_model_is_kept_even_when_it_is_the_last_change():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    run.set_model("some-model")
+    _restart()
+
+    runs.load_saved()
+
+    assert runs.get_run(run.run_id).model == "some-model"
+
+
+def test_an_approval_that_pauses_the_next_stage_is_kept_though_it_records_no_event_after_it():
+    run = runs._new_run()
+    run.record_event("call_started", "pim", {})
+    run.current_stage_index = pipeline.STAGES.index("pim")
+    run.last_output = "pim out"
+    run.last_completed_stage = "pim"
+
+    assert run.review("pim", True) == {"status": "advanced_pending", "stage": "psm"}
+    _restart()
+    runs.load_saved()
+
+    restored = runs.get_run(run.run_id)
+    assert restored.current_stage == "psm"
+    assert restored.last_context["pim_output"] == "pim out"
+
+
+def test_a_run_comes_back_exactly_as_it_was():
+    run = runs._new_run()
+    run.set_model("some-model")
+    run.add_constraint("docs", "use kebab-case")
+    run.last_context = {"seed_url": "https://x"}
+    run.last_output = "docs text"
+    run.last_completed_stage = "docs"
+    run.current_stage_index = 2
+    run.record_event("call_completed", "docs", {"output": "docs text"})
+
+    _restart()
+    runs.load_saved()
+
+    restored = runs.get_run(run.run_id)
+    assert restored.model == "some-model"
+    assert restored.constraints == {"docs": ["use kebab-case"]}
+    assert restored.last_context == {"seed_url": "https://x"}
+    assert restored.last_output == "docs text"
+    assert restored.last_completed_stage == "docs"
+    assert restored.current_stage_index == 2
+    assert [event["type"] for event in restored.events] == ["constraint_added", "call_completed"]
+    assert restored.busy is False
+
+
+def test_a_failed_save_leaves_the_earlier_file_whole_and_no_temp_file(monkeypatch):
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    before = _file(run.run_id).read_text(encoding="utf-8")
+    monkeypatch.setattr("integration_runner.run_store.os.replace", lambda *args: (_ for _ in ()).throw(OSError("full")))
+
+    with pytest.raises(OSError):
+        run_store.save(run)
+
+    assert _file(run.run_id).read_text(encoding="utf-8") == before
+    assert [path.name for path in _file(run.run_id).parent.iterdir()] == ["run.json"]
+
+
+def test_a_run_goes_on_when_the_disk_fails(tmp_path, monkeypatch, caplog):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("a file, not a folder", encoding="utf-8")
+    monkeypatch.setattr(_validation, "RUNS_DIR", blocker / "runs")
+    run = runs._new_run()
+
+    with caplog.at_level(logging.ERROR):
+        run.record_event("call_started", "docs", {})
+
+    assert len(run.events) == 1
+    assert "could not keep run" in caplog.text
+
+
+def test_threads_changing_one_run_never_leave_an_older_copy_on_disk():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+
+    def work():
+        for _ in range(20):
+            run.add_constraint("docs", "c")
+
+    threads = [threading.Thread(target=work) for _ in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    saved = json.loads(_file(run.run_id).read_text(encoding="utf-8"))
+    assert len(saved["events"]) == len(run.events) == 121
+    assert len(saved["constraints"]["docs"]) == 120
+
+
+def test_one_thread_at_a_time_keeps_a_run():
+    inside = most = 0
+    guard = threading.Lock()
+
+    def slow_save(run):
+        nonlocal inside, most
+        with guard:
+            inside += 1
+            most = max(most, inside)
+        time.sleep(0.01)
+        with guard:
+            inside -= 1
+
+    run = pipeline.IntegrationRun(on_change=slow_save)
+    threads = [threading.Thread(target=run.record_event, args=("x", None)) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert most == 1
+
+
+# --- bringing runs back --------------------------------------------------------
+
+
+def test_the_run_with_the_latest_activity_becomes_current_and_the_blank_one_is_dropped():
+    first = runs._new_run()
+    first.record_event("call_started", "docs", {})
+    second = runs._new_run()
+    second.record_event("call_started", "docs", {})
+    second.record_event("call_completed", "docs", {"output": "x"})
+    first.record_event("call_completed", "docs", {"output": "x"})
+    _restart()
+    blank_id = runs.current_run_id()
+
+    runs.load_saved()
+
+    assert runs.current_run_id() == first.run_id
+    assert [r["run_id"] for r in runs.list_runs()] == [second.run_id, first.run_id]
+    assert runs.get_run(blank_id) is None
+
+
+def test_a_service_with_no_saved_runs_keeps_its_blank_run():
+    _restart()
+    blank_id = runs.current_run_id()
+
+    runs.load_saved()
+
+    assert runs.current_run_id() == blank_id
+
+
+def test_a_run_already_in_memory_is_left_alone():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    run.record_event("call_completed", "docs", {"output": "x"})
+    runs._runs[run.run_id] = run
+    runs._default = run
+
+    runs.load_saved()
+
+    assert runs.get_run(run.run_id) is run
+    assert runs._default is run
+
+
+@pytest.mark.parametrize("state", [
+    "{not json",
+    json.dumps([]),
+    json.dumps({"run_id": "x", "current_stage_index": 0, "events": 5}),
+    json.dumps({"run_id": "x", "current_stage_index": "0", "events": []}),
+    json.dumps({"run_id": "x", "current_stage_index": 99, "events": []}),
+    json.dumps({"run_id": "x", "current_stage_index": 0, "events": ["call_started"]}),
+    json.dumps({"run_id": "x", "current_stage_index": 0, "events": [{"type": "call_started"}]}),
+    json.dumps({"run_id": "x", "current_stage_index": 0, "events": [], "constraints": {"docs": "a"}}),
+    json.dumps({"current_stage_index": 0, "events": []}),
+])
+def test_a_file_that_is_not_a_saved_run_is_skipped_and_the_other_runs_still_come_back(state, caplog):
+    good = runs._new_run()
+    good.record_event("call_started", "docs", {})
+    broken = _validation.RUNS_DIR / "x"
+    broken.mkdir()
+    (broken / "run.json").write_text(state, encoding="utf-8")
+    (_validation.RUNS_DIR / "only-attempts").mkdir()
+    _restart()
+
+    with caplog.at_level(logging.WARNING):
+        runs.load_saved()
+
+    assert [r["run_id"] for r in runs.list_runs()] == [good.run_id]
+    assert "skipping" in caplog.text
+
+
+def test_a_file_whose_run_id_is_not_its_folder_name_is_skipped(caplog):
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    other = _validation.RUNS_DIR / "copy"
+    other.mkdir()
+    (other / "run.json").write_text(_file(run.run_id).read_text(encoding="utf-8"), encoding="utf-8")
+    _restart()
+
+    with caplog.at_level(logging.WARNING):
+        runs.load_saved()
+
+    assert [r["run_id"] for r in runs.list_runs()] == [run.run_id]
+    assert "does not match its folder" in caplog.text
+
+
+# --- a stage that was running when the service stopped -------------------------
+
+
+def _interrupted_second_stage():
+    """A run whose docs stage finished and whose serialization stage was
+    running when the service stopped, as run_stage_async leaves it."""
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {"seed_url": "https://x"})
+    run.record_event("call_completed", "docs", {"output": "docs text"})
+    run.last_completed_stage = "docs"
+    run.last_output = "docs text"
+    run.record_event("review_approved", "docs", {"correction": None})
+    run.advance_stage()
+    context = {"seed_url": "https://x", "docs_output": "docs text"}
+    run.last_context = context
+    run.record_event("call_started", "serialization", context)
+    return run
+
+
+def test_the_context_a_stage_runs_with_is_on_disk_while_it_runs():
+    run = runs._new_run()
+    entered, release = threading.Event(), threading.Event()
+
+    def agent(context):
+        entered.set()
+        release.wait(5)
+        return "out"
+
+    with patch.dict("integration_runner.stages.stage_agents", {"docs": agent}):
+        run.run_stage_async({"seed_url": "https://x"})
+        assert entered.wait(5)
+        saved = json.loads(_file(run.run_id).read_text(encoding="utf-8"))
+        release.set()
+        run._last_thread.join(timeout=5)
+
+    assert saved["last_context"] == {"seed_url": "https://x"}
+
+
+def test_a_stage_that_was_running_at_shutdown_comes_back_failed():
+    run = _interrupted_second_stage()
+    _restart()
+
+    runs.load_saved()
+
+    restored = runs.get_run(run.run_id)
+    assert [(event["type"], event["stage"]) for event in restored.events][-2:] == [
+        ("call_started", "serialization"),
+        ("call_failed", "serialization"),
+    ]
+    assert "restarted" in restored.events[-1]["data"]["error"]
+    assert restored.last_completed_stage is None
+    assert restored.busy is False
+    assert json.loads(_file(run.run_id).read_text(encoding="utf-8"))["events"][-1]["type"] == "call_failed"
+
+
+def test_an_interrupted_stage_is_retried_with_the_context_it_was_started_with():
+    run = _interrupted_second_stage()
+    _restart()
+    runs.load_saved()
+    restored = runs.get_run(run.run_id)
+    seen = {}
+
+    def agent(context):
+        seen.update(context)
+        return "serialized"
+
+    with patch.dict("integration_runner.stages.stage_agents", {"serialization": agent}):
+        restored.rerun()
+        restored._last_thread.join(timeout=5)
+
+    assert seen["docs_output"] == "docs text"
+    assert restored.events[-1]["type"] == "call_completed"
+
+
+def test_an_interrupted_stage_cannot_be_approved():
+    run = _interrupted_second_stage()
+    _restart()
+    runs.load_saved()
+
+    with pytest.raises(ValueError, match="hasn't completed successfully"):
+        runs.get_run(run.run_id).review("serialization", True)
+
+
+def test_only_the_stage_still_running_is_marked_failed_after_a_retry():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    run.record_event("call_failed", "docs", {"error": "x"})
+    run.record_event("call_started", "docs", {})
+    _restart()
+
+    runs.load_saved()
+
+    assert [event["type"] for event in runs.get_run(run.run_id).events] == [
+        "call_started", "call_failed", "call_started", "call_failed",
+    ]
+
+
+def test_a_stage_that_finished_is_not_marked_failed():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    run.record_event("call_completed", "docs", {"output": "x"})
+    _restart()
+
+    runs.load_saved()
+
+    assert [event["type"] for event in runs.get_run(run.run_id).events] == ["call_started", "call_completed"]
+
+
+# --- using a run that came back ------------------------------------------------
+
+
+def test_a_finished_run_can_be_published_after_a_restart():
+    run = _completed_run()
+    _restart()
+    runs.load_saved()
+    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
+
+    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform", return_value=published) as publish:
+        result = publishing.publish(runs.current())
+
+    assert result == published
+    assert publish.call_args.kwargs["name"] == "Woodpecker CI"
+    assert publish.call_args.kwargs["source_run_id"] == run.run_id
+
+
+def test_an_earlier_run_can_be_resumed_and_forked_after_a_restart():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {})
+    run.record_event("call_completed", "docs", {"output": "docs text"})
+    run.last_completed_stage = "docs"
+    run.last_output = "docs text"
+    run.last_context = {"docs_output": "docs text"}
+    run.record_event("review_approved", "docs", {"correction": None})
+    run.advance_stage()
+    run.last_context = {"docs_output": "docs text", "serialization_output": "s", "pim_output": "pim"}
+    run.current_stage_index = pipeline.STAGES.index("psm")
+    run.record_event("call_started", "psm", {})
+    run.record_event("call_completed", "psm", {"output": "p"})
+    other = runs._new_run()
+    other.record_event("call_started", "docs", {})
+    other.record_event("call_completed", "docs", {"output": "x"})
+    _restart()
+    runs.load_saved()
+
+    assert runs.current_run_id() == other.run_id
+    assert runs.resume_run(run.run_id) == {"run_id": run.run_id, "current_stage": "psm"}
+    forked = runs.fork_run(run.run_id, "psm")
+
+    assert forked["stage"] == "psm"
+    assert runs.get_run(forked["run_id"]).last_context == {
+        "docs_output": "docs text", "serialization_output": "s", "pim_output": "pim",
+    }
+
+
+def test_the_service_loads_its_runs_when_it_starts():
+    run = runs._new_run()
+    run.record_event("call_started", "docs", {"platform_description": "Woodpecker CI"})
+    run.record_event("call_completed", "docs", {"output": "x"})
+    _restart()
+
+    with TestClient(main.app) as client:
+        listed = client.get("/runs").json()
+
+    assert [r["run_id"] for r in listed] == [run.run_id]

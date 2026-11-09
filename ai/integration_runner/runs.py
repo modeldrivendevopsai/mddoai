@@ -1,9 +1,8 @@
 """Process-wide run registry: which run is current, and the history of
-every run this process has seen. Separate from pipeline.py's class
+every run, kept on disk (see run_store). Separate from pipeline.py's class
 IntegrationRun: this is "how many runs exist and which one is current,"
 IntegrationRun is "how does one run advance through its stages" — a real,
-different job, the one already flagged as a likely future persistence-layer
-change point, independent of stage-advancement rules.
+different job.
 
 Everything about operating on the CURRENT run — running a stage, reviewing
 it, adding a constraint, fetching documentation — is a real method on
@@ -15,6 +14,7 @@ operation is implemented, not two.
 """
 import threading
 
+from integration_runner import run_store
 from integration_runner.pipeline import STAGES, IntegrationRun
 
 # Serializes the functions that reassign _default (start_pipeline,
@@ -32,14 +32,17 @@ from integration_runner.pipeline import STAGES, IntegrationRun
 # per-run busy claim this commit is scoped to.
 _registry_lock = threading.RLock()
 
-_default = IntegrationRun()
-# Every IntegrationRun that's ever been "the" current run, keyed by run_id, kept
-# for the life of this process (see reset_pipeline() — it no longer clears
-# this). The mutating functions below still only ever act on _default, that
-# one-active-run-at-a-time behavior is unchanged; this dict is the read side
-# for history — list_runs() and a run_id-scoped events read, so the sidebar
-# can show past runs without needing real persistence (in-memory only, gone
-# on restart, that's fine).
+
+def _new_run() -> IntegrationRun:
+    """A blank run that keeps itself on disk (see run_store)."""
+    return IntegrationRun(on_change=run_store.save_quietly)
+
+
+_default = _new_run()
+# Every run that has been the current one, keyed by run_id: the read side for
+# history (list_runs() and a run_id-scoped events read). The mutating
+# functions below still only ever act on _default. load_saved() fills this
+# from disk at start.
 _runs: dict[str, "IntegrationRun"] = {_default.run_id: _default}
 
 
@@ -72,7 +75,7 @@ def _reject_if_busy(run: "IntegrationRun") -> None:
     start_pipeline()'s own reset branch, all three of which need exactly
     this same check before the same kind of swap."""
     run.claim_busy()
-    run.release_busy()
+    run.release_busy(changed=False)
 
 
 def platform_name(run: "IntegrationRun") -> str | None:
@@ -84,7 +87,7 @@ def platform_name(run: "IntegrationRun") -> str | None:
 
 
 def list_runs() -> list[dict]:
-    """Summaries of every run this process has seen, newest first, for the
+    """Summaries of every run, newest first, for the
     sidebar's session list. is_current tells the caller which one is safe
     to interact with (approve/reject/retry) vs read-only history.
 
@@ -128,15 +131,14 @@ def get_run_events(run_id: str) -> dict | None:
 def reset_pipeline() -> None:
     """Start a fresh pipeline run: replace the default IntegrationRun instance.
     The prior run's instance stays in _runs (see list_runs()) so the sidebar
-    can show it as history for the life of this process — no persistence
-    across a restart, in-memory only, that's the deliberate MVP scope.
+    can show it as history.
 
     Raises BusyError (via _reject_if_busy()) instead of swapping the run
     being replaced out from under its own in-flight thread."""
     global _default
     with _registry_lock:
         _reject_if_busy(_default)
-        _default = IntegrationRun()
+        _default = _new_run()
         _runs[_default.run_id] = _default
 
 
@@ -284,13 +286,55 @@ def fork_run(source_run_id: str, from_stage: str) -> dict:
             raise ValueError(f"No run with id {source_run_id!r}")
         seed_context = _seed_context_from(source_run, from_stage)
         _reject_if_busy(_default)
-        new_run = IntegrationRun()
+        new_run = _new_run()
         new_run.current_stage_index = STAGES.index(from_stage)
         new_run.last_context = seed_context
         new_run.record_event("forked_from", from_stage, {"source_run_id": source_run_id})
         _default = new_run
         _runs[new_run.run_id] = new_run
         return {"run_id": new_run.run_id, "stage": new_run.current_stage}
+
+
+# What a stage that was running when the service stopped is told. The person
+# can retry it.
+_INTERRUPTED = "The service restarted while this stage was running. Retry it."
+
+
+def _mark_interrupted(run: IntegrationRun) -> None:
+    """A stage that started and never finished was running when the service
+    stopped, and nothing is running it now. It is recorded as failed, so the
+    run shows what happened and the stage can be retried."""
+    pending = None
+    for event in run.events:
+        if event["type"] == "call_started":
+            pending = event["stage"]
+        elif event["type"] in ("call_completed", "call_failed"):
+            pending = None
+    if pending is not None:
+        run.last_completed_stage = None
+        run.record_event("call_failed", pending, {"error": _INTERRUPTED})
+
+
+def _time_of(run: IntegrationRun, index: int) -> float:
+    return run.events[index]["timestamp"] if run.events else 0
+
+
+def load_saved() -> None:
+    """Brings back every run on disk, once, at service start. The run with the
+    latest activity becomes the current one. Runs already known are left
+    alone."""
+    global _default
+    with _registry_lock:
+        restored = [run for run in run_store.load_all(run_store.save_quietly) if run.run_id not in _runs]
+        if not restored:
+            return
+        for run in restored:
+            _mark_interrupted(run)
+        if not _default.events:
+            del _runs[_default.run_id]
+        for run in sorted(restored, key=lambda run: _time_of(run, 0)):
+            _runs[run.run_id] = run
+        _default = max(restored, key=lambda run: _time_of(run, -1))
 
 
 def wait_for_idle(timeout: float = 5.0) -> None:
