@@ -137,12 +137,24 @@ export interface PublishDefaults {
   output_filename: string | null
 }
 
-// POST /publish: the platform as the pipeline generator offers it.
+// POST /publish: the platform as the journal keeps it. The version is
+// MAJOR.MINOR.PATCH, such as 1.2.0.
 export interface PublishedPlatform {
   id: string
   name: string
-  version: number
+  version: string
   output_filename: string
+}
+
+// GET /platforms: a platform at its latest version, with every version it has.
+// published is false for a platform that came with the stack, which cannot be purged.
+export interface PlatformSummary {
+  id: string
+  name: string
+  output_filename: string
+  version: string
+  versions: string[]
+  published: boolean
 }
 
 export interface RerunStatusResponse {

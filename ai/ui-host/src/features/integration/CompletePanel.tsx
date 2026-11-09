@@ -1,13 +1,17 @@
 import { useEffect, useId, useState } from "react"
 import { Button } from "design-system"
-import type { PublishDefaults, PublishedPlatform } from "orchestrator-types"
+import type { PlatformSummary, PublishDefaults, PublishedPlatform } from "orchestrator-types"
+import { PublishedPlatforms } from "./PublishedPlatforms"
 
 interface CompletePanelProps {
   // Publishing always acts on the backend's current run, so a finished run
   // opened from history must not offer it.
   canPublish: boolean
   loadDefaults: () => Promise<PublishDefaults>
-  onPublish: (name: string, outputFilename: string) => Promise<PublishedPlatform>
+  // An empty version means the patch after the platform's highest.
+  onPublish: (name: string, outputFilename: string, version: string) => Promise<PublishedPlatform>
+  loadPlatforms: () => Promise<PlatformSummary[]>
+  onPurge: (platformId: string, version?: string) => Promise<string[]>
 }
 
 const panelStyle: React.CSSProperties = {
@@ -66,12 +70,15 @@ function Field({ label, value, placeholder, onChange, disabled }: {
 
 /**
  * "Nothing left to review": the whole run is approved. Offers to publish the
- * platform it built to the pipeline generator, so pipelines can be generated
- * for it next to the other platforms.
+ * platform it built, so pipelines can be generated for it next to the other
+ * platforms, and lists the platforms published so far so a test one can be removed.
  */
-export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompletePanelProps) {
+export function CompletePanel({ canPublish, loadDefaults, onPublish, loadPlatforms, onPurge }: CompletePanelProps) {
   const [name, setName] = useState("")
   const [outputFilename, setOutputFilename] = useState("")
+  const [version, setVersion] = useState("")
+  // Counts the platforms published here, so the list below loads again.
+  const [publishedCount, setPublishedCount] = useState(0)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState<PublishedPlatform | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -96,7 +103,8 @@ export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompleteP
     setPublishing(true)
     setError(null)
     try {
-      setPublished(await onPublish(name.trim(), outputFilename.trim()))
+      setPublished(await onPublish(name.trim(), outputFilename.trim(), version.trim()))
+      setPublishedCount((count) => count + 1)
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : "Could not publish this platform.")
     } finally {
@@ -108,7 +116,7 @@ export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompleteP
     <div style={panelStyle}>
       <p style={textStyle}>Integration complete. All stages approved.</p>
       <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-md)", color: "var(--text-strong)" }}>
-        Publish to the pipeline generator
+        Publish this platform
       </h2>
       {canPublish ? (
         <>
@@ -128,6 +136,13 @@ export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompleteP
             value={outputFilename}
             placeholder=".woodpecker.yaml"
             onChange={setOutputFilename}
+            disabled={publishing}
+          />
+          <Field
+            label="Version"
+            value={version}
+            placeholder="Leave empty for the next patch, or such as 1.2.0"
+            onChange={setVersion}
             disabled={publishing}
           />
           <div>
@@ -154,6 +169,7 @@ export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompleteP
       ) : (
         <p style={textStyle}>This isn't the current run. Resume it to publish its platform.</p>
       )}
+      <PublishedPlatforms loadPlatforms={loadPlatforms} onPurge={onPurge} refreshKey={publishedCount} />
     </div>
   )
 }

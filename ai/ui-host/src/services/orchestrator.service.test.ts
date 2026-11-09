@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   getEvents,
+  getPlatforms,
   getProviders,
   getRuns,
   previewPromptConfig,
+  publishPlatform,
+  purgePlatform,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -359,5 +362,82 @@ describe("orchestratorService", () => {
     )
 
     await expect(sendMessage("anything")).rejects.toThrow("all providers exhausted")
+  })
+
+  it("publishPlatform sends the version, and null for anything left empty", async () => {
+    const published = { id: "woodpecker-ci", name: "Woodpecker CI", version: "1.2.0", output_filename: "w.yaml" }
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => published })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const result = await publishPlatform("Woodpecker CI", "w.yaml", "run1", "1.2.0")
+    await publishPlatform("", "", null)
+
+    expect(result).toEqual(published)
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+      name: "Woodpecker CI", output_filename: "w.yaml", version: "1.2.0", run_id: "run1",
+    })
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body)).toEqual({
+      name: null, output_filename: null, version: null, run_id: null,
+    })
+  })
+
+  it("publishPlatform surfaces the backend's reason, such as a version that exists", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ detail: "version 1.0.0 already exists, and a version is never changed" }),
+      })
+    )
+
+    await expect(publishPlatform("X", "x.yml", "run1", "1.0.0")).rejects.toThrow("already exists")
+  })
+
+  it("getPlatforms returns the list from the platforms key", async () => {
+    const platform = { id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.0.0", versions: ["1.0.0"], published: true }
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ platforms: [platform] }) })
+    vi.stubGlobal("fetch", mockFetch)
+
+    expect(await getPlatforms()).toEqual([platform])
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/platforms")
+  })
+
+  it("getPlatforms throws with the status code on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 502 }))
+
+    await expect(getPlatforms()).rejects.toThrow("Platforms request failed: 502")
+  })
+
+  it("purgePlatform deletes one version, or a whole platform when no version is given", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ purged: ["1.0.0"] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ purged: ["1.0.0", "1.1.0"] }) })
+    vi.stubGlobal("fetch", mockFetch)
+
+    expect(await purgePlatform("woodpecker-ci", "1.0.0")).toEqual(["1.0.0"])
+    expect(await purgePlatform("woodpecker-ci")).toEqual(["1.0.0", "1.1.0"])
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, "/orchestrator-api/platforms/woodpecker-ci/versions/1.0.0", { method: "DELETE" })
+    expect(mockFetch).toHaveBeenNthCalledWith(2, "/orchestrator-api/platforms/woodpecker-ci", { method: "DELETE" })
+  })
+
+  it("purgePlatform escapes what it puts in the path", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ purged: [] }) })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await purgePlatform("a/b", "1.0.0?x")
+
+    expect(mockFetch.mock.calls[0][0]).toBe("/orchestrator-api/platforms/a%2Fb/versions/1.0.0%3Fx")
+  })
+
+  it("purgePlatform surfaces the backend's reason, such as a platform that came with the stack", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ detail: "it came with the stack" }) })
+    )
+
+    await expect(purgePlatform("gitlab")).rejects.toThrow("it came with the stack")
   })
 })

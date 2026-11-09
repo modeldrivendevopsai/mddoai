@@ -331,3 +331,35 @@ def test_purging_something_that_is_not_there_is_not_found_and_removes_nothing(st
 
 def test_the_id_of_a_name_is_lowercase_letters_digits_and_dashes():
     assert platform_id_for("  Azure  Pipelines (v2)! ") == "azure-pipelines-v2"
+
+
+# --- publishing at once, and where --------------------------------------------------
+
+
+def test_publishes_at_once_never_take_the_same_version(store):
+    import threading
+
+    got = []
+    lock = threading.Lock()
+
+    def publish():
+        version = _publish(store).version
+        with lock:
+            got.append(version)
+
+    threads = [threading.Thread(target=publish) for _ in range(12)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(got, key=lambda v: int(v.rsplit(".", 1)[1])) == [f"1.0.{n}" for n in range(12)]
+
+
+def test_a_missing_platforms_folder_is_not_created_by_publishing(tmp_path):
+    missing = tmp_path / "none"
+
+    with pytest.raises(OSError):
+        _publish(PlatformStore(missing))
+
+    assert not missing.exists()

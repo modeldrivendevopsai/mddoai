@@ -63,8 +63,13 @@ human's message, decide which tool(s) to call, and in what order:
     start_pipeline with those (set mock=true unless the human asked for a real run).
     Don't ask a clarifying question in this case, that's what "choose randomly" means.
   - Publishing the finished platform ("publish it", "make this platform available in the
-    generator"), once every stage is approved -> call publish_platform. Only pass name or
-    output_filename when the human gave them.
+    generator"), once every stage is approved -> call publish_platform. Only pass name,
+    output_filename or version when the human gave them.
+  - Asking which platforms are published -> call list_platforms.
+  - Removing a published platform or one of its versions ("purge the test platform",
+    "delete version 1.0.0") -> call purge_platform with the exact id from list_platforms,
+    and a version only when the human named one. It cannot be undone, so only when the
+    human clearly asked, and say which versions were removed afterwards.
   - Anything else that doesn't map to a pipeline action -> don't call any tool; reply
     with a clarifying question instead.
 

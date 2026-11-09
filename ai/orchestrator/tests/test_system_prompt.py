@@ -21,3 +21,11 @@ def test_system_prompt_has_a_current_stage_placeholder_to_fill_in():
     assert "{current_stage}" in prompt
     formatted = prompt.format(current_stage="atl")
     assert "is: atl" in formatted
+
+
+def test_system_prompt_tells_the_model_about_versions_and_the_platform_tools():
+    prompt = " ".join(system_prompt.get_system_prompt_template().split())
+
+    assert "output_filename or version when the human gave them" in prompt
+    assert "list_platforms" in prompt and "purge_platform" in prompt
+    assert "only when the human clearly asked" in prompt

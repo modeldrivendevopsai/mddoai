@@ -11,6 +11,7 @@ import type {
   PromptDiff,
   PromptPreview,
   Provider,
+  PlatformSummary,
   PublishDefaults,
   PublishedPlatform,
   RerunOverrides,
@@ -108,17 +109,24 @@ export async function resumeRun(runId: string): Promise<ResumeResponse> {
 }
 
 // Publishes the current, completed run's platform. An empty name or output file
-// means the defaults of getPublishDefaults. The backend refuses if runId is no
-// longer the current run.
+// means the defaults of getPublishDefaults, and an empty version means the patch
+// after the platform's highest. The backend refuses if runId is no longer the
+// current run.
 export async function publishPlatform(
   name: string,
   outputFilename: string,
-  runId: string | null
+  runId: string | null,
+  version = ""
 ): Promise<PublishedPlatform> {
   const res = await fetch(`/orchestrator-api/publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: name || null, output_filename: outputFilename || null, run_id: runId }),
+    body: JSON.stringify({
+      name: name || null,
+      output_filename: outputFilename || null,
+      version: version || null,
+      run_id: runId,
+    }),
   })
 
   if (!res.ok) {
@@ -126,6 +134,33 @@ export async function publishPlatform(
   }
 
   return res.json()
+}
+
+// Every platform at its latest version, with the versions it has.
+export async function getPlatforms(): Promise<PlatformSummary[]> {
+  const res = await fetch(`/orchestrator-api/platforms`)
+
+  if (!res.ok) {
+    throw await errorFor("Platforms", res)
+  }
+
+  return (await res.json()).platforms
+}
+
+// Purges one version of a published platform, or all of its versions when no
+// version is given. Returns the versions removed. The backend refuses a
+// platform that came with the stack.
+export async function purgePlatform(platformId: string, version?: string): Promise<string[]> {
+  const path = version
+    ? `/orchestrator-api/platforms/${encodeURIComponent(platformId)}/versions/${encodeURIComponent(version)}`
+    : `/orchestrator-api/platforms/${encodeURIComponent(platformId)}`
+  const res = await fetch(path, { method: "DELETE" })
+
+  if (!res.ok) {
+    throw await errorFor("Purge", res)
+  }
+
+  return (await res.json()).purged
 }
 
 export async function getPublishDefaults(): Promise<PublishDefaults> {

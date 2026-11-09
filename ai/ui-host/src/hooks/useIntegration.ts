@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   forkRun,
   getEvents,
+  getPlatforms,
   getPublishDefaults,
   getProviders,
   getStageMetadata,
   publishPlatform,
+  purgePlatform,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -391,13 +393,16 @@ export function useIntegration(runId?: string) {
   // refuses if another run became current since.
   const loadPublishDefaults = useCallback(() => getPublishDefaults(), [])
   const publish = useCallback(
-    async (name: string, outputFilename: string) => {
-      const published = await publishPlatform(name, outputFilename, viewedRunId)
+    async (name: string, outputFilename: string, version: string) => {
+      const published = await publishPlatform(name, outputFilename, viewedRunId, version)
       await fetchIncremental()
       return published
     },
     [fetchIncremental, viewedRunId]
   )
+  // The platforms are not part of any run, so listing and purging them touch no run state.
+  const loadPlatforms = useCallback(() => getPlatforms(), [])
+  const purge = useCallback((platformId: string, version?: string) => purgePlatform(platformId, version), [])
 
   return {
     events,
@@ -421,5 +426,7 @@ export function useIntegration(runId?: string) {
     fork,
     loadPublishDefaults,
     publish,
+    loadPlatforms,
+    purge,
   }
 }

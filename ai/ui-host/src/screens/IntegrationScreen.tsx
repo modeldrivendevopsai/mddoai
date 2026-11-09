@@ -130,6 +130,8 @@ export default function IntegrationScreen({ onBack }: IntegrationScreenProps) {
     fork,
     loadPublishDefaults,
     publish,
+    loadPlatforms,
+    purge,
   } = useIntegration(runId)
 
   // "Add a new platform" in the sidebar links here with a flag in the URL's
@@ -241,7 +243,15 @@ export default function IntegrationScreen({ onBack }: IntegrationScreenProps) {
       )
     }
     if (!currentStage) {
-      return <CompletePanel canPublish={isCurrent} loadDefaults={loadPublishDefaults} onPublish={publish} />
+      return (
+        <CompletePanel
+          canPublish={isCurrent}
+          loadDefaults={loadPublishDefaults}
+          onPublish={publish}
+          loadPlatforms={loadPlatforms}
+          onPurge={purge}
+        />
+      )
     }
     const ActivePanel = STAGE_PANELS[currentStage]
     return (

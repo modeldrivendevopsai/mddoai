@@ -75,6 +75,7 @@ event_summarization.py                                    (imports none of the a
 system_prompt.py ──imports──> tools                       (stage_metadata(), lazily cached)
 tools/__init__.py ──imports──> tools.pipeline_control, tools.docs, clients.integration_runner_client
 tools/pipeline_control.py, tools/docs.py ──imports──> tool_calling.py, clients.integration_runner_client
+tools/platforms.py ──imports──> tool_calling.py, clients.journal_client
 tool_calling.py                                            (imports none of the above)
 ```
 
@@ -130,8 +131,13 @@ stage. The docs-specific one is scoped to `stages: [docs]`, wrapping `integratio
   `POST /start` has always accepted, assembled from the tool's own flat arguments by
   `tools/pipeline_control.py`'s `_start_pipeline_tool` wrapper, the same pattern
   `_rerun_stage_tool` uses.
-- **`publish_platform(name=None, output_filename=None)`**: publishes the completed run's platform,
-  the same action as `POST /publish`. Both arguments default as `GET /publish` describes.
+- **`publish_platform(name=None, output_filename=None, version=None)`**: publishes the completed
+  run's platform, the same action as `POST /publish`. The first two default as `GET /publish`
+  describes, and `version` (`MAJOR.MINOR.PATCH`) defaults to the patch after the platform's highest.
+- **`list_platforms()`** and **`purge_platform(platform_id, version=None)`** (`tools/platforms.py`, any
+  stage): list the published platforms with their versions, and permanently remove one version of a
+  published platform or all of them. Purging calls the journal, as `DELETE /platforms` does. A platform
+  that came with the stack is refused, and the model is told to purge only when the human clearly asked.
 - **`add_page_to_docs(url, force_refresh=False)`** (`docs` only) — fetch one specific page the
   human already knows the URL of, and APPEND its real content onto the docs stage's current
   pending output, for when the crawl mostly succeeded but missed one known page. Does not
@@ -348,11 +354,22 @@ Changes the model for the rest of the run, not just what `/start` chose.
 
 `POST /publish` publishes the completed run's platform, so the pipeline generator can generate for
 it. The `publish_platform` chat tool does the same. `name` and `output_filename` default to what
-`GET /publish` returns. The UI sends `run_id` with the run on screen, and the publish is refused if
+`GET /publish` returns. `version` is `MAJOR.MINOR.PATCH`, and the patch after the platform's highest
+when it is left out. The UI sends `run_id` with the run on screen, and the publish is refused if
 that run is no longer the current one.
 
-`409` means the run is not complete or `run_id` is not the current run. `400` means the generator
-refused what was sent. Both carry the reason in `detail`. `502` means a service could not be reached.
+`409` means the run is not complete or `run_id` is not the current run. `400` means the journal
+refused what was sent, such as a version that exists. Both carry the reason in `detail`. `502` means
+a service could not be reached.
+
+### `GET /platforms` and `DELETE /platforms/...`
+
+`GET /platforms` lists each platform at its latest version, with the versions it has and whether it
+was published from a run. `DELETE /platforms/{id}/versions/{version}` purges one published version and
+`DELETE /platforms/{id}` purges every version of a published platform, in both cases through the
+journal, like the `purge_platform` chat tool. The journal's refusal is passed on with its status and
+reason: `404` for an unknown platform or version, `409` for a platform that came with the stack.
+`502` means the journal could not be reached.
 
 ## Prompt-config and attempt-introspection endpoints
 
