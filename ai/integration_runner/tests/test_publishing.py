@@ -1,5 +1,5 @@
 """publishing.py: what a completed run publishes, and when it refuses. Only the
-pipeline-generator client is mocked."""
+journal client's publish call is mocked."""
 from unittest.mock import patch
 
 import pytest
@@ -8,7 +8,7 @@ from integration_runner import pipeline, publishing
 
 ATL = "-- create OUT : NotThis from IN : PIM;\ncreate OUT : WoodMM from IN : PIM;"
 CONTEXT = {"psm_output": "<ecore/>", "atl_output": ATL, "acceleo_output": "[module m]"}
-PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": ".woodpecker.yaml"}
+PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.0.0", "output_filename": ".woodpecker.yaml"}
 
 
 def _completed_run(generated_files=None, platform="Woodpecker CI", context=None):
@@ -28,7 +28,7 @@ def _completed_run(generated_files=None, platform="Woodpecker CI", context=None)
 def test_a_completed_run_publishes_its_approved_outputs_and_records_it():
     run = _completed_run()
 
-    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform", return_value=PUBLISHED) as publish:
+    with patch("integration_runner.publishing.journal_client.publish_platform", return_value=PUBLISHED) as publish:
         result = publishing.publish(run)
 
     assert result == PUBLISHED
@@ -37,12 +37,13 @@ def test_a_completed_run_publishes_its_approved_outputs_and_records_it():
         output_filename=".woodpecker.yaml",
         output_model_name="WoodMM",
         source_run_id=run.run_id,
+        version=None,
         metamodel="<ecore/>",
         transformation=ATL,
         template="[module m]",
     )
     event = run.events[-1]
-    assert (event["type"], event["data"]) == ("platform_published", {"platform_id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1})
+    assert (event["type"], event["data"]) == ("platform_published", {"platform_id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.0.0"})
 
 
 def test_what_is_published_is_what_the_successful_generation_attempt_ran_with():
@@ -54,7 +55,7 @@ def test_what_is_published_is_what_the_successful_generation_attempt_ran_with():
     run.record_event("call_failed", "generation", {"error": "boom"})
     run.last_context = other
 
-    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform", return_value=PUBLISHED) as publish:
+    with patch("integration_runner.publishing.journal_client.publish_platform", return_value=PUBLISHED) as publish:
         publishing.publish(run)
 
     assert publish.call_args.kwargs["transformation"] == ATL
@@ -62,18 +63,28 @@ def test_what_is_published_is_what_the_successful_generation_attempt_ran_with():
 
 
 def test_a_given_name_and_output_file_win_over_the_defaults():
-    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform", return_value=PUBLISHED) as publish:
+    with patch("integration_runner.publishing.journal_client.publish_platform", return_value=PUBLISHED) as publish:
         publishing.publish(_completed_run(), name="  Woodpecker  ", output_filename="ci.yml")
 
     assert publish.call_args.kwargs["name"] == "Woodpecker"
     assert publish.call_args.kwargs["output_filename"] == "ci.yml"
 
 
+def test_a_version_given_is_published_as_that_version_and_an_empty_one_means_the_next_patch():
+    run = _completed_run()
+
+    with patch("integration_runner.publishing.journal_client.publish_platform", return_value=PUBLISHED) as publish:
+        publishing.publish(run, version="2.1.0")
+        publishing.publish(run, version="")
+
+    assert [call.kwargs["version"] for call in publish.call_args_list] == ["2.1.0", None]
+
+
 def test_a_run_that_is_not_complete_is_refused_and_nothing_is_published():
     run = _completed_run()
     run.current_stage_index = pipeline.STAGES.index("acceleo")
 
-    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform") as publish:
+    with patch("integration_runner.publishing.journal_client.publish_platform") as publish:
         with pytest.raises(publishing.NotPublishableError, match="acceleo"):
             publishing.publish(run)
     publish.assert_not_called()
@@ -116,7 +127,7 @@ def test_defaults_are_the_platform_description_and_the_one_generated_file():
 def test_a_transformation_without_an_output_declaration_is_not_publishable():
     run = _completed_run(context={**CONTEXT, "atl_output": "module x;"})
 
-    with patch("integration_runner.publishing.pipeline_generator_client.publish_platform") as publish:
+    with patch("integration_runner.publishing.journal_client.publish_platform") as publish:
         with pytest.raises(publishing.NotPublishableError, match="output model name"):
             publishing.publish(run)
     publish.assert_not_called()

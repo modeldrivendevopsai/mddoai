@@ -1,0 +1,347 @@
+"""journal_client against the real journal app, in the same process."""
+import logging
+from pathlib import Path
+from unittest.mock import patch
+
+import httpx
+import pytest
+
+from clients import journal_client
+from clients.agent_service_errors import AgentServiceError
+from clients.journal_client import HistoryClient
+from clients.journal_testing import journal_in_process
+
+
+@pytest.fixture
+def folders(tmp_path):
+    return tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"
+
+
+@pytest.fixture(autouse=True)
+def journal(folders):
+    with journal_in_process(*folders):
+        yield
+
+
+@pytest.fixture
+def history():
+    return HistoryClient("runs", "run")
+
+
+def _on_disk(folders, key="r1"):
+    return (folders[0] / key / "run.jsonl").read_text(encoding="utf-8")
+
+
+def _held(key="r1"):
+    return journal_client._request("GET", f"/histories/runs/{key}").json()
+
+
+def _methods_sent():
+    return [call.args[0] + " " + call.args[1].removeprefix(journal_client.JOURNAL_URL) for call in journal_client.httpx.request.call_args_list]
+
+
+# --- saving a history ------------------------------------------------------------------
+
+
+def test_the_first_save_sends_the_whole_history(history):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+
+    assert _held() == {"state": {"stage": 0}, "events": [{"n": 1}]}
+    assert _methods_sent() == ["PUT /histories/runs/r1", "GET /histories/runs/r1"]
+
+
+def test_a_later_save_sends_only_the_new_events_and_the_state_that_changed(history, folders):
+    events = [{"n": 1, "text": "x" * 100_000}]
+    history.save("r1", events, {"stage": 0, "model": None})
+    before = len(_on_disk(folders))
+    journal_client.httpx.request.reset_mock()
+
+    events.append({"n": 2})
+    history.save("r1", events, {"stage": 1, "model": None})
+
+    assert _methods_sent() == ["POST /histories/runs/r1/append"]
+    body = journal_client.httpx.request.call_args.kwargs["content"]
+    assert b"xxxx" not in body and b'"state": {"stage": 1}' in body
+    assert len(_on_disk(folders)) - before < 200
+    assert _held() == {"state": {"stage": 1, "model": None}, "events": events}
+
+
+def test_a_value_changed_inside_the_state_after_a_save_is_still_seen_as_changed(history):
+    state = {"constraints": {"docs": ["a"]}}
+    history.save("r1", [{"n": 1}], state)
+
+    state["constraints"]["docs"].append("b")
+    history.save("r1", [{"n": 1}], state)
+
+    assert _held()["state"] == {"constraints": {"docs": ["a", "b"]}}
+
+
+def test_two_keys_are_kept_apart(history):
+    history.save("r1", [{"n": 1}], {})
+    history.save("r2", [{"n": 2}], {})
+    history.save("r1", [{"n": 1}, {"n": 3}], {})
+
+    assert [e["n"] for e in _held("r1")["events"]] == [1, 3]
+    assert [e["n"] for e in _held("r2")["events"]] == [2]
+
+
+def test_a_history_the_journal_lost_is_sent_whole_again(history, folders):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    (folders[0] / "r1" / "run.jsonl").unlink()
+
+    history.save("r1", [{"n": 1}, {"n": 2}], {"stage": 0})
+
+    assert _held() == {"state": {"stage": 0}, "events": [{"n": 1}, {"n": 2}]}
+
+
+def test_events_that_became_fewer_replace_the_whole_history_kept(history):
+    history.save("r1", [{"n": 1}, {"n": 2}], {})
+
+    history.save("r1", [{"n": 9}], {})
+
+    assert _held()["events"] == [{"n": 9}]
+
+
+def test_a_save_that_is_sent_again_after_a_lost_answer_keeps_each_event_once(history):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    real = journal_client.httpx.request.side_effect
+    lost = []
+
+    def answer_lost(method, url, **kwargs):
+        response = real(method, url, **kwargs)
+        if not lost and method == "POST":
+            lost.append(True)
+            raise httpx.ReadTimeout("the answer never came")
+        return response
+
+    journal_client.httpx.request.side_effect = answer_lost
+    with pytest.raises(httpx.ReadTimeout):
+        history.save("r1", [{"n": 1}, {"n": 2}], {"stage": 1})
+
+    history.save("r1", [{"n": 1}, {"n": 2}, {"n": 3}], {"stage": 1})
+
+    assert _held() == {"state": {"stage": 1}, "events": [{"n": 1}, {"n": 2}, {"n": 3}]}
+
+
+def test_a_journal_that_is_down_fails_the_save_and_the_next_save_sends_everything_since_the_last_good_one(history):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    real = journal_client.httpx.request.side_effect
+
+    def down(method, url, **kwargs):
+        raise httpx.ConnectError("the journal is down")
+
+    journal_client.httpx.request.side_effect = down
+    with pytest.raises(httpx.ConnectError):
+        history.save("r1", [{"n": 1}, {"n": 2}], {"stage": 1})
+    journal_client.httpx.request.side_effect = real
+
+    history.save("r1", [{"n": 1}, {"n": 2}, {"n": 3}], {"stage": 2})
+
+    assert _held() == {"state": {"stage": 2}, "events": [{"n": 1}, {"n": 2}, {"n": 3}]}
+
+
+def test_save_quietly_logs_a_failure_once_and_goes_on(history, caplog):
+    def down(method, url, **kwargs):
+        raise httpx.ConnectError("the journal is down")
+
+    journal_client.httpx.request.side_effect = down
+    with caplog.at_level(logging.ERROR):
+        for _ in range(5):
+            history.save_quietly("r1", [{"n": 1}], {})
+
+    assert caplog.text.count("could not keep run r1 in the journal") == 1
+
+
+def test_a_journal_that_breaks_again_after_working_is_logged_again(history, caplog):
+    real = journal_client.httpx.request.side_effect
+
+    def down(method, url, **kwargs):
+        raise httpx.ConnectError("the journal is down")
+
+    with caplog.at_level(logging.ERROR):
+        journal_client.httpx.request.side_effect = down
+        history.save_quietly("r1", [{"n": 1}], {})
+        journal_client.httpx.request.side_effect = real
+        history.save_quietly("r1", [{"n": 1}], {})
+        journal_client.httpx.request.side_effect = down
+        history.save_quietly("r1", [{"n": 1}, {"n": 2}], {})
+
+    assert caplog.text.count("could not keep") == 2
+
+
+def test_a_value_json_cannot_hold_is_kept_as_text(history):
+    history.save("r1", [{"where": Path("/data/x")}], {})
+
+    assert _held()["events"] == [{"where": str(Path("/data/x"))}]
+
+
+def test_a_key_that_is_not_text_is_refused_and_nothing_is_sent(history):
+    journal_client.httpx.request.reset_mock()
+
+    with pytest.raises(ValueError, match="text key"):
+        history.save(None, [{"n": 1}], {})
+
+    journal_client.httpx.request.assert_not_called()
+
+
+def test_a_business_error_from_the_journal_is_raised_with_its_reason(history):
+    with pytest.raises(AgentServiceError) as error:
+        history.save("x" * 65, [{"n": 1}], {})
+
+    assert error.value.status_code == 404
+
+
+# --- loading histories --------------------------------------------------------------------
+
+
+def _build(key, events, state):
+    return key, events, state
+
+
+def test_every_history_the_journal_holds_comes_back_as_it_was(history):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    history.save("r1", [{"n": 1}, {"n": 2}], {"stage": 1})
+    history.save("r2", [{"n": 9}], {})
+
+    loaded = HistoryClient("runs", "run").load_all(_build)
+
+    assert sorted(loaded) == [("r1", [{"n": 1}, {"n": 2}], {"stage": 1}), ("r2", [{"n": 9}], {})]
+
+
+def test_after_loading_a_save_adds_to_what_the_journal_holds_and_does_not_send_it_whole(history, folders):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    restarted = HistoryClient("runs", "run")
+    restarted.load_all(_build)
+    journal_client.httpx.request.reset_mock()
+
+    restarted.save("r1", [{"n": 1}, {"n": 2}], {"stage": 0})
+
+    assert _methods_sent() == ["POST /histories/runs/r1/append"]
+    assert _on_disk(folders).count('"n": 1') == 1
+
+
+def test_a_history_the_caller_cannot_build_is_skipped_and_logged_and_the_rest_come_back(history, caplog):
+    history.save("r1", [{"n": 1}], {})
+    history.save("r2", [{"n": 2}], {})
+
+    def build(key, events, state):
+        if key == "r1":
+            raise ValueError("not mine")
+        return key
+
+    with caplog.at_level(logging.WARNING):
+        assert HistoryClient("runs", "run").load_all(build) == ["r2"]
+
+    assert "skipping run r1: not mine" in caplog.text
+
+
+def test_a_history_that_cannot_be_read_is_skipped_and_logged_and_the_rest_come_back(history, folders, caplog):
+    history.save("r2", [{"n": 2}], {})
+    (folders[0] / "bad").mkdir()
+    (folders[0] / "bad" / "run.jsonl").write_text("{not json\n", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        loaded = HistoryClient("runs", "run").load_all(_build)
+
+    assert [key for key, _, _ in loaded] == ["r2"]
+    assert "skipping run bad" in caplog.text
+
+
+def test_a_history_that_could_not_be_built_is_sent_whole_if_it_is_saved(history):
+    history.save("r1", [{"n": 1}], {"stage": 0})
+    restarted = HistoryClient("runs", "run")
+    restarted.load_all(lambda key, events, state: (_ for _ in ()).throw(ValueError("not mine")))
+
+    restarted.save("r1", [{"n": 1}, {"n": 2}], {"stage": 0})
+
+    assert _held()["events"] == [{"n": 1}, {"n": 2}]
+
+
+def test_chats_are_kept_in_their_own_kind():
+    chats = HistoryClient("chats", "chat")
+    chats.save("r1", [{"m": 1}], {"raw_seen": 1})
+
+    assert journal_client._request("GET", "/histories/chats/r1").json() == {"state": {"raw_seen": 1}, "events": [{"m": 1}]}
+    assert journal_client._request("GET", "/histories/runs").json() == {"keys": []}
+
+
+# --- attempts -------------------------------------------------------------------------------
+
+
+def test_an_attempt_is_reserved_recorded_and_read_back():
+    attempt = journal_client.reserve_attempt("run1", "psm")
+
+    journal_client.record_attempt(
+        "run1", "psm", attempt, filename="psm.ecore", content="<ecore/>", result={"valid": True}, prompt={"p": 1}, prompt_version="v1"
+    )
+
+    assert attempt == "attempt_1"
+    assert journal_client.get_attempt("run1", "psm", attempt)["artifact"] == {"filename": "psm.ecore", "content": "<ecore/>"}
+    assert journal_client.get_manifest("run1")[0]["attempt_n"] == 1
+
+
+def test_a_reserved_attempt_is_discarded_and_a_missing_one_is_a_refusal():
+    attempt = journal_client.reserve_attempt("run1", "psm")
+
+    journal_client.discard_attempt("run1", "psm", attempt)
+
+    with pytest.raises(AgentServiceError) as error:
+        journal_client.get_attempt("run1", "psm", attempt)
+    assert error.value.status_code == 404
+    with pytest.raises(AgentServiceError):
+        journal_client.get_manifest("run1")
+
+
+# --- platforms ------------------------------------------------------------------------------
+
+PLATFORM = {
+    "name": "Woodpecker CI",
+    "output_filename": ".woodpecker.yaml",
+    "output_model_name": "WoodpeckerMM",
+    "metamodel": "<ecore/>",
+    "transformation": "module T;",
+    "template": "[template]",
+    "source_run_id": "run1",
+}
+
+
+def test_a_platform_is_published_listed_read_and_purged():
+    published = journal_client.publish_platform(**PLATFORM)
+    journal_client.publish_platform(**PLATFORM, version="2.0.0")
+
+    assert published["version"] == "1.0.0"
+    assert [(p["id"], p["version"], p["versions"]) for p in journal_client.list_platforms()] == [("woodpecker-ci", "2.0.0", ["1.0.0", "2.0.0"])]
+    assert journal_client.get_platform("woodpecker-ci", "1.0.0")["files"]["transformation"] == "module T;"
+    assert journal_client.purge_platform("woodpecker-ci", "2.0.0") == ["2.0.0"]
+    assert journal_client.purge_platform("woodpecker-ci") == ["1.0.0"]
+    assert journal_client.list_platforms() == []
+
+
+def test_a_platform_or_version_that_is_not_there_reads_as_none():
+    assert journal_client.get_platform("nothing") is None
+    journal_client.publish_platform(**PLATFORM)
+    assert journal_client.get_platform("woodpecker-ci", "9.9.9") is None
+
+
+def test_a_version_that_exists_is_a_refusal_with_its_reason():
+    journal_client.publish_platform(**PLATFORM, version="1.0.0")
+
+    with pytest.raises(AgentServiceError) as error:
+        journal_client.publish_platform(**PLATFORM, version="1.0.0")
+
+    assert error.value.status_code == 409 and "never changed" in error.value.detail
+
+
+def test_a_file_over_the_limit_is_a_refusal_and_not_an_outage():
+    with patch("journal.settings.MAX_ARTIFACT_BYTES", 10):
+        with pytest.raises(AgentServiceError) as error:
+            journal_client.publish_platform(**{**PLATFORM, "metamodel": "x" * 11})
+
+    assert error.value.status_code == 413
+
+
+def test_the_swarch_to_pim_transformation_is_read(folders):
+    folders[2].mkdir(exist_ok=True)
+    (folders[2] / "swarch2pim.atl").write_text("module S;", encoding="utf-8")
+
+    assert journal_client.get_pim_transformation() == "module S;"

@@ -127,15 +127,19 @@ def test_publish_platform_tool_is_the_same_real_action_as_post_publish_and_works
 
 
 def test_dispatching_publish_platform_sends_the_real_publish_request():
-    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
+    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.2.0", "output_filename": "ci.yml"}
     response = type("Response", (), {"status_code": 200, "json": lambda self: published, "raise_for_status": lambda self: None})()
 
     with patch("clients.integration_runner_client.httpx.request", return_value=response) as request:
         result = tool_calling.dispatch_tool(
-            "publish_platform", {"name": "Woodpecker CI", "output_filename": "ci.yml"}, tools.get_tools()
+            "publish_platform",
+            {"name": "Woodpecker CI", "output_filename": "ci.yml", "version": "1.2.0"},
+            tools.get_tools(),
         )
 
     assert result == published
     method, url = request.call_args.args
     assert (method, url) == ("POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/publish")
-    assert request.call_args.kwargs["json"] == {"name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": None}
+    assert request.call_args.kwargs["json"] == {
+        "name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": None, "version": "1.2.0",
+    }

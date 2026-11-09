@@ -33,12 +33,9 @@ Context (platform_description, docs_output, etc.) is deliberately never
 asserted against the sent content here: pim ignores its input entirely
 (see its own agent.py's docstring for why).
 """
-import json
-
 import pytest
 
-from clients import validator_agent_client
-from integration_runner.stages import _validation
+from clients import journal_client, validator_agent_client
 from integration_runner.stages.pim import agent as pim_agent
 from helpers import _validation_result
 
@@ -101,9 +98,9 @@ def test_pim_persists_a_passing_attempt_to_disk(monkeypatch):
 
     pim_agent.pim_stage({"run_id": "run-1"})
 
-    attempt_dir = _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
-    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == _REAL_CONTENT
-    assert json.loads((attempt_dir / "result.json").read_text(encoding="utf-8")) == passing
+    kept = journal_client.get_attempt("run-1", "pim", "attempt_1")
+    assert kept["artifact"] == {"filename": pim_agent._FILENAME, "content": _REAL_CONTENT}
+    assert kept["result"] == passing
 
 
 def test_pim_raises_with_real_issue_detail_on_a_failing_result_and_still_persists(monkeypatch):
@@ -117,11 +114,10 @@ def test_pim_raises_with_real_issue_detail_on_a_failing_result_and_still_persist
 
     assert "deliberately broken for this test" in str(exc_info.value)
     # A failed attempt is exactly the record this exists to keep, it must
-    # still be on disk even though the call above raised.
-    attempt_dir = _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
-    assert (attempt_dir / pim_agent._FILENAME).read_text(encoding="utf-8") == _REAL_CONTENT
-    persisted = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
-    assert persisted["valid"] is False
+    # still be kept even though the call above raised.
+    kept = journal_client.get_attempt("run-1", "pim", "attempt_1")
+    assert kept["artifact"]["content"] == _REAL_CONTENT
+    assert kept["result"]["valid"] is False
 
 
 def test_pim_two_attempts_for_the_same_run_do_not_collide(monkeypatch):
@@ -130,6 +126,4 @@ def test_pim_two_attempts_for_the_same_run_do_not_collide(monkeypatch):
     pim_agent.pim_stage({"run_id": "run-1"})
     pim_agent.pim_stage({"run_id": "run-1"})
 
-    stage_dir = _validation.RUNS_DIR / "run-1" / "pim"
-    assert (stage_dir / "attempt_1").exists()
-    assert (stage_dir / "attempt_2").exists()
+    assert [(e["stage"], e["attempt_n"]) for e in journal_client.get_manifest("run-1")] == [("pim", 1), ("pim", 2)]

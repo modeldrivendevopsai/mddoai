@@ -32,6 +32,7 @@ import json
 import pytest
 
 from clients import execution_agent_client
+from clients.agent_service_errors import AgentServiceError
 from integration_runner.stages.generation import agent as generation_agent
 from integration_runner.stages.generation.agent import gen_stage
 
@@ -188,7 +189,8 @@ def test_gen_stage_rejects_a_generated_file_name_that_escapes_the_attempt_direct
         lambda *a, **k: {"../../escape.yaml": "stages: []\n"},
     )
 
-    with pytest.raises(ValueError, match="escapes the attempt directory"):
+    # The journal refuses a file name that would leave the attempt's folder.
+    with pytest.raises(AgentServiceError, match="not a path for an extra file"):
         gen_stage({
             "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
         })

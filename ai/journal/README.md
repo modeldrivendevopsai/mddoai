@@ -1,31 +1,55 @@
 # journal
 
-How a service keeps a long history on disk, so that adding to the history writes the new part and not the whole history again.
+The one service that reads and writes the run, chat and platform folders. Every other service keeps and reads what is in them through its API, using `clients/journal_client.py`, never through the folders. It knows how to keep things, and nothing about what a run, a chat or a stage means: that stays with the service that owns the idea.
 
-It is a shared package, not a service: no port, no Dockerfile, no compose entry. A service that uses it copies it into its image.
+Internal-only (no host port), like the agents. Services that call it start after it is healthy.
 
-## `History`
+## What it keeps
 
-Many histories, one journal each. A history is a list of events and some state fields, such as a run or a chat.
+| Folder | What | Written by callers as |
+|---|---|---|
+| `JOURNAL_RUNS_DIR` | `<run_id>/run.jsonl`, the run's history, and `<run_id>/<stage>/attempt_N/`, what each try of a stage produced | histories of kind `runs`, and attempts |
+| `JOURNAL_CHATS_DIR` | `<run_id>.jsonl`, the run's chat | histories of kind `chats` |
+| `JOURNAL_PLATFORMS_DIR` | `<platform-id>/<version>/`, each platform version's files, and the SWArch to PIM transformation beside them | platforms |
 
-- `save(key, events, state)` adds what is new since the last save: the state fields that changed, then the events after the ones already kept. A key not kept yet, or whose file has vanished, is written whole. If a save fails, the key is written whole at its next save, because what reached the disk is unknown.
-- `save_quietly(key, events, state)` is `save` for a caller that must go on if the disk fails. The failure is logged, once until a save works again.
-- `load_all(keys, build)` reads the journals and calls `build(key, events, state)` for each. `build` raises `ValueError` for a journal that is not what the caller keeps. A journal that cannot be read or built is skipped with a log line.
+Each folder is its own required setting with no default. In Docker they are the mounts of this service alone, and the host folders come from `config.env`.
 
-A key becomes a file or folder name, so it must be plain: letters, digits, `_` and `-`, up to 64 characters.
+## API
 
-The caller makes sure two saves of one key never overlap. `History` knows nothing about what an event or a state field means, or where a key's journal lives: the caller passes `path_for(key)`. It does not know about any data root. Each caller is given its own folder.
+**Histories.** A history is a list of events and some state fields, such as a run or a chat. `GET /histories/{kind}` lists the keys. `GET /histories/{kind}/{key}` returns `{state, events}`. `PUT` replaces a history whole. `POST /histories/{kind}/{key}/append` takes `{start, state, events}`: where in the history the events begin, the state fields that changed, and the events. An append that is sent again after a lost answer changes nothing, because events kept from `start` on are written over by the same ones. An append that starts past the end is a `409` with `count`, how many events are kept, so the caller can send the history whole. A key is letters, digits, `_` and `-`, up to 64 characters.
 
-## `Journal`
+**Attempts.** `POST /attempts/{run_id}` reserves the next attempt of a stage, which claims its number. `PUT /attempts/{run_id}/{stage}/{attempt}` records it: the artifact, the validator's result, and optionally the prompt and other files, which can sit in subfolders. `DELETE` releases a reserved attempt that was never recorded, and refuses one that was. `GET /attempts/{run_id}/manifest` lists every recorded attempt of a run. `GET /attempts/{run_id}/{stage}/{attempt}` reads one.
 
-One file of JSON records, one per line, that only grows. `History` is built on it.
+**Platforms.** `GET /platforms` lists each platform's latest version, with the versions it has and whether it was published. `GET /platforms/{id}?version=` reads a version, its latest when none is named, with its three files. `POST /platforms` publishes a version, the patch after the highest unless `version` is given. `DELETE /platforms/{id}/versions/{version}` and `DELETE /platforms/{id}` purge published versions. `GET /platforms/pim-transformation` serves the SWArch to PIM transformation.
 
-- `append(records)` adds records to the end in one write.
-- `rewrite(records)` replaces the file with `records`, through a temp file, so it is never half written.
-- `read()` returns the records and whether the file ended cleanly. A crash can cut the last line short. That line is left out, and the caller should `rewrite` the file before it appends again. A bad line anywhere else raises `ValueError`.
+A request it refuses is `404` for an unknown name, `409` for a version that exists or a platform that came with the stack, `413` for a file over `JOURNAL_MAX_ARTIFACT_BYTES`, and `422` for input that cannot be used, always with a `detail` a person can read.
 
-## Direction
+## Versions
 
-Callers go through `History`, never through a file path. Run history may later be queried across runs, such as to show forks or find patterns, and the storage behind `History` may move to another kind of store. That swap, or putting the store behind a service, should not change a caller.
+A platform version is `MAJOR.MINOR.PATCH`, as in [semantic versioning](https://semver.org): whole numbers without leading zeros, compared as numbers, so `1.10.0` is after `1.9.0`. Pre-release and build suffixes are not used. A platform's latest is its highest version, so publishing `1.5.0` after `2.0.0` does not change what pipelines are generated with. A version is never changed once published. A version that exists is refused, and a purged version can be published again.
 
-Run its tests with `pytest` in this folder.
+## Purging
+
+Only a published version can be purged. A version that came with the stack has no publish record, so it is kept, and a purge of a whole platform that holds one removes nothing. A publish that stopped part way leaves a folder that is never listed and that a purge clears.
+
+## Layout
+
+- `main.py` assembles the app, and `routes/` holds one file per resource.
+- `histories.py`, `attempts.py` and `platforms.py` keep each resource on disk, and `file.py` is the append-only file of JSON records under the histories.
+- `versions.py` is the version rules.
+- `dependencies.py` builds the stores from the settings. `settings.py` reads them.
+
+## Where this is headed
+
+Run history may later be queried across runs, to show forks or find patterns, and the storage behind the API may become another kind of store. Callers use the API and never a path, so that change stays inside this service. Other kinds of data the stack keeps, such as the generated pipelines and the prompt configs, are not here yet.
+
+## Run
+
+```bash
+export JOURNAL_RUNS_DIR=$PWD/runs JOURNAL_CHATS_DIR=$PWD/chats JOURNAL_PLATFORMS_DIR=$PWD/../data/platforms
+PYTHONPATH=.:.. uvicorn main:app --port 8120
+```
+
+## Test
+
+`pytest` in this folder. The tests use the real app over temporary folders. Other services' tests use `clients/journal_testing.py` to run the real journal in their own process.

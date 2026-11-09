@@ -20,7 +20,7 @@ INTEGRATION_RUNNER_URL = os.environ.get("INTEGRATION_RUNNER_URL", "http://localh
 # for /docs/extend specifically — see add_page_to_docs's own docstring for
 # why that one endpoint needs more than the fast-bookkeeping default below.
 DOCS_EXTEND_TIMEOUT = float(os.environ.get("DOCS_EXTEND_TIMEOUT", "960.0"))
-# Longer than integration_runner's own wait on the pipeline generator for a publish.
+# Longer than integration_runner's own wait on the journal for a publish.
 PUBLISH_TIMEOUT = float(os.environ.get("INTEGRATION_RUNNER_PUBLISH_TIMEOUT", "60.0"))
 
 _BUSINESS_ERROR_CODES = (400, 404, 409)
@@ -142,14 +142,21 @@ def get_publish_defaults() -> dict:
     return _request("GET", "/publish").json()
 
 
-def publish(name: str | None = None, output_filename: str | None = None, run_id: str | None = None) -> dict:
-    """Publishes the current, completed run's platform. With run_id, only if that
-    run is still the current one. Returns {"id", "name", "version", "output_filename"}."""
+def publish(
+    name: str | None = None,
+    output_filename: str | None = None,
+    run_id: str | None = None,
+    version: str | None = None,
+) -> dict:
+    """Publishes the current, completed run's platform, as `version`
+    (MAJOR.MINOR.PATCH) or the patch after its highest when none is given. With
+    run_id, only if that run is still the current one. Returns {"id", "name",
+    "version", "output_filename", ...}."""
     return _request(
         "POST",
         "/publish",
         timeout=PUBLISH_TIMEOUT,
-        json={"name": name, "output_filename": output_filename, "run_id": run_id},
+        json={"name": name, "output_filename": output_filename, "run_id": run_id, "version": version},
     ).json()
 
 

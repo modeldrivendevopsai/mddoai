@@ -19,8 +19,8 @@ routed automatically by platform — see [`ai/psm_agent`](../psm_agent)), `valid
 real validation of their DSL output, and internally by `psm_agent` itself when generating a new
 metamodel), and `execution-agent` (`POST /execute/atl/pim`/`POST /execute/acceleo`, for the
 `generation` stage's own real ATL/Acceleo execution against a real PIM model instance — see
-[`ai/execution_agent`](../execution_agent)), and `pipeline_generator` (`POST /platforms`, to
-publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_generator)).
+[`ai/execution_agent`](../execution_agent)), and `journal` (`clients/journal_client.py`: keeps each run
+and its attempts, and publishes a completed run's platform, see [`ai/journal`](../journal)).
 
 ## Module layout
 
@@ -45,8 +45,8 @@ publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_ge
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
-- **`run_store.py`**: keeps each run on disk, as the journal `runs/<run_id>/run.jsonl`, and reads them back.
-- **`publishing.py`**: publishes a completed run's platform to `pipeline_generator`. It takes the
+- **`run_store.py`**: keeps each run in the journal, and reads them back when the service starts.
+- **`publishing.py`**: publishes a completed run's platform to the journal, as a version of the caller's choosing or the next patch. It takes the
   three files from the recorded events of the attempt behind the approved pipeline, not from the
   run's latest context, which a later attempt can have changed.
 - **`atl_source.py`**: reads facts out of a generated ATL transformation, shared by the generation
@@ -72,10 +72,10 @@ publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_ge
 ```
 main.py ──imports──> routes/
 routes/core.py ──imports──> runs.py, pipeline.py, publishing.py, stages/
-publishing.py ──imports──> runs.py, atl_source.py, clients.pipeline_generator_client
+publishing.py ──imports──> runs.py, atl_source.py, clients.journal_client
 routes/docs.py ──imports──> runs.py, stages/docs/
 routes/psm.py ──imports──> runs.py, stages/psm/actions.py, clients.psm_agent_client
-routes/attempts.py ──imports──> stages/_attempts_read.py
+routes/attempts.py ──imports──> clients.journal_client
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
@@ -85,7 +85,6 @@ stages/psm/ (agent.py, actions.py) ──imports──> clients.psm_agent_client
 stages/generation/ (agent.py) ──imports──> clients.execution_agent_client, atl_source.py
 stages/docs/ (agent.py, actions.py) ──imports──> clients.retrieval_client
 stages/serialization/ (agent.py) ──imports──> clients.serialization_agent_client
-stages/_attempts_read.py ──imports──> generation_toolkit.attachments.files
 ```
 
 See [ai/CLAUDE.md](../CLAUDE.md) for the step-by-step recipe for adding a new stage-specific
@@ -234,86 +233,57 @@ file, not a restructuring.
   failure rather than swallowing it: unlike `atl_stage`/`acceleo_stage`, this stage has no retry
   loop or attempt-persistence of its own to protect.
 
-### Persisted validation attempts
+### Kept attempts and runs
 
-`pim_stage`/`psm_stage`/`atl_stage`/`acceleo_stage` each persist their own artifact and
-validation result to disk before returning (or, for `pim`/`atl`/`acceleo`, before raising) — a
+`pim_stage`/`psm_stage`/`atl_stage`/`acceleo_stage`/`gen_stage` each keep their own artifact and
+validation result in the journal before returning (or, for `pim`/`atl`/`acceleo`, before raising): a
 failed attempt is exactly the record this exists to keep, not something to skip on failure. For
 `pim`/`atl`/`acceleo` that result comes from a direct `validator-agent` call; for `psm` it comes
 from `psm_agent`'s own response (real `validator-agent` output on the generation path, a
 trivial always-valid record on the knowledge/comparison path, since there's nothing to validate
-against an existing `.ecore`). `stages/_validation.py`:
+against an existing `.ecore`). `stages/_validation.py` calls `clients/journal_client.py` and
+keeps no files itself:
 
-- **`persist_attempt(run_id, stage, filename, content, result, attempt_dir=None, prompt=None,
-  prompt_version=None)`** — writes `runs/<run_id>/<stage>/attempt_N/<filename>` and
-  `.../attempt_N/result.json`, synchronously, before the caller decides pass/fail, and appends this
-  same attempt to `runs/<run_id>/manifest.json` (below). Never overwrites a prior attempt.
-  `attempt_dir` lets a caller that already reserved its own attempt directory (see
-  `reserve_attempt_dir` below) hand it in directly instead of a second one being reserved; omitted,
-  it reserves its own exactly as it always has. `prompt`/`prompt_version`, when given, also write
-  `.../attempt_N/prompt.json` (`{"prompt": ..., "prompt_version": ...}`) — the real prompt that
-  produced this attempt, mirroring the real `ai-research` branch's own round layout (`prompt.md`
-  alongside `output.ecore`/`notes.md`). `psm_stage`/`atl_stage`/`acceleo_stage` all pass these,
-  since each has a real, resolved-from-config prompt to record; `pim`'s fixed-content call omits
-  them and simply gets no `prompt.json`, since there's no prompt behind a static metamodel read.
-- **`stages/_attempts_read.py`** — the read side of the same on-disk layout, a different concern
-  from `persist_attempt`'s write side, so it lives in its own file: `read_manifest(run_id)` and
-  `read_attempt(run_id, stage, attempt)`, backing `routes/attempts.py` (below). Reuses
-  `generation_toolkit.attachments.files.validate_path_segment` on the caller-supplied
-  `run_id`/`stage`/`attempt` before ever touching the filesystem with them.
-- **`reserve_attempt_dir(run_id, stage)`** — finds `N`, one-indexed, by atomically *trying* to
-  create `attempt_1`, `attempt_2`, ... in turn (`Path.mkdir()`'s default `exist_ok=False` already
-  raises `FileExistsError` atomically, backed by the OS's own atomic `mkdir(2)`), not by listing
-  the directory first and trusting that snapshot — this service's real mutating endpoints are
-  sync routes dispatched through FastAPI's own threadpool, so two concurrent callers computing
-  "next" from the same stale listing is a real, reachable race, not just a theoretical one; trying
-  each candidate and catching the collision is what makes this genuinely atomic. Public (not
-  `persist_attempt`'s own private helper) so `atl_stage`/`acceleo_stage`/`psm_stage` can call it
-  *before* calling out to `validator_agent_client` (`psm_stage` via `psm_agent_client.run_psm()`
-  instead, since `psm_agent`'s own generation code is what actually calls validator-agent): that
-  call is what triggers `AtlValidator`'s/`AcceleoValidator`'s/`EcoreValidator`'s own real compiled
-  output write, and `validator_agent` needs the real stage name and attempt number to scope it
-  under in its own folder (missing the stage segment, two stages' same-numbered attempts would
-  collide). See
-  [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
-- **`reserved_attempt(run_id, stage)`** — a context manager wrapping `reserve_attempt_dir()` for
-  exactly the pattern above: reserve the directory, then make a fallible downstream call, then
-  `persist_attempt()`. If that call raises before `persist_attempt()` recorded the attempt (a
-  `validator-agent` timeout or restart, a network blip), the reserved directory is removed again,
-  so the failure does not strand an unlisted `attempt_N/` on disk or push the next real attempt
-  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty", so
-  whatever else the directory holds does not keep an attempt that never finished. A recorded
-  attempt is kept, so a normal validation
-  failure still keeps its full record. Yields `None` when there is no `run_id`.
-- **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
+- **`persist_attempt(run_id, stage, filename, content, result, attempt=None, prompt=None,
+  prompt_version=None, extra_files=None)`** records the attempt, before the caller decides
+  pass/fail, and the journal adds it to the run's manifest. It never overwrites a prior attempt.
+  `attempt` is the one the caller reserved (below). Omitted, it reserves its own. `prompt` and
+  `prompt_version`, when given, record the prompt that produced the attempt. `psm`, `atl` and
+  `acceleo` pass them, since each has a prompt resolved from config. `pim` omits them. `extra_files`
+  are other files the try produced, by path inside the attempt: the generation stage passes its
+  intermediate PSM instance and each generated file, whose names can carry a subfolder.
+- **`reserve_attempt(run_id, stage)`** claims the next attempt number of the stage in the run, in the
+  journal, and returns an `Attempt(run_id, stage, name)`. It is public so `atl_stage`,
+  `acceleo_stage` and `psm_stage` can reserve before calling out: `atl_stage` and `acceleo_stage`
+  call `validator_agent_client`, and `psm_stage` calls `psm_agent_client.run_psm()`, whose
+  generation code calls validator-agent. That call writes the real compiled output (`.asm`,
+  `.emtl`, Ecore classes), and `validator_agent` needs the stage name and the attempt's name to
+  scope it in its own folder. Without the stage, two stages' attempts with the same number
+  would collide. See [validator_agent's own README](../validator_agent/README.md#setup).
+- **`reserved_attempt(run_id, stage)`** is a context manager for exactly that pattern: reserve, make
+  a fallible downstream call, then `persist_attempt()`. If the call raises before the attempt was
+  recorded (a `validator-agent` timeout or restart, a network blip), the journal releases the
+  reservation, so the failure leaves no stray attempt and does not push the next real attempt
+  to the next number. A recorded attempt is kept. If the journal cannot release it, that is logged
+  and the error being raised is not hidden. Yields `None` when there is no `run_id`.
+- **`raise_if_invalid(stage, result)`** turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
-  already goes through (see [Reporting a stage result](#reporting-a-stage-result) below) — never
+  already goes through (see [Reporting a stage result](#reporting-a-stage-result) below). It is never
   called for an infra failure, which `validator_agent_client` itself already raises before
-  `persist_attempt` runs (handled by `reserved_attempt` above).
+  `persist_attempt` runs.
 
-`runs/` is the folder `INTEGRATION_RUNNER_RUNS_DIR` names (required, no default). In Docker it is the runs
-folder set in `config.env`, see [ai/README.md](../README.md#where-files-live).
+`routes/attempts.py` reads attempts back through the journal. An unknown run or attempt is the journal's
+own `404`, which the app's `AgentServiceError` handler passes on.
 
-**`runs/<run_id>/run.jsonl`** is the run itself, everything needed to carry on with it. It only grows:
-each save adds the events recorded since the last one, and the parts of the run's state that changed.
-When the service starts it loads every run in the folder, and the one with the latest activity becomes
-the current run. A stage that was running when the service stopped comes back as failed, and can be
-retried. A journal that is not a saved run is skipped with a log line. If the disk fails, that is logged
-and the run goes on in memory. The file format comes from the shared `journal` package.
-
-**`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
-attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
-valid, timestamp}` records, one per `persist_attempt()` call, in the order they actually
-happened. `_update_manifest()` writes it, and `_atomic_write_json()` underneath writes it
-safely — a sibling temp file, then `os.replace()`'d into place, so a crash mid-write can never
-leave a corrupted or half-written manifest, only ever the previous complete version or the new
-one. The read-modify-write itself (read the manifest, append, write it back) is serialized by a
-process-wide `threading.Lock`, not just the write — two concurrent attempts finishing at the same
-moment would otherwise both read the same old version and each write back independently, silently
-losing whichever wrote first. A `threading.Lock` is correct and sufficient here specifically
-because this service runs single-process (`integration_runner/Dockerfile`'s own `CMD` has no
-`--workers` flag) — a cross-process file lock would be solving a problem this deployment doesn't
-have.
+**Runs.** `run_store.py` keeps each run in the journal as a history: the run's events are the history's
+events, and the rest of the run, such as the stage it is at, is its state. `clients/journal_client.py`'s
+`HistoryClient` sends only what the journal does not have, which is the events recorded since the last
+save and the state fields that changed. When the service starts it loads every run, and the one with the
+latest activity becomes the current run. A stage that was running when the service stopped comes back as
+failed, and can be retried. A history that is not a saved run is skipped with a log line. If the journal
+cannot be reached, that is logged once and the run goes on in memory. The next save that gets through
+sends everything since the last one that did. The service needs no folder setting for any of this: it
+mounts no run folder, and `JOURNAL_URL` says where the journal is.
 
 **Concurrent mutating requests.** Every mutating endpoint keeps a fast-path `if run.busy` check
 (a double-click, a client retry, the orchestrator and a human both acting could otherwise both
@@ -483,7 +453,7 @@ The service starts at `http://localhost:8050`.
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run, newest first. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
-| `POST /publish` | Body: optional `name`, `output_filename`, `run_id`. Publishes the completed run's platform to `pipeline_generator`, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the generator refuses what was sent. `502` if it is unreachable. |
+| `POST /publish` | Body: optional `name`, `output_filename`, `version` (`MAJOR.MINOR.PATCH`, the patch after the highest when left out), `run_id`. Publishes the completed run's platform to the journal, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the journal refuses what was sent, such as a version that exists. `502` if it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
 | `POST /reset` | Replaces the current run with a fresh, blank one. `409` if busy. |
 | `POST /resume/{run_id}` | Makes a past run current again. `404` unknown run, `409` if busy. |
@@ -548,12 +518,11 @@ cp .env.example .env
 # if unset. Override only if any of them run somewhere else.
 ```
 
-`INTEGRATION_RUNNER_RUNS_DIR` is required: export it in your shell, since nothing reads `.env` for you.
+`JOURNAL_URL` says where the journal is, `http://localhost:8120` if unset. Run the journal first: runs and attempts are kept there.
 
 ## Run
 
 ```bash
-export INTEGRATION_RUNNER_RUNS_DIR=/path/to/a/folder
 uvicorn main:app --reload --port 8050
 ```
 
@@ -583,9 +552,9 @@ LLM-generation proxy's own client (`psm_agent_client`/`atl_agent_client`/`accele
 `test_mock_validated_stages_real_validator.py`, is listed separately below). `record_event()`
 has no reactor concept, so exactly one real call happens per stage transition (the stage agent's
 own), never one for narration too — narration lives entirely in `orchestrator/chat_log.py`.
-`conftest.py` sets `INTEGRATION_RUNNER_RUNS_DIR` to a throwaway folder before imports, and its
-autouse fixture redirects `stages/_validation.py`'s `RUNS_DIR` to a throwaway `tmp_path` for every
-test, so nothing here touches a real runs folder.
+`conftest.py`'s autouse fixture runs the real journal in the test's own process, over folders of that test
+alone (`clients/journal_testing.py`), so runs and attempts are kept for real and nothing here touches a
+real folder.
 
 - **`tests/test_pipeline.py`** — the state machine: `STAGES`, `validate()`, `IntegrationRun`'s
   `run_stage`/`rerun`/`advance_stage`/`add_constraint`/`review`/`record_review`/`record_event`/
@@ -594,7 +563,7 @@ test, so nothing here touches a real runs folder.
   `IntegrationRun`.
 - **`tests/test_runs.py`** — the run registry: run identity/history, `start_pipeline()`,
   `current()`.
-- **`tests/test_run_store.py`**: runs kept on disk and brought back at start.
+- **`tests/test_run_store.py`**: runs kept in the journal and brought back at start.
 - **`tests/stages/test_docs_agent.py`** — the real `docs_stage` agent (`stages/docs/agent.py`).
 - **`tests/stages/test_docs_actions.py`** — `extend_with_page()`'s real appending behavior and
   event recording, against a real `IntegrationRun` (`stages/docs/actions.py`).
@@ -619,17 +588,12 @@ test, so nothing here touches a real runs folder.
   the input-context precedence (`pim_output` over `docs_output` over `platform_description`,
   preserving the placeholder agent's own already-tested precedence), that constraints/model are
   forwarded, and that it reserves its own attempt directory and forwards its own stage name plus
-  that attempt's name the same way `atl_stage`/`acceleo_stage` do (a real directory created on
-  disk, not just a mocked call, and the second reserved attempt name on a retry). `test_manifest.py`
-  (below) covers its `persist_attempt()` call instead. The real generation/comparison logic itself
+  that attempt's name the same way `atl_stage`/`acceleo_stage` do (an attempt reserved in the journal, not
+  just a mocked call, and the second reserved attempt name on a retry). The real generation/comparison logic itself
   has its own tests in `ai/psm_agent/tests/`.
-- **`tests/stages/test_validation.py`** — `stages/_validation.py`'s own `persist_attempt()`/
-  `raise_if_invalid()` contract, independent of any one stage.
-- **`tests/stages/test_manifest.py`** — `runs/<run_id>/manifest.json`'s own contract: every
-  `persist_attempt()` call across stages (`pim`, `psm`, `atl`, `acceleo`) appends one entry in
-  order, a failed attempt still lands an entry, timestamps advance, and concurrent updates don't
-  lose entries. `psm_agent_client.run_psm()` and `validator_agent_client`'s validate functions
-  are both mocked, per stage.
+- **`tests/stages/test_validation.py`**: `stages/_validation.py`'s own contract against the real journal:
+  `persist_attempt()`, `reserve_attempt()` and `reserved_attempt()` (including release on failure), the
+  manifest, and `raise_if_invalid()`, independent of any one stage.
 - **`tests/stages/test_stages_registry.py`** — `stages/__init__.py`'s own `stage_agents`/
   `STAGE_DESCRIPTIONS` assembly.
 

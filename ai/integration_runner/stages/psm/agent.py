@@ -62,7 +62,7 @@ def psm_stage(context: dict) -> tuple[str, dict]:
     # call plus up to three validator round-trips), so a transient failure
     # in that window is a real case, not an exotic one.
     run_id = context.get("run_id")
-    with reserved_attempt(run_id, "psm") as attempt_dir:
+    with reserved_attempt(run_id, "psm") as attempt:
         result = psm_agent_client.run_psm(
             platform_description,
             pim_artifact,
@@ -75,7 +75,7 @@ def psm_stage(context: dict) -> tuple[str, dict]:
             # meaningful on psm_agent's generation branch, see generate()'s own
             # docstring for exactly what it skips.
             mock=bool(context.get("mock")),
-            **attempt_scope_kwargs("psm", attempt_dir),
+            **attempt_scope_kwargs("psm", attempt),
         )
         artifact = result["artifact"]
         if result["mode"] == "generation":
@@ -96,7 +96,7 @@ def psm_stage(context: dict) -> tuple[str, dict]:
                 _FILENAME,
                 artifact,
                 result["validation"],
-                attempt_dir=attempt_dir,
+                attempt=attempt,
                 prompt=result.get("prompt"),
                 prompt_version=result.get("prompt_version"),
             )
@@ -110,7 +110,7 @@ def psm_stage(context: dict) -> tuple[str, dict]:
                 _FILENAME,
                 artifact,
                 {"valid": True, "issues": []},
-                attempt_dir=attempt_dir,
+                attempt=attempt,
                 prompt=result.get("prompt"),
                 prompt_version=result.get("prompt_version"),
             )

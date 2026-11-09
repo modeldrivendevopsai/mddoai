@@ -1,5 +1,2 @@
-"""Keeping a long history on disk without writing it all again at every change."""
-from .file import Journal
-from .history import History
-
-__all__ = ["Journal", "History"]
+"""The journal: the service that keeps the stack's histories, run attempts and
+published platforms on disk, so no other service reads or writes those folders."""

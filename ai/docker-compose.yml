@@ -28,11 +28,6 @@ services:
     env_file:
       - path: ./orchestrator/.env
         required: false
-    volumes:
-      # Each run's chat.
-      - type: bind
-        source: ${MDDOAI_CHATS_DIR:?}
-        target: /data/chats
     environment:
       # ai_layer_client.chat() is still called directly here (narration and
       # accept_message()'s own tool-routing decision, see assistant.py), and
@@ -44,11 +39,14 @@ services:
       # RETRIEVAL_URL isn't needed here.
       - AI_LAYER_URL=http://ai-layer:8000
       - INTEGRATION_RUNNER_URL=http://integration-runner:8050
-      - ORCHESTRATOR_CHATS_DIR=/data/chats
+      # Where each run's chat is kept, and platforms are purged.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
       ai-layer:
         condition: service_healthy
       integration-runner:
+        condition: service_healthy
+      journal:
         condition: service_healthy
     expose:
       - "8001"
@@ -77,21 +75,18 @@ services:
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
-      # Where a completed run's platform is published.
-      - PIPELINE_GENERATOR_URL=http://pipeline-generator:8100
+      # Where each run and its attempts are kept, and a completed run's platform is published.
+      - JOURNAL_URL=http://journal:8120
       - PIM_METAMODEL_PATH=/pim_metamodel.ecore
       - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
-      - INTEGRATION_RUNNER_RUNS_DIR=/data/runs
     volumes:
       # The PIM metamodel, read-only.
       - ../meta_models/com.mddoai.metamodel.pim/model/pimMM.ecore:/pim_metamodel.ecore:ro
       # A sample PIM instance: the input of the generation stage's ATL and Acceleo run.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # Each run's state and attempts.
-      - type: bind
-        source: ${MDDOAI_RUNS_DIR:?}
-        target: /data/runs
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       retrieval:
@@ -503,13 +498,6 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      # Read on every request, so a changed file applies to the next generation.
-      # Publishing a platform adds a version here. It must already hold the platforms.
-      - type: bind
-        source: ${MDDOAI_PLATFORMS_DIR:?}
-        target: /data/platforms
-        bind:
-          create_host_path: false
       # What "Your pipelines" lists.
       - type: bind
         source: ${MDDOAI_PIPELINES_DIR:?}
@@ -517,18 +505,53 @@ services:
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
+      # Where the platforms are kept, read on every request so a published version applies to the next generation.
+      - JOURNAL_URL=http://journal:8120
       - GENERATOR_WORKSPACE_DIR=/workspace
       # Shown in Browse.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
       - GENERATOR_PIPELINES_DIR=/data/pipelines
-      - GENERATOR_PLATFORMS_DIR=/data/platforms
     depends_on:
+      journal:
+        condition: service_healthy
       validator-agent:
         condition: service_healthy
       execution-agent:
         condition: service_healthy
     expose:
       - "8100"
+
+  # Own container: the one service that reads and writes the run, chat and
+  # platform folders. Every other service reaches them through its API (see
+  # clients/journal_client.py), so a change to where or how they are kept
+  # touches this service and nothing else. It knows nothing about what a run, a
+  # chat or a platform means beyond how to keep it.
+  journal:
+    build:
+      context: .
+      dockerfile: journal/Dockerfile
+    environment:
+      - JOURNAL_RUNS_DIR=/data/runs
+      - JOURNAL_CHATS_DIR=/data/chats
+      - JOURNAL_PLATFORMS_DIR=/data/platforms
+    volumes:
+      # Each run's journal and attempts.
+      - type: bind
+        source: ${MDDOAI_RUNS_DIR:?}
+        target: /data/runs
+      # Each run's chat.
+      - type: bind
+        source: ${MDDOAI_CHATS_DIR:?}
+        target: /data/chats
+      # The platforms generated for, shipped and published. It must already hold
+      # the shipped ones: Docker would create it empty.
+      - type: bind
+        source: ${MDDOAI_PLATFORMS_DIR:?}
+        target: /data/platforms
+        bind:
+          create_host_path: false
+    expose:
+      - "8120"
 
 volumes:
   main-gradle-cache:

@@ -43,7 +43,9 @@ def test_health():
 def test_platforms_lists_what_the_registry_holds():
     body = client.get("/platforms").json()
 
-    assert {"id": "gitlab", "name": "GitLab CI", "output_filename": ".gitlab-ci.yml"} in body["platforms"]
+    assert [(p["id"], p["name"], p["output_filename"], p["version"]) for p in body["platforms"]] == [
+        ("gitlab", "GitLab CI", ".gitlab-ci.yml", "1.0.0")
+    ]
 
 
 def test_inspect_returns_the_attributes_and_a_passing_model_check():

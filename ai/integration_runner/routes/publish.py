@@ -18,6 +18,8 @@ class PublishRequest(BaseModel):
     # older run cannot publish another one.
     name: str | None = None
     output_filename: str | None = None
+    # MAJOR.MINOR.PATCH. Unset means the patch after the platform's highest version.
+    version: str | None = None
     run_id: str | None = None
 
 
@@ -29,7 +31,7 @@ def publish_defaults_endpoint():
 
 @router.post("/publish")
 def publish_endpoint(request: PublishRequest):
-    """Publishes the current, completed run's platform to the pipeline generator.
+    """Publishes the current, completed run's platform to the journal.
     The run is busy for the whole publish, so a double click or a chat tool
     call cannot publish two versions at once."""
     run = runs.current()
@@ -40,12 +42,12 @@ def publish_endpoint(request: PublishRequest):
     except BusyError:
         raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
     try:
-        return publishing.publish(run, request.name, request.output_filename)
+        return publishing.publish(run, request.name, request.output_filename, request.version)
     except publishing.NotPublishableError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except AgentServiceError as e:
         raise HTTPException(status_code=400, detail=e.detail)
     except httpx.HTTPError:
-        raise HTTPException(status_code=502, detail="The pipeline generator is unavailable, try again shortly.")
+        raise HTTPException(status_code=502, detail="The journal is unavailable, try again shortly.")
     finally:
         run.release_busy()

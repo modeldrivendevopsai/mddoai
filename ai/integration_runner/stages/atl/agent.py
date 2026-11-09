@@ -48,7 +48,7 @@ def atl_stage(context: dict) -> tuple[str, dict]:
     # the reservation if run_atl() raises before persist_attempt() records
     # anything.
     run_id = context.get("run_id")
-    with reserved_attempt(run_id, "atl") as attempt_dir:
+    with reserved_attempt(run_id, "atl") as attempt:
         result = atl_agent_client.run_atl(
             pim_artifact,
             psm_artifact,
@@ -58,7 +58,7 @@ def atl_stage(context: dict) -> tuple[str, dict]:
             # The same per-run "Mock" override docs_stage's own context["mock"]
             # already reads (see RerunOverrides.mock/StartRequest.mock).
             mock=bool(context.get("mock")),
-            **attempt_scope_kwargs("atl", attempt_dir),
+            **attempt_scope_kwargs("atl", attempt),
         )
         artifact = result["artifact"]
         persist_attempt(
@@ -67,7 +67,7 @@ def atl_stage(context: dict) -> tuple[str, dict]:
             _FILENAME,
             artifact,
             result["validation"],
-            attempt_dir=attempt_dir,
+            attempt=attempt,
             prompt=result.get("prompt"),
             prompt_version=result.get("prompt_version"),
         )

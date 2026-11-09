@@ -274,22 +274,22 @@ def test_promote_acceleo_constraints_hits_the_real_endpoint():
 
 
 def test_publish_posts_the_name_and_output_file_and_returns_the_published_version():
-    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
+    published = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.2.0", "output_filename": "ci.yml"}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(published)) as mock_request:
-        result = integration_runner_client.publish("Woodpecker CI", "ci.yml", "run1")
+        result = integration_runner_client.publish("Woodpecker CI", "ci.yml", "run1", "1.2.0")
 
     mock_request.assert_called_once_with(
         "POST", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/publish",
         timeout=integration_runner_client.PUBLISH_TIMEOUT,
-        json={"name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": "run1"},
+        json={"name": "Woodpecker CI", "output_filename": "ci.yml", "run_id": "run1", "version": "1.2.0"},
     )
     assert result == published
 
 
-def test_publish_waits_longer_than_integration_runner_waits_on_the_pipeline_generator():
-    import pipeline_generator_client
+def test_publish_waits_longer_than_integration_runner_waits_on_the_journal():
+    from clients import journal_client
 
-    assert integration_runner_client.PUBLISH_TIMEOUT > pipeline_generator_client.PUBLISH_TIMEOUT
+    assert integration_runner_client.PUBLISH_TIMEOUT > journal_client.PUBLISH_TIMEOUT
 
 
 def test_get_publish_defaults_hits_the_real_endpoint():

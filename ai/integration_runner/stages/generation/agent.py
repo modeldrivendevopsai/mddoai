@@ -41,7 +41,7 @@ from pathlib import Path
 
 from clients import execution_agent_client
 from integration_runner.atl_source import output_model_name as _output_model_name
-from integration_runner.stages._validation import persist_attempt, reserved_attempt
+from integration_runner.stages._validation import Attempt, persist_attempt, reserved_attempt
 
 # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's own
 # PIM concepts), this stage's own real input to the real ATL execution it
@@ -74,16 +74,26 @@ PIM_SAMPLE_INSTANCE_PATH = Path(
 # a name inside this one joined file.
 _FILENAME = "output.yaml"
 
+# The intermediate model, kept beside the artifact in every attempt.
+_PSM_INSTANCE_FILENAME = "psm_instance.xmi"
+# File names the journal keeps for an attempt itself. A generated file with one
+# of these names is left out of the attempt's extra files, and is still in
+# the stage's event data.
+_RESERVED_NAMES = {_FILENAME, "result.json", "prompt.json", _PSM_INSTANCE_FILENAME}
 
-def _persist_failure(run_id: str | None, attempt_dir: Path | None, message: str) -> None:
-    if attempt_dir is not None:
+
+def _persist_failure(
+    run_id: str | None, attempt: Attempt | None, message: str, extra_files: dict[str, str] | None = None
+) -> None:
+    if attempt is not None:
         persist_attempt(
             run_id or "unknown",
             "generation",
             "error.txt",
             message,
             {"valid": False, "issues": [{"severity": "ERROR", "message": message}]},
-            attempt_dir=attempt_dir,
+            attempt=attempt,
+            extra_files=extra_files,
         )
 
 
@@ -121,23 +131,21 @@ def gen_stage(context: dict) -> str:
     # persist for a call that never happened.
     output_model_name = _output_model_name(atl_source)
 
-    with reserved_attempt(run_id, "generation") as attempt_dir:
+    with reserved_attempt(run_id, "generation") as attempt:
         try:
             psm_instance = execution_agent_client.execute_atl_from_pim(
                 atl_source, pim_instance, target_ecore, output_model_name
             )
         except Exception as e:
             message = f"ATL execution failed: {e}"
-            _persist_failure(run_id, attempt_dir, message)
+            _persist_failure(run_id, attempt, message)
             raise RuntimeError(message) from e
 
         try:
             generated_files = execution_agent_client.execute_acceleo(mtl_source, psm_instance, target_ecore)
         except Exception as e:
-            if attempt_dir is not None:
-                (attempt_dir / "psm_instance.xmi").write_text(psm_instance, encoding="utf-8")
             message = f"Acceleo execution failed (ATL succeeded): {e}"
-            _persist_failure(run_id, attempt_dir, message)
+            _persist_failure(run_id, attempt, message, {_PSM_INSTANCE_FILENAME: psm_instance})
             # psm_instance also rides along on the raised exception itself
             # (pipeline.py's own run_stage_async worker threads a raised
             # exception's "extra" dict into the real call_failed event's
@@ -161,37 +169,23 @@ def gen_stage(context: dict) -> str:
             # silently concatenated.
             output = "\n\n".join(f"# {name}\n{content}" for name, content in generated_files.items())
 
-        if attempt_dir is not None:
-            # The intermediate artifact and every real individual generated
-            # file, alongside (not instead of) the primary artifact
-            # persist_attempt() writes below - a human debugging a run
-            # needs the real PSM instance ATL execution actually produced,
-            # not just the final text.
-            (attempt_dir / "psm_instance.xmi").write_text(psm_instance, encoding="utf-8")
-            for name, content in generated_files.items():
-                # A real generated file name can carry its own subdirectory
-                # (e.g. Woodpecker's own real ".woodpecker/pipeline.yaml"
-                # convention, confirmed for real: writing straight to
-                # attempt_dir/name failed with "No such file or directory"
-                # since nothing had created attempt_dir/.woodpecker/ yet) -
-                # create whatever parent directory it needs first. resolve()
-                # + a real containment check guards against a name that
-                # tries to escape attempt_dir entirely (e.g. "../../etc"),
-                # matching AcceleoExecutorCli's own identical guard on the
-                # same real, model-controlled file names.
-                target = (attempt_dir / name).resolve()
-                if not target.is_relative_to(attempt_dir.resolve()):
-                    raise ValueError(f"generated file path escapes the attempt directory: {name!r}")
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(content, encoding="utf-8")
-
+        # The intermediate PSM instance and every generated file are kept
+        # beside the primary artifact, so a human debugging a run sees the real
+        # model ATL produced and each file by its own name, not just the joined
+        # text. A generated file's name can carry a subfolder (Woodpecker's
+        # ".woodpecker/pipeline.yaml"), and the journal keeps every one of them
+        # inside the attempt.
         persist_attempt(
             run_id or "unknown",
             "generation",
             _FILENAME,
             output,
             {"valid": True, "issues": []},
-            attempt_dir=attempt_dir,
+            attempt=attempt,
+            extra_files={
+                _PSM_INSTANCE_FILENAME: psm_instance,
+                **{name: content for name, content in generated_files.items() if name not in _RESERVED_NAMES},
+            },
         )
         # psm_instance/generated_files alongside the joined output text,
         # the same (output, extra) exception psm/atl/acceleo's own stage

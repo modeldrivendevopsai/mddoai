@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 import assistant
 import chat_log
-import settings
 from chat_store import ChatStore
 from clients import ai_layer_client, integration_runner_client
 from clients.integration_runner_client import IntegrationRunnerError
@@ -21,7 +20,7 @@ chat_log.set_reactor(assistant.react_to_event)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    chat_log.load_saved(ChatStore(settings.CHATS_DIR))
+    chat_log.load_saved(ChatStore())
     yield
 
 
@@ -152,6 +151,8 @@ def fork_endpoint(request: ForkRequest):
 class PublishRequest(BaseModel):
     name: str | None = None
     output_filename: str | None = None
+    # MAJOR.MINOR.PATCH. Unset means the patch after the platform's highest version.
+    version: str | None = None
     # The run the page shows. Publishing is refused if it is no longer the current one.
     run_id: str | None = None
 
@@ -167,7 +168,7 @@ def publish_endpoint(request: PublishRequest):
     """Publishes the current, completed run's platform: the same action as the
     publish_platform chat tool."""
     try:
-        return integration_runner_client.publish(request.name, request.output_filename, request.run_id)
+        return integration_runner_client.publish(request.name, request.output_filename, request.run_id, request.version)
     except httpx.HTTPError:
         raise HTTPException(status_code=502, detail="Publishing is unavailable right now, try again shortly.")
 

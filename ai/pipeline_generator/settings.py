@@ -39,15 +39,6 @@ WORKSPACE_LABEL = _required("GENERATOR_WORKSPACE_LABEL")
 # Where generated pipelines are kept so they can be reopened later.
 PIPELINES_DIR = Path(_required("GENERATOR_PIPELINES_DIR"))
 
-# The platforms, and the SWArch-to-PIM transformation every one of them starts
-# with, read from here on every request.
-PLATFORMS_DIR = Path(_required("GENERATOR_PLATFORMS_DIR"))
-
-# The largest published metamodel, transformation or template accepted, each.
-# Engineering guess: far above any real one, and below what execution-agent
-# itself accepts per field.
-MAX_ARTIFACT_BYTES = int(os.environ.get("GENERATOR_MAX_ARTIFACT_BYTES", str(1024 * 1024)))
-
 # How many generated pipelines are kept; the oldest are forgotten beyond this.
 # Engineering guess: far more than anyone reopens, small enough that the list
 # and the folder stay small.

@@ -5,10 +5,11 @@ import pytest
 
 import platform_runner
 from clients.agent_service_errors import AgentServiceError
+from platform_registry import PlatformsUnavailable
 from platform_runner import PlatformRunError, run_platform
 from platforms import Platform
 
-PLATFORM = Platform("x", "X CI", 3, ".x-ci.yml", "XMM")
+PLATFORM = Platform("x", "X CI", "3.0.0", ".x-ci.yml", "XMM")
 
 
 class _Registry:
@@ -84,7 +85,7 @@ def test_a_failing_first_step_is_reported_and_no_later_step_runs():
     run_acceleo.assert_not_called()
 
 
-@pytest.mark.parametrize("error", [FileNotFoundError("gone"), UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad")])
+@pytest.mark.parametrize("error", [PlatformsUnavailable("gone"), ValueError("no longer exists")])
 def test_files_that_cannot_be_read_are_a_run_error_and_no_step_runs(error):
     with patch("platform_runner.execution_agent_client.execute_atl_from_swarch") as pim:
         with pytest.raises(PlatformRunError, match="could not read the files"):

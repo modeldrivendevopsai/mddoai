@@ -12,7 +12,7 @@ from clients import validator_agent_client
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
 from pipeline_history import PipelineHistory
-from platform_registry import PlatformRegistry
+from platform_registry import PlatformRegistry, PlatformsUnavailable
 from platforms import Platform
 from routes import pipelines as pipelines_routes
 from routes import platforms as platforms_routes
@@ -80,6 +80,14 @@ def readable_validation_error(_request: Request, exc: RequestValidationError) ->
         ".".join(str(part) for part in error["loc"][1:]) + ": " + error["msg"] for error in exc.errors()
     )
     return JSONResponse(status_code=422, content={"detail": problems})
+
+
+@app.exception_handler(PlatformsUnavailable)
+def platforms_unavailable(_request: Request, exc: PlatformsUnavailable) -> JSONResponse:
+    """The journal, which keeps the platforms, did not answer. Its own error text
+    is for the log, not for the caller."""
+    logger.error("platforms unavailable: %s", exc)
+    return JSONResponse(status_code=502, content={"detail": "The platforms cannot be read right now, try again shortly."})
 
 
 def _require_size(content: str, limit: int, what: str) -> None:

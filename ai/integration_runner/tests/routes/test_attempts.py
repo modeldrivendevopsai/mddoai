@@ -1,11 +1,12 @@
 """routes/attempts.py unit tests: manifest_endpoint()/attempt_endpoint()
 called directly as plain functions, matching test_docs.py's own
-convention. RUNS_DIR isolation comes from conftest.py's own autouse
-fixture, not repeated here.
+convention. The journal they read from is the real one, isolated by
+conftest.py's own autouse fixture. An unknown run or attempt is the journal's
+own 404, which the app's AgentServiceError handler turns into the response.
 """
 import pytest
-from fastapi import HTTPException
 
+from clients.agent_service_errors import AgentServiceError
 from integration_runner.routes.attempts import attempt_endpoint, manifest_endpoint
 from integration_runner.stages import _validation
 
@@ -24,7 +25,7 @@ def test_manifest_endpoint_returns_real_persisted_attempts():
 
 
 def test_manifest_endpoint_404s_for_an_unknown_run():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AgentServiceError) as exc_info:
         manifest_endpoint("no-such-run")
 
     assert exc_info.value.status_code == 404
@@ -39,7 +40,7 @@ def test_attempt_endpoint_returns_the_real_attempt():
 
 
 def test_attempt_endpoint_404s_for_a_nonexistent_attempt():
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AgentServiceError) as exc_info:
         attempt_endpoint("run-1", "psm", "attempt_99")
 
     assert exc_info.value.status_code == 404

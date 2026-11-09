@@ -1,24 +1,13 @@
 """Shared pytest configuration for orchestrator's test suite."""
-import atexit
-import os
-import shutil
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-# The required settings: this service's chats folder, and the runs folder of the
-# in-process integration_runner. Set before either is imported.
-_session_dir = Path(tempfile.mkdtemp(prefix="orchestrator-tests-"))
-atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")
-os.environ["ORCHESTRATOR_CHATS_DIR"] = str(_session_dir / "chats")
 
 import assistant
 import chat_log
 import tools
 from clients import integration_runner_client
+from clients.journal_testing import journal_in_process
 
 # The real STAGES/STAGE_DESCRIPTIONS content (integration_runner/pipeline.py,
 # integration_runner/stages/__init__.py), kept here, not fetched from a live
@@ -100,17 +89,13 @@ def reset_tools_cache():
 
 
 @pytest.fixture(autouse=True)
-def _isolated_validation_runs_dir(tmp_path, monkeypatch):
-    # test_main.py's own real_integration_runner fixture runs
-    # integration_runner.main.app for real, in-process (httpx.ASGITransport,
-    # not mocked), any test that reaches pim/psm/atl/acceleo for real
-    # (approve()/rerun() against those stages) would otherwise write real
-    # attempt files into the session's shared runs folder. Matches
-    # integration_runner/tests/conftest.py's own identical isolation for its
-    # own suite, this is the same gap, just on orchestrator's side of the
-    # process boundary.
-    from integration_runner.stages import _validation
-    monkeypatch.setattr(_validation, "RUNS_DIR", tmp_path / "runs")
+def journal(tmp_path):
+    """The real journal, in this process, over folders of this test alone. The
+    chats this service keeps, and the runs and attempts of the in-process
+    integration_runner that test_main.py's real_integration_runner fixture
+    runs for real, go there, so no test reads or writes another's."""
+    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"):
+        yield tmp_path
 
 
 @pytest.fixture(autouse=True)

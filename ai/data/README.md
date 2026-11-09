@@ -3,7 +3,7 @@
 The starting platforms and prompt configs, and a layout for the stack's other folders. Each folder is its own setting in `config.env` (see [Where files live](../README.md#where-files-live)), so it can be anywhere.
 
 ```
-platforms/             the platforms (a starting platform ships here)
+platforms/             the platforms, a folder per version such as 1.2.0 (a starting platform ships here)
 prompts/<agent>/       each prompt agent's prompt configs (starting configs ship here)
 attachments/<agent>/   files uploaded to an agent
 workspace/             the models you pick from

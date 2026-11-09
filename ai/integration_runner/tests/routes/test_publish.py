@@ -11,8 +11,8 @@ from integration_runner import pipeline, runs
 from integration_runner.routes.publish import PublishRequest, publish_defaults_endpoint, publish_endpoint
 
 CONTEXT = {"psm_output": "<ecore/>", "atl_output": "create OUT : W from IN : PIM;", "acceleo_output": "[m]"}
-PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
-CLIENT = "integration_runner.publishing.pipeline_generator_client.publish_platform"
+PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.0.0", "output_filename": "ci.yml"}
+CLIENT = "integration_runner.publishing.journal_client.publish_platform"
 
 
 @pytest.fixture(autouse=True)
@@ -103,7 +103,7 @@ def test_publish_is_409_with_the_reason_when_the_run_is_not_complete():
     assert status == 409 and "not complete" in detail
 
 
-def test_a_refusal_from_the_pipeline_generator_is_400_with_its_reason():
+def test_a_refusal_from_the_journal_is_400_with_its_reason():
     _current_completed_run()
 
     with patch(CLIENT, side_effect=AgentServiceError(422, "'gitlab' is already the platform 'GitLab CI'. Publish under another name.")):
@@ -111,15 +111,15 @@ def test_a_refusal_from_the_pipeline_generator_is_400_with_its_reason():
     assert status == 400 and "already the platform" in detail
 
 
-def test_files_over_the_pipeline_generators_limit_are_400_with_its_reason():
+def test_files_over_the_journals_limit_are_400_with_its_reason():
     _current_completed_run()
 
-    with patch(CLIENT, side_effect=AgentServiceError(413, "The platform's files are larger than the pipeline generator accepts.")):
+    with patch(CLIENT, side_effect=AgentServiceError(413, "The platform's files are larger than the journal accepts.")):
         status, detail = _status(lambda: publish_endpoint(PublishRequest()))
     assert status == 400 and "larger" in detail
 
 
-def test_an_unreachable_pipeline_generator_is_502():
+def test_an_unreachable_journal_is_502():
     _current_completed_run()
 
     with patch(CLIENT, side_effect=httpx.ConnectError("refused")):
@@ -130,3 +130,21 @@ def test_the_defaults_endpoint_shows_what_publish_would_use():
     _current_completed_run()
 
     assert publish_defaults_endpoint() == {"name": "Woodpecker CI", "output_filename": "ci.yml"}
+
+
+def test_a_version_asked_for_is_passed_on_to_the_journal():
+    _current_completed_run()
+
+    with patch(CLIENT, return_value=PUBLISHED) as publish:
+        publish_endpoint(PublishRequest(version="2.1.0"))
+
+    assert publish.call_args.kwargs["version"] == "2.1.0"
+
+
+def test_a_version_that_exists_is_a_400_with_the_journals_reason():
+    _current_completed_run()
+
+    with patch(CLIENT, side_effect=AgentServiceError(409, "version 1.0.0 already exists, and a version is never changed")):
+        status, detail = _status(lambda: publish_endpoint(PublishRequest(version="1.0.0")))
+
+    assert status == 400 and "already exists" in detail

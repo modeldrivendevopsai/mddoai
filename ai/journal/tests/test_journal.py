@@ -1,6 +1,6 @@
 import pytest
 
-from journal import Journal
+from journal.file import Journal
 
 
 @pytest.fixture

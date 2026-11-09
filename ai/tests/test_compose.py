@@ -266,3 +266,56 @@ def test_the_test_setup_script_fills_in_every_host_setting_compose_requires():
     missing = {name for name in required if not any(pattern.fullmatch(name) for pattern in filled)}
 
     assert required and not missing, f"60-test.sh does not fill in: {sorted(missing)}"
+
+
+# The folders only the journal reads and writes: every other service reaches
+# what is in them through the journal's API.
+JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR"}
+JOURNAL_URL = "http://journal:8120"
+
+
+def test_only_the_journal_mounts_the_folders_it_keeps_and_it_mounts_all_of_them():
+    mounted = {}
+    for name, source in _host_folder_mounts():
+        setting = HOST_FOLDER_SETTING.match(source).group(1)
+        if setting in JOURNAL_FOLDER_SETTINGS:
+            mounted.setdefault(name, set()).add(setting)
+
+    assert mounted == {"journal": JOURNAL_FOLDER_SETTINGS}
+
+
+def _services_that_call_the_journal() -> list[str]:
+    return sorted(name for name, service in _services().items() if "JOURNAL_URL" in _environment(service))
+
+
+def test_there_are_services_that_call_the_journal():
+    assert _services_that_call_the_journal()
+
+
+@pytest.mark.parametrize("service_name", _services_that_call_the_journal())
+def test_a_service_that_calls_the_journal_is_told_where_it_is_and_starts_after_it(service_name):
+    service = _services()[service_name]
+
+    assert _environment(service)["JOURNAL_URL"] == JOURNAL_URL
+    assert service["depends_on"]["journal"] == {"condition": "service_healthy"}
+
+
+def _services_whose_code_uses_the_journal_client() -> list[str]:
+    found = set()
+    for folder in sorted(AI_DIR.iterdir()):
+        if not folder.is_dir() or folder.name in ("clients", "journal", "tests"):
+            continue
+        for path in folder.rglob("*.py"):
+            if {"tests", ".venv", "__pycache__", "node_modules"} & set(path.parts):
+                continue
+            if "journal_client" in path.read_text(encoding="utf-8"):
+                found.add(folder.name.replace("_", "-"))
+    return sorted(found)
+
+
+def test_there_are_services_whose_code_uses_the_journal_client():
+    assert _services_whose_code_uses_the_journal_client()
+
+
+def test_every_service_whose_code_uses_the_journal_client_is_one_that_compose_tells_where_it_is():
+    assert _services_whose_code_uses_the_journal_client() == _services_that_call_the_journal()
