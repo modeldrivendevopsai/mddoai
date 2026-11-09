@@ -2,7 +2,7 @@ import { Button, CodeBlock, StatusPill } from 'design-system';
 import type { GenerationResult, PipelineValidation } from '@/services/generator.service';
 import { downloadName, downloadText } from './download';
 import { seconds } from './format';
-import { PipelineChecks } from './PipelineChecks';
+import { ValidationStatus } from './ValidationStatus';
 import type { StepError } from './stepError';
 
 interface PlatformResultProps {
@@ -10,16 +10,16 @@ interface PlatformResultProps {
   validation: PipelineValidation | undefined;
   validating: boolean;
   validateError: StepError | undefined;
-  onValidate: () => void;
+  onRetryValidation: () => void;
 }
 
 /**
- * One platform's outcome: the pipeline itself first, since it is the point
- * of the screen, with where it was saved, a way to validate it, and the
- * intermediate models the engine passed through tucked behind a disclosure
- * for anyone curious how it was built.
+ * One platform's outcome: how the pipeline checked out, the Download button,
+ * the pipeline itself, and the intermediate models the engine passed through
+ * tucked behind a disclosure for anyone curious how it was built. Download
+ * comes before the code so it is in view whatever the pipeline's length.
  */
-export function PlatformResult({ result, validation, validating, validateError, onValidate }: PlatformResultProps) {
+export function PlatformResult({ result, validation, validating, validateError, onRetryValidation }: PlatformResultProps) {
   const { platform, pipeline } = result;
 
   if (pipeline === null) {
@@ -33,18 +33,20 @@ export function PlatformResult({ result, validation, validating, validateError, 
     );
   }
 
-  const savedAs = downloadName(result.output_filename);
+  const downloadAs = downloadName(result.output_filename);
 
   return (
     <section className="mdd-generate__result" aria-label={platform.name}>
-      <div className="mdd-generate__row">
+      <div className="mdd-generate__result-head">
         <StatusPill variant="success">
           {platform.name} pipeline generated{result.duration_ms !== null && ` in ${seconds(result.duration_ms)}`}
         </StatusPill>
-      </div>
-
-      <div className="mdd-generate__code">
-        <CodeBlock code={pipeline} title={result.output_filename} lang="yaml" />
+        <ValidationStatus
+          validation={validation}
+          validating={validating}
+          error={validateError}
+          onRetry={onRetryValidation}
+        />
       </div>
 
       <div className="mdd-generate__row">
@@ -52,46 +54,22 @@ export function PlatformResult({ result, validation, validating, validateError, 
           variant="secondary"
           size="sm"
           icon="Download"
-          onClick={() => downloadText(savedAs, pipeline)}
+          onClick={() => downloadText(downloadAs, pipeline)}
         >
           Download {result.output_filename}
         </Button>
-        <Button variant="secondary" size="sm" disabled={validating} onClick={onValidate}>
-          {validating ? 'Validating…' : validation ? 'Validate again' : 'Validate pipeline'}
-        </Button>
       </div>
 
-      {result.output_filename.includes('/') ? (
+      {downloadAs !== result.output_filename && (
         <p className="mdd-generate__hint">
-          {platform.name} reads this file from {result.output_filename}. The download is the file on its own; put it
-          there.
-        </p>
-      ) : (
-        savedAs !== result.output_filename && (
-          <p className="mdd-generate__hint">
-            {platform.name} needs this file to be named {result.output_filename}. Your browser may save a download
-            without the leading dot; rename it if it does.
-          </p>
-        )
-      )}
-      {result.saved_to && (
-        <p className="mdd-generate__hint">
-          Saved to {result.saved_to}
-          {result.replaced && ' (replaced the file that was there)'}
-        </p>
-      )}
-      {result.save_error && (
-        <p className="mdd-generate__error" role="alert">
-          Could not save the file: {result.save_error}
+          {platform.name} needs this file to be named {result.output_filename}. Your browser may save a download
+          without the leading dot; rename it if it does.
         </p>
       )}
 
-      {validateError && (
-        <p className="mdd-generate__error" role="alert">
-          {validateError.message}
-        </p>
-      )}
-      {validation && <PipelineChecks validation={validation} />}
+      <div className="mdd-generate__code">
+        <CodeBlock code={pipeline} title={result.output_filename} lang="yaml" />
+      </div>
 
       {result.intermediates.length > 0 && (
         <details className="mdd-generate__details">

@@ -13,9 +13,8 @@ Tests verify:
      context.
   4. Given a run_id, acceleo_stage reserves its own attempt directory
      first and forwards its own stage name plus that attempt's name to
-     run_acceleo(), so acceleo_agent's own real compiled .emtl module nests
-     inside that attempt directory instead of landing as an unlinked
-     sibling of it.
+     run_acceleo(), so validator-agent can keep acceleo_agent's own real
+     compiled .emtl module under that stage and attempt.
   5. The per-run "Mock" override forwards through to run_acceleo()'s own
      mock kwarg, defaulting to False when absent.
 """

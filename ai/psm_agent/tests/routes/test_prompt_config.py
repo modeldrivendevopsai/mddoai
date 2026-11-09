@@ -2,8 +2,7 @@
 plain function (no TestClient needed), the same convention
 integration_runner/tests/routes/test_docs.py already uses. Every test
 requests the isolated_prompt_config_dir fixture (see conftest.py) so
-nothing here ever touches the real, git-committed ai/psm_agent/prompts/
-directory.
+nothing here ever touches the prompt folder the suite starts from.
 
 There's no separate "system_prompt" field on a config (see
 generation_toolkit.prompt_config.resolution's own resolve_for_call): a

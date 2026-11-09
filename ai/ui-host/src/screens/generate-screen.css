@@ -30,38 +30,26 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
   color: var(--neutral-950);
 }
 
-.mdd-generate__back,
 .mdd-generate__link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   padding: 0;
   font: inherit;
-  color: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-link);
   background: none;
   border: 0;
   cursor: pointer;
 }
-.mdd-generate__back {
-  font-weight: inherit;
-  letter-spacing: inherit;
-}
-.mdd-generate__back:hover {
-  color: var(--text-link);
-}
-.mdd-generate__link {
-  font-size: var(--text-sm);
-  color: var(--text-link);
-}
 .mdd-generate__link:hover {
   text-decoration: underline;
 }
-.mdd-generate__back:focus-visible,
 .mdd-generate__link:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
@@ -70,7 +58,7 @@
 
 .mdd-generate__body {
   width: 100%;
-  max-width: 1240px;
+  max-width: var(--screen-body-max-width);
   margin: 0 auto;
   padding: var(--space-6);
   display: flex;
@@ -114,14 +102,14 @@
   font-weight: 500;
   color: var(--neutral-950);
 }
-/* Read by a screen reader, not shown: a column header with no visible text. */
-.mdd-generate__sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+/* A row opens its pipeline wherever it is pressed. Same tint as the sidebar's
+   pipeline rows. */
+.mdd-generate__table tbody tr {
+  cursor: pointer;
+}
+.mdd-generate__table tbody tr:hover,
+.mdd-generate__table tbody tr:focus-within {
+  background: var(--tint-pipeline);
 }
 .mdd-generate__mono {
   font-family: var(--font-mono);
@@ -265,6 +253,51 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+.mdd-generate__result-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+/* The validation status at the top right of a result, its checks in a
+   drop-down panel that floats over what is below. The panel is anchored to the
+   result's head, not to the status, so it stays inside the result when the
+   status wraps onto its own line. */
+.mdd-generate__status-menu {
+  margin-left: auto;
+}
+.mdd-generate__status-menu[open] > summary svg {
+  transform: rotate(180deg);
+}
+.mdd-generate__status-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  cursor: pointer;
+}
+.mdd-generate__status-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.mdd-generate__status-menu > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.mdd-generate__status-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 2;
+  width: min(420px, 100%);
+  padding: var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+}
 .mdd-generate__hint {
   margin: 0;
   font-size: var(--text-sm);
@@ -346,12 +379,6 @@
   gap: var(--space-3);
   font-size: var(--text-sm);
   color: var(--neutral-800);
-}
-.mdd-generate__validation {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: flex-start;
 }
 .mdd-generate__check-details {
   margin: var(--space-1) 0 0;
@@ -449,16 +476,20 @@
   border: 0;
   cursor: pointer;
 }
+.mdd-generate__entry-static {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+}
 .mdd-generate__entries button:hover {
   background: var(--surface-sunken);
 }
 .mdd-generate__entries button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
-}
-.mdd-generate__dialog-footer {
-  display: flex;
-  justify-content: flex-end;
 }
 
 @media (max-width: 640px) {

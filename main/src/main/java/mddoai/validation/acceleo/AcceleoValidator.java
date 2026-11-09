@@ -1,10 +1,11 @@
 package main.java.mddoai.validation.acceleo;
 
 import main.java.mddoai.execution.acceleo.AcceleoExecutor;
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 import main.java.mddoai.utils.EMFUtils;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ValidatorOutputRoot;
 import org.eclipse.acceleo.parser.compiler.AcceleoCompilerHelper;
 import org.eclipse.emf.ecore.EPackage;
 import org.yaml.snakeyaml.Yaml;
@@ -40,15 +41,6 @@ public final class AcceleoValidator {
     // Confirmed empirically (an unresolved-metamodel failure and an unclosed
     // [for] block) since the classic compiler's own docs don't state this.
     private static final Pattern DIAGNOSTIC_LINE = Pattern.compile("^(\\d+):(.*)$");
-
-    // Where the compiled .emtl module is persisted after a run actually
-    // produces one, instead of being wiped before any caller can see it -
-    // same shared, writable area AtlValidator's/EcoreValidator's own
-    // OUTPUT_ROOT reads (see AtlValidator's own comment for why this repo
-    // wants the real compiled artifact kept, not just a validation side
-    // effect, and why this class never needs to know about run_id itself).
-    private static final String OUTPUT_ROOT =
-            System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
 
     // Same real, fixed PIM model instance AtlValidator's own execution smoke
     // test reads (see its own comment for why one shared instance covers
@@ -177,8 +169,8 @@ public final class AcceleoValidator {
             String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
             String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
             String pimInstance = Files.readString(Path.of(pimSamplePath), StandardCharsets.UTF_8);
-            String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
-            String psmInstance = AtlExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
+            String outputModelName = PimExecutor.parseOutputModelName(atlSource);
+            String psmInstance = PimExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
             Map<String, String> generatedFiles = AcceleoExecutor.execute(mtlSource, psmInstance, targetEcore);
 
             // Every real platform this project targets produces YAML CI/CD
@@ -270,11 +262,11 @@ public final class AcceleoValidator {
     // AcceleoCompilerHelper compiles a whole source folder, not a single file
     // (unlike AtlStandaloneCompiler.compile(Reader, target)) - so the target
     // file is isolated into its own source folder first, under the same
-    // shared OUTPUT_ROOT AtlValidator's/EcoreValidator's own compiled output
-    // lives in, rather than a plain system temp dir. Split out of validate()
+    // output folder AtlValidator's/EcoreValidator's own compiled output lives
+    // in, rather than a plain system temp dir. Split out of validate()
     // itself so that method stays the guard-clauses-then-delegate shape.
     private static AcceleoCompileResult compileInIsolatedWorkDir(File file, String mtlFilePath) {
-        File workDir = new File(OUTPUT_ROOT, "acceleo-validate-" + java.util.UUID.randomUUID());
+        File workDir = new File(ValidatorOutputRoot.get(), "acceleo-validate-" + java.util.UUID.randomUUID());
         // Cleared in the finally on every exit that isn't keeping the .emtl,
         // including a Throwable that isn't an Exception (a StackOverflowError
         // from a pathological module) - matches EcoreValidator's own

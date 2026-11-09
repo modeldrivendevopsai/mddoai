@@ -14,12 +14,12 @@ interface Outcome {
  * for any other folder than the one asked about counts as not loaded yet, so
  * a slow answer for a folder the person has already left is never shown.
  */
-export function useWorkspaceListing(folder: string, kind: 'file' | 'folder') {
+export function useWorkspaceListing(folder: string) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
   useEffect(() => {
     let current = true;
-    browseWorkspace(folder, kind === 'folder')
+    browseWorkspace(folder)
       .then((listing) => current && setOutcome({ folder, listing, error: null }))
       .catch(
         (err) =>
@@ -28,7 +28,7 @@ export function useWorkspaceListing(folder: string, kind: 'file' | 'folder') {
     return () => {
       current = false;
     };
-  }, [folder, kind]);
+  }, [folder]);
 
   const shown = outcome && outcome.folder === folder ? outcome : null;
   return { listing: shown?.listing ?? null, error: shown?.error ?? null };

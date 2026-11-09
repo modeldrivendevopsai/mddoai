@@ -198,7 +198,8 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
     PSM (bitbucketMM.ecore's path too, once that metamodel exists). `model` defaults to
     ai-layer's own automatic routing when not given, same as every other real chat() call
     in this repo. The system prompt and its input parts are no longer hardcoded here: see
-    ai/psm_agent/prompts/comparison/ for the real, git-committed, editable config.
+    the comparison config in the prompt folder, an editable config that begins from the
+    starting content the repository ships.
     """
     metamodel_path = psm_metamodel_path or DEFAULT_PSM_METAMODEL_PATH
     metamodel_content = Path(metamodel_path).read_text()

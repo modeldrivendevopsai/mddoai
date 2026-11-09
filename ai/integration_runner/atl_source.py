@@ -3,22 +3,13 @@ the generation stage (which runs the transformation) and publishing (which
 records it for the pipeline generator)."""
 import re
 
-# atl_agent's own generation prompt forces every generated ATL's output
-# model name into this exact shape: "create OUT : <ModelName> from IN :
-# PIM;", with a matching "-- @nsURI <ModelName>=<platform>MM=..." header
-# line just above it. Parsed directly out of the real generated source
-# rather than reconstructed from a platform name string the caller doesn't
-# otherwise have: the ATL source itself is the one place that name is
-# declared, and it must match exactly for AtlExecutor's own output model
-# to resolve.
+# The generation prompt forces the output model name into this shape:
+# "create OUT : <ModelName> from IN : PIM;". It is read from the generated
+# source, the one place that name is declared.
 _OUTPUT_MODEL_NAME_PATTERN = re.compile(r"create\s+OUT\s*:\s*(\w+)\s+from")
 
-# ATL's own line-comment marker (matching this project's real, existing
-# .atl files' own "-- @nsURI ..."/"-- Main pipeline transformation"-style
-# lines). Stripped before searching for the real output model name so a
-# comment merely mentioning the "create OUT : ... from" convention (in an
-# LLM-generated header, say) can never be mistaken for the actual
-# declaration.
+# ATL line comments are stripped first, so a comment that mentions the
+# convention is never mistaken for the declaration.
 _ATL_LINE_COMMENT_PATTERN = re.compile(r"--.*$", re.MULTILINE)
 
 

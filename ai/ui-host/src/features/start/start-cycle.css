@@ -1,0 +1,180 @@
+/* The ring is an SVG in a box with its own aspect ratio, and the cards and
+   captions sit in that box in percentages, so the picture scales as one.
+   Blue is the pipelines' colour and purple the platforms', as everywhere. */
+
+/* The ratio is the ring's drawing box, set by the component from the box's own
+   numbers, so the cards and the drawing scale together. The proportions below
+   (the cards' share of the width, where the captions sit) were chosen by eye,
+   so the cards stay clear of the arcs. */
+.mdd-cycle {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--cycle-ratio);
+}
+
+.mdd-cycle__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Each arc takes the colour of the side it leaves from. The stroke width is
+   in the drawing box's units, so it scales with the ring. */
+.mdd-cycle__arc {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.mdd-cycle__arc--pipeline {
+  stroke: var(--info-500);
+}
+.mdd-cycle__arc--platform {
+  stroke: var(--brand);
+}
+.mdd-cycle__head--pipeline path {
+  fill: var(--info-500);
+}
+.mdd-cycle__head--platform path {
+  fill: var(--brand);
+}
+
+/* The two cards share one row of a grid laid over the ring, so they are always
+   the same height and their buttons line up, whatever their titles wrap to.
+   The cards are opaque, so the ring runs behind them and only shows between
+   and around them. The layer itself lets presses and text selection through
+   to what is under it. */
+.mdd-cycle__nodes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 36% 1fr 36%;
+  align-content: center;
+  pointer-events: none;
+}
+.mdd-cycle__node {
+  pointer-events: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-xs);
+}
+.mdd-cycle__node--pipeline {
+  grid-column: 1;
+  border-color: var(--tint-pipeline-border);
+}
+.mdd-cycle__node--platform {
+  grid-column: 3;
+  border-color: var(--tint-platform-border);
+}
+.mdd-cycle__node h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+  color: var(--neutral-950);
+}
+.mdd-cycle__node p {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+/* At the bottom of the card, so the two buttons sit on one line. */
+.mdd-cycle__node button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* What each arrow means, in the free middle between the cards. */
+.mdd-cycle__caption {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--neutral-700);
+}
+.mdd-cycle__caption strong {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+}
+.mdd-cycle__caption--pipeline {
+  top: 16%;
+}
+.mdd-cycle__caption--pipeline strong {
+  color: var(--info-500);
+}
+.mdd-cycle__caption--platform {
+  bottom: 16%;
+}
+.mdd-cycle__caption--platform strong {
+  color: var(--brand-strong);
+}
+
+/* Too narrow for a ring: the two cards stack, and both arrows' captions sit
+   side by side between them, each pointing the way it goes: down to the
+   platform on the left, back up to the pipeline on the right. The container is
+   the start screen, whose width is what is left beside the sidebar, not the
+   window's. Below 760px the cards (36% of it each) would be under about 275px
+   wide and their text cramped (judged from screenshots, not measured). */
+@container start-screen (max-width: 759px) {
+  .mdd-cycle {
+    aspect-ratio: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+  .mdd-cycle__ring {
+    display: none;
+  }
+  /* The grid layer steps aside, so the cards become items of the grid above
+     and take their place in the order below, each across both columns. */
+  .mdd-cycle__nodes {
+    display: contents;
+  }
+  .mdd-cycle__node--pipeline,
+  .mdd-cycle__node--platform {
+    grid-column: 1 / -1;
+  }
+  .mdd-cycle__caption {
+    position: static;
+    transform: none;
+    width: auto;
+  }
+  .mdd-cycle__node--pipeline {
+    order: 1;
+  }
+  .mdd-cycle__caption--pipeline {
+    order: 2;
+  }
+  .mdd-cycle__caption--platform {
+    order: 3;
+  }
+  .mdd-cycle__node--platform {
+    order: 4;
+  }
+  .mdd-cycle__caption--pipeline::before,
+  .mdd-cycle__caption--platform::before {
+    font-size: var(--text-lg);
+    line-height: 1;
+  }
+  .mdd-cycle__caption--pipeline::before {
+    content: '↓';
+    color: var(--info-500);
+  }
+  .mdd-cycle__caption--platform::before {
+    content: '↑';
+    color: var(--brand-strong);
+  }
+}

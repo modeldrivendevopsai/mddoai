@@ -5,25 +5,18 @@ master-example ATL file this service reads, a real file this service owns
 directly under its own reference_example/ (see that constant's own comment
 for why, unlike psm_agent's whole META_MODELS_DIR tree, this needs no
 Docker bind mount at all).
-
-Sibling to this service's own source, matching integration_runner's
-RUNS_DIR / psm_agent's own PROMPT_CONFIG_DIR pattern for "a real,
-no-external-mount-required default, overridable for Docker" - see
-ai/docker-compose.yml for the real bind mounts that make a save (or a real
-file upload) through the running service land on the host's actual git
-checkout.
 """
 import os
 from pathlib import Path
 
-PROMPT_CONFIG_DIR = Path(os.environ.get("ATL_AGENT_PROMPT_CONFIG_DIR", str(Path(__file__).resolve().parent / "prompts")))
+from generation_toolkit.required_env import required_env
 
-# Separate from PROMPT_CONFIG_DIR (config JSON, meant to be git-committed):
+PROMPT_CONFIG_DIR = Path(required_env("ATL_AGENT_PROMPT_CONFIG_DIR"))
+
+# Separate from PROMPT_CONFIG_DIR (config JSON):
 # a real human's file upload is not that, a writable directory of its own,
 # so an upload never needs write access to the config directory itself.
-ATTACHMENT_UPLOADS_DIR = Path(
-    os.environ.get("ATL_AGENT_ATTACHMENT_UPLOADS_DIR", str(Path(__file__).resolve().parent / "attachments"))
-)
+ATTACHMENT_UPLOADS_DIR = Path(required_env("ATL_AGENT_ATTACHMENT_UPLOADS_DIR"))
 
 # The master example this stage's own default prompt attaches, the same
 # role psm_agent's own master-example .ecore file plays for it: a real,
@@ -40,7 +33,7 @@ ATTACHMENT_UPLOADS_DIR = Path(
 # clean via the real AtlValidator, confirmed directly - a real-execution
 # check isn't meaningful for it the way it is for a PIM-sourced
 # transformation, since its own real source metamodel is CICD, not this
-# project's own fixed PIM, and AtlExecutor only ever loads a real PIM
+# project's own fixed PIM, and PimExecutor only ever loads a real PIM
 # instance as its source.
 #
 # A real file this service owns directly (reference_example/cicd2gha.atl),

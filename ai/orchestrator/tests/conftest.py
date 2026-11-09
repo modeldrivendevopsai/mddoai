@@ -1,7 +1,17 @@
 """Shared pytest configuration for orchestrator's test suite."""
+import atexit
+import os
+import shutil
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+# The required runs setting of the in-process integration_runner, set before it is imported.
+_session_dir = Path(tempfile.mkdtemp(prefix="orchestrator-tests-"))
+atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
+os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")
 
 import assistant
 import chat_log
@@ -58,13 +68,17 @@ chat_log.set_reactor(assistant.react_to_event)
 def reset_chat_logs():
     """Each test starts with a clean chat_log._chat_logs, so one test's
     mirrored events/narration/messages can't leak into another's
-    assertions, every test that touches GET /events or send_message()
+    assertions, every test that touches GET /events or accept_message()
     writes into this same process-wide dict."""
     original = dict(chat_log._chat_logs)
     chat_log._chat_logs.clear()
     yield
     chat_log._chat_logs.clear()
     chat_log._chat_logs.update(original)
+    # A test that accepted a message without answering it leaves the
+    # process-wide reply slot held.
+    if chat_log.replying():
+        chat_log._reply_slot.release()
 
 
 @pytest.fixture(autouse=True)
@@ -89,8 +103,7 @@ def _isolated_validation_runs_dir(tmp_path, monkeypatch):
     # integration_runner.main.app for real, in-process (httpx.ASGITransport,
     # not mocked), any test that reaches pim/psm/atl/acceleo for real
     # (approve()/rerun() against those stages) would otherwise write real
-    # attempt files into integration_runner's own real
-    # ai/integration_runner/runs/ directory. Matches
+    # attempt files into the session's shared runs folder. Matches
     # integration_runner/tests/conftest.py's own identical isolation for its
     # own suite, this is the same gap, just on orchestrator's side of the
     # process boundary.
@@ -100,7 +113,7 @@ def _isolated_validation_runs_dir(tmp_path, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def fake_stage_metadata():
-    """Every test that calls send_message()/react_to_event() needs a real
+    """Every test that calls accept_message()/react_to_event() needs a real
     stage list/descriptions to build the system prompt and tool schemas
     from (see tools.stage_metadata()), patched here once, for the whole
     suite, rather than every test file repeating the same mock."""

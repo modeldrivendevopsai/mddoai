@@ -65,7 +65,7 @@ public final class AcceleoExecutor {
      * Compiles {@code mtlSource} (real .mtl text, freshly generated, not a
      * file already on disk) against {@code targetEcore} (the target
      * platform's own PSM metamodel, Ecore text, loaded dynamically the same
-     * way {@link main.java.mddoai.execution.atl.AtlExecutor} does), then
+     * way {@link main.java.mddoai.execution.pim.PimExecutor} does), then
      * runs the compiled module's fixed {@link #TEMPLATE_NAME} template
      * against {@code psmModelXmi} (a real PSM model instance conforming to
      * that same metamodel, XMI text). Returns the real generated file(s),

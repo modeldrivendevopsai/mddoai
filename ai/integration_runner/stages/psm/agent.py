@@ -52,8 +52,9 @@ def psm_stage(context: dict) -> tuple[str, dict]:
     # Reserved before run_psm() runs, not after, same reason atl_stage/
     # acceleo_stage do this: run_psm()'s own generation-mode path (inside
     # psm_agent's generation.py) makes real validator-agent calls, once per
-    # retry round, and each one's real compiled Ecore classes need the real
-    # attempt path to nest inside, not land as an unlinked sibling of it.
+    # retry round, and each one's real compiled Ecore classes are kept by
+    # validator-agent in its own folder, under the stage and attempt name
+    # reserved here, so one stage's attempts never mix with another's.
     # Knowledge mode never validates at all (compare() has nothing to check
     # against), so stage/attempt are harmless there too, just unused.
     # reserved_attempt() undoes the reservation if run_psm() raises before

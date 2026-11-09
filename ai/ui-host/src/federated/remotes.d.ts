@@ -19,6 +19,7 @@ declare module "uiRemoteChat/ChatColumn" {
     providers: Provider[]
     onSend: (message: string) => void
     onModelChange: (model?: string) => void
+    replying?: boolean
     readOnly?: boolean
   }
 

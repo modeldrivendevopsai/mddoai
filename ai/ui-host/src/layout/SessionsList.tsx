@@ -3,25 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { getSessions, closeSession } from '../services/sessions.service';
 import type { Session, SessionType } from '../services/sessions.service';
 import { Icon } from 'design-system';
+import { integrationRunPath } from '../config/routes.config';
+import { SIDEBAR_POLL_INTERVAL_MS } from '../config/sidebar.config';
 import './sessions-list.css';
 
 /**
- * SessionsList — renders the open-sessions list for whichever sidebar tab
- * is active. Sourced entirely from sessions.service.ts; swapping that
- * service's mock data for a real API call requires no change here.
+ * SessionsList — renders the open-sessions list: the platform-integration
+ * runs. Sourced entirely from sessions.service.ts; swapping that service's
+ * mock data for a real API call requires no change here.
+ *
+ * Which run is current (the blue highlight) and the list itself both change
+ * from actions taken entirely outside this component: starting, approving,
+ * or restarting a run on IntegrationScreen. A one-time fetch on tab-switch
+ * goes stale the moment any of those happen, so the list is polled (see
+ * SIDEBAR_POLL_INTERVAL_MS).
  */
 interface SessionsListProps {
   activeTab: SessionType;
 }
-
-// Which run is current (the blue highlight) and the list itself both change
-// from actions taken entirely outside this component — starting, approving,
-// or restarting a run on IntegrationScreen. A one-time fetch on tab-switch
-// goes stale the moment any of those happen, since nothing here would ever
-// trigger a refetch otherwise. Polls on the same "MVP: poll, don't add a
-// websocket" basis as useIntegration's own event polling, just on a slower
-// interval since this list is far less latency-sensitive than live events.
-const POLL_INTERVAL_MS = 4000;
 
 export function SessionsList({ activeTab }: SessionsListProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -35,7 +34,7 @@ export function SessionsList({ activeTab }: SessionsListProps) {
       });
     }
     load();
-    const id = setInterval(load, POLL_INTERVAL_MS);
+    const id = setInterval(load, SIDEBAR_POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -68,9 +67,9 @@ export function SessionsList({ activeTab }: SessionsListProps) {
           ]
             .filter(Boolean)
             .join(' ')}
-          onClick={() => navigate(`/integration?run=${s.id}`)}
+          onClick={() => navigate(integrationRunPath(s.id))}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') navigate(`/integration?run=${s.id}`);
+            if (e.key === 'Enter' || e.key === ' ') navigate(integrationRunPath(s.id));
           }}
         >
           <span className="mdd-sessions__name">{s.name}</span>

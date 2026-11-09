@@ -23,8 +23,8 @@ import type {
   StartedResponse,
 } from "orchestrator-types"
 
-// Talks to ai/orchestrator (a separate internal-only service, see
-// vite.config.ts's /orchestrator-api proxy) — never ai-layer directly.
+// Talks to ai/orchestrator (a separate internal-only service, reached
+// through ui-host's /orchestrator-api proxy) — never ai-layer directly.
 // ai/orchestrator itself is the only thing that talks to ai-layer/retrieval
 // (see its own README), this service layer has no other client to defer to.
 
@@ -107,12 +107,9 @@ export async function resumeRun(runId: string): Promise<ResumeResponse> {
   return res.json()
 }
 
-// Publishes the current, completed run's approved platform to the pipeline
-// generator. Empty name or output file means "use the defaults" (see
-// getPublishDefaults). runId is the run the page shows: the backend refuses
-// with 409 if it is no longer the current one, as it does while the run is
-// not complete; 400 when the pipeline generator refuses what was sent. Each
-// comes with a real detail message.
+// Publishes the current, completed run's platform. An empty name or output file
+// means the defaults of getPublishDefaults. The backend refuses if runId is no
+// longer the current run.
 export async function publishPlatform(
   name: string,
   outputFilename: string,

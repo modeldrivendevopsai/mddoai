@@ -1,81 +1,34 @@
-"""The CI/CD platforms this service generates for, and the rules every
-platform's definition follows.
-
-The built-in platforms are kept as data, separate from the subprocess code
-that consumes them: one is supported exactly when `main/`'s CLI has a
-`swarch2<platform>` command wired in, and adding one also needs a pipeline
-checker for it. Platforms published from integration runs are added beside
-them by platform_catalog.
-"""
+"""What a CI/CD platform is, to this service: one version of it. Where
+platforms are kept and how they are run is the registry's and the runner's
+business, not this module's."""
 from dataclasses import dataclass
-from pathlib import PurePosixPath
-
-from workspace import is_excluded_name
-
-# How a platform's pipeline is generated.
-ENGINE = "engine"        # the engine's own swarch2<platform> command
-PUBLISHED = "published"  # a platform published from an integration run
+from pathlib import Path
 
 
-def check_output_filename(output_filename: str) -> str:
-    """`output_filename` as a relative path that stays inside the folder it is
-    saved into, or ValueError. A path is allowed, not just a file name,
-    because some CI systems read their file from a subfolder (a name like
-    ".woodpecker/pipeline.yaml"). No part of it may be a name the workspace
-    never writes to, such as git's own folder, in any spelling."""
-    parts = output_filename.split("/")
-    if (
-        not output_filename
-        or "\\" in output_filename
-        or PurePosixPath(output_filename).is_absolute()
-        or any(part in ("", ".", "..") or is_excluded_name(part) for part in parts)
-    ):
-        raise ValueError(f"not a relative path inside the folder: {output_filename!r}")
-    return output_filename
-
-
-@dataclass(frozen=True)
-class Intermediate:
-    """A model file produced between transformation steps. For a built-in
-    platform, the engine's own handler writes it under its fixed relative
-    ./test/generatedModels directory."""
-
-    id: str
-    title: str
-    filename: str
+def plain_name(name: object) -> str:
+    """`name` as one path segment, or ValueError. Platform ids and file names
+    are joined onto folders, so a name that is empty, or would step outside
+    its folder, is refused wherever one is read from disk."""
+    if not isinstance(name, str) or name in ("", ".", "..") or Path(name).name != name:
+        raise ValueError(f"not a plain file name: {name!r}")
+    return name
 
 
 @dataclass(frozen=True)
 class Platform:
     id: str
     name: str
-    # For a built-in platform, the CLI's own <Type> argument for the full
-    # SWArch -> platform chain; empty for a published one.
-    command: str
-    # The file a generation produces, saved under exactly this relative path:
-    # checked when the platform is defined, not on every save.
+    version: int
+    # The file the platform's template generates: one plain file name. The
+    # pipeline history joins it onto a folder, so a name with a folder in it is
+    # refused when the platform is read, not on every generation.
     output_filename: str
-    intermediates: tuple[Intermediate, ...]
-    runner: str = ENGINE
-    # A published platform's version; None for a built-in one.
-    version: int | None = None
+    # The name the transformation gives the model it creates, as declared in
+    # it: "create OUT : <name> from IN : PIM;".
+    output_model_name: str
 
     def __post_init__(self):
         try:
-            check_output_filename(self.output_filename)
-        except ValueError as e:
-            raise ValueError(f"Platform {self.id!r}: output_filename must be a relative path inside the folder") from e
-
-
-PLATFORMS: dict[str, Platform] = {
-    "gitlab": Platform(
-        id="gitlab",
-        name="GitLab CI",
-        command="swarch2gitlab",
-        output_filename=".gitlab-ci.yml",
-        intermediates=(
-            Intermediate("pim", "Platform-independent model", "PipelinePIM.pimmm"),
-            Intermediate("platform_model", "GitLab model", "PipelineGit.gitlabmm"),
-        ),
-    ),
-}
+            plain_name(self.output_filename)
+        except ValueError:
+            raise ValueError(f"Platform {self.id!r}: output_filename must be a plain file name, not a path") from None

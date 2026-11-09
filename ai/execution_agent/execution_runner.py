@@ -2,7 +2,7 @@
 JSON stdout.
 
 A fresh JVM per call, mirroring validator_agent's own real reasoning (see
-its own validator_runner.py) - AtlExecutor/AcceleoExecutor do even more EMF
+its own validator_runner.py) - PimExecutor/AcceleoExecutor do even more EMF
 global registry manipulation per call (dynamically loading and registering
 a fresh target metamodel every time) than the validators do, so the same
 "never reuse a JVM across calls" argument applies at least as strongly here.
@@ -32,10 +32,12 @@ logger = logging.getLogger(__name__)
 # (pointed at the gradle-builder service's shared build-output volume),
 # this default only matters for local dev, run directly against a sibling
 # main/ checkout already built via `cd main && ./gradlew installDist`.
-LIB_DIR = os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")
-ATL_MAIN_CLASS = "main.java.mddoai.execution.atl.AtlExecutorCli"
-# AtlExecutorCli's own switch for its SWArch-in, PIM-out form.
-ATL_FROM_SWARCH_FLAG = "--from-swarch"
+# Resolved to an absolute path once, here: each call runs in its own working
+# directory (see _run_cli), so a path relative to this service's would no
+# longer point anywhere real by then.
+LIB_DIR = str(Path(os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")).resolve())
+PIM_MAIN_CLASS = "main.java.mddoai.execution.pim.PimExecutorCli"
+SWARCH_MAIN_CLASS = "main.java.mddoai.execution.swarch.SwarchExecutorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.execution.acceleo.AcceleoExecutorCli"
 TIMEOUT_SECONDS = float(os.environ.get("EXECUTION_TIMEOUT_SECONDS", "60"))
 
@@ -63,16 +65,22 @@ class AcceleoExecutionResult(TypedDict):
     generated_files: dict[str, str]
 
 
-def _run_cli(argv: list[str]) -> tuple[dict, int]:
+def _run_cli(argv: list[str], cwd: Path) -> tuple[dict, int]:
     """Shared subprocess boundary for both *ExecutorCli classes: run, time
     it, and turn every non-"the executor itself reported a real failure"
     failure mode into ExecutionInfraError. Mirrors validator_runner.py's own
-    _run_cli exactly (same real subprocess failure modes apply here
-    unchanged), duplicated rather than imported since this is a separate
-    service's own code, not a shared library the two happen to both use."""
+    _run_cli (same real subprocess failure modes apply here), except that it
+    runs in the call's own directory. Duplicated rather than imported since
+    this is a separate service's own code, not a shared library the two
+    happen to both use.
+
+    Runs in `cwd`, the call's own scratch directory: the transformer writes
+    intermediate files to a fixed path relative to the working directory and
+    deletes them afterwards, so two calls sharing one directory break each
+    other."""
     start = time.monotonic()
     try:
-        proc = subprocess.run(argv, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        proc = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except FileNotFoundError as e:
         raise ExecutionInfraError(f"java executable not found: {e}") from e
     except subprocess.TimeoutExpired as e:
@@ -94,7 +102,7 @@ def _run_cli(argv: list[str]) -> tuple[dict, int]:
     return result, duration_ms
 
 
-def run_atl_executor(
+def run_atl_from_pim_executor(
     atl_source: str, pim_model_xmi: str, target_ecore: str, output_model_name: str
 ) -> AtlExecutionResult:
     with tempfile.TemporaryDirectory() as tmp:
@@ -108,10 +116,10 @@ def run_atl_executor(
         output_file = tmp_path / "output.xmi"
 
         argv = [
-            "java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS,
+            "java", "-cp", f"{LIB_DIR}/*", PIM_MAIN_CLASS,
             str(atl_file), str(pim_model_file), str(ecore_file), output_model_name, str(output_file),
         ]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, tmp_path)
 
         if not result.get("success"):
             raise ExecutionFailedError(result.get("error") or "ATL execution failed with no detail")
@@ -122,7 +130,7 @@ def run_atl_executor(
 def run_atl_from_swarch_executor(atl_source: str, swarch_model_xmi: str) -> AtlExecutionResult:
     """Runs a SWArch-to-PIM transformation: a Software Architecture model in,
     a PIM out. Both metamodels are MDDOAI's own compiled ones, so unlike
-    run_atl_executor no target metamodel or output model name is passed."""
+    run_atl_from_pim_executor no target metamodel or output model name is passed."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         atl_file = tmp_path / "transformation.atl"
@@ -132,10 +140,10 @@ def run_atl_from_swarch_executor(atl_source: str, swarch_model_xmi: str) -> AtlE
         output_file = tmp_path / "output.pimmm"
 
         argv = [
-            "java", "-cp", f"{LIB_DIR}/*", ATL_MAIN_CLASS, ATL_FROM_SWARCH_FLAG,
+            "java", "-cp", f"{LIB_DIR}/*", SWARCH_MAIN_CLASS,
             str(atl_file), str(swarch_model_file), str(output_file),
         ]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, tmp_path)
 
         if not result.get("success"):
             raise ExecutionFailedError(result.get("error") or "ATL execution failed with no detail")
@@ -159,7 +167,7 @@ def run_acceleo_executor(mtl_source: str, psm_model_xmi: str, target_ecore: str)
             "java", "-cp", f"{LIB_DIR}/*", ACCELEO_MAIN_CLASS,
             str(mtl_file), str(psm_model_file), str(ecore_file), str(output_dir),
         ]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, tmp_path)
 
         if not result.get("success"):
             raise ExecutionFailedError(result.get("error") or "Acceleo execution failed with no detail")

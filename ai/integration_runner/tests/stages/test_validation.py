@@ -63,7 +63,7 @@ def test_second_attempt_for_same_run_and_stage_does_not_overwrite_the_first():
 
 def test_persist_attempt_reuses_a_pre_reserved_attempt_dir_instead_of_reserving_a_new_one():
     # atl_stage/acceleo_stage's own real shape: reserve_attempt_dir() runs
-    # first (its result is what they forward to validator_agent_client as
+    # first (its name is what they forward to validator_agent_client as
     # the compiled output's own attempt scope), then that same Path is
     # handed to persist_attempt() so it doesn't reserve a second one.
     reserved = _validation.reserve_attempt_dir("run-1", "atl")
@@ -142,13 +142,12 @@ def test_reserved_attempt_removes_the_empty_dir_and_frees_the_number_when_the_bo
 
 
 def test_reserved_attempt_removes_a_non_empty_dir_that_was_never_recorded():
-    # psm's codegen validation nests compiled output under the attempt dir
-    # once per retry round; a later round raising before any result is
-    # persisted must still discard the whole unrecorded attempt, not keep
-    # it just because that leftover made the directory non-empty.
+    # A failure before any result is persisted must discard the whole
+    # unrecorded attempt, not keep it just because something left the
+    # directory non-empty.
     with pytest.raises(RuntimeError):
         with _validation.reserved_attempt("run-1", "psm") as attempt_dir:
-            (attempt_dir / "ecore-validate-abc" / "src-gen").mkdir(parents=True)
+            (attempt_dir / "leftover" / "nested").mkdir(parents=True)
             raise RuntimeError("round 2 generation failed")
 
     assert not attempt_dir.exists()

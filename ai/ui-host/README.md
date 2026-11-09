@@ -1,16 +1,15 @@
 # ui-host
 
 The UI for MDDOAI. A router-based SPA with a persistent shell (sidebar + top bar) around the app's
-screens: a landing page, a platform-integration dashboard, and the screens of the
-"Generate a CI/CD pipeline" mode. See [CLAUDE.md](./CLAUDE.md) for
-the full product and design spec.
+screens. It has two modes: adding or updating a CI/CD platform, and generating a CI/CD pipeline.
+See [CLAUDE.md](./CLAUDE.md) for the full product and design spec.
 
 ## Stack
 
 | Purpose | Tool | Docs |
 |---|---|---|
 | Build tool / dev server | [Vite](https://vite.dev/) | [Guide](https://vite.dev/guide/) |
-| UI framework | [React 19](https://react.dev/) + TypeScript | [React docs](https://react.dev/learn) · [TS handbook](https://www.typescriptlang.org/docs/handbook/intro.html) |
+| UI framework | [React](https://react.dev/) + TypeScript | [React docs](https://react.dev/learn) · [TS handbook](https://www.typescriptlang.org/docs/handbook/intro.html) |
 | Routing | [react-router-dom](https://reactrouter.com/) | [Docs](https://reactrouter.com/en/main) |
 | Styling | Inline `style={{ }}` against the `design-system` package's `tokens.css`, plus small per-component `.css` files for the rules inline styles can't express | see [CLAUDE.md](./CLAUDE.md)'s Design System section |
 | Testing | [Vitest](https://vitest.dev/) | [Docs](https://vitest.dev/guide/) |
@@ -31,47 +30,52 @@ Open the URL Vite prints (default [http://localhost:5173](http://localhost:5173)
 
 ## Develop
 
-Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top bar):
-
-- **`/`** — `src/screens/StartScreen.tsx`, the landing page.
-- **`/integration`** — `src/screens/IntegrationScreen.tsx`, the platform-integration dashboard.
-  This is the "add/update a platform" flow: its docs stage is a real crawl.
-- **`/generate`** — `src/screens/PipelinesScreen.tsx`, the first screen of the "Generate a CI/CD
-  pipeline" mode: the pipelines already generated, and "+ New pipeline".
-- **`/generate/new`** and **`/generate/<pipeline id>`** — `src/screens/GenerateScreen.tsx`, the
-  mode's second screen: load a Software Architecture file, choose platforms and where to save,
-  generate, validate. The second route brings a saved pipeline back.
+Routes live in `App.tsx`, each wrapped in the shared `AppShell` (sidebar + top bar), and
+`src/screens/` holds one file per screen. The list of routes is not repeated here, so it cannot go
+stale. Each route's path is defined once, in `src/config/`, and every route, link and redirect
+reads it from there. The app has two modes, and each opens on a list of what already exists: the platforms
+already supported, or the pipelines already generated. The start screen offers both. Behind the
+platforms list is the platform-integration dashboard (the "add/update a platform" flow, whose docs
+stage is a real crawl). Behind the pipelines list is the screen that loads a Software Architecture
+file, chooses platforms, generates, validates and downloads.
 
 Where things live:
 
-- **Platform integration dashboard** `src/screens/IntegrationScreen.tsx`, composing the chat
-  column, the stepper, and the current pipeline stage's own panel — each its own Module
-  Federation remote (`ai/ui-remote-chat`, `ai/ui-remote-stepper`, `ai/ui-remote-stage-*`, loaded
-  via `src/features/integration/stages/registry.ts` for the stage panels; see `vite.config.ts`'s
-  `federation()` config for the current, exact remotes list), not local source under this app's
-  own `src/`. Backed by its own real API client `src/services/orchestrator.service.ts` and polling
-  hook `src/hooks/useIntegration.ts`.
-- **Generate-a-pipeline screens** `src/screens/PipelinesScreen.tsx` and
-  `src/screens/GenerateScreen.tsx`, their components under `src/features/generate/`, state in
-  `useGenerate.ts`, copy and defaults in `src/config/generate.config.ts`. Backed by its own API client `src/services/generator.service.ts`,
-  which talks to `ai/pipeline_generator` (not `ai/orchestrator`).
-- **Landing page** `src/screens/StartScreen.tsx`, sourced from `src/config/startOptions.config.ts`,
-  with mock data from `src/services/platforms.service.ts`.
-- **Shell** `src/layout/` (`AppShell`, `Sidebar`, `SidebarActions`, `SessionsList`, `TopBar`),
-  sourced from `src/config/sidebar.config.ts` and `src/services/sessions.service.ts`.
-- **Component primitives** the sibling `design-system` package (`ai/design-system`, not a folder
-  under this app's own `src/`), a real local npm dependency, not a copy — see its own README.
-- **REST-contract types** the sibling `orchestrator-types` package (`ai/orchestrator-types`), the
-  same kind of real local npm dependency as `design-system` — see its own README.
-- **Backend contract** The platform-integration mode's network calls go through
-  `src/services/orchestrator.service.ts`, which talks to `ai/orchestrator` (never the Java
-  backend, `ai-layer`, or `ai/retrieval` directly, `ai/orchestrator` itself is what talks to
-  those, see `ai/README.md`). The generate mode's calls go through
-  `src/services/generator.service.ts`, which talks to `ai/pipeline_generator`.
+- **Platform integration dashboard**: its screen is in `src/screens/`. It composes the chat column,
+  the stepper and the current stage's own panel. Each of those is its own Module Federation remote
+  (an `ai/ui-remote-*` package), not local source under this app's own `src/`. The stage panels
+  are loaded through the registry in `src/features/integration/`, and the `federation()` config in
+  `vite.config.ts` holds the remotes map. The screen is backed by its own API client in
+  `src/services/` and a polling hook in `src/hooks/`.
+- **Generate-a-pipeline screens**: in `src/screens/`, with their components under
+  `src/features/generate/`, their state hooks next to them and their copy in `src/config/`. They
+  are backed by their own API client in `src/services/`, which talks to `ai/pipeline_generator`
+  (not `ai/orchestrator`).
+- **Start screen and platforms**: components under `src/features/start/` and
+  `src/features/platforms/`, copy in `src/config/`. The start screen draws the two modes as a
+  cycle, and the list under it follows the sidebar's tab: the latest pipelines on Pipelines, the
+  supported platforms on Platforms. That platforms list is shared with the platforms screen and
+  uses mock data from the platforms service in `src/services/`.
+- **Shared components**: `src/components/` holds the pieces several screens use and that belong to
+  neither the shell nor one mode, such as the back control every screen's header uses, so going
+  back looks the same everywhere.
+- **Shell**: `src/layout/` holds the sidebar, its lists and the top bar. They are configured from
+  `src/config/` and fed by the clients in `src/services/`: the Platforms tab lists integration
+  runs, and the Pipelines tab lists the pipelines already generated. The sidebar's active tab is
+  shared state held above the routes, so a screen can follow it.
+- **Component primitives**: the sibling `design-system` package (`ai/design-system`, not a folder
+  under this app's own `src/`), a real local npm dependency, not a copy. See its own README.
+- **REST-contract types**: the sibling `orchestrator-types` package (`ai/orchestrator-types`), the
+  same kind of local npm dependency as `design-system`. See its own README.
+- **Backend contract**: the platform-integration mode's network calls go through its orchestrator
+  client in `src/services/`, which talks to `ai/orchestrator`. ui-host never calls the Java
+  backend, `ai-layer` or `ai/retrieval` directly. `ai/orchestrator` is what talks to those (see
+  `ai/README.md`). The generate mode's calls go through its own generator client, which talks to
+  `ai/pipeline_generator`.
 
-The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`) —
-`design-system` and `orchestrator-types` aren't under `src/` any more, so they're imported by their
-bare package names instead.
+The `@/` import alias points at `src/` (configured in `vite.config.ts` and `tsconfig.app.json`).
+`design-system` and `orchestrator-types` are not under `src/`, so they are imported by their bare
+package names instead.
 
 ## Test
 
@@ -80,8 +84,8 @@ npm run test         # one-shot run
 npm run test:watch   # watch mode
 ```
 
-`src/services/orchestrator.service.test.ts` covers the real API client's request/response
-contract with `fetch` mocked, see the file for current cases.
+Tests sit next to the code they cover, as `*.test.ts` and `*.test.tsx` files. The API clients'
+tests mock `fetch` and check each request and response contract.
 
 ## Lint and typecheck
 
@@ -99,63 +103,54 @@ npm run preview    # serve the production build locally
 
 ## Docker
 
-`docker compose up --build` from `ai/` runs this as a hot-reloading dev server (`npm run dev --
---host 0.0.0.0`, source volume-mounted in), published at `http://localhost:5173`, proxying
-`/orchestrator-api/*` to `ai/orchestrator` and `/generator-api/*` to `ai/pipeline_generator` by
-their Docker Compose service names. Not the
-`Dockerfile` in this folder, that one builds static assets only (`npm run build`, no server) and
-is meant for an actual deployment target later, not local dev. See `ai/README.md` for the full
+`docker compose up --build` in an environment's folder (see `infra/README.md`) builds this app
+into static files (`npm run build`) and serves them with nginx, published on the environment's
+`UI_PORT`, on this machine only. The same server is the origin the browser uses for everything
+else. `nginx/default.conf.template` lists what it forwards:
+
+- `/remotes/<name>/` goes to the matching `ui-remote-*` container. Only the remotes listed there
+  are forwarded.
+- Each backend API has its own prefix, which goes to that backend's internal-only service. The
+  generator's prefix passes reads, and only the writes the generate mode makes.
+
+Each backend is named by its Compose service name through an `*_UPSTREAM` environment variable,
+which is filled into the configuration when the container starts. Names are resolved per request,
+so this starts even while a backend or a remote is not up yet. See `ai/README.md` for the full
 compose setup.
 
-Build context is `ai/`, not this folder alone, and the sibling `design-system` and
-`orchestrator-types` packages each get their own bind mount too — see this package's own
-`CLAUDE.md`'s Docker section for why (both come from `package.json` depending on them via a local
-`file:` path).
+The build context is `ai/`, not this folder alone. The Docker section of this package's own
+`CLAUDE.md` says why: `package.json` depends on the sibling `design-system` and
+`orchestrator-types` packages through a local `file:` path.
 
-This is also the Module Federation host: it loads the chat column, the stepper, and each pipeline
-stage panel at runtime from their own `ui-remote-*` containers (see `ai/README.md`'s services list
-for the current set and their ports). Each remote's `remoteEntry.js` is fetched by the **browser**
-directly against that remote's own published port, not proxied by this dev server — see this
-package's own `CLAUDE.md`'s Docker section for the full mechanics. If a remote's container isn't
-running, its piece of the screen shows a small "couldn't load" fallback instead of the real
-panel/chat/stepper — everything else on the page keeps working, see this package's own `CLAUDE.md`
-for why (`RemoteBoundary`) — rather than the rejected import taking down the whole page;
-`docker compose up --build` from `ai/` starts every remote alongside this host.
+**A change to the code** here, or in `design-system` or `orchestrator-types`, takes a rebuild:
+`docker compose up -d --build ui-host`. There is no hot reloading in Docker. A change to a shared
+package also needs a rebuild of every `ui-remote-*` that uses it (`docker compose up -d --build`).
 
-**After adding a new npm dependency**, here or in `design-system` or `orchestrator-types`, a plain
-`docker compose up --build` isn't enough: Compose reuses the container's anonymous `node_modules`
-volumes (`docker-compose.yml`'s `/app/node_modules`, `/design-system/node_modules` and
-`/orchestrator-types/node_modules` entries) across recreation by default, so the new package won't
-actually be there even though the image rebuilt with it. Force fresh volumes with:
-
-```bash
-docker compose up -d --build --renew-anon-volumes
-```
-
-Leave out the service name: every `ui-remote-*` container has its own copy of the
-`design-system` and `orchestrator-types` volumes, and only the UI services have anonymous volumes,
-so this renews exactly the ones that need it.
-
-Symptom if you skip this: Vite's overlay reports `Failed to resolve import "..."` for the
-package you just added, even though `npm ci` clearly succeeded during the image build.
-
-**If an edit to a source file doesn't show up in the browser** (no `[vite] hmr update` line in
-`docker compose logs ui-host`, page keeps serving the old version even after a hard refresh):
-Docker Desktop on Windows doesn't always forward native filesystem change events through the
-bind mount into the Linux container, so Vite's watcher silently misses the edit. `vite.config.ts`
-enables polling (`server.watch.usePolling`) whenever `CHOKIDAR_USEPOLLING=true` is set, which
-`docker-compose.yml` sets for exactly this reason, if you still hit this, confirm that env var
-made it into the running container (`docker compose exec ui-host printenv CHOKIDAR_USEPOLLING`).
+This is also the Module Federation host. It loads the chat column, the stepper and each pipeline
+stage panel at runtime from their own `ui-remote-*` containers (see the services list in
+`ai/README.md`). The browser fetches each remote's `remoteEntry.js` from `/remotes/<name>/` on this
+same origin. Where each remote lives is set at build time: `docker-compose.yml` passes each
+`VITE_REMOTE_*_URL` as a build argument. If a remote's container is not running, its piece of the
+screen shows a small "couldn't load" fallback instead of the real panel, chat or stepper.
+Everything else on the page keeps working. This package's own `CLAUDE.md` says why
+(`RemoteBoundary`).
 
 ## Project structure
 
-Everything lives under `src/`: `screens/` holds the app's screens, `layout/` holds the
-persistent shell, `features/integration/` holds the cross-stage plumbing that stays local to this
-host (see CLAUDE.md's Design System section for the full breakdown), `federated/` holds the
-ambient TypeScript declarations for every federated import, `services/` holds the files that call
-the backend or provide mock data, and `hooks/` holds `useIntegration`. Shared component/token
-primitives live in the sibling `design-system` package (`ai/design-system`); the shared
-REST-contract types live in the sibling `orchestrator-types` package (`ai/orchestrator-types`); the
-chat column, the stepper, and every pipeline stage panel live in their own `ai/ui-remote-*`
-packages — none of them under this app's own `src/`.
-See `ai/README.md` for how the full stack fits together.
+The app's code lives under `src/`, and the Docker proxy's configuration under `nginx/`. `src/` is
+organised by role:
+
+- `screens/` holds one file per screen.
+- `layout/` holds the persistent shell.
+- `features/<area>/` holds the components and hooks that belong to one area of the app.
+- `config/` holds copy and settings as data.
+- `services/` holds the API clients and the mock data.
+- `hooks/` holds hooks that do not live inside a feature folder.
+- `federated/` holds the remote boundary and the ambient TypeScript declarations for every
+  federated import.
+
+Shared component and token primitives live in the sibling `design-system` package
+(`ai/design-system`). The shared REST-contract types live in the sibling `orchestrator-types`
+package (`ai/orchestrator-types`). The chat column, the stepper and every pipeline stage panel
+live in their own `ai/ui-remote-*` packages. None of them are under this app's own `src/`. See
+`ai/README.md` for how the full stack fits together.

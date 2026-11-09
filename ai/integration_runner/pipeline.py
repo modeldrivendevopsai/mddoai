@@ -92,15 +92,18 @@ class IntegrationRun:
         self.constraints: dict[str, list[str]] = {}
         self.last_context: dict = {}
         self.last_output: str | None = None
-        # Which stage last_output actually belongs to, set only on a real
-        # call_completed, never on call_failed or while a run is still in
-        # flight. review()'s own guard reads this: without it, approving a
-        # stage whose last attempt failed (or hasn't run at all yet) would
-        # silently forward the PREVIOUS stage's last_output onward, mislabeled
-        # under the failed stage's own output key (observed for real: a
-        # serialization-agent 500 left last_output holding docs' raw text,
-        # and a naive review(approved=True) would have forwarded that to pim
-        # as "serialization_output" without error).
+        # Which stage last_output actually belongs to: cleared when an attempt
+        # starts and set only when it completes, so a call_failed or an
+        # attempt still in flight leaves it None. review()'s own guard reads
+        # this: without it, approving a stage whose last attempt failed (or
+        # hasn't run at all yet) would silently forward an older last_output
+        # onward. That is the PREVIOUS stage's output when this stage never
+        # succeeded (observed for real: a serialization-agent 500 left
+        # last_output holding docs' raw text, and a naive
+        # review(approved=True) would have forwarded that to pim as
+        # "serialization_output" without error), or this stage's own earlier
+        # output when a retry of it failed, usually the very output the retry
+        # was asked to correct.
         self.last_completed_stage: str | None = None
         self.event_log = EventLog()
         # Chosen once via start_pipeline()'s optional model param, applied to
@@ -143,6 +146,10 @@ class IntegrationRun:
         stage = self.current_stage
         agent = stages.stage_agents[stage]
         self.last_context = context
+        # This attempt supersedes whatever the stage produced before (which
+        # stays in last_output if it fails), so nothing is approvable until it
+        # completes.
+        self.last_completed_stage = None
         # self.constraints is looked up fresh (not snapshotted at run_stage() call time),
         # so a correction recorded via add_constraint() after this call is picked up the
         # next time run_stage()/rerun() runs this same stage. run_id is threaded in the

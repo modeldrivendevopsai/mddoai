@@ -265,7 +265,7 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
             name="publish_platform",
             description=(
                 "Publish the platform this run built, so pipelines can be generated for it in the "
-                "'Generate a CI/CD pipeline' mode next to the built-in platforms. Only works once "
+                "'Generate a CI/CD pipeline' mode next to the other platforms. Only works once "
                 "every stage of the run is approved; publishing the same platform again adds a new "
                 "version. Use this when the human asks to publish, release or make the platform "
                 "available, e.g. 'publish it' or 'make this platform usable in the generator'. Do "
@@ -281,7 +281,7 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
                     "output_filename": {
                         "type": "string",
                         "description": (
-                            "Which generated file is the pipeline file, as a relative path. Omit when the "
+                            "Which generated file is the pipeline file, as one file name. Omit when the "
                             "generation stage produced exactly one file."
                         ),
                     },

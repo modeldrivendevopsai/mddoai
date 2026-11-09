@@ -13,6 +13,9 @@ interface ChatColumnProps {
   providers: Provider[]
   onSend: (message: string) => void
   onModelChange: (model?: string) => void
+  // True while the last message sent is still being answered. One message
+  // is answered at a time, so input waits until then.
+  replying?: boolean
   // True while viewing a past (non-current) run from the sidebar's history —
   // sending a message or changing the model would silently act on the live
   // run instead, not the one on screen, so both are disabled.
@@ -25,14 +28,24 @@ interface ChatColumnProps {
 const INTRO_TEXT =
   "MDDOAI reads the documentation, then works through PSM → ATL → Acceleo → Generation/Test one stage at a time, showing you each result to approve or correct before moving on."
 
-export function ChatColumn({ events, busy, model, providers, onSend, onModelChange, readOnly = false }: ChatColumnProps) {
+export function ChatColumn({
+  events,
+  busy,
+  model,
+  providers,
+  onSend,
+  onModelChange,
+  replying = false,
+  readOnly = false,
+}: ChatColumnProps) {
   const [value, setValue] = useState("")
   // Sending a message (and picking a model) is a real capability before a
-  // run has started too: /message has no busy guard at all (unlike every
-  // other mutating endpoint, see main.py's own docstring for why), and the
-  // tool-calling layer can itself invoke start_pipeline from a message.
-  // Only an in-flight call, or viewing read-only history, blocks input.
-  const disabled = busy || readOnly
+  // run has started too: /message has no stage-busy guard (unlike every
+  // other mutating endpoint), and the tool-calling layer can itself invoke
+  // start_pipeline from a message. Only an in-flight call, a message still
+  // being answered (one at a time), or viewing read-only history
+  // blocks input.
+  const disabled = busy || replying || readOnly
   const logRef = useRef<HTMLDivElement>(null)
   const lastCountRef = useRef(0)
 
@@ -96,6 +109,7 @@ export function ChatColumn({ events, busy, model, providers, onSend, onModelChan
             <EventChip key={i} event={event} />
           )
         )}
+        {replying && !readOnly && <ReplyingLine />}
       </div>
 
       {/* Carried over from the old single-screen chat UI's own model picker,
@@ -189,6 +203,35 @@ export function ChatColumn({ events, busy, model, providers, onSend, onModelChan
   )
 }
 
+function ReplyingLine() {
+  return (
+    <div
+      role="status"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-2)",
+        padding: "var(--space-1) 0",
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--text-2xs)",
+        fontWeight: "var(--weight-bold)",
+        color: "var(--text-muted)",
+      }}
+    >
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "var(--warning-500)",
+          animation: "mddoai-pulse 1.6s var(--ease-out) infinite",
+        }}
+      />
+      Orchestrator is replying…
+    </div>
+  )
+}
+
 function MessageLine({ event }: { event: OrchestratorEvent }) {
   const isUser = event.type === "user_message"
   const text = isUser ? String(event.data?.message ?? "") : (event.text ?? "")
@@ -272,10 +315,13 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   // The completed run's platform stored as a new version in the pipeline
   // generator, so pipelines can be generated for it.
   platform_published: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Platform published" },
-  // A dispatched tool call's own real arguments/result (see assistant.py's
-  // send_message()) — distinct from the "message" turn right after it,
-  // which is just the AI's own prose summary of what it just did.
+  // A dispatched tool call's own real arguments and result, recorded when
+  // a chat message is answered. Distinct from the "message" turn right after
+  // it, which is just the AI's own prose summary of what it just did.
   tool_called: { bg: "var(--brand-faint)", fg: "var(--text-muted)", dot: "var(--text-faint)", label: "Tool called" },
+  // A chat message the Orchestrator could not answer (every model failed,
+  // say), with the reason.
+  message_failed: { bg: "var(--danger-100)", fg: "var(--danger-500)", dot: "var(--danger-500)", label: "Reply failed" },
   message: { bg: "", fg: "", dot: "", label: "" },
   user_message: { bg: "", fg: "", dot: "", label: "" },
 }
@@ -283,7 +329,9 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
 function eventSummary(event: OrchestratorEvent): string | undefined {
   const data = event.data
   if (!data) return undefined
-  if (event.type === "call_failed") return typeof data.error === "string" ? data.error : undefined
+  if (event.type === "call_failed" || event.type === "message_failed") {
+    return typeof data.error === "string" ? data.error : undefined
+  }
   if (event.type === "review_rejected") return typeof data.correction === "string" ? data.correction : undefined
   if (event.type === "constraint_added") return typeof data.constraint === "string" ? data.constraint : undefined
   if (event.type === "documentation_extended") return typeof data.url === "string" ? data.url : undefined

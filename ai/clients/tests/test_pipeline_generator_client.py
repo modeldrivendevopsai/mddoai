@@ -30,13 +30,13 @@ def test_publish_platform_posts_every_field_and_returns_the_published_version():
 def test_a_refused_publish_raises_agent_service_error_with_the_reason():
     response = MagicMock()
     response.status_code = 422
-    response.json.return_value = {"detail": "'gitlab' is a built-in platform; publish under another name."}
+    response.json.return_value = {"detail": "'gitlab' is already the platform 'GitLab CI'. Publish under another name."}
     with patch("pipeline_generator_client.httpx.post", return_value=response):
         with pytest.raises(AgentServiceError) as caught:
             pipeline_generator_client.publish_platform(**PLATFORM)
 
     assert caught.value.status_code == 422
-    assert "built-in" in caught.value.detail
+    assert "already the platform" in caught.value.detail
 
 
 def test_artifacts_over_the_size_limit_are_a_refusal_not_an_outage():

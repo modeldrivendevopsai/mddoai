@@ -4,6 +4,8 @@ This project transforms Software Architecture models into usable CI/CD pipelines
 
 Find the [old documentation here](before_opensource.md)
 
+Working on the shared dev VM or the Test environment? See [Dev Host and Environments](https://github.com/modeldrivendevopsai/mddoai/wiki/Dev-Host-and-Environments).
+
 ---
 
 ## What Does MDDOAI Do?

@@ -7,12 +7,8 @@ files a person can open:
     meta.json                          what the list shows
     record.json                        the rest of what reopening needs, without file contents
     model.swarch                       the model it was generated from
-    <platform-id>/pipeline/<output file>  each generated pipeline (a relative path, so
-                                          it can sit in a subfolder)
-    <platform-id>/intermediates/<file>    the models the engine passed through on the way
-
-The pipeline and the intermediates sit in separate folders, so no output path
-can collide with an intermediate file.
+    <platform-id>/<output file>        each generated pipeline
+    <platform-id>/intermediates/<file> the models the generation passed through on the way
 
 The list reads only the small files. A pipeline is identified by its model
 input (the workspace path it was loaded from, else the file name), and the
@@ -29,7 +25,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from platforms import check_output_filename
+from platforms import plain_name
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +35,6 @@ _ID_PATTERN = re.compile(r"[0-9a-f]{32}")
 _TEXT_FIELDS = ("key", "swarch_name", "generated_at")
 
 _MODEL_FILENAME = "model.swarch"
-_PIPELINE_DIR = "pipeline"
 _INTERMEDIATES_DIR = "intermediates"
 
 # Folders that are not (yet, or any more) a pipeline. None of these prefixes
@@ -69,15 +64,6 @@ def _is_usable(meta: object, folder_name: str) -> bool:
     )
 
 
-def _plain_name(name: object) -> str:
-    """`name` as one path segment. Platform ids and file names come from the
-    platform definitions, never from a request, but record.json is read back
-    from disk, so a name that would step outside its folder is refused."""
-    if not isinstance(name, str) or name in ("", ".", "..") or Path(name).name != name:
-        raise ValueError(f"not a plain file name: {name!r}")
-    return name
-
-
 def _write_json(path: Path, value: dict) -> None:
     """Written beside the target and renamed into place, so a crash part way
     leaves the previous complete version, never a half-written one. Created
@@ -100,15 +86,6 @@ def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as handle:
         handle.write(content)
-
-
-def _pipeline_path(platform_dir: Path, output_filename: str) -> Path:
-    """Where a recorded pipeline file is. Pipelines recorded before the
-    pipeline/ folder existed sit directly in the platform's folder, and are
-    read from there."""
-    path = platform_dir / _PIPELINE_DIR / output_filename
-    earlier = platform_dir / output_filename
-    return earlier if not path.is_file() and earlier.is_file() else path
 
 
 def _read_text(path: Path) -> str:
@@ -164,7 +141,6 @@ class PipelineHistory:
         swarch_name: str,
         source_path: str | None,
         content: str,
-        save_to: str | None,
         results: list[dict],
         generated_at: str | None = None,
     ) -> str:
@@ -191,7 +167,7 @@ class PipelineHistory:
             staging = self._directory / f"{_WRITING_PREFIX}{uuid.uuid4().hex}"
             staging.mkdir()
             try:
-                self._write_folder(staging, meta, content, save_to, results)
+                self._write_folder(staging, meta, content, results)
                 self._put_in_place(staging, self._directory / pipeline_id)
             except BaseException:
                 shutil.rmtree(staging, ignore_errors=True)
@@ -199,19 +175,19 @@ class PipelineHistory:
             self._forget_the_oldest(keep=pipeline_id)
         return pipeline_id
 
-    def _write_folder(self, folder: Path, meta: dict, content: str, save_to: str | None, results: list[dict]) -> None:
+    def _write_folder(self, folder: Path, meta: dict, content: str, results: list[dict]) -> None:
         _write_text(folder / _MODEL_FILENAME, content)
         for result in results:
             # Only generations that produced a pipeline are recorded.
             if not isinstance(result.get("pipeline"), str):
                 raise ValueError("a recorded result must carry its generated pipeline")
-            platform_dir = folder / _plain_name(result["platform"]["id"])
-            _write_text(platform_dir / _PIPELINE_DIR / check_output_filename(result["output_filename"]), result["pipeline"])
+            platform_dir = folder / plain_name(result["platform"]["id"])
+            _write_text(platform_dir / plain_name(result["output_filename"]), result["pipeline"])
             for intermediate in result.get("intermediates", []):
-                path = platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])
+                path = platform_dir / _INTERMEDIATES_DIR / plain_name(intermediate["filename"])
                 _write_text(path, intermediate["content"])
         stored_results = [_stored_result(result) for result in results]
-        _write_json(folder / "record.json", {**meta, "save_to": save_to, "results": stored_results})
+        _write_json(folder / "record.json", {**meta, "results": stored_results})
         _write_json(folder / "meta.json", meta)
 
     def _put_in_place(self, staging: Path, target: Path) -> None:
@@ -258,7 +234,6 @@ class PipelineHistory:
         filename: str,
         content: str,
         source_path: str | None,
-        save_to: str | None,
         generated: list[dict],
     ) -> str | None:
         """Records what was just generated, so it can be reopened. `source_path`
@@ -278,7 +253,6 @@ class PipelineHistory:
                 swarch_name=filename,
                 source_path=source_path,
                 content=content,
-                save_to=save_to,
                 results=generated,
             )
         except (OSError, ValueError) as e:
@@ -324,17 +298,17 @@ class PipelineHistory:
     def _with_files(self, folder: Path, record: dict) -> dict:
         results = []
         for stored in record["results"]:
-            platform_dir = folder / _plain_name(stored["platform"]["id"])
+            platform_dir = folder / plain_name(stored["platform"]["id"])
             intermediates = [
                 {
                     **intermediate,
-                    "content": _read_text(platform_dir / _INTERMEDIATES_DIR / _plain_name(intermediate["filename"])),
+                    "content": _read_text(platform_dir / _INTERMEDIATES_DIR / plain_name(intermediate["filename"])),
                 }
                 for intermediate in stored["intermediates"]
             ]
             results.append({
                 **stored,
-                "pipeline": _read_text(_pipeline_path(platform_dir, check_output_filename(stored["output_filename"]))),
+                "pipeline": _read_text(platform_dir / plain_name(stored["output_filename"])),
                 "intermediates": intermediates,
             })
         return {**record, "content": _read_text(folder / _MODEL_FILENAME), "results": results}

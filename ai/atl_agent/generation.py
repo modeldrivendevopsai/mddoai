@@ -16,8 +16,8 @@ have.
 
 The system prompt and the parts fed into it are not hardcoded here: they
 come from a real, UI-editable prompt config (generation_toolkit.prompt_config),
-resolved the same way psm_agent's own generation.py does. See
-ai/atl_agent/prompts/ for the real, git-committed starting content.
+resolved the same way psm_agent's own generation.py does. The prompt folder this
+service is given holds them, beginning from the starting content the repository ships.
 """
 from generation_toolkit.generation_agent import run_with_retry
 from generation_toolkit.prompt_builder import build_prompt

@@ -27,17 +27,12 @@ const panelStyle: React.CSSProperties = {
 
 const textStyle: React.CSSProperties = { margin: 0, color: "var(--text-muted)", fontSize: 14 }
 
-// The longest name and output file path the backend accepts.
-const NAME_MAX_CHARS = 100
-const OUTPUT_FILENAME_MAX_CHARS = 255
-
 // The design system's text input, as a plain styled <input> with its label,
 // the same way the docs stage's start form builds it.
-function Field({ label, value, placeholder, maxLength, onChange, disabled }: {
+function Field({ label, value, placeholder, onChange, disabled }: {
   label: string
   value: string
   placeholder: string
-  maxLength: number
   onChange: (value: string) => void
   disabled: boolean
 }) {
@@ -52,7 +47,6 @@ function Field({ label, value, placeholder, maxLength, onChange, disabled }: {
         type="text"
         value={value}
         placeholder={placeholder}
-        maxLength={maxLength}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         style={{
@@ -73,7 +67,7 @@ function Field({ label, value, placeholder, maxLength, onChange, disabled }: {
 /**
  * "Nothing left to review": the whole run is approved. Offers to publish the
  * platform it built to the pipeline generator, so pipelines can be generated
- * for it next to the built-in platforms.
+ * for it next to the other platforms.
  */
 export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompletePanelProps) {
   const [name, setName] = useState("")
@@ -119,22 +113,20 @@ export function CompletePanel({ canPublish, loadDefaults, onPublish }: CompleteP
       {canPublish ? (
         <>
           <p style={textStyle}>
-            Makes this platform available in Generate a CI/CD pipeline, next to the built-in platforms. Publishing
+            Makes this platform available in Generate a CI/CD pipeline, next to the other platforms. Publishing
             again adds a new version.
           </p>
           <Field
             label="Platform name"
             value={name}
             placeholder="Woodpecker CI"
-            maxLength={NAME_MAX_CHARS}
             onChange={setName}
             disabled={publishing}
           />
           <Field
             label="Pipeline file it generates"
             value={outputFilename}
-            placeholder=".woodpecker/pipeline.yaml"
-            maxLength={OUTPUT_FILENAME_MAX_CHARS}
+            placeholder=".woodpecker.yaml"
             onChange={setOutputFilename}
             disabled={publishing}
           />

@@ -1,5 +1,5 @@
 """Publishing a completed run's platform to the pipeline generator, so
-pipelines can be generated for it next to the built-in platforms.
+pipelines can be generated for it next to the other platforms.
 
 What is published is what produced the approved pipeline: the PSM metamodel,
 the ATL transformation and the Acceleo template that the generation stage's
@@ -48,7 +48,9 @@ def defaults(run: IntegrationRun) -> dict:
     the run's own platform description, and the one file its generation
     stage produced (none when it produced several, so the caller must say)."""
     files = sorted(_approved_generation(run)[1].get("generated_files") or {})
-    return {"name": runs.platform_name(run), "output_filename": files[0] if len(files) == 1 else None}
+    # A file in a folder cannot be published (the generator takes one file name), so it is not offered.
+    only = files[0] if len(files) == 1 and "/" not in files[0] else None
+    return {"name": runs.platform_name(run), "output_filename": only}
 
 
 def publish(run: IntegrationRun, name: str | None = None, output_filename: str | None = None) -> dict:
@@ -87,6 +89,6 @@ def publish(run: IntegrationRun, name: str | None = None, output_filename: str |
         **artifacts,
     )
     run.record_event(
-        "platform_published", None, {"platform_id": result["id"], "name": result["name"], "version": result["version"]}
+        "platform_published", "generation", {"platform_id": result["id"], "name": result["name"], "version": result["version"]}
     )
     return result

@@ -1,0 +1,4 @@
+# LF line endings for everything here, even on Windows checkouts with
+# core.autocrlf: the scripts in vm/setup/ run on the Linux VM, and bash fails
+# on carriage returns. PowerShell and Terraform read LF files fine.
+* text eol=lf

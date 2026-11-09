@@ -1,8 +1,9 @@
 package main.java.mddoai.validation.atl;
 
-import main.java.mddoai.execution.atl.AtlExecutor;
+import main.java.mddoai.execution.pim.PimExecutor;
 import main.java.mddoai.validation.ValidationIssue;
 import main.java.mddoai.validation.ValidationResult;
+import main.java.mddoai.validation.ValidatorOutputRoot;
 import org.eclipse.m2m.atl.engine.compiler.AtlCompiler;
 import org.eclipse.m2m.atl.engine.compiler.AtlStandaloneCompiler;
 import org.eclipse.m2m.atl.engine.compiler.CompileTimeError;
@@ -26,32 +27,8 @@ import java.util.List;
  */
 public final class AtlValidator {
 
-    // Where the compiled .asm is persisted after a run actually produces one,
-    // instead of being wiped before any caller can see it — the real,
-    // runnable transformation bytecode, not just a validation side effect
-    // (this repo's own stated direction is to eventually assemble a real
-    // conversion pipeline from these compiled artifacts, alongside Ecore's
-    // own compiled model classes and Acceleo's compiled .emtl templates, not
-    // just use them for debugging one failed check). Same env var
-    // EcoreValidator's own codegen path reads (see its OUTPUT_ROOT) — one
-    // shared, writable area every validator that produces a real compiled
-    // artifact writes into, scoped per run_id by the Python caller
-    // (validator_runner.py) before this process even starts; this class
-    // never needs to know about run_id itself.
-    private static final String OUTPUT_ROOT =
-            System.getenv().getOrDefault("VALIDATOR_OUTPUT_DIR", System.getProperty("java.io.tmpdir"));
-
-    // The env var real Docker deployments set (see ai/docker-compose.yml's
-    // validator-agent service) to point at a real, fixed PIM model instance
-    // - main/'s own real Java test fixture (see ai/CLAUDE.md's "third
-    // exception" for why a real model instance belongs under main/'s test
-    // resources, read-only, even for an ai/ service, and why validator_agent
-    // now bind-mounts this exact file the same narrow way integration_runner
-    // already does for the generation stage). ATL's source metamodel never
-    // varies by target platform - it's always this project's own fixed PIM
-    // - so one shared real instance is enough to smoke-test ANY future
-    // platform's generated ATL, not just the one it happened to be authored
-    // against.
+    // The env var that names a fixed sample PIM instance. ATL's source metamodel is always
+    // the project's own PIM, so one instance smoke-tests the generated ATL of any platform.
     private static final String PIM_SAMPLE_INSTANCE_PATH_ENV = "ATL_SMOKE_TEST_PIM_INSTANCE_PATH";
 
     private AtlValidator() {
@@ -61,8 +38,7 @@ public final class AtlValidator {
     // unit test (no Docker, no real env var to set for one JVM process) can
     // still exercise real execution-based validation end to end with
     // System.setProperty(...), while a real Docker deployment keeps using
-    // the env var unchanged (see EcoreValidator's/AtlValidator's own
-    // OUTPUT_ROOT for the same env-var-first convention this mirrors).
+    // the env var unchanged.
     // Neither set (e.g. a plain unit test calling validate(String) alone):
     // execution-based validation is simply skipped, falling back to
     // compile-only, exactly like AcceleoValidator's own optional
@@ -106,8 +82,8 @@ public final class AtlValidator {
             String atlSource = Files.readString(Path.of(atlFilePath), StandardCharsets.UTF_8);
             String targetEcore = Files.readString(Path.of(targetEcoreFilePath), StandardCharsets.UTF_8);
             String pimInstance = Files.readString(Path.of(pimSamplePath), StandardCharsets.UTF_8);
-            String outputModelName = AtlExecutor.parseOutputModelName(atlSource);
-            AtlExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
+            String outputModelName = PimExecutor.parseOutputModelName(atlSource);
+            PimExecutor.execute(atlSource, pimInstance, targetEcore, outputModelName);
             return compileResult;
         } catch (Exception e) {
             return new AtlCompileResult(ValidationResult.of(List.of(new ValidationIssue(
@@ -128,7 +104,7 @@ public final class AtlValidator {
 
         AtlStandaloneCompiler compiler = AtlCompiler.getCompiler(AtlCompiler.DEFAULT_COMPILER_NAME);
 
-        File workDir = new File(OUTPUT_ROOT, "atl-validate-" + java.util.UUID.randomUUID());
+        File workDir = new File(ValidatorOutputRoot.get(), "atl-validate-" + java.util.UUID.randomUUID());
         // Cleared in the finally on every exit that isn't keeping the .asm,
         // including a Throwable that isn't an Exception (a StackOverflowError
         // from a pathological source) - matches EcoreValidator's own

@@ -1,4 +1,4 @@
-"""routes/core.py's /publish endpoints: each outcome mapped to its status.
+"""routes/publish.py's /publish endpoints: each outcome mapped to its status.
 Endpoints are called directly as plain functions, like test_core.py does."""
 from unittest.mock import patch
 
@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from clients.agent_service_errors import AgentServiceError
 from integration_runner import pipeline, runs
-from integration_runner.routes.core import PublishRequest, publish_defaults_endpoint, publish_endpoint
+from integration_runner.routes.publish import PublishRequest, publish_defaults_endpoint, publish_endpoint
 
 CONTEXT = {"psm_output": "<ecore/>", "atl_output": "create OUT : W from IN : PIM;", "acceleo_output": "[m]"}
 PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": "ci.yml"}
@@ -106,9 +106,9 @@ def test_publish_is_409_with_the_reason_when_the_run_is_not_complete():
 def test_a_refusal_from_the_pipeline_generator_is_400_with_its_reason():
     _current_completed_run()
 
-    with patch(CLIENT, side_effect=AgentServiceError(422, "'gitlab' is a built-in platform; publish under another name.")):
+    with patch(CLIENT, side_effect=AgentServiceError(422, "'gitlab' is already the platform 'GitLab CI'. Publish under another name.")):
         status, detail = _status(lambda: publish_endpoint(PublishRequest(name="GitLab")))
-    assert status == 400 and "built-in" in detail
+    assert status == 400 and "already the platform" in detail
 
 
 def test_files_over_the_pipeline_generators_limit_are_400_with_its_reason():

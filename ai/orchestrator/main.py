@@ -1,5 +1,5 @@
 import httpx
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -121,12 +121,6 @@ def resume_endpoint(run_id: str):
     return integration_runner_client.resume_run(run_id)
 
 
-# integration_runner's PublishRequest limits, which match what the pipeline
-# generator accepts for a platform name and an output file path.
-PUBLISH_NAME_MAX_CHARS = 100
-PUBLISH_OUTPUT_FILENAME_MAX_CHARS = 255
-
-
 class ForkRequest(BaseModel):
     source_run_id: str
     from_stage: str
@@ -145,12 +139,9 @@ def fork_endpoint(request: ForkRequest):
 
 
 class PublishRequest(BaseModel):
-    # The same limits integration_runner sets, so a value too long is refused
-    # here as a bad request, not passed on and reported as an outage.
-    name: str | None = Field(default=None, max_length=PUBLISH_NAME_MAX_CHARS)
-    output_filename: str | None = Field(default=None, max_length=PUBLISH_OUTPUT_FILENAME_MAX_CHARS)
-    # The run the page is showing: publishing is refused if it is no longer
-    # the current one.
+    name: str | None = None
+    output_filename: str | None = None
+    # The run the page shows. Publishing is refused if it is no longer the current one.
     run_id: str | None = None
 
 
@@ -162,12 +153,8 @@ def publish_defaults_endpoint():
 
 @app.post("/publish")
 def publish_endpoint(request: PublishRequest):
-    """Publishes the current, completed run's approved platform to the
-    pipeline generator: the same real action the publish_platform chat tool
-    takes. 409 while the run is not complete or run_id is not the current
-    run, 400 when the pipeline generator refuses what was sent, both surfaced
-    via IntegrationRunnerError. 502 when integration_runner reports the
-    pipeline generator unavailable, or cannot be reached itself."""
+    """Publishes the current, completed run's platform: the same action as the
+    publish_platform chat tool."""
     try:
         return integration_runner_client.publish(request.name, request.output_filename, request.run_id)
     except httpx.HTTPError:
@@ -204,19 +191,29 @@ def rerun_endpoint(stage_id: str, request: RerunRequest | None = None):
     return integration_runner_client.rerun_stage(stage_id, overrides)
 
 
-@app.post("/message")
-def message_endpoint(request: MessageRequest):
-    # Deliberately no busy pre-check here, unlike every endpoint above: a
-    # message that doesn't need a tool (a status question, small talk)
+@app.post("/message", status_code=202)
+def message_endpoint(request: MessageRequest, background_tasks: BackgroundTasks):
+    # Answered after this response goes out, since an answer can outlast
+    # any proxy's request timeout; the reply arrives through GET /events.
+    # FastAPI's BackgroundTasks is enough here: one answer runs at a time, so
+    # it holds at most one of Starlette's shared request threads.
+    # 409 while the previous message is still being answered.
+    #
+    # Deliberately no stage-busy pre-check here, unlike every endpoint above:
+    # a message that doesn't need a tool (a status question, small talk)
     # should still get a reply even while a stage is running. Any tool call
     # that WOULD mutate state still hits the real busy guard, inside
     # tool_calling.dispatch_tool()'s own per-call try/except, surfaced as
     # that step's own {"error": ...} result rather than blocking the whole
     # message.
     try:
-        return assistant.send_message(request.message)
+        answer = assistant.accept_message(request.message)
+    except chat_log.ReplyInProgressError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(answer)
+    return {"status": "accepted"}
 
 
 # --- Run/attempt introspection ---------------------------------------------------

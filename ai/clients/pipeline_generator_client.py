@@ -1,9 +1,6 @@
-"""HTTP client for pipeline-generator, for the one thing other services ask
-of it: publishing a platform approved in an integration run. A publish it
-refuses (a name taken by a built-in platform, an output file outside its
-folder, files over its size limit) raises AgentServiceError with its reason;
-pipeline-generator being unreachable surfaces as a raw httpx error.
-"""
+"""HTTP client for pipeline-generator, for publishing a platform approved in an
+integration run. A publish it refuses raises AgentServiceError with its reason.
+An unreachable pipeline-generator surfaces as a raw httpx error."""
 import os
 
 import httpx

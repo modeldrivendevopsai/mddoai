@@ -14,7 +14,7 @@ from execution_runner import (
     ExecutionFailedError,
     ExecutionInfraError,
     run_acceleo_executor,
-    run_atl_executor,
+    run_atl_from_pim_executor,
     run_atl_from_swarch_executor,
 )
 
@@ -28,7 +28,7 @@ def fake_completed_process(returncode=0, stdout="", stderr=""):
 
 
 def _write_output_file(argv, **kwargs):
-    """Real AtlExecutorCli's own contract: the output file (argv[-1]) is
+    """Real PimExecutorCli's own contract: the output file (argv[-1]) is
     where the real output actually lands, not stdout - a fake subprocess
     call has to write it too, or the real read-back afterward finds
     nothing, matching the real Java side's own documented contract."""
@@ -36,43 +36,61 @@ def _write_output_file(argv, **kwargs):
     return fake_completed_process(stdout='{"success":true}\n')
 
 
-def test_run_atl_executor_reads_the_real_output_file_back(tmp_path):
+def test_run_atl_from_pim_executor_reads_the_real_output_file_back(tmp_path):
     with patch("execution_runner.subprocess.run", side_effect=_write_output_file):
-        result = run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+        result = run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
     assert result == {"output_xmi": "<real-output/>"}
 
 
-def test_run_atl_executor_raises_execution_failed_for_a_real_reported_failure():
+def test_every_call_runs_in_its_own_working_directory_so_concurrent_calls_cannot_share_one():
+    directories = []
+
+    def fake_run(argv, **kwargs):
+        directories.append(kwargs["cwd"])
+        assert Path(kwargs["cwd"]).is_dir()
+        Path(argv[-1]).write_text("<out/>", encoding="utf-8")
+        return fake_completed_process(stdout='{"success":true}\n')
+
+    with patch("execution_runner.subprocess.run", side_effect=fake_run):
+        run_atl_from_pim_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_from_pim_executor("atl", "<pim/>", "<ecore/>", "OUT")
+        run_atl_from_swarch_executor("atl", "<swarch/>")
+
+    assert len(set(directories)) == 3
+    assert not any(Path(directory).exists() for directory in directories)
+
+
+def test_run_atl_from_pim_executor_raises_execution_failed_for_a_real_reported_failure():
     with patch(
         "execution_runner.subprocess.run",
         return_value=fake_completed_process(stdout='{"success":false,"error":"not a real Pipeline instance"}\n'),
     ):
         with pytest.raises(ExecutionFailedError, match="not a real Pipeline instance"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_for_a_nonzero_exit():
+def test_run_atl_from_pim_executor_raises_infra_error_for_a_nonzero_exit():
     with patch(
         "execution_runner.subprocess.run",
-        return_value=fake_completed_process(returncode=1, stderr="AtlExecutorCli: unexpected error"),
+        return_value=fake_completed_process(returncode=1, stderr="PimExecutorCli: unexpected error"),
     ):
         with pytest.raises(ExecutionInfraError, match="unexpected error"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_when_java_is_missing():
+def test_run_atl_from_pim_executor_raises_infra_error_when_java_is_missing():
     with patch("execution_runner.subprocess.run", side_effect=FileNotFoundError("java")):
         with pytest.raises(ExecutionInfraError, match="java executable not found"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
-def test_run_atl_executor_raises_infra_error_for_a_generic_oserror():
+def test_run_atl_from_pim_executor_raises_infra_error_for_a_generic_oserror():
     # Matches validator_runner.py's own defense-in-depth OSError case (e.g.
     # a real "Argument list too long").
     with patch("execution_runner.subprocess.run", side_effect=OSError("Argument list too long")):
         with pytest.raises(ExecutionInfraError, match="Argument list too long"):
-            run_atl_executor("atl source", "<pim/>", "<ecore/>", "OUT")
+            run_atl_from_pim_executor("atl source", "<pim/>", "<ecore/>", "OUT")
 
 
 def _write_generated_files(argv, **kwargs):
@@ -109,7 +127,7 @@ def test_run_acceleo_executor_raises_infra_error_for_unparseable_stdout():
 # --- SWArch to PIM -----------------------------------------------------------
 
 
-def test_run_atl_from_swarch_executor_calls_the_cli_in_its_swarch_form_and_reads_the_pim_back():
+def test_run_atl_from_swarch_executor_calls_the_swarch_cli_and_reads_the_pim_back():
     seen = {}
 
     def fake_run(argv, **kwargs):
@@ -122,8 +140,7 @@ def test_run_atl_from_swarch_executor_calls_the_cli_in_its_swarch_form_and_reads
 
     assert result == {"output_xmi": "<pim/>"}
     argv = seen["argv"]
-    assert argv[argv.index("main.java.mddoai.execution.atl.AtlExecutorCli") + 1] == "--from-swarch"
-    assert len(argv[argv.index("--from-swarch") + 1:]) == 3
+    assert len(argv[argv.index("main.java.mddoai.execution.swarch.SwarchExecutorCli") + 1:]) == 3
     assert Path(argv[-2]).suffix == ".swarch"
 
 

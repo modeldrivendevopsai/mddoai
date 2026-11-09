@@ -1,14 +1,14 @@
-"""HTTP client for validator-agent: real .ecore/.atl/.mtl/.swarch structural/syntax
-validation, backed by the same Java CLIs main/'s own build produces (see
-validator_agent/README.md). Every call either returns validator-agent's own
-{"valid": bool, "issues": [...], "duration_ms": int, ...} body directly —
-win or lose, that's real data, not an error to branch on — or raises: a
-genuine infra failure (validator-agent unreachable, its own subprocess
-crashed) surfaces as a raw httpx error, matching ai_layer_client.py's own
-pattern exactly. Deliberately not integration_runner_client.py's
-IntegrationRunnerError shape: validator-agent never reports a structured
-400/404/409 business error to branch on, only 200 (valid or not) or 500
-(infra), so there's nothing that wrapper would add here.
+"""HTTP client for validator-agent: structural/syntax validation of .ecore/.atl/.mtl/.swarch
+files (backed by the same Java CLIs main/'s own build produces, see
+validator_agent/README.md) and of generated pipeline files (plain Python). Every
+call either returns validator-agent's own body directly, win or lose, that's
+real data, not an error to branch on, or raises: a genuine infra failure
+(validator-agent unreachable, its own subprocess crashed) surfaces as a raw
+httpx error, matching ai_layer_client.py's own pattern exactly. Deliberately not
+integration_runner_client.py's IntegrationRunnerError shape: validator-agent
+reports no structured business error to branch on, only 200 (valid or not), a
+rejected request (413, 422) or 500 (infra), so there's nothing that wrapper
+would add here.
 """
 import os
 
@@ -37,8 +37,8 @@ def validate_ecore(
     in-memory content with no real source file of its own. stage and
     attempt name the calling stage (e.g. "psm") and its own reserved attempt
     directory (e.g. "attempt_2"), joined in that order onto run_id, so a
-    codegen-mode call's real compiled output nests inside that exact
-    attempt directory rather than only scoped by run_id. Only ever matters
+    codegen-mode call's real compiled output is kept under that exact
+    stage and attempt rather than only scoped by run_id. Only ever matters
     for a real codegen-mode call: a reflective-only caller never passes
     either, since reflective mode produces nothing worth scoping in the
     first place."""
@@ -73,8 +73,8 @@ def validate_atl(
     validate_ecore's own generated_source_path for why this is kept). stage
     and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
-    output nests inside the exact attempt directory rather than only scoped
-    by run_id. metamodel_ecore, when given, is the target platform's own
+    output is kept under that exact stage and attempt rather than only
+    scoped by run_id. metamodel_ecore, when given, is the target platform's own
     real PSM .ecore content: beyond letting any platform's metamodel resolve
     (mirroring validate_acceleo's own metamodel_ecore), it also makes the
     real Java validator actually RUN the compiled transformation against a
@@ -114,8 +114,8 @@ def validate_acceleo(
     .emtl module's real path on disk, when compiling actually produced one.
     stage and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
-    output nests inside the exact attempt directory rather than only scoped
-    by run_id. metamodel_ecore, when given, is the target platform's own
+    output is kept under that exact stage and attempt rather than only
+    scoped by run_id. metamodel_ecore, when given, is the target platform's own
     real PSM .ecore content, dynamically registered by the real Java
     validator before compiling — needed for any platform besides the ones
     main/'s own EMFUtils.init() hardcodes (today: PIM, SWArch, GitLab),
@@ -155,6 +155,19 @@ def validate_swarch(content: str, filename: str) -> dict:
     response = httpx.post(
         f"{VALIDATOR_AGENT_URL}/validate/swarch",
         json={"filename": filename, "content": content},
+        timeout=VALIDATE_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def validate_pipeline(content: str, filename: str) -> dict:
+    """POSTs to validator-agent's /validate/pipeline, returns its parsed JSON
+    response directly: {"valid": bool, "checks": [...]}. A pipeline that fails
+    its checks is still an HTTP 200 with valid=false."""
+    response = httpx.post(
+        f"{VALIDATOR_AGENT_URL}/validate/pipeline",
+        json={"content": content, "filename": filename},
         timeout=VALIDATE_TIMEOUT,
     )
     response.raise_for_status()

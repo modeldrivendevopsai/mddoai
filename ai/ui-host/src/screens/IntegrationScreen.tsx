@@ -6,6 +6,9 @@ import { CompletePanel } from "@/features/integration/CompletePanel"
 import { RemoteBoundary } from "@/federated/RemoteBoundary"
 import { Button } from "design-system"
 import { latestCallResult, originalDocsInput } from "@/features/integration/stageEvents"
+import { INTEGRATION_COPY } from "@/config/integration.config"
+import { INTEGRATION_QUERY, isNewRunRequested } from "@/config/routes.config"
+import { BackTitle } from "@/components/BackTitle"
 import * as orchestratorService from "@/services/orchestrator.service"
 import type { StageId } from "orchestrator-types"
 import type { StagePanelProps } from "orchestrator-types"
@@ -95,15 +98,21 @@ function NoStagesRanPanel() {
   )
 }
 
-export default function IntegrationScreen() {
-  // A sidebar session row links here with ?run=<run_id> (see
-  // SessionsList.tsx). No param means the live run, same as before.
+interface IntegrationScreenProps {
+  // The header's title is the way back; where it goes is the caller's to decide.
+  onBack: () => void
+}
+
+export default function IntegrationScreen({ onBack }: IntegrationScreenProps) {
+  // A sidebar session row links here with a run id in the URL's query. No
+  // run id means the live run, same as before.
   const [searchParams, setSearchParams] = useSearchParams()
-  const runId = searchParams.get("run") ?? undefined
+  const runId = searchParams.get(INTEGRATION_QUERY.run) ?? undefined
   const {
     events,
     currentStage,
     busy,
+    replying,
     started,
     model,
     providers,
@@ -123,10 +132,10 @@ export default function IntegrationScreen() {
     publish,
   } = useIntegration(runId)
 
-  // "Add a new platform" in the sidebar links here with
-  // ?new=1 (see App.tsx's useSidebarNavigation) — a real signal to actually
-  // reset the current run, not just a route change to a URL that might
-  // already be the one we're on. Deliberately a blank reset(), not
+  // "Add a new platform" in the sidebar links here with a flag in the URL's
+  // query that asks for a blank run. It is a real signal to actually reset the
+  // current run, not just a route change to a
+  // URL that might already be the one we're on. Deliberately a blank reset(), not
   // handleRestart's "re-run the same platform" below: "Add a new platform"
   // means a different platform, an empty DocsStartForm is the right result.
   // No confirm(): the current run isn't deleted, it stays viewable and
@@ -135,17 +144,17 @@ export default function IntegrationScreen() {
   // resumed. Skipped when nothing's actually running yet, so clicking it
   // from an already-blank form is silent.
   useEffect(() => {
-    if (searchParams.get("new") !== "1") return
+    if (!isNewRunRequested(searchParams)) return
     if (started) void reset()
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        next.delete("new")
+        next.delete(INTEGRATION_QUERY.newRun)
         return next
       },
       { replace: true }
     )
-    // Only the URL's "new" flag should ever re-trigger this; started/reset
+    // Only the URL's new-run flag should ever re-trigger this; started/reset
     // are read at the moment it fires, not watched for changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
@@ -197,7 +206,7 @@ export default function IntegrationScreen() {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        next.set("run", newRunId)
+        next.set(INTEGRATION_QUERY.run, newRunId)
         return next
       },
       { replace: true }
@@ -286,7 +295,7 @@ export default function IntegrationScreen() {
               margin: 0,
             }}
           >
-            Platform integration
+            <BackTitle title={INTEGRATION_COPY.title} hint={INTEGRATION_COPY.backHint} onBack={onBack} />
           </h1>
           {/* Restarting moves the live run to read-only history rather than
               deleting it, so it's meaningless while already looking at
@@ -391,6 +400,7 @@ export default function IntegrationScreen() {
               providers={providers}
               onSend={sendMessage}
               onModelChange={changeModel}
+              replying={replying}
               readOnly={!isCurrent}
             />
           </RemoteBoundary>

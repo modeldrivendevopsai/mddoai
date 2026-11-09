@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from clients.agent_service_errors import AgentServiceError
-from integration_runner.routes import acceleo, atl, attempts, core, docs, psm
+from integration_runner.routes import acceleo, atl, attempts, core, docs, psm, publish
 
 app = FastAPI(title="MDDOAI Integration Runner")
 
@@ -31,6 +31,7 @@ def agent_service_error_handler(request: Request, exc: AgentServiceError):
 
 
 app.include_router(core.router)
+app.include_router(publish.router)
 app.include_router(docs.router)
 app.include_router(psm.router)
 app.include_router(atl.router)

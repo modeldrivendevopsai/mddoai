@@ -17,8 +17,8 @@ vi.mock("design-system", () => ({
 
 afterEach(cleanup)
 
-const DEFAULTS = { name: "Woodpecker CI", output_filename: ".woodpecker/pipeline.yaml" }
-const PUBLISHED = { id: "woodpecker-ci", name: "Woodpecker CI", version: 2, output_filename: ".woodpecker/pipeline.yaml" }
+const DEFAULTS = { name: "Woodpecker CI", output_filename: ".woodpecker.yaml" }
+const PUBLISHED = { id: "woodpecker-ci", name: "Woodpecker CI", version: 2, output_filename: ".woodpecker.yaml" }
 
 function renderPanel(overrides: Partial<Parameters<typeof CompletePanel>[0]> = {}) {
   const props = {
@@ -36,14 +36,14 @@ describe("CompletePanel", () => {
     const props = renderPanel()
 
     expect(await screen.findByDisplayValue("Woodpecker CI")).toBeTruthy()
-    expect(screen.getByDisplayValue(".woodpecker/pipeline.yaml")).toBeTruthy()
+    expect(screen.getByDisplayValue(".woodpecker.yaml")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Publish" }))
 
     expect(await screen.findByRole("status")).toHaveProperty(
       "textContent",
       "Published as Woodpecker CI v2. It's now available in Generate a CI/CD pipeline."
     )
-    expect(props.onPublish).toHaveBeenCalledWith("Woodpecker CI", ".woodpecker/pipeline.yaml")
+    expect(props.onPublish).toHaveBeenCalledWith("Woodpecker CI", ".woodpecker.yaml")
   })
 
   it("sends what the person typed instead of the defaults", async () => {
@@ -58,12 +58,12 @@ describe("CompletePanel", () => {
   })
 
   it("shows the backend's reason when publishing is refused", async () => {
-    renderPanel({ onPublish: vi.fn().mockRejectedValue(new Error("'gitlab' is a built-in platform; publish under another name.")) })
+    renderPanel({ onPublish: vi.fn().mockRejectedValue(new Error("'gitlab' is already the platform 'GitLab CI'. Publish under another name.")) })
     await screen.findByDisplayValue("Woodpecker CI")
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }))
 
-    expect((await screen.findByRole("alert")).textContent).toContain("built-in platform")
+    expect((await screen.findByRole("alert")).textContent).toContain("already the platform")
   })
 
   it("cannot publish until both fields have a value, for example when several files were generated", async () => {

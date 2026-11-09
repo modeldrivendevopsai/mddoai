@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 
@@ -8,18 +9,16 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
-from engine_runner import MAX_PIPELINE_BYTES
-from generation import generate_one
-from pipeline_checks import PipelineValidation, check_pipeline
+from generation import GENERATION_FAILED, generate_all
+from generation_jobs import GenerationJobs
 from pipeline_history import PipelineHistory
-from platform_catalog import all_platforms, get_platform
 from platform_registry import PlatformRegistry
 from platforms import Platform
 from routes import pipelines as pipelines_routes
 from routes import platforms as platforms_routes
 from routes import workspace as workspace_routes
-from routes.dependencies import get_history, get_registry, get_workspace
-from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS
+from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
+from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS, MAX_PIPELINE_BYTES
 from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
 
@@ -29,10 +28,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # A JSON body is only parsed when the request says it is JSON. Without that, a
 # web page open in the person's browser could send a "simple" cross-origin POST
-# (no Content-Type, so no preflight) and make this service save files, since it
-# has no authentication. FastAPI does this by default from 0.132.0; stated here
+# (no Content-Type, so no preflight) and make this service run generations and
+# write history files, since it has no authentication. FastAPI does this by default from 0.132.0; stated here
 # so it cannot be lost by a version change.
 app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
 app.include_router(workspace_routes.router)
@@ -43,6 +43,10 @@ app.include_router(platforms_routes.router)
 # filename never reaches it: there it would become a file name on disk, and
 # its extension would decide how the content is recognised.
 _VALIDATOR_FILENAME = "model.swarch"
+
+# What a caller is told when validation cannot be done, never why: the cause
+# is in the service log.
+_CHECKER_UNAVAILABLE = "The pipeline checker is unavailable, try again shortly."
 
 # A person ticks platforms from a short list. The ceiling only stops a
 # request naming the same few over and over.
@@ -60,12 +64,6 @@ class GenerateRequest(ModelRequest):
     )
     source_path: str | None = Field(
         None, max_length=MAX_PATH_CHARS, description="Where in the workspace the model was loaded from, if it was."
-    )
-    save_to: str | None = Field(
-        None,
-        min_length=1,
-        max_length=MAX_PATH_CHARS,
-        description="A workspace folder to save each generated file into. Omitted: nothing is saved.",
     )
 
 
@@ -90,9 +88,9 @@ def _require_size(content: str, limit: int, what: str) -> None:
 
 
 def _require_platform(platform_id: str, registry: PlatformRegistry) -> Platform:
-    platform = get_platform(platform_id, registry)
+    platform = registry.get(platform_id)
     if platform is None:
-        supported = ", ".join(sorted(p.id for p in all_platforms(registry)))
+        supported = ", ".join(sorted(offered.id for offered in registry.latest()))
         raise HTTPException(status_code=422, detail=f"Unsupported platform '{platform_id}'. Supported: {supported}")
     return platform
 
@@ -137,15 +135,17 @@ def inspect_endpoint(request: ModelRequest):
     }
 
 
-@app.post("/generate")
+@app.post("/generate", status_code=202)
 def generate_endpoint(
     request: GenerateRequest,
     workspace: Workspace = Depends(get_workspace),
     history: PipelineHistory = Depends(get_history),
     registry: PlatformRegistry = Depends(get_registry),
+    jobs: GenerationJobs = Depends(get_jobs),
 ):
-    """Generates a pipeline for each requested platform, saves each one into
-    `save_to` when given, and records the result so it can be reopened."""
+    """Checks the request, then generates after answering: the outcome is
+    fetched from GET /generate/{job_id}. A request that cannot be generated
+    at all (an unknown platform, an invalid model) is refused here, at once."""
     _require_size(request.content, MAX_MODEL_BYTES, "content")
     platforms = _require_platforms(request.platforms, registry)
     logger.info("POST /generate filename=%r platforms=%s", request.filename, [p.id for p in platforms])
@@ -159,25 +159,45 @@ def generate_endpoint(
             detail={"message": "The model is not valid, so no pipeline was generated.", "issues": model_validation["issues"]},
         )
 
-    results = [generate_one(request.content, platform, workspace, request.save_to, registry) for platform in platforms]
-    generated = [result for result in results if result["error"] is None]
-    pipeline_id = history.record_generation(
-        filename=request.filename,
+    work = functools.partial(
+        generate_all,
         content=request.content,
-        source_path=workspace.normalize(request.source_path) if request.source_path else None,
-        save_to=request.save_to,
-        generated=generated,
+        filename=request.filename,
+        source_path=request.source_path,
+        platforms=platforms,
+        registry=registry,
+        workspace=workspace,
+        history=history,
     )
-    return {"pipeline_id": pipeline_id, "results": results}
+    return {"job_id": jobs.start(work, GENERATION_FAILED)}
+
+
+@app.get("/generate/{job_id}")
+def generation_job_endpoint(job_id: str, jobs: GenerationJobs = Depends(get_jobs)):
+    """A generation started by POST /generate: `state` is "running", then
+    "done" (with `pipeline_id` and `results`) or "failed" (with `error`)."""
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No such generation. It may have been lost in a restart.")
+    return job
 
 
 @app.post("/validate")
-def validate_endpoint(
-    request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)
-) -> PipelineValidation:
+def validate_endpoint(request: PipelineRequest, registry: PlatformRegistry = Depends(get_registry)) -> dict:
+    """The checks themselves are validator-agent's. This tells it the file and
+    the name the platform gives it, which says how it can be checked."""
     _require_size(request.content, MAX_PIPELINE_BYTES, "content")
     platform = _require_platform(request.platform, registry)
     logger.info("POST /validate platform=%s", platform.id)
-    result = check_pipeline(platform, request.content)
+    try:
+        result = validator_agent_client.validate_pipeline(request.content, platform.output_filename)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 413:
+            raise HTTPException(status_code=413, detail="The pipeline is too large to check.")
+        logger.error("validator-agent call failed: %s", e)
+        raise HTTPException(status_code=502, detail=_CHECKER_UNAVAILABLE)
+    except httpx.HTTPError as e:
+        logger.error("validator-agent call failed: %s", e)
+        raise HTTPException(status_code=502, detail=_CHECKER_UNAVAILABLE)
     logger.info("POST /validate done platform=%s valid=%s", platform.id, result["valid"])
     return result

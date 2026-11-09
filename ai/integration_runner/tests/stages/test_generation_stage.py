@@ -2,7 +2,7 @@
 unit tests: gen_stage actually runs this run's own real, generated ATL and
 Acceleo source against a real PIM model instance, via execution_agent -
 no LLM call of its own any more. No real HTTP call -
-clients/execution_agent_client.execute_atl/execute_acceleo are mocked.
+clients/execution_agent_client.execute_atl_from_pim/execute_acceleo are mocked.
 PIM_SAMPLE_INSTANCE_PATH is redirected to a throwaway fixture file per test
 (see _pim_sample_fixture below), so these tests never depend on this
 repo's real main/ test-resources tree. RUNS_DIR is redirected to a tmp_path
@@ -11,9 +11,9 @@ persistence tests below read back real files under tmp_path, never this
 repo's own runs/ tree.
 
 Tests verify:
-  1. gen_stage calls execute_atl with the real atl_output/psm_output
+  1. gen_stage calls execute_atl_from_pim with the real atl_output/psm_output
      context and the real PIM sample instance, then execute_acceleo with
-     the real acceleo_output/psm_output context and execute_atl's own
+     the real acceleo_output/psm_output context and execute_atl_from_pim's own
      returned PSM instance.
   2. The real output model name is parsed out of the real atl_output text
      (matching atl_agent's own "create OUT : <Name> from IN : PIM;"
@@ -21,7 +21,7 @@ Tests verify:
   3. A single generated file is returned directly; more than one is joined
      with each file's own name.
   4. A real, missing output model name in the given ATL source raises a
-     clear error before ever calling execute_atl.
+     clear error before ever calling execute_atl_from_pim.
   5. A real, successful run persists the intermediate PSM instance, every
      real generated file, and the joined primary artifact to disk.
   6. A real execution failure persists a real failure record before
@@ -51,7 +51,7 @@ def _pim_sample_fixture(tmp_path, monkeypatch):
 
 
 def test_gen_stage_runs_the_real_atl_then_the_real_acceleo(monkeypatch):
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline/>")
     monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
 
     output, extra = gen_stage({
@@ -66,7 +66,7 @@ def test_gen_stage_runs_the_real_atl_then_the_real_acceleo(monkeypatch):
 def test_gen_stage_calls_execute_atl_with_the_real_context_and_pim_sample(monkeypatch):
     calls = []
     monkeypatch.setattr(
-        execution_agent_client, "execute_atl",
+        execution_agent_client, "execute_atl_from_pim",
         lambda *a, **k: (calls.append((a, k)), "<gitlabMM:Pipeline/>")[1],
     )
     monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
@@ -81,7 +81,7 @@ def test_gen_stage_calls_execute_atl_with_the_real_context_and_pim_sample(monkey
 
 
 def test_gen_stage_calls_execute_acceleo_with_the_real_psm_instance_execute_atl_produced(monkeypatch):
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
     calls = []
     monkeypatch.setattr(
         execution_agent_client, "execute_acceleo",
@@ -97,7 +97,7 @@ def test_gen_stage_calls_execute_acceleo_with_the_real_psm_instance_execute_atl_
 
 
 def test_gen_stage_joins_more_than_one_generated_file_with_their_own_names(monkeypatch):
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline/>")
     monkeypatch.setattr(
         execution_agent_client, "execute_acceleo",
         lambda *a, **k: {"a.yml": "a: 1\n", "b.yml": "b: 2\n"},
@@ -126,7 +126,7 @@ def test_gen_stage_ignores_a_commented_out_output_model_name(monkeypatch):
     )
     calls = []
     monkeypatch.setattr(
-        execution_agent_client, "execute_atl",
+        execution_agent_client, "execute_atl_from_pim",
         lambda *a, **k: (calls.append(a), "<gitlabMM:Pipeline/>")[1],
     )
     monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
@@ -143,7 +143,7 @@ def test_gen_stage_raises_when_the_only_output_model_name_is_commented_out():
 
 
 def test_gen_stage_persists_the_psm_instance_every_generated_file_and_the_primary_artifact(monkeypatch, tmp_path):
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
     monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
 
     gen_stage({
@@ -167,7 +167,7 @@ def test_gen_stage_persists_a_generated_file_nested_in_its_own_subdirectory(monk
     # confirmed for real: writing straight to attempt_dir/name failed with
     # "No such file or directory" since nothing had created
     # attempt_dir/.woodpecker/ yet.
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline/>")
     monkeypatch.setattr(
         execution_agent_client, "execute_acceleo",
         lambda *a, **k: {".woodpecker/pipeline.yaml": "steps: []\n"},
@@ -182,7 +182,7 @@ def test_gen_stage_persists_a_generated_file_nested_in_its_own_subdirectory(monk
 
 
 def test_gen_stage_rejects_a_generated_file_name_that_escapes_the_attempt_directory(monkeypatch):
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline/>")
     monkeypatch.setattr(
         execution_agent_client, "execute_acceleo",
         lambda *a, **k: {"../../escape.yaml": "stages: []\n"},
@@ -200,7 +200,7 @@ def test_gen_stage_persists_a_real_atl_failure_labeled_by_phase(monkeypatch, tmp
     # pipeline.py's own call_failed event carries nothing else (see
     # gen_stage()'s own comment).
     monkeypatch.setattr(
-        execution_agent_client, "execute_atl",
+        execution_agent_client, "execute_atl_from_pim",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("execution-agent unreachable")),
     )
 
@@ -221,7 +221,7 @@ def test_gen_stage_persists_a_real_acceleo_failure_labeled_by_phase_and_keeps_th
     # the message must say Acceleo (not ATL), and the real psm_instance ATL
     # already produced - genuinely not the problem - must survive on disk
     # for a human debugging why Acceleo failed, not be silently discarded.
-    monkeypatch.setattr(execution_agent_client, "execute_atl", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline real-output/>")
     monkeypatch.setattr(
         execution_agent_client, "execute_acceleo",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("template crashed")),

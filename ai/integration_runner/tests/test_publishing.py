@@ -8,7 +8,7 @@ from integration_runner import pipeline, publishing
 
 ATL = "-- create OUT : NotThis from IN : PIM;\ncreate OUT : WoodMM from IN : PIM;"
 CONTEXT = {"psm_output": "<ecore/>", "atl_output": ATL, "acceleo_output": "[module m]"}
-PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": ".woodpecker/pipeline.yaml"}
+PUBLISHED = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": 1, "output_filename": ".woodpecker.yaml"}
 
 
 def _completed_run(generated_files=None, platform="Woodpecker CI", context=None):
@@ -18,7 +18,7 @@ def _completed_run(generated_files=None, platform="Woodpecker CI", context=None)
     run.record_event("call_started", "generation", context)
     run.record_event("call_completed", "generation", {
         "output": "steps: []\n",
-        "generated_files": {".woodpecker/pipeline.yaml": "steps: []\n"} if generated_files is None else generated_files,
+        "generated_files": {".woodpecker.yaml": "steps: []\n"} if generated_files is None else generated_files,
     })
     run.current_stage_index = len(pipeline.STAGES)
     run.last_context = dict(context)
@@ -34,7 +34,7 @@ def test_a_completed_run_publishes_its_approved_outputs_and_records_it():
     assert result == PUBLISHED
     publish.assert_called_once_with(
         name="Woodpecker CI",
-        output_filename=".woodpecker/pipeline.yaml",
+        output_filename=".woodpecker.yaml",
         output_model_name="WoodMM",
         source_run_id=run.run_id,
         metamodel="<ecore/>",
@@ -103,8 +103,14 @@ def test_several_generated_files_need_the_caller_to_say_which_one():
         publishing.publish(run)
 
 
+def test_a_file_in_a_folder_is_not_offered_as_the_default_output_file():
+    run = _completed_run(generated_files={"ci/pipeline.yaml": "steps: []\n"})
+
+    assert publishing.defaults(run)["output_filename"] is None
+
+
 def test_defaults_are_the_platform_description_and_the_one_generated_file():
-    assert publishing.defaults(_completed_run()) == {"name": "Woodpecker CI", "output_filename": ".woodpecker/pipeline.yaml"}
+    assert publishing.defaults(_completed_run()) == {"name": "Woodpecker CI", "output_filename": ".woodpecker.yaml"}
 
 
 def test_a_transformation_without_an_output_declaration_is_not_publishable():

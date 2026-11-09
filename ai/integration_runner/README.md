@@ -17,10 +17,10 @@ bundled import), `psm_agent` (`POST /psm`, for the `psm` stage's own real genera
 routed automatically by platform — see [`ai/psm_agent`](../psm_agent)), `validator-agent` (`POST
 /validate/ecore`/`/validate/atl`/`/validate/acceleo`, for the `pim`/`atl`/`acceleo` stages' own
 real validation of their DSL output, and internally by `psm_agent` itself when generating a new
-metamodel), and `execution-agent` (`POST /execute/atl`/`POST /execute/acceleo`, for the
+metamodel), and `execution-agent` (`POST /execute/atl/pim`/`POST /execute/acceleo`, for the
 `generation` stage's own real ATL/Acceleo execution against a real PIM model instance — see
 [`ai/execution_agent`](../execution_agent)), and `pipeline_generator` (`POST /platforms`, to
-publish a completed run's platform — see [`ai/pipeline_generator`](../pipeline_generator)).
+publish a completed run's platform, see [`ai/pipeline_generator`](../pipeline_generator)).
 
 ## Module layout
 
@@ -45,12 +45,11 @@ publish a completed run's platform — see [`ai/pipeline_generator`](../pipeline
   via `current()` and call its methods directly (`runs.current().review(...)`,
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
-- **`publishing.py`** — publishing a completed run's platform to `pipeline_generator`. It takes
-  the metamodel, transformation and template from the recorded events of the generation attempt
-  behind the approved pipeline, not from the run's latest context, which a later failed attempt
-  or a context override can have changed.
-- **`atl_source.py`** — reads facts out of a generated ATL transformation's text (its output model
-  name), shared by the generation stage and `publishing.py`.
+- **`publishing.py`**: publishes a completed run's platform to `pipeline_generator`. It takes the
+  three files from the recorded events of the attempt behind the approved pipeline, not from the
+  run's latest context, which a later attempt can have changed.
+- **`atl_source.py`**: reads facts out of a generated ATL transformation, shared by the generation
+  stage and `publishing.py`.
 - **`stages/`** — one folder per stage, plus the `STAGE_DESCRIPTIONS`/`stage_agents` lookups
   `IntegrationRun.run_stage()` and orchestrator's system prompt read from. See
   [Stage-based pipeline generation](#stage-based-pipeline-generation) below for the full layout
@@ -212,14 +211,14 @@ file, not a restructuring.
   below, and forwards its own stage name and that attempt's name to `run_psm()` too: on the
   generation path, `psm_agent`'s own real generate-validate-retry loop carries those two values
   through unchanged into its own validator-agent call, once per regeneration round, so every
-  round's real compiled Ecore classes nest inside that one attempt directory instead of landing
-  as orphaned siblings under the run root.
+  round's real compiled Ecore classes are kept by `validator_agent` under that one stage and
+  attempt, not scattered under the run.
 - **`atl_stage(context)`** — reads `context["pim_output"]`/`context["psm_output"]` (no fallback
   for either) and its own recorded constraints, forwarding them to `atl_agent_client.run_atl()`,
   which runs a real generate-validate-retry loop against `atl_agent`'s own real `/generate`
-  capability, forwarding `run_id` so the real compiled `.asm` bytecode that call produces lands
-  scoped under this run (see [ai/CLAUDE.md](../CLAUDE.md)'s note on the shared `runs/` folder in
-  the data folder). Returns `(artifact, extra)`, the same shape `psm_stage` does and for the same reason.
+  capability, forwarding `run_id` so `validator_agent` keeps the real compiled `.asm` bytecode
+  that call produces scoped under this run, in its own folder. Returns `(artifact, extra)`, the
+  same shape `psm_stage` does and for the same reason.
 - **`acceleo_stage(context)`** — reads `context["psm_output"]` (no fallback) and the labeled
   platform docs (preferring `context["serialization_output"]`, then `context["docs_output"]`, then
   `context["platform_description"]`), forwarding them to `acceleo_agent_client.run_acceleo()`,
@@ -272,18 +271,18 @@ against an existing `.ecore`). `stages/_validation.py`:
   *before* calling out to `validator_agent_client` (`psm_stage` via `psm_agent_client.run_psm()`
   instead, since `psm_agent`'s own generation code is what actually calls validator-agent): that
   call is what triggers `AtlValidator`'s/`AcceleoValidator`'s/`EcoreValidator`'s own real compiled
-  output write, and that write needs the real stage name and attempt number to nest inside, not
-  land beside it as an unrelated sibling (or, missing the stage segment, collide with another
-  stage's own same-numbered attempt). See
+  output write, and `validator_agent` needs the real stage name and attempt number to scope it
+  under in its own folder (missing the stage segment, two stages' same-numbered attempts would
+  collide). See
   [validator_agent's own README](../validator_agent/README.md#setup) for the other side of this.
 - **`reserved_attempt(run_id, stage)`** — a context manager wrapping `reserve_attempt_dir()` for
   exactly the pattern above: reserve the directory, then make a fallible downstream call, then
   `persist_attempt()`. If that call raises before `persist_attempt()` recorded the attempt (a
   `validator-agent` timeout or restart, a network blip), the reserved directory is removed again,
   so the failure does not strand an unlisted `attempt_N/` on disk or push the next real attempt
-  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty",
-  because `psm`'s codegen validation nests its own compiled output under the directory once per
-  retry round before any result is persisted. A recorded attempt is kept, so a normal validation
+  to `attempt_N+1`. "Recorded" is read as `result.json` present, not "directory non-empty", so
+  whatever else the directory holds does not keep an attempt that never finished. A recorded
+  attempt is kept, so a normal validation
   failure still keeps its full record. Yields `None` when there is no `run_id`.
 - **`raise_if_invalid(stage, result)`** — turns a `result["valid"] is False` into a real raised
   `RuntimeError` carrying the real `issues`, the same `call_failed` reporting path every stage
@@ -291,10 +290,8 @@ against an existing `.ecore`). `stages/_validation.py`:
   called for an infra failure, which `validator_agent_client` itself already raises before
   `persist_attempt` runs (handled by `reserved_attempt` above).
 
-`runs/` sits at this package's own root, sibling to `stages/`, gitignored — in-memory run state's
-on-disk counterpart, gone on restart the same way the in-memory run history already is. Mounting
-it externally for durability across a container restart is a real future concern, deliberately
-not solved here.
+`runs/` is the folder `INTEGRATION_RUNNER_RUNS_DIR` names (required, no default). In Docker it is the runs
+folder set in `config.env`, see [ai/README.md](../README.md#where-files-live).
 
 **`runs/<run_id>/manifest.json`** answers "what happened in this run" without opening any
 attempt folder by hand: a flat, append-only, chronological list of `{run_id, stage, attempt_n,
@@ -418,11 +415,12 @@ Progress through `STAGES` is tracked by an `IntegrationRun` instance
 backs the REST API.
 
 1. **`run_stage(context)`** — looks up the current stage's agent, calls it, and returns
-   `{"stage": ..., "output": ...}`. Only on success does it set `last_completed_stage` to this
-   stage — `/review`'s approval path checks that field and refuses to approve a stage whose last
-   real attempt failed or is still running, so a failure can never silently forward the previous
-   stage's stale output onward under the failed stage's own name. Doesn't advance the pipeline;
-   the current stage stays pending until a human reviews it.
+   `{"stage": ..., "output": ...}`. It clears `last_completed_stage` when the attempt starts and
+   sets it to this stage only on success. `/review`'s approval path checks that field and
+   refuses to approve a stage whose last real attempt failed or is still running. So a failure
+   can never silently forward stale output onward: neither the previous stage's output under the
+   failed stage's own name, nor this stage's own earlier output after a retry of it failed.
+   Doesn't advance the pipeline; the current stage stays pending until a human reviews it.
 2. A human reviews the stage's `output` (via `POST /review/{stage_id}`, below) — optionally
    after adding one more known page via `POST /docs/extend` first, on the docs stage.
 3. **Approve** → `record_review()` advances `current_stage_index` and, if there's a next stage,
@@ -476,8 +474,8 @@ The service starts at `http://localhost:8050`.
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run this process has seen, newest first. |
-| `GET /publish` | What `POST /publish` would use for the current run when given nothing: `name` (the run's platform description) and `output_filename` (the one file its generation stage produced, or null when it produced several). |
-| `POST /publish` | Body: optional `name`, `output_filename`, `run_id`. Publishes the current, completed run's PSM metamodel, ATL transformation and Acceleo template, as the approved generation attempt ran with them, to `pipeline_generator` (`publishing.py`), records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. Claims the run busy while it runs, so two publishes cannot race. `409` while busy, when `run_id` is not the current run, or when the run cannot be published (not complete, or its transformation declares no output model; the reason in `detail`). `400` when the pipeline generator refuses what was sent, including files over its size limit. `502` when it is unreachable. |
+| `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
+| `POST /publish` | Body: optional `name`, `output_filename`, `run_id`. Publishes the completed run's platform to `pipeline_generator`, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the generator refuses what was sent. `502` if it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
 | `POST /reset` | Replaces the current run with a fresh, blank one. `409` if busy. |
 | `POST /resume/{run_id}` | Makes a past run current again. `404` unknown run, `409` if busy. |
@@ -538,13 +536,16 @@ cp .env.example .env
 # AI_LAYER_URL defaults to http://localhost:8000, RETRIEVAL_URL to
 # http://localhost:8010, SERIALIZATION_AGENT_URL to http://localhost:8060,
 # VALIDATOR_AGENT_URL to http://localhost:8020, PSM_AGENT_URL to
-# http://localhost:8040, if unset — override only if any of them run
-# somewhere else.
+# http://localhost:8040, PIPELINE_GENERATOR_URL to http://localhost:8100,
+# if unset. Override only if any of them run somewhere else.
 ```
+
+`INTEGRATION_RUNNER_RUNS_DIR` is required: export it in your shell, since nothing reads `.env` for you.
 
 ## Run
 
 ```bash
+export INTEGRATION_RUNNER_RUNS_DIR=/path/to/a/folder
 uvicorn main:app --reload --port 8050
 ```
 
@@ -574,9 +575,9 @@ LLM-generation proxy's own client (`psm_agent_client`/`atl_agent_client`/`accele
 `test_mock_validated_stages_real_validator.py`, is listed separately below). `record_event()`
 has no reactor concept, so exactly one real call happens per stage transition (the stage agent's
 own), never one for narration too — narration lives entirely in `orchestrator/chat_log.py`.
-`conftest.py`'s own autouse fixture redirects `stages/_validation.py`'s
-`RUNS_DIR` to a throwaway `tmp_path` for every test in this whole suite, so nothing here ever
-touches this package's real `runs/` directory.
+`conftest.py` sets `INTEGRATION_RUNNER_RUNS_DIR` to a throwaway folder before imports, and its
+autouse fixture redirects `stages/_validation.py`'s `RUNS_DIR` to a throwaway `tmp_path` for every
+test, so nothing here touches a real runs folder.
 
 - **`tests/test_pipeline.py`** — the state machine: `STAGES`, `validate()`, `IntegrationRun`'s
   `run_stage`/`rerun`/`advance_stage`/`add_constraint`/`review`/`record_review`/`record_event`/
@@ -592,7 +593,7 @@ touches this package's real `runs/` directory.
   (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_generation_stage.py`** — the real (non-placeholder) `gen_stage` agent
-  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl()` then
+  (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl_from_pim()` then
   `execute_acceleo()` with the real context and PIM sample instance, joins more than one generated
   file by name, and raises a clear error when the given ATL source has no real output model name.
 - **`tests/stages/test_mock_validated_stages.py`** — `pim`'s own real, fixed metamodel content +

@@ -44,14 +44,7 @@ class PsmRequest(BaseModel):
     constraints: list[str] | None = None
     model: str | None = None
     run_id: str | None = None
-    # Names the calling stage ("psm") and its own reserved attempt
-    # directory, forwarded through to generation.py's real validator-agent
-    # call so a generation-mode call's compiled Ecore classes nest inside
-    # that attempt directory - see validator_agent's own main.py for the
-    # actual path-safety validation on these values (this service never
-    # touches the filesystem with them directly, only passes them through,
-    # so it doesn't duplicate that check, matching run_id's own existing
-    # plain-passthrough treatment above).
+    # The calling stage and its reserved attempt, passed to validator-agent to scope its output.
     stage: str | None = None
     attempt: str | None = None
     # The per-run "Mock" override (same opt-in as docs_stage's own

@@ -6,7 +6,7 @@ constraint accumulation, code-fence stripping) are generation_toolkit's own
 concern, tested in its own test suite, not re-tested here. Real LLM/
 validation calls are all mocked via patch.object(..., ...), the same
 convention test_comparison.py uses; only the master example file (real
-githubMM.ecore) and the real, git-committed generation/default.default.json
+githubMM.ecore) and the real starting generation/default.default.json
 prompt config are left real.
 """
 import json
@@ -139,7 +139,7 @@ def test_returns_a_real_prompt_version_or_none():
 
 
 def test_shipped_learned_constraints_are_applied_even_with_no_run_level_constraints():
-    # The generic default (ai/psm_agent/prompts/generation/default.default.json)
+    # The generic default (the starting generation config's default.default.json)
     # ships with real, already-proven constraints (ported from the real
     # ai-research experiments) - they should apply to every run, not just a
     # run that also supplies its own live corrections.

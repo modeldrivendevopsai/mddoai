@@ -6,12 +6,13 @@ This is a full-repo-checkout test, not something the deployed
 execution-agent container can ever run (it only ever gets its own service
 code plus main/'s compiled build output, never the wider monorepo's real
 .atl/.mtl/.ecore source tree - see ai/docker-compose.yml's own
-execution-agent volumes). Auto-skips when a JDK, the built main/
+execution-agent volumes). Auto-skips when a Java runtime, the built main/
 distribution, or that wider checkout aren't available, so the fast suite
 (plain `pytest`) always runs standalone on any machine, and the real
 in-container suite skips cleanly instead of crashing on a missing tree.
 """
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -48,19 +49,19 @@ GITLAB_ECORE_PATH = REPO_ROOT / "meta_models" / "com.mddoai.metamodel.gitlab" / 
 # matching validator_agent's own test_integration_real_jvm.py reasoning for
 # why that matters. Also checks PIM_SAMPLE_INSTANCE_PATH itself exists, not
 # just java/LIB_DIR: the deployed container has both of those (it ships its
-# own JDK and mounts main/'s compiled output) but never the wider repo
+# own Java runtime and mounts main/'s compiled output) but never the wider repo
 # checkout this test's real source files live in, so java+LIB_DIR alone
 # would wrongly conclude "run for real" there.
 pytestmark = pytest.mark.skipif(
     not (shutil.which("java") and Path(execution_runner.LIB_DIR).exists() and PIM_SAMPLE_INSTANCE_PATH.exists()),
-    reason="real JDK + built main/ distribution + full repo checkout not available",
+    reason="Java runtime + built main/ distribution + full repo checkout not available",
 )
 
 client = TestClient(main.app)
 
 
 def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample_pim():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -74,8 +75,23 @@ def test_real_atl_execution_produces_a_real_gitlab_pipeline_from_the_real_sample
     assert "deploy-prod" in output_xmi
 
 
+def test_real_concurrent_atl_executions_do_not_break_each_other():
+    # The transformer writes intermediate files relative to its working
+    # directory and deletes them afterwards, so two calls sharing a directory
+    # fail. Each call runs in its own.
+    atl = ATL_SOURCE_PATH.read_text(encoding="utf-8")
+    pim = PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8")
+    ecore = GITLAB_ECORE_PATH.read_text(encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda _: execution_runner.run_atl_from_pim_executor(atl, pim, ecore, "GitLabMM"), range(4)))
+
+    assert all(result["output_xmi"] == results[0]["output_xmi"] for result in results)
+    assert "gitlabMM:Pipeline" in results[0]["output_xmi"]
+
+
 def test_real_atl_execution_of_a_non_pim_model_returns_422():
-    response = client.post("/execute/atl", json={
+    response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": "<?xml version=\"1.0\"?><root/>",
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -86,7 +102,7 @@ def test_real_atl_execution_of_a_non_pim_model_returns_422():
 
 
 def test_real_acceleo_execution_produces_real_gitlab_yaml_from_a_real_atl_produced_psm_instance():
-    atl_response = client.post("/execute/atl", json={
+    atl_response = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": PIM_SAMPLE_INSTANCE_PATH.read_text(encoding="utf-8"),
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),
@@ -124,7 +140,7 @@ def test_real_chain_from_a_swarch_model_reproduces_the_engines_own_expected_gitl
     })
     assert pim.status_code == 200, pim.text
 
-    psm = client.post("/execute/atl", json={
+    psm = client.post("/execute/atl/pim", json={
         "atl_source": ATL_SOURCE_PATH.read_text(encoding="utf-8"),
         "pim_model_xmi": pim.json()["output_xmi"],
         "target_ecore": GITLAB_ECORE_PATH.read_text(encoding="utf-8"),

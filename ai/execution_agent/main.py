@@ -10,7 +10,7 @@ from execution_runner import (
     ExecutionFailedError,
     ExecutionInfraError,
     run_acceleo_executor,
-    run_atl_executor,
+    run_atl_from_pim_executor,
     run_atl_from_swarch_executor,
 )
 
@@ -25,7 +25,7 @@ app = FastAPI(title="MDDOAI Execution Agent")
 MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
 
 
-class AtlExecuteRequest(BaseModel):
+class AtlFromPimExecuteRequest(BaseModel):
     atl_source: str = Field(..., min_length=1, description="Real .atl transformation source.")
     pim_model_xmi: str = Field(..., min_length=1, description="A real PIM model instance, XMI text.")
     target_ecore: str = Field(
@@ -62,23 +62,23 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/execute/atl", response_model=AtlExecutionResult)
-def execute_atl_endpoint(request: AtlExecuteRequest) -> AtlExecutionResult:
+@app.post("/execute/atl/pim", response_model=AtlExecutionResult)
+def execute_atl_from_pim_endpoint(request: AtlFromPimExecuteRequest) -> AtlExecutionResult:
     _check_size("atl_source", request.atl_source)
     _check_size("pim_model_xmi", request.pim_model_xmi)
     _check_size("target_ecore", request.target_ecore)
 
-    logger.info("POST /execute/atl output_model_name=%s", request.output_model_name)
+    logger.info("POST /execute/atl/pim output_model_name=%s", request.output_model_name)
     try:
-        result = run_atl_executor(
+        result = run_atl_from_pim_executor(
             request.atl_source, request.pim_model_xmi, request.target_ecore, request.output_model_name
         )
     except ExecutionFailedError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ExecutionInfraError as e:
-        logger.error("POST /execute/atl infra failure: %s", e)
+        logger.error("POST /execute/atl/pim infra failure: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
-    logger.info("POST /execute/atl done output_bytes=%d", len(result["output_xmi"].encode("utf-8")))
+    logger.info("POST /execute/atl/pim done output_bytes=%d", len(result["output_xmi"].encode("utf-8")))
     return result
 
 

@@ -17,8 +17,6 @@ def _result(platform=GITLAB, filename=".gitlab-ci.yml", pipeline="stages: [build
         "pipeline": pipeline,
         "intermediates": [],
         "duration_ms": 10,
-        "saved_to": None,
-        "save_error": None,
         "error": None,
     }
 
@@ -29,7 +27,6 @@ def _record(history, *, key="/repos/a.swarch", results=None, at="2026-01-01T10:0
         swarch_name="a.swarch",
         source_path="/repos/a.swarch",
         content=content,
-        save_to="./ci-output/",
         results=results or [_result()],
         generated_at=at,
     )
@@ -46,7 +43,6 @@ def test_a_recorded_pipeline_can_be_listed_and_reopened_in_full(history):
     assert summary["generated_at"] == "2026-01-01T10:00:00+00:00"
     record = history.get(pipeline_id)
     assert record["content"] == "<a/>"
-    assert record["save_to"] == "./ci-output/"
     assert record["results"][0]["pipeline"] == "stages: [build]\n"
 
 
@@ -117,7 +113,7 @@ def test_no_temporary_files_or_folders_are_left_behind(history, tmp_path):
 
     assert [path.name for path in (tmp_path / "data").iterdir()] == [pipeline_id]
     names = sorted(str(path.relative_to(tmp_path / "data" / pipeline_id)) for path in (tmp_path / "data" / pipeline_id).rglob("*"))
-    assert names == sorted(["meta.json", "record.json", "model.swarch", "gitlab", str(Path("gitlab") / "pipeline"), str(Path("gitlab") / "pipeline" / ".gitlab-ci.yml")])
+    assert names == sorted(["meta.json", "record.json", "model.swarch", "gitlab", str(Path("gitlab") / ".gitlab-ci.yml")])
 
 
 # --- the generation as real files ----------------------------------------------
@@ -131,7 +127,7 @@ def test_the_model_each_pipeline_and_each_intermediate_are_kept_as_files(history
     folder = tmp_path / "data" / pipeline_id
 
     assert (folder / "model.swarch").read_text(encoding="utf-8") == "<a/>"
-    assert (folder / "gitlab" / "pipeline" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
+    assert (folder / "gitlab" / ".gitlab-ci.yml").read_text(encoding="utf-8") == "stages: [build]\n"
     with open(folder / "gitlab" / "intermediates" / "PipelinePIM.pimmm", encoding="utf-8", newline="") as handle:
         assert handle.read() == "<pim/>\r\n"
 
@@ -156,38 +152,17 @@ def test_reopening_returns_the_files_exactly_as_generated(history):
     assert reopened["intermediates"] == [PIM]
 
 
-def test_an_output_path_named_like_the_intermediates_folder_does_not_collide_with_one(history):
-    result = {**_result(filename="intermediates/PipelinePIM.pimmm", pipeline="the pipeline"), "intermediates": [PIM]}
-    pipeline_id = _record(history, results=[result])
-
-    [reopened] = history.get(pipeline_id)["results"]
-
-    assert reopened["pipeline"] == "the pipeline"
-    assert reopened["intermediates"] == [PIM]
-
-
-def test_a_pipeline_recorded_directly_in_its_platforms_folder_still_reopens(history, tmp_path):
-    pipeline_id = _record(history, results=[_result()])
-    platform_dir = tmp_path / "data" / pipeline_id / "gitlab"
-    (platform_dir / "pipeline" / ".gitlab-ci.yml").replace(platform_dir / ".gitlab-ci.yml")
-    (platform_dir / "pipeline").rmdir()
-
-    [reopened] = history.get(pipeline_id)["results"]
-
-    assert reopened["pipeline"] == "stages: [build]\n"
-
-
 def test_generating_again_removes_files_the_new_generation_did_not_produce(history, tmp_path):
     pipeline_id = _record(history, results=[_result()])
     _record(history, results=[_result(BAMBOO, "bamboo-spec.yml")])
 
     folder = tmp_path / "data" / pipeline_id
     assert not (folder / "gitlab").exists()
-    assert (folder / "bamboo" / "pipeline" / "bamboo-spec.yml").is_file()
+    assert (folder / "bamboo" / "bamboo-spec.yml").is_file()
 
 
 @pytest.mark.parametrize("missing", [
-    Path("gitlab") / "pipeline" / ".gitlab-ci.yml",
+    Path("gitlab") / ".gitlab-ci.yml",
     Path("gitlab") / "intermediates" / "PipelinePIM.pimmm",
     Path("model.swarch"),
 ])
@@ -206,7 +181,6 @@ def test_reopening_returns_exactly_what_was_recorded(history):
 
     assert record["results"] == results
     assert record["content"] == "<model/>\n"
-    assert record["save_to"] == "./ci-output/"
 
 
 def test_a_result_without_a_pipeline_is_refused_and_record_generation_does_not_raise(history):
@@ -215,7 +189,7 @@ def test_a_result_without_a_pipeline_is_refused_and_record_generation_does_not_r
     with pytest.raises(ValueError):
         _record(history, results=[without])
     assert history.record_generation(
-        filename="a.swarch", content="<a/>", source_path=None, save_to=None, generated=[without]
+        filename="a.swarch", content="<a/>", source_path=None, generated=[without]
     ) is None
     assert history.summaries() == []
 
@@ -237,6 +211,22 @@ def test_a_tampered_record_naming_a_path_outside_its_folder_is_not_read(history,
     record_path.write_text(json.dumps(record), encoding="utf-8")
 
     assert history.get(pipeline_id) is None
+
+
+def test_a_record_that_still_carries_the_old_save_fields_is_read_back_unchanged(history, tmp_path):
+    # Records written before saving to a folder was removed have a top-level
+    # save_to and per-result saved_to, replaced and save_error. They must still open.
+    pipeline_id = _record(history)
+    record_path = tmp_path / "data" / pipeline_id / "record.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["save_to"] = "./ci-output/"
+    record["results"][0].update(saved_to="/ci-output/.gitlab-ci.yml", replaced=False, save_error=None)
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+
+    opened = history.get(pipeline_id)
+
+    assert opened["content"] == "<a/>"
+    assert opened["results"][0]["pipeline"] == "stages: [build]\n"
 
 
 def test_if_the_new_generation_cannot_be_put_in_place_the_earlier_one_is_restored(history, monkeypatch):
@@ -306,7 +296,7 @@ def test_a_pipeline_being_forgotten_is_moved_aside_before_it_is_deleted(tmp_path
 
 @pytest.mark.skipif(os.name != "posix", reason="file modes are POSIX permissions")
 def test_the_files_and_folder_are_readable_by_others(history, tmp_path):
-    # The history lives in the data folder so it can be opened from the host
+    # The history lives in a folder on the host so it can be opened from there
     # by a user other than the one the service runs as. A private (0700/0600)
     # mode would hide it; with the usual umask everything is world-readable.
     previous = os.umask(0o022)
@@ -458,10 +448,10 @@ def test_a_record_that_is_not_an_object_is_not_returned(history, tmp_path):
 
 def test_record_generation_names_the_input_by_path_else_by_file_name(history):
     by_path = history.record_generation(
-        filename="a.swarch", content="<a/>", source_path="/repos/a.swarch", save_to=None, generated=[_result()]
+        filename="a.swarch", content="<a/>", source_path="/repos/a.swarch", generated=[_result()]
     )
     by_upload = history.record_generation(
-        filename="/repos/a.swarch", content="<a/>", source_path=None, save_to=None, generated=[_result()]
+        filename="/repos/a.swarch", content="<a/>", source_path=None, generated=[_result()]
     )
 
     assert by_path != by_upload
@@ -469,7 +459,7 @@ def test_record_generation_names_the_input_by_path_else_by_file_name(history):
 
 
 def test_record_generation_has_nothing_to_record_when_nothing_was_generated(history):
-    assert history.record_generation(filename="a.swarch", content="<a/>", source_path=None, save_to=None, generated=[]) is None
+    assert history.record_generation(filename="a.swarch", content="<a/>", source_path=None, generated=[]) is None
     assert history.summaries() == []
 
 
@@ -479,4 +469,4 @@ def test_record_generation_reports_a_failed_write_as_no_id_instead_of_raising(hi
 
     monkeypatch.setattr(history, "record", failing)
 
-    assert history.record_generation(filename="a.swarch", content="<a/>", source_path=None, save_to=None, generated=[_result()]) is None
+    assert history.record_generation(filename="a.swarch", content="<a/>", source_path=None, generated=[_result()]) is None
