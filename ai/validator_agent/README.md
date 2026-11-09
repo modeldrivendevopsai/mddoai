@@ -54,7 +54,7 @@ Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getC
 
 `metamodel_ecore` closes that second gap: given the target platform's own real PSM `.ecore` content, `AtlValidator` also actually **runs** the compiled transformation, via `main/`'s own execution classes, against a real, fixed PIM model instance mounted into this container (`ATL_SMOKE_TEST_PIM_INSTANCE_PATH` — see [Setup](#setup) below). A real runtime-only failure is reported as an `ERROR` issue the same way a compile error is, so the regenerate loop can act on it during the calling stage's own retry rounds instead of only discovering it later, with no retries left. Optional: without it, this endpoint behaves exactly as it always has (compile-only checking).
 
-Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has without a target metamodel, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, nesting the compiled output two levels deeper still, see [Setup](#setup) below.
+Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has without a target metamodel, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, scoping the compiled output two levels deeper still, see [Setup](#setup) below.
 
 ### `POST /validate/acceleo`
 
@@ -134,27 +134,21 @@ services, caches, artifacts) is enough to smoke-test any future platform's gener
 the one it was originally authored against. Unset (e.g. a plain local run with no Docker mount),
 this endpoint simply skips execution and falls back to compile-only checking.
 
-`VALIDATOR_OUTPUT_DIR` (Java-side env var, read by `EcoreValidator`/`AtlValidator`/
-`AcceleoValidator` directly, not by this Python service) is the base directory every real
-compiled artifact these three validators produce gets persisted under, instead of being deleted
-after the check. In Docker this is the same `pipeline-runs` volume `integration_runner` itself
-mounts, at `/app/integration_runner/runs` there and at `/runs` here: one shared volume, two
-different mount paths, each matching what that service's own code actually reads. See
-`ai/docker-compose.yml`'s own comments on both mounts before changing either. A request may
-include a validated `run_id`, in which case the compiled output is scoped under a subfolder
+`VALIDATOR_OUTPUT_DIR` is the folder the compiled artifacts of the validators are kept in, instead of
+being deleted after the check. It is required, with no default: this service and the Java validators,
+which read the same variable, fail naming it when it is missing. In Docker it is the validator output
+folder set in `config.env`, which only this service uses. A request
+may include a validated `run_id`, in which case the compiled output is scoped under a subfolder
 named for it; every codegen-producing request (`/validate/atl`, `/validate/acceleo`, and
 `/validate/ecore` in `codegen` mode) may also include `stage` and `attempt` (the calling stage's
-own name and its already-reserved `attempt_N` directory name, forwarded on `psm_agent`'s own
-behalf for its `/validate/ecore` calls, since it has no attempt-numbering concept of its own -
-see [integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
-in which case the output nests two levels deeper still, landing *inside* that specific attempt's
-own directory (`runs/<run_id>/<stage>/attempt_N/<type>-validate-<uuid>/`) rather than merely
-somewhere else under the same `run_id`. The real path is still returned as `generated_source_path`
-in the response either way, and `persist_attempt()` records it in the calling stage's own
-`result.json`. This is deliberate: these are real, reusable pipeline artifacts (the compiled
-model classes, ATL bytecode, and Acceleo module a real generate-and-validate cycle produces), not
-disposable debugging output, so they belong nested inside the one place a run's other real
-artifacts already live, not off in a validator-only corner.
+own name and its already-reserved `attempt_N` name, forwarded on `psm_agent`'s own behalf for its
+`/validate/ecore` calls, since it has no attempt-numbering concept of its own - see
+[integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
+in which case the output is scoped two levels deeper still
+(`<run_id>/<stage>/<attempt>/<type>-validate-<uuid>/`), so two stages' same-numbered attempts
+never collide. The real path comes back as `generated_source_path`, and `persist_attempt()` records it in the calling
+stage's own `result.json`. It is a path in this service's own storage, which the caller never opens.
+These artifacts are real and reusable, not debugging output, so they are kept.
 
 ## Run
 
@@ -167,6 +161,7 @@ Standalone (needs `main/`'s distribution already built):
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib \
+    VALIDATOR_OUTPUT_DIR=/path/to/a/folder \
     uvicorn main:app --port 8020
 ```
 

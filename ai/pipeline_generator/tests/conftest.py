@@ -1,11 +1,17 @@
+import atexit
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
-# Before the service's modules are imported, which read their settings once:
-# unless a data folder is given (as it is inside the Docker stack), the tests
-# use the repository's own, where the committed platforms are.
-os.environ.setdefault("GENERATOR_DATA_DIR", str(Path(__file__).resolve().parents[2] / "data"))
+# Required settings, set before the service modules read them.
+_session_dir = Path(tempfile.mkdtemp(prefix="generator-tests-"))
+atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
+os.environ["GENERATOR_WORKSPACE_DIR"] = str(_session_dir / "workspace")
+os.environ["GENERATOR_WORKSPACE_LABEL"] = "the test workspace"
+os.environ["GENERATOR_PIPELINES_DIR"] = str(_session_dir / "pipelines")
+# The real platform files, read-only.
+os.environ["GENERATOR_PLATFORMS_DIR"] = str(Path(__file__).resolve().parents[2] / "data" / "platforms")
 
 import pytest  # noqa: E402
 

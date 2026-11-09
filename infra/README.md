@@ -17,9 +17,9 @@ In each folder:
 - `compose.yaml` pulls in the stack, filled in from `config.env`.
 - `config.env` holds everything that belongs to that environment: ports, host names, who can log in, and its secrets. Only the templates' copies, with no values, are committed. Each environment's own `config.env` is gitignored and stays on the machine that runs it.
 
-The stack also reads some services' own `.env` files under `ai/` in each
-clone, such as `ai/ai-layer/.env` with the LLM API keys. Each service's
-`.env.example` says what goes in it.
+The LLM API keys are in a file that `MDDOAI_LLM_KEYS_FILE` in `config.env` names.
+Some services also read their own optional `.env` file under `ai/` in each
+clone. Each service's `.env.example` says what goes in it.
 
 To add an environment, copy the template that fits, name the copy after the
 environment, fill in its `config.env` and commit its other files. A change to
@@ -36,7 +36,7 @@ The dev environment:
 ```sh
 cd infra/environments/dev
 cp ../templates/dev/config.env config.env    # once, then fill it in
-mkdir -p ../../../ai/data/workspace ../../../ai/data/pipelines    # once, if MDDOAI_DATA_DIR is ./data
+mkdir -p <the folder MDDOAI_WORKSPACE_DIR names>    # once; the platforms and prompts folders must already hold their content
 docker compose up -d --build
 ```
 

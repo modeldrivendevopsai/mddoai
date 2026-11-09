@@ -38,8 +38,7 @@ GitLab Acceleo code-generation template
 (`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl`) — the
 master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH` and `ai/CLAUDE.md`'s folder-boundaries section for
-why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, documented exception.
+`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 
@@ -64,7 +63,7 @@ why this narrow read across the MDE-engine/AI-layer boundary is a deliberate, do
   "prompt": {"psm_ecore": "...", "platform_docs": "...", "acceleo_example": "...", "constraints": ""},
   "validation": {
     "valid": true, "issues": [], "duration_ms": 120,
-    "generated_source_path": "/runs/run-123/acceleo/attempt_1/acceleo-validate-abc123"
+    "generated_source_path": "<validator output folder>/run-123/acceleo/attempt_1/acceleo-validate-abc123"
   },
   "rounds": 2,
   "prompt_version": null
@@ -85,17 +84,15 @@ Used by the Dockerfile's `HEALTHCHECK`.
 
 ## Prompt configuration
 
-`generate()` has no hardcoded system prompt: it resolves a real, git-committed, UI-editable config
+`generate()` has no hardcoded system prompt: it resolves a real, UI-editable config
 through `generation_toolkit.prompt_config` (see `generation_toolkit/README.md` for the mechanism
 itself, generic across any service that supplies it a `config_dir`). This service's own
 `routes/prompt_config.py` is a thin HTTP surface over it, `routes/files.py` a related but separate
 concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.
 
-Configs live under `prompts/generation/` (this service has only one real config name,
-`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, overridable via
-`ACCELEO_AGENT_PROMPT_CONFIG_DIR`, defaulting to `acceleo_agent/prompts/` next to this service's
-own source):
+Configs live under `generation/` in the prompt folder (this service has only one real config name,
+`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, the required `ACCELEO_AGENT_PROMPT_CONFIG_DIR`):
 
 - `default.default.json`: the immutable, git-committed shipped default, seeded from real
   constraints accumulated across GitLab and Bamboo before being carried into every later
@@ -147,9 +144,9 @@ pip install -r requirements.txt
 local/non-Docker dev. Override it only if that file is reachable somewhere else, e.g. the Docker
 Compose read-only bind mount `ai/docker-compose.yml`'s `acceleo-agent` service entry sets it to.
 `VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service,
-defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR`/`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR`
-are optional too, each defaulting to a directory next to this service's own source (see "Prompt
-configuration" above) — override only if bind-mounted somewhere else.
+defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and
+`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or
+empty. For a local run, point them at `ai/data/prompts/acceleo` and a writable folder of your own.
 
 ## Run
 
@@ -162,8 +159,12 @@ outside this folder, `PYTHONPATH` needs to include the parent `ai/` directory to
 
 ```bash
 # from ai/acceleo_agent/
+export ACCELEO_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/prompts/acceleo
+export ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 PYTHONPATH=.. uvicorn main:app --reload --port 8080
 ```
+
+The two `export` lines are the required folder settings (nothing reads a `.env` file for you).
 
 ## Test
 

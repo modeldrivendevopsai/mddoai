@@ -19,6 +19,9 @@ cp .env.example .env
 # Fill in at minimum ANTHROPIC_API_KEY, plus any free-tier keys you have
 ```
 
+In Docker Compose this file is the one `MDDOAI_LLM_KEYS_FILE` names in the environment's `config.env`.
+It must already exist.
+
 ## Run
 
 ```bash

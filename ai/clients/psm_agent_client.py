@@ -35,11 +35,10 @@ def run_psm(
     ({"mode": "generation", "artifact", "prompt", "validation", "rounds"}) or
     a knowledge-mode result ({"mode": "knowledge", "artifact", "gaps", "prompt"}).
     stage/attempt name the calling stage ("psm") and its own reserved attempt
-    directory - forwarded all the way through to generation.py's own real
+    - forwarded all the way through to generation.py's own real
     validator-agent call, so a generation-mode call's real compiled Ecore
-    classes nest inside that same attempt directory instead of landing as an
-    unlinked sibling of it (see stages/psm/agent.py's own reserve_attempt_dir()
-    call, the same pattern stages/atl/agent.py and stages/acceleo/agent.py use).
+    classes are kept under that stage and attempt in validator-agent's own
+    folder.
     mock mirrors docs_stage's own per-run "Mock" override - see
     psm_agent's generation.py generate() docstring for exactly what it skips."""
     response = httpx.post(

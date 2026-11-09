@@ -1,0 +1,11 @@
+# Git tracks the platform files and the starting prompt configs. Everything else
+# here, such as models, uploads, runs and edits to a prompt config, is ignored.
+*
+!.gitignore
+!/README.md
+!*/
+!platforms/**/*.ecore
+!platforms/**/*.atl
+!platforms/**/*.mtl
+!platforms/**/*.json
+!prompts/*/*/default.default.json

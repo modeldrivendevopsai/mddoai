@@ -20,22 +20,28 @@ MAX_PIPELINE_BYTES = int(os.environ.get("GENERATOR_MAX_PIPELINE_BYTES", str(512 
 MAX_PATH_CHARS = 1024
 MAX_FILENAME_CHARS = 255
 
+
+def _required(name: str) -> str:
+    """A required setting. Unset or empty stops the service."""
+    value = os.environ[name].strip()
+    if not value:
+        raise KeyError(f"{name} is set but empty")
+    return value
+
+
+
 # The folder models are picked from.
-WORKSPACE_DIR = Path(os.environ.get("GENERATOR_WORKSPACE_DIR", "./workspace"))
+WORKSPACE_DIR = Path(_required("GENERATOR_WORKSPACE_DIR"))
 
-# What that folder is called where the person can see it, shown in the Browse
-# dialog. Inside a container WORKSPACE_DIR is only a mount point, so compose
-# passes the host folder's name; run directly, the folder's own path is it.
-WORKSPACE_LABEL = os.environ.get("GENERATOR_WORKSPACE_LABEL") or str(WORKSPACE_DIR)
+# The workspace's name in Browse: inside a container WORKSPACE_DIR is only a mount point.
+WORKSPACE_LABEL = _required("GENERATOR_WORKSPACE_LABEL")
 
-# Where generated pipelines are kept so they can be reopened later, and where
-# the platforms this service generates for are.
-DATA_DIR = Path(os.environ.get("GENERATOR_DATA_DIR", "./data"))
+# Where generated pipelines are kept so they can be reopened later.
+PIPELINES_DIR = Path(_required("GENERATOR_PIPELINES_DIR"))
 
 # The platforms, and the SWArch-to-PIM transformation every one of them starts
-# with, read from here on every request. Unlike the rest of the data folder,
-# these files are committed to the repository.
-PLATFORMS_DIR = DATA_DIR / "platforms"
+# with, read from here on every request.
+PLATFORMS_DIR = Path(_required("GENERATOR_PLATFORMS_DIR"))
 
 # How many generated pipelines are kept; the oldest are forgotten beyond this.
 # Engineering guess: far more than anyone reopens, small enough that the list

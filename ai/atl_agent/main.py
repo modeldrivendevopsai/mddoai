@@ -38,12 +38,7 @@ class GenerateRequest(BaseModel):
     constraints: list[str] | None = None
     model: str | None = None
     run_id: str | None = None
-    # Names the calling stage ("atl") and its own reserved attempt
-    # directory, forwarded through to generation.py's real validator-agent
-    # call so a call's compiled .asm bytecode nests inside that attempt
-    # directory - see validator_agent's own main.py for the actual
-    # path-safety validation on these values (this service never touches
-    # the filesystem with them directly, only passes them through).
+    # The calling stage and its reserved attempt, passed to validator-agent to scope its output.
     stage: str | None = None
     attempt: str | None = None
     # The per-run "Mock" override (same opt-in as psm_agent's own) - skips

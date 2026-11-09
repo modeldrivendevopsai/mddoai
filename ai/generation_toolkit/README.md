@@ -200,6 +200,11 @@ same routing/error-translation logic three times over.
   service's own `ATTACHMENT_UPLOADS_DIR`/`MAX_UPLOAD_BYTES` needs the router to re-read it per
   request, not once at startup.
 
+## `required_env.required_env(name)`
+
+The value of a required setting, trimmed. Unset or empty raises a `KeyError` naming it. The stage
+agents' `prompt_paths.py` use it for their folder settings.
+
 ## Test
 
 ```bash

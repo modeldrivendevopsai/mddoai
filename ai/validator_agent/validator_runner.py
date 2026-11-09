@@ -22,6 +22,18 @@ logger = logging.getLogger(__name__)
 # this default only matters for local dev, run directly against a sibling
 # main/ checkout already built via `cd main && ./gradlew installDist`.
 LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
+
+
+def _required(name: str) -> str:
+    """A required setting. Unset or empty stops the service."""
+    value = os.environ[name].strip()
+    if not value:
+        raise KeyError(f"{name} is set but empty")
+    return value
+
+
+# Where the compiled output is kept. Required: no default, and not the temp folder.
+OUTPUT_ROOT = Path(_required("VALIDATOR_OUTPUT_DIR"))
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
@@ -123,12 +135,10 @@ def _scoped_output_env(
 ) -> dict[str, str] | None:
     """Overrides VALIDATOR_OUTPUT_DIR to a per-run_id/per-stage/per-attempt
     subfolder, for a call that's about to persist a real compiled artifact
-    there (Ecore's codegen mode, ATL, Acceleo - see each *ValidatorCli's own
-    OUTPUT_ROOT), so concurrent runs' compiled output never collides, and so
-    it lands nested inside the exact same attempt directory
-    integration_runner's own persist_attempt() writes to
-    (runs/<run_id>/<stage>/attempt_N/) instead of beside it or, worse,
-    beside a same-numbered attempt from a different stage of the same run.
+    there (Ecore's codegen mode, ATL, Acceleo), so concurrent runs' compiled output never collides, and so
+    one run's attempts of different stages never mix. The output stays in
+    this service's own output folder: the caller's run_id, stage and attempt
+    only name the subfolder, and the path comes back in the response.
     Segments are joined in order, run_id then stage then attempt, skipping
     any that are None - <base>/<run_id> when only run_id is given (unchanged
     from before stage/attempt existed - every caller that doesn't pass them
@@ -143,7 +153,7 @@ def _scoped_output_env(
     if run_id is None:
         return None
     env = os.environ.copy()
-    output_dir = Path(env.get("VALIDATOR_OUTPUT_DIR", tempfile.gettempdir())) / run_id
+    output_dir = OUTPUT_ROOT / run_id
     if stage is not None:
         output_dir /= stage
     if attempt is not None:

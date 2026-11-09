@@ -2,7 +2,7 @@
 plain function (no TestClient needed), the same convention psm_agent's own
 routes/test_prompt_config.py uses. Every test requests the
 isolated_prompt_config_dir fixture (see conftest.py) so nothing here ever
-touches the real, git-committed ai/atl_agent/prompts/ directory.
+touches the prompt folder the suite starts from.
 
 This service has only one real config name, "generation" - _context_for
 404s on anything else, tested below.

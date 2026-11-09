@@ -43,9 +43,10 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
     constraints = context.get("constraints", {}).get("acceleo", [])
     # Reserved before run_acceleo() runs, not after: run_acceleo() is what
     # triggers acceleo_agent's own real validator-agent call, once per
-    # retry round, and each one's real compiled .emtl module needs the
-    # real attempt path to nest inside, not land as an unlinked sibling of
-    # it. reserved_attempt() undoes the reservation if run_acceleo() raises
+    # retry round, and each one's real compiled .emtl module is kept by
+    # validator-agent in its own folder, under the stage and attempt name
+    # reserved here, so one stage's attempts never mix with another's.
+    # reserved_attempt() undoes the reservation if run_acceleo() raises
     # before persist_attempt() records anything.
     run_id = context.get("run_id")
     with reserved_attempt(run_id, "acceleo") as attempt_dir:

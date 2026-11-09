@@ -14,11 +14,10 @@ Tests verify:
   3. constraints and model are forwarded from context.
   4. Given a run_id, psm_stage reserves its own attempt directory first and
      forwards its own stage name plus that attempt's name to run_psm(), the
-     same pattern atl_stage/acceleo_stage use, so psm_agent's own real
-     compiled Ecore classes (produced deep inside its generation.py, once
-     per regeneration round) nest inside that attempt directory instead of
-     landing as an unlinked sibling of it - see stages/_validation.py's own
-     reserve_attempt_dir() and ai/CLAUDE.md's "Second exception" section.
+     same pattern atl_stage/acceleo_stage use, so validator-agent can keep
+     psm_agent's own real compiled Ecore classes (produced deep inside its
+     generation.py, once per regeneration round) under that stage and
+     attempt - see stages/_validation.py's own reserve_attempt_dir().
 """
 from unittest.mock import patch
 
@@ -173,18 +172,17 @@ def test_a_raising_run_psm_leaves_no_orphan_attempt_dir(tmp_path):
     assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
 
 
-def test_a_raising_run_psm_discards_a_dir_a_validator_round_already_wrote_into(tmp_path):
-    # psm's codegen validation nests compiled Ecore output under the attempt
-    # dir once per round, before any result is persisted. If a later round
-    # then raises, that leftover must not keep the unrecorded attempt: the
-    # cleanup keys on result.json, not "directory is non-empty".
+def test_a_raising_run_psm_discards_a_dir_that_already_holds_files(tmp_path):
+    # Files left in the attempt dir before any result is persisted must not
+    # keep the unrecorded attempt when a later round raises: the cleanup keys
+    # on result.json, not "directory is non-empty".
     attempt_dir = tmp_path / "runs" / "run-1" / "psm" / "attempt_1"
 
-    def leave_compiled_output_then_fail(*a, **k):
-        (attempt_dir / "ecore-validate-abc" / "src-gen").mkdir(parents=True)
+    def leave_files_then_fail(*a, **k):
+        (attempt_dir / "leftover" / "nested").mkdir(parents=True)
         raise RuntimeError("round 2 generation failed")
 
-    with patch.object(psm_agent_client, "run_psm", side_effect=leave_compiled_output_then_fail):
+    with patch.object(psm_agent_client, "run_psm", side_effect=leave_files_then_fail):
         with pytest.raises(RuntimeError, match="round 2 generation failed"):
             psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
 

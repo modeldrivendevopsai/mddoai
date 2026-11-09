@@ -1,14 +1,29 @@
 """Shared pytest fixtures for acceleo_agent's own test suite."""
+import atexit
+import os
+import shutil
+import tempfile
+from pathlib import Path
+
 import pytest
 
-import prompt_paths
+# Required settings, set before the service modules read them. The prompt folder is a
+# copy of the shipped one, so no test writes into the committed files.
+_AI_DIR = Path(__file__).resolve().parents[2]
+_session_dir = Path(tempfile.mkdtemp(prefix="acceleo-agent-tests-"))
+atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
+shutil.copytree(_AI_DIR / "data" / "prompts" / "acceleo", _session_dir / "prompts")
+os.environ["ACCELEO_AGENT_PROMPT_CONFIG_DIR"] = str(_session_dir / "prompts")
+os.environ["ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR"] = str(_session_dir / "attachments")
+
+import prompt_paths  # noqa: E402
 
 
 @pytest.fixture
 def isolated_prompt_config_dir(tmp_path, monkeypatch):
     """Redirects every real prompt-config read/write to a fresh tmp_path,
     for a test that wants to freely create/mutate/delete configs without
-    touching the real, git-committed ai/acceleo_agent/prompts/ directory.
+    touching the prompt folder the suite starts from.
 
     Deliberately NOT autouse: test_generation.py exists specifically to
     prove the real, shipped default prompt config integrates correctly -
@@ -29,6 +44,6 @@ def isolated_attachment_uploads_dir(tmp_path, monkeypatch):
     """Same reasoning as isolated_prompt_config_dir above, for real file
     uploads (routes/uploads.py, available_files.py) instead of prompt
     configs - redirects to a fresh tmp_path so a test can freely upload
-    without touching the real ai/acceleo_agent/attachments/ directory."""
+    without touching a real uploads folder."""
     monkeypatch.setattr(prompt_paths, "ATTACHMENT_UPLOADS_DIR", tmp_path)
     return tmp_path

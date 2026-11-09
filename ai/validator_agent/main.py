@@ -33,10 +33,8 @@ MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)
 # MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
 MAX_PIPELINE_BYTES = int(os.environ.get("MAX_PIPELINE_BYTES", str(512 * 1024)))
 
-# Every request model below that takes a run_id (it scopes where a real
-# compiled artifact lands - EcoreValidator's codegen output, AtlValidator's
-# .asm, AcceleoValidator's .emtl, all persisted under a shared, writable area
-# per ai/CLAUDE.md's folder-boundaries section) shares this same pattern and
+# Every request model below that takes a run_id (it scopes where the
+# compiled output of a check is kept) shares this same pattern and
 # validator, not three independent copies that could quietly drift out of
 # sync on a security-relevant check. stage and attempt (below) reuse the
 # exact same pattern and validator for the same reason: both are joined onto
@@ -100,17 +98,15 @@ class EcoreValidateRequest(BaseModel):
     mode: str = Field(default="reflective", pattern="^(reflective|codegen)$")
     run_id: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
     # Names the calling stage (e.g. "atl"), joined onto run_id before
-    # attempt below, matching integration_runner's own real
-    # runs/<run_id>/<stage>/attempt_N/ layout exactly (see
-    # _validation.py's reserve_attempt_dir()) - not used by pim_stage today
+    # attempt below, so the output folder is <run_id>/<stage>/<attempt>
+    # inside this service's own output folder - not used by pim_stage today
     # (see clients/validator_agent_client.py's own validate_ecore
     # docstring), accepted here for parity with AtlValidateRequest/
     # AcceleoValidateRequest below.
     stage: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
-    # Names the calling stage's own reserved attempt directory (e.g.
-    # "attempt_2"), joined after stage above, so a codegen-mode call's real
-    # compiled output nests inside that specific attempt rather than only
-    # scoped by run_id.
+    # Names the calling stage's own reserved attempt (e.g. "attempt_2"),
+    # joined after stage above, so a codegen-mode call's real compiled output
+    # is scoped to that specific attempt rather than only by run_id.
     attempt: str | None = Field(default=None, pattern=_RUN_ID_PATTERN, max_length=_ID_MAX_LENGTH)
 
     _validate_run_id = field_validator("run_id")(classmethod(lambda cls, v: _reject_dot_segments(v)))

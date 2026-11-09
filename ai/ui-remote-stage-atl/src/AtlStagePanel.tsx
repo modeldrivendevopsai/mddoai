@@ -6,9 +6,8 @@ import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
 import { constraintsForStage } from "./stageEvents"
 
-// The manifest for atl's own real, config-driven prompt (see
-// atl_agent/prompts/generation/default.default.json for the real
-// attachment content this loads) - same PromptBuilder component psm and
+// The manifest for atl's own real, config-driven prompt (the starting generation config
+// the repository ships holds the real attachment content this loads) - same PromptBuilder component psm and
 // acceleo reuse, just this stage's own manifest and its own backend prompt
 // module behind it.
 const GENERATION_MANIFEST: PromptBuilderManifest = {

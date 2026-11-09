@@ -296,7 +296,7 @@ def test_a_pipeline_being_forgotten_is_moved_aside_before_it_is_deleted(tmp_path
 
 @pytest.mark.skipif(os.name != "posix", reason="file modes are POSIX permissions")
 def test_the_files_and_folder_are_readable_by_others(history, tmp_path):
-    # The history lives in the data folder so it can be opened from the host
+    # The history lives in a folder on the host so it can be opened from there
     # by a user other than the one the service runs as. A private (0700/0600)
     # mode would hide it; with the usual umask everything is world-readable.
     previous = os.umask(0o022)
