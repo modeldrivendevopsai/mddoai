@@ -20,7 +20,7 @@ services:
       - "${AI_LAYER_PORT:?}:8000"
 
   # Build context is ai/ (not ./orchestrator): the image holds this service and
-  # the shared packages it uses (clients/, journal/) in one container.
+  # the shared clients/ package in one container.
   orchestrator:
     build:
       context: .
