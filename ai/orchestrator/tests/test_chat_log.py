@@ -240,3 +240,197 @@ def test_since_index_slices_the_merged_transcript(fake_reactor):
         tail = chat_log.get_events(run_id="run-7", since_index=1)
         assert len(tail["events"]) == 1
         assert tail["events"][0]["type"] == "message"
+
+
+# --- only the events the chat has not seen are fetched ----------------------------
+
+
+class _FakeRunner:
+    """Stands in for integration_runner's GET /events: it answers from
+    since_index on, and says where its answer starts and how many events the
+    run has."""
+
+    def __init__(self, run_id, count=0, event_type="constraint_added"):
+        self.run_id = run_id
+        self.event_type = event_type
+        self.events = []
+        self.calls = []
+        self.add(count)
+
+    def add(self, count):
+        for _ in range(count):
+            number = len(self.events)
+            self.events.append({"type": self.event_type, "stage": "docs", "data": {"n": number}, "timestamp": float(number)})
+
+    def get_events(self, since_index=0, run_id=None):
+        self.calls.append({"since_index": since_index, "run_id": run_id})
+        answer = _raw_events_response(self.run_id, self.events[since_index:])
+        return {**answer, "offset": since_index, "total": len(self.events)}
+
+
+@pytest.fixture
+def runner():
+    fake = _FakeRunner("run-p", count=3)
+    with patch.object(integration_runner_client, "get_events", side_effect=fake.get_events):
+        yield fake
+
+
+def _raw_numbers(run_id):
+    # constraint_added events are mirrored and never narrated, so no thread runs.
+    return [e["data"]["n"] for e in chat_log.get_chat_log(run_id).events if e["type"] == "constraint_added"]
+
+
+def test_a_poll_asks_only_for_the_events_the_chat_has_not_seen(runner):
+    chat_log.get_events(run_id="run-p")
+    runner.add(2)
+
+    result = chat_log.get_events(run_id="run-p")
+
+    assert [call["since_index"] for call in runner.calls] == [0, 3]
+    assert _raw_numbers("run-p") == [0, 1, 2, 3, 4]
+    assert len(result["events"]) == 5
+
+
+def test_a_poll_with_nothing_new_adds_nothing(runner):
+    chat_log.get_events(run_id="run-p")
+
+    chat_log.get_events(run_id="run-p")
+
+    assert runner.calls[1]["since_index"] == 3
+    assert _raw_numbers("run-p") == [0, 1, 2]
+
+
+def test_the_current_run_is_asked_for_by_its_id_after_a_status_call_that_carries_no_events(runner):
+    with patch.object(integration_runner_client, "get_status", return_value={"run_id": "run-p"}) as status:
+        result = chat_log.get_events()
+
+    status.assert_called_once_with()
+    assert runner.calls == [{"since_index": 0, "run_id": "run-p"}]
+    assert result["run_id"] == "run-p"
+
+
+def test_where_the_events_start_and_how_many_there_are_are_not_passed_on(runner):
+    result = chat_log.get_events(run_id="run-p")
+
+    assert "offset" not in result
+    assert "total" not in result
+
+
+def test_two_polls_that_fetched_the_same_events_add_them_once(runner):
+    real = runner.get_events
+    other_poll_ran = []
+
+    def get_events(since_index=0, run_id=None):
+        answer = real(since_index, run_id)
+        if not other_poll_ran:
+            other_poll_ran.append(True)
+            # Another poll fetches and adds the same events before this one returns.
+            chat_log.get_events(run_id=run_id)
+        return answer
+
+    with patch.object(integration_runner_client, "get_events", side_effect=get_events):
+        chat_log.get_events(run_id="run-p")
+
+    assert _raw_numbers("run-p") == [0, 1, 2]
+    assert chat_log.get_chat_log("run-p").raw_seen == 3
+
+
+def test_events_a_runner_lost_in_a_crash_do_not_make_the_chat_skip_the_ones_it_records_next(runner):
+    runner.add(2)
+    chat_log.get_events(run_id="run-p")
+    del runner.events[4:]  # the runner restarted with its last event lost
+    chat_log.get_events(run_id="run-p")
+    runner.add(2)  # and records two new ones
+
+    chat_log.get_events(run_id="run-p")
+
+    assert chat_log.get_chat_log("run-p").raw_seen == 6
+    assert _raw_numbers("run-p") == [0, 1, 2, 3, 4, 4, 5]
+
+
+def test_a_runner_that_sends_every_event_and_says_nothing_of_where_they_start_is_still_read_right():
+    events = [{"type": "constraint_added", "stage": "docs", "data": {"n": n}, "timestamp": float(n)} for n in range(4)]
+    with patch.object(integration_runner_client, "get_events", side_effect=lambda **kwargs: _raw_events_response("run-q", events[:3])):
+        chat_log.get_events(run_id="run-q")
+    with patch.object(integration_runner_client, "get_events", side_effect=lambda **kwargs: _raw_events_response("run-q", events)):
+        chat_log.get_events(run_id="run-q")
+
+    assert _raw_numbers("run-q") == [0, 1, 2, 3]
+
+
+# --- an event that arrives while a narration runs is narrated too ------------------
+
+
+def test_an_event_that_arrives_while_a_narration_is_running_is_narrated_too():
+    runner = _FakeRunner("run-n", count=1, event_type="call_completed")
+    started, release = threading.Event(), threading.Event()
+    narrated = []
+    running = []
+    most_at_once = []
+
+    def reactor(event, history):
+        narrated.append(event["data"]["n"])
+        running.append(True)
+        most_at_once.append(len(running))
+        started.set()
+        release.wait(5)
+        running.pop()
+        return {"message": "ok", "model": "m"}
+
+    original = chat_log._reactor
+    chat_log.set_reactor(reactor)
+    try:
+        with patch.object(integration_runner_client, "get_events", side_effect=runner.get_events):
+            chat_log.get_events(run_id="run-n")
+            assert started.wait(5)
+            runner.add(1)
+            chat_log.get_events(run_id="run-n")  # the first event is still being narrated
+            release.set()
+            _wait_for_narration("run-n")
+    finally:
+        release.set()
+        chat_log.set_reactor(original)
+
+    chat = chat_log.get_chat_log("run-n")
+    assert narrated == [0, 1]
+    assert max(most_at_once) == 1  # one thread narrates them, one after the other
+    assert [e["type"] for e in chat.events].count("message") == 2
+    assert chat.pending == []
+    assert chat.narrating is False
+
+
+def test_events_that_arrive_after_a_narration_finished_are_narrated_by_a_new_thread(fake_reactor):
+    runner = _FakeRunner("run-m", count=1, event_type="call_completed")
+    with patch.object(integration_runner_client, "get_events", side_effect=runner.get_events):
+        chat_log.get_events(run_id="run-m")
+        _wait_for_narration("run-m")
+        runner.add(1)
+        chat_log.get_events(run_id="run-m")
+        _wait_for_narration("run-m")
+
+    assert [call["event"]["data"]["n"] for call in fake_reactor.calls] == [0, 1]
+
+
+def test_a_narration_thread_that_dies_unexpectedly_does_not_block_the_narration_after_it(fake_reactor, monkeypatch):
+    runner = _FakeRunner("run-d", count=1, event_type="call_completed")
+    monkeypatch.setattr(threading, "excepthook", lambda args: None)
+    real = chat_log.summarize_history
+    failed = []
+
+    def summarize_history(events):
+        if not failed:
+            failed.append(True)
+            raise RuntimeError("unexpected")
+        return real(events)
+
+    monkeypatch.setattr(chat_log, "summarize_history", summarize_history)
+    with patch.object(integration_runner_client, "get_events", side_effect=runner.get_events):
+        chat_log.get_events(run_id="run-d")
+        _wait_for_narration("run-d")
+        runner.add(1)
+        chat_log.get_events(run_id="run-d")
+        _wait_for_narration("run-d")
+
+    assert chat_log.get_chat_log("run-d").narrating is False
+    assert [call["event"]["data"]["n"] for call in fake_reactor.calls] == [1]
+

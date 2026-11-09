@@ -22,6 +22,7 @@ from integration_runner.routes.core import (
     ReviewRequest,
     StageRunRequest,
     StartRequest,
+    events_endpoint,
     fork_endpoint,
     rerun_endpoint,
     resume_endpoint,
@@ -119,3 +120,59 @@ def test_fork_endpoint_maps_a_real_valueerror_to_400():
         with pytest.raises(HTTPException) as exc_info:
             fork_endpoint(ForkRequest(source_run_id=source_run.run_id, from_stage="not-a-real-stage"))
     assert exc_info.value.status_code == 400
+
+
+# --- /events: only what a poller has not seen ------------------------------------
+
+
+def _run_with_events(count):
+    run = pipeline.IntegrationRun()
+    for number in range(count):
+        run.record_event("constraint_added", "docs", {"number": number})
+    runs._default = run
+    runs._runs[run.run_id] = run
+    return run
+
+
+def test_events_endpoint_sends_every_event_when_no_index_is_given():
+    run = _run_with_events(3)
+
+    body = events_endpoint()
+
+    assert [e["data"]["number"] for e in body["events"]] == [0, 1, 2]
+    assert (body["run_id"], body["offset"], body["total"]) == (run.run_id, 0, 3)
+
+
+def test_events_endpoint_sends_only_the_events_from_since_index_on_and_says_where_they_start():
+    _run_with_events(5)
+
+    body = events_endpoint(since_index=3)
+
+    assert [e["data"]["number"] for e in body["events"]] == [3, 4]
+    assert (body["offset"], body["total"]) == (3, 5)
+
+
+def test_events_endpoint_sends_nothing_when_the_poller_has_seen_everything():
+    _run_with_events(2)
+
+    body = events_endpoint(since_index=2)
+
+    assert body["events"] == []
+    assert body["total"] == 2
+
+
+def test_events_endpoint_does_the_same_for_a_past_run():
+    past = _run_with_events(4)
+    runs._default = pipeline.IntegrationRun()  # past is no longer the current run
+
+    body = events_endpoint(since_index=1, run_id=past.run_id)
+
+    assert [e["data"]["number"] for e in body["events"]] == [1, 2, 3]
+    assert (body["offset"], body["total"], body["is_current"]) == (1, 4, False)
+
+
+def test_events_endpoint_maps_an_unknown_run_to_404():
+    with pytest.raises(HTTPException) as exc_info:
+        events_endpoint(run_id="no-such-run-id")
+    assert exc_info.value.status_code == 404
+

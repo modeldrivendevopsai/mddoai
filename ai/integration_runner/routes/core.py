@@ -89,18 +89,11 @@ def health():
 
 @router.get("/events")
 def events_endpoint(since_index: int = 0, run_id: str | None = None):
-    if run_id is None or run_id == runs.current_run_id():
-        run = runs.current()
-        return {
-            "run_id": run.run_id,
-            "events": run.events[since_index:],
-            "current_stage": run.current_stage,
-            "busy": run.busy,
-            "model": run.model,
-            "is_current": True,
-        }
-    # A past run: read-only, no polling loop needed, always the full list.
-    result = runs.get_run_events(run_id)
+    """The run's events from since_index on (the current run's when run_id is
+    left out), with where they start (offset) and how many the run has in all
+    (total), so a poller asks only for what it has not seen."""
+    run_id = run_id or runs.current_run_id()
+    result = runs.get_run_events(run_id, since_index)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No run with id {run_id!r}")
     return {"run_id": run_id, **result}

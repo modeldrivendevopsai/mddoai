@@ -182,12 +182,13 @@ message that doesn't need a tool should still get a reply even while a stage is 
 deliberately: a human clicking a button and an LLM calling a tool are indistinguishable to it.
 This module is the one place that turns those facts into a running conversation, per run:
 
-1. **`GET /events`** (via `chat_log.get_events()`) fetches `integration_runner`'s raw events for
-   a run, and immediately, synchronously, mirrors any new ones into this run's own `ChatLog`
-   (an ordered, append-only list) — visible on this very call, even before any comment exists.
+1. **`GET /events`** (via `chat_log.get_events()`) fetches only the raw events of a run that this
+   chat has not seen, not the run's whole history, from `integration_runner`, and immediately,
+   synchronously, mirrors them into this run's own `ChatLog` (an ordered, append-only list) —
+   visible on this very call, even before any comment exists.
 2. Narrating those new events (a real LLM call) happens **in the background**, one at a time, in
    order, and never blocks the request: a comment on the very latest event may only show up on
-   the next poll. `constraint_added` is mirrored like any other event but never narrated
+   the next poll. An event that arrives while a comment is being written waits its turn. `constraint_added` is mirrored like any other event but never narrated
    (`chat_log._NOT_NARRATED`) - the atl/acceleo repair-and-promote loop can add a dozen or more of
    these in one go, and narrating each individually wastes a real LLM call per entry for what's
    really one bulk, automatic bookkeeping action, reading as the same comment repeated over and

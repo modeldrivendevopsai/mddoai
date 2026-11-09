@@ -478,7 +478,7 @@ The service starts at `http://localhost:8050`.
 
 | Endpoint | Notes |
 |---|---|
-| `GET /events?since_index=&run_id=` | Raw events (no narration) for the current run or a specific past one; includes `run_id` explicitly, so orchestrator can key its own chat log by it. |
+| `GET /events?since_index=&run_id=` | Raw events (no narration) from `since_index` on, for the current run or a specific past one. Includes `run_id`, so orchestrator can key its own chat log by it, `offset` (where the events returned start) and `total` (how many events the run has), so a poller asks only for what it has not seen. |
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run, newest first. |
