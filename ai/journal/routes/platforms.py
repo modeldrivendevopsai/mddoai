@@ -64,10 +64,15 @@ def read_platform(platform_id: str, version: str | None = None, stores: Stores =
     if platform is None:
         which = f" version {version}" if version else ""
         raise HTTPException(status_code=404, detail=f"No platform '{platform_id}'{which}.")
+    try:
+        files = stores.platforms.files(platform_id, platform.version)
+    except (PlatformNotFound, OSError) as e:
+        # Purged between looking the version up and reading its files.
+        raise HTTPException(status_code=404, detail=f"No platform '{platform_id}' version {platform.version}.") from e
     return {
         **platform.as_dict(),
         "versions": [v.version for v in stores.platforms.versions(platform_id)],
-        "files": stores.platforms.files(platform_id, platform.version),
+        "files": files,
     }
 
 

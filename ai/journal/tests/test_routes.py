@@ -4,6 +4,7 @@ import json
 import pytest
 
 from journal import settings
+from journal.platforms import PlatformNotFound, PlatformStore
 
 PLATFORM = {
     "name": "Woodpecker CI",
@@ -168,6 +169,18 @@ def test_a_publish_can_choose_its_version_and_a_version_is_read_by_number(client
     assert client.get("/platforms/woodpecker-ci?version=1.0.0").json()["files"]["metamodel"] == "one"
     assert client.get("/platforms/woodpecker-ci?version=9.9.9").status_code == 404
     assert client.get("/platforms/nothing").status_code == 404
+
+
+@pytest.mark.parametrize("error", [PlatformNotFound("gone"), FileNotFoundError("gone")])
+def test_a_platform_purged_while_its_files_are_being_read_is_a_404_and_not_a_500(client, monkeypatch, error):
+    client.post("/platforms", json=PLATFORM)
+
+    def purged(self, platform_id, version):
+        raise error
+
+    monkeypatch.setattr(PlatformStore, "files", purged)
+
+    assert client.get("/platforms/woodpecker-ci").status_code == 404
 
 
 def test_a_version_that_exists_is_a_409_and_a_bad_one_a_422(client):
