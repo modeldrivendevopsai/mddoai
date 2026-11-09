@@ -104,7 +104,6 @@ class HistoryStore:
         or None when there is no journal."""
         path = self._path_for(key)
         if not path.is_file():
-            self._counts.pop(key, None)
             return None
         if key in self._counts:
             return self._counts[key], True

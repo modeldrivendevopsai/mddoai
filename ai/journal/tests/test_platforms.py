@@ -333,6 +333,39 @@ def test_the_id_of_a_name_is_lowercase_letters_digits_and_dashes():
     assert platform_id_for("  Azure  Pipelines (v2)! ") == "azure-pipelines-v2"
 
 
+def test_the_next_version_is_after_the_highest_by_number_and_not_by_text(store):
+    _publish(store, version="1.9.0")
+    _publish(store, version="1.10.0")
+
+    assert _publish(store).version == "1.10.1"
+
+
+@pytest.mark.parametrize("shipped_version", ["1.0.0", "1.5.0", "9.0.0"])
+def test_a_whole_platform_purge_refuses_when_any_version_came_with_the_stack_wherever_it_sits(store, folder, shipped_version):
+    _ship(folder, platform_id="mixed", name="Mixed", version=shipped_version)
+    for version in ("1.0.1", "1.0.2", "2.0.0"):
+        _publish(store, name="Mixed", version=version)
+
+    with pytest.raises(NotPurgeable):
+        store.purge("mixed")
+
+    assert len(store.versions("mixed")) == 4
+
+
+@pytest.mark.parametrize("platform_id", ["..", ".", "...", "../platforms", "A", "-x"])
+def test_an_id_that_is_not_an_id_cannot_reach_a_folder_outside_the_platforms(store, folder, platform_id):
+    outside = folder.parent / "9.9.9"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(PlatformNotFound):
+        store.purge(platform_id)
+    with pytest.raises(PlatformNotFound):
+        store.purge(platform_id, "9.9.9")
+
+    assert (outside / "keep.txt").is_file()
+
+
 # --- publishing at once, and where --------------------------------------------------
 
 

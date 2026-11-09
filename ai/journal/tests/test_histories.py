@@ -94,6 +94,14 @@ def test_an_append_starting_inside_the_history_replaces_from_there(store, tmp_pa
     assert _numbers(tmp_path) == [1, 20]
 
 
+def test_a_rewrite_for_an_overlapping_append_keeps_the_state_fields_it_does_not_change(store):
+    store.replace("one", {"stage": 0, "model": "m"}, [{"n": 1}, {"n": 2}])
+
+    store.append("one", 1, {"stage": 3}, [{"n": 20}])
+
+    assert store.read("one") == ([{"n": 1}, {"n": 20}], {"stage": 3, "model": "m"})
+
+
 def test_an_append_starting_past_the_end_is_a_gap_that_says_how_many_are_kept(store, tmp_path):
     store.replace("one", {}, [{"n": 1}])
 

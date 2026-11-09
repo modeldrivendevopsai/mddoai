@@ -245,6 +245,22 @@ def test_an_extra_file_that_could_leave_the_attempt_or_clash_with_its_files_is_r
     assert not (tmp_path / "x").exists()
 
 
+def test_an_extra_file_cannot_be_written_through_a_link_that_leaves_the_attempt(store, tmp_path):
+    attempt = store.reserve("run1", "psm")
+    folder = tmp_path / "runs" / "run1" / "psm" / attempt
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (folder / "link").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("this system does not let the test make a link")
+
+    with pytest.raises(ValueError):
+        _record(store, attempt=attempt, extra_files={"link/escaped.txt": "x"})
+
+    assert list(outside.iterdir()) == []
+
+
 def test_extra_files_that_cannot_share_a_folder_are_refused(store):
     attempt = store.reserve("run1", "psm")
 
