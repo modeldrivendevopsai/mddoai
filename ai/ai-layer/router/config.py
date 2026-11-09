@@ -45,7 +45,7 @@ def _get_oauth_token():
 # the broken entry itself should be a one-line env var + restart, not a code
 # change, rebuild, and hunt through every test file that names it.
 MODELS = [
-    {"name": "gemini-flash",       "model": os.getenv("GEMINI_FLASH_MODEL", "gemini/gemini-2.5-flash"),      "key": os.getenv("GOOGLE_API_KEY"),    "tier": "free"},
+    {"name": "gemini-flash",       "model": os.getenv("GEMINI_FLASH_MODEL", "gemini/gemini-3.5-flash-lite"), "key": os.getenv("GOOGLE_API_KEY"),    "tier": "free"},
     {"name": "cerebras-120b",      "model": os.getenv("CEREBRAS_MODEL", "cerebras/gpt-oss-120b"),            "key": os.getenv("CEREBRAS_API_KEY"),  "tier": "free"},
     {"name": "groq-oss-120b",      "model": os.getenv("GROQ_MODEL", "groq/openai/gpt-oss-120b"),             "key": os.getenv("GROQ_API_KEY"),      "tier": "free"},
     {"name": "mistral-small",      "model": os.getenv("MISTRAL_SMALL_MODEL", "mistral/mistral-small-latest"), "key": os.getenv("MISTRAL_API_KEY"),   "tier": "free"},
