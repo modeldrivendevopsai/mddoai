@@ -93,19 +93,27 @@ def persist_attempt(
     acceleo) passes them, and pim, which has none, omits them. `extra_files` are
     other files the try produced, by path inside the attempt, which can sit in
     subfolders."""
-    if attempt is None:
+    reserved_here = attempt is None
+    if reserved_here:
         attempt = reserve_attempt(run_id, stage)
-    journal_client.record_attempt(
-        run_id,
-        stage,
-        attempt.name,
-        filename=filename,
-        content=content,
-        result=result,
-        prompt=prompt,
-        prompt_version=prompt_version,
-        extra_files=extra_files,
-    )
+    try:
+        journal_client.record_attempt(
+            run_id,
+            stage,
+            attempt.name,
+            filename=filename,
+            content=content,
+            result=result,
+            prompt=prompt,
+            prompt_version=prompt_version,
+            extra_files=extra_files,
+        )
+    except BaseException:
+        # An attempt reserved for this call alone is not left behind, empty. One
+        # the caller reserved is the caller's to release (see reserved_attempt).
+        if reserved_here:
+            _release(attempt)
+        raise
     return attempt
 
 

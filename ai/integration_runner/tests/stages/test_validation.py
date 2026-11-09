@@ -75,6 +75,22 @@ def test_second_attempt_for_same_run_and_stage_does_not_overwrite_the_first():
     assert _attempt(second)["artifact"]["content"] == "second content"
 
 
+def test_an_attempt_reserved_by_persist_attempt_alone_is_released_when_recording_it_fails():
+    with pytest.raises(AgentServiceError):
+        _validation.persist_attempt("run-1", "pim", "result.json", "x", _ok_result())
+
+    assert _validation.reserve_attempt("run-1", "pim").name == "attempt_1"
+
+
+def test_an_attempt_the_caller_reserved_is_left_for_the_caller_when_recording_it_fails():
+    reserved = _validation.reserve_attempt("run-1", "pim")
+
+    with pytest.raises(AgentServiceError):
+        _validation.persist_attempt("run-1", "pim", "result.json", "x", _ok_result(), attempt=reserved)
+
+    assert _validation.reserve_attempt("run-1", "pim").name == "attempt_2"
+
+
 def test_persist_attempt_uses_a_pre_reserved_attempt_instead_of_reserving_a_new_one():
     # atl_stage/acceleo_stage reserve first (the name is what they forward to
     # validator_agent_client as the compiled output's own attempt scope), then

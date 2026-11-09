@@ -35,7 +35,9 @@ def _import_journal():
 @contextmanager
 def journal_in_process(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> Iterator[None]:
     """Until the block ends, journal_client talks to the real journal app, which
-    keeps its files in these folders and remembers nothing from before."""
+    keeps its files in these folders and remembers nothing from before. A failed
+    save is tried again at the very next one, with no cool-down, so a test can
+    break the journal and mend it in a few lines. A test of the cool-down sets it."""
     from fastapi.testclient import TestClient
 
     from clients import journal_client
@@ -53,7 +55,7 @@ def journal_in_process(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> 
 
     fake_httpx = MagicMock()
     fake_httpx.request.side_effect = request
-    with patch.object(journal_client, "httpx", fake_httpx):
+    with patch.object(journal_client, "httpx", fake_httpx), patch.object(journal_client, "RETRY_COOLDOWN", 0.0):
         yield
     dependencies.use_folders(*_folders)
 
