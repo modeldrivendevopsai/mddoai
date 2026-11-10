@@ -131,7 +131,9 @@ def test_the_purge_tool_says_it_cannot_be_undone_and_when_to_use_it():
 
     assert "cannot be undone" in purge.description
     assert "clearly asks" in purge.description
+    assert "never as a request to purge" in purge.description
     assert purge.parameters["required"] == ["platform_id"]
+    assert set(purge.parameters["properties"]) == {"platform_id", "version", "all_versions"}
 
 
 def test_listing_through_the_tool_gives_ids_versions_and_whether_each_was_published(journal):
@@ -158,27 +160,56 @@ def test_purging_one_version_through_the_tool_does_what_the_delete_route_does():
     assert [p["versions"] for p in journal_client.list_platforms()] == [["1.2.0"]]
 
 
-def test_purging_without_a_version_through_the_tool_removes_the_whole_platform():
+def test_purging_with_all_versions_through_the_tool_removes_the_whole_platform():
     _publish("1.0.0", "1.1.0")
 
-    result = _dispatch("purge_platform", {"platform_id": "woodpecker-ci"})
+    result = _dispatch("purge_platform", {"platform_id": "woodpecker-ci", "all_versions": True})
 
     assert result == {"platform_id": "woodpecker-ci", "purged": ["1.0.0", "1.1.0"]}
     assert _ids() == []
+
+
+@pytest.mark.parametrize("arguments", [{}, {"version": ""}, {"all_versions": False}, {"version": "", "all_versions": False}])
+def test_the_tool_removes_nothing_when_it_is_not_told_which_versions(arguments):
+    _publish("1.0.0", "1.1.0")
+
+    with pytest.raises(ValueError, match="Say which version"):
+        _dispatch("purge_platform", {"platform_id": "woodpecker-ci", **arguments})
+
+    assert [p["versions"] for p in journal_client.list_platforms()] == [["1.0.0", "1.1.0"]]
+
+
+def test_the_tool_removes_nothing_when_given_a_version_and_all_versions_together():
+    _publish("1.0.0", "1.1.0")
+
+    with pytest.raises(ValueError, match="not both"):
+        _dispatch("purge_platform", {"platform_id": "woodpecker-ci", "version": "1.0.0", "all_versions": True})
+
+    assert [p["versions"] for p in journal_client.list_platforms()] == [["1.0.0", "1.1.0"]]
+
+
+@pytest.mark.parametrize("platform_id", ["..", ".", "../attempts/run1/psm/attempt_1"])
+def test_an_id_that_tries_to_address_something_else_removes_nothing(platform_id):
+    reserved = journal_client.reserve_attempt("run1", "psm")
+
+    with pytest.raises((ValueError, AgentServiceError)):
+        _dispatch("purge_platform", {"platform_id": platform_id, "all_versions": True})
+
+    assert journal_client.reserve_attempt("run1", "psm") != reserved
 
 
 def test_the_tool_does_not_remove_a_platform_that_came_with_the_stack(journal):
     _ship_gitlab(journal)
 
     with pytest.raises(AgentServiceError, match="came with the stack"):
-        _dispatch("purge_platform", {"platform_id": "gitlab"})
+        _dispatch("purge_platform", {"platform_id": "gitlab", "all_versions": True})
 
     assert _ids() == ["gitlab"]
 
 
 def test_a_refusal_reaches_the_model_as_a_readable_error_and_not_as_a_failed_reply():
     def chat(messages, model=None, tools=None, tool_choice=None):
-        call = {"function": {"name": "purge_platform", "arguments": json.dumps({"platform_id": "nothing"})}}
+        call = {"function": {"name": "purge_platform", "arguments": json.dumps({"platform_id": "nothing", "all_versions": True})}}
         return {"content": None, "tool_calls": [call], "model": "m"}
 
     reply = tool_calling.build_reply(chat, "system", {"type": "user_message"}, [], tools.get_tools())
