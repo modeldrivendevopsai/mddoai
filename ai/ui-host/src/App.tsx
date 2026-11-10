@@ -1,13 +1,21 @@
 import type { ReactNode } from "react"
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams } from "react-router-dom"
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import GenerateScreen from "@/screens/GenerateScreen"
 import IntegrationScreen from "@/screens/IntegrationScreen"
 import PipelinesScreen from "@/screens/PipelinesScreen"
+import PlatformScreen from "@/screens/PlatformScreen"
 import PlatformsScreen from "@/screens/PlatformsScreen"
 import { AppShell } from "@/layout/AppShell"
 import { SidebarTabProvider } from "@/layout/SidebarTabProvider"
 import { StartScreen } from "@/screens/StartScreen"
-import { NEW_PLATFORM_PATH, ROUTES, pipelinePath } from "@/config/routes.config"
+import {
+  NEW_PLATFORM_PATH,
+  PLATFORM_QUERY,
+  ROUTES,
+  integrationRunPath,
+  pipelinePath,
+  platformPath,
+} from "@/config/routes.config"
 
 // Where each StartScreen card goes. Both open on the list of what already
 // exists, so someone coming back starts from their work: "Generate a CI/CD
@@ -27,13 +35,40 @@ function StartScreenRoute() {
     <StartScreen
       onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? ROUTES.platforms)}
       onOpenPipeline={(pipelineId) => navigate(pipelinePath(pipelineId))}
+      onOpenPlatform={(platformId) => navigate(platformPath(platformId))}
     />
   )
 }
 
 function PlatformsScreenRoute() {
   const navigate = useNavigate()
-  return <PlatformsScreen onBack={() => navigate(ROUTES.start)} onNew={() => navigate(NEW_PLATFORM_PATH)} />
+  return (
+    <PlatformsScreen
+      onBack={() => navigate(ROUTES.start)}
+      onNew={() => navigate(NEW_PLATFORM_PATH)}
+      onOpen={(platformId) => navigate(platformPath(platformId))}
+    />
+  )
+}
+
+// One platform, at the version the address names (its latest when it names
+// none). Its header is the way back to the platforms list. Picking another
+// version replaces the entry, so Back still goes to the list, and the run that
+// made it opens on the integration screen, like any past run.
+function PlatformScreenRoute() {
+  const navigate = useNavigate()
+  const { platformId = "" } = useParams()
+  const [params] = useSearchParams()
+  return (
+    <PlatformScreen
+      platformId={platformId}
+      version={params.get(PLATFORM_QUERY.version) ?? undefined}
+      onBack={() => navigate(ROUTES.platforms)}
+      onVersionChange={(version) => navigate(platformPath(platformId, version), { replace: true })}
+      onShowLatest={() => navigate(platformPath(platformId), { replace: true })}
+      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
+    />
+  )
 }
 
 // Its header is the way back to the list of supported platforms, where the
@@ -146,6 +181,14 @@ function App() {
             element={
               <AppShellRoute>
                 <PlatformsScreenRoute />
+              </AppShellRoute>
+            }
+          />
+          <Route
+            path={`${ROUTES.platforms}/:platformId`}
+            element={
+              <AppShellRoute>
+                <PlatformScreenRoute />
               </AppShellRoute>
             }
           />

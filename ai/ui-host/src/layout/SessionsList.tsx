@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getSessions, closeSession } from '../services/sessions.service';
 import type { Session, SessionType } from '../services/sessions.service';
 import { Icon } from 'design-system';
-import { INTEGRATION_QUERY, integrationRunPath, isNewRunRequested } from '../config/routes.config';
+import { INTEGRATION_QUERY, ROUTES, integrationRunPath, isNewRunRequested } from '../config/routes.config';
 import { SIDEBAR_POLL_INTERVAL_MS } from '../config/sidebar.config';
 import './sessions-list.css';
 
@@ -12,8 +12,9 @@ import './sessions-list.css';
  * runs. Sourced entirely from sessions.service.ts; swapping that service's
  * mock data for a real API call requires no change here.
  *
- * The highlighted row is the chat on screen: the run named in the address,
- * or, when the address names none, the run that is current. It is not simply
+ * The highlighted row is the chat on screen: on the integration screen, the run
+ * named in the address, or, when the address names none, the run that is current.
+ * On every other screen no row is highlighted. It is not simply
  * the backend's current run, because opening another row only shows that run,
  * it does not make it current.
  *
@@ -30,10 +31,13 @@ export function SessionsList({ activeTab }: SessionsListProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // A blank run on screen is no chat yet, so no row is on screen.
-  const selectedId = isNewRunRequested(searchParams)
-    ? undefined
-    : (searchParams.get(INTEGRATION_QUERY.run) ?? sessions.find((s) => s.state === 'selected')?.id);
+  const { pathname } = useLocation();
+  // Only the integration screen shows a chat. On any other screen (the lists,
+  // a platform, a pipeline) none is on screen, and a blank run is no chat yet.
+  const selectedId =
+    pathname !== ROUTES.integration || isNewRunRequested(searchParams)
+      ? undefined
+      : (searchParams.get(INTEGRATION_QUERY.run) ?? sessions.find((s) => s.state === 'selected')?.id);
 
   useEffect(() => {
     let cancelled = false;

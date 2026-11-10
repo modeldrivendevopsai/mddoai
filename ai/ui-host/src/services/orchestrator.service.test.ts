@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   getEvents,
+  getPlatform,
   getPlatforms,
   getProviders,
   getRuns,
@@ -407,6 +408,24 @@ describe("orchestratorService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 502 }))
 
     await expect(getPlatforms()).rejects.toThrow("Platforms request failed: 502")
+  })
+
+  it("getPlatform asks for the latest version, or the one named, and escapes what it puts in the URL", async () => {
+    const detail = { id: "woodpecker-ci", version: "1.1.0", files: { metamodel: "<ecore/>", transformation: "<atl/>", template: "<mtl/>" } }
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => detail })
+    vi.stubGlobal("fetch", mockFetch)
+
+    expect(await getPlatform("woodpecker-ci")).toEqual(detail)
+    await getPlatform("a/b", "1.0.0?x")
+
+    expect(mockFetch).toHaveBeenNthCalledWith(1, "/orchestrator-api/platforms/woodpecker-ci")
+    expect(mockFetch).toHaveBeenNthCalledWith(2, "/orchestrator-api/platforms/a%2Fb?version=1.0.0%3Fx")
+  })
+
+  it("getPlatform throws the backend's reason, with the status, when there is no such platform", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "No platform 'x'." }) }))
+
+    await expect(getPlatform("x")).rejects.toMatchObject({ message: "No platform 'x'.", status: 404 })
   })
 
   it("purgePlatform deletes one version, or a whole platform when no version is given", async () => {

@@ -1,13 +1,7 @@
 import type { PipelineSummary } from '@/services/generator.service';
+import { isSelectingTextIn } from '../../components/isSelectingTextIn';
 import { GENERATE_COPY } from '../../config/generate.config';
 import { timeAgo } from './format';
-
-// A press that ends a text selection inside the row (copying a file name) is
-// not a request to open it.
-function isSelectingTextIn(row: HTMLElement): boolean {
-  const selection = window.getSelection();
-  return selection !== null && !selection.isCollapsed && row.contains(selection.anchorNode);
-}
 
 interface PipelinesTableProps {
   pipelines: PipelineSummary[];

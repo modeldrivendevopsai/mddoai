@@ -496,6 +496,17 @@ def test_a_platform_or_version_that_is_not_there_reads_as_none():
     assert journal_client.get_platform("woodpecker-ci", "9.9.9") is None
 
 
+def test_the_name_the_journal_keeps_for_its_own_transformation_reads_as_no_platform(folders):
+    # The journal answers this name with the SWArch to PIM transformation, which
+    # is not a platform, so the client must not hand it back as one.
+    platforms = folders[2]
+    platforms.mkdir(parents=True, exist_ok=True)
+    (platforms / "swarch2pim.atl").write_text("-- atl", encoding="utf-8")
+
+    assert journal_client.get_pim_transformation() == "-- atl"
+    assert journal_client.get_platform("pim-transformation") is None
+
+
 def test_a_version_that_exists_is_a_refusal_with_its_reason():
     journal_client.publish_platform(**PLATFORM, version="1.0.0")
 

@@ -1,0 +1,80 @@
+/* One platform: its facts, then the three files it is made of. */
+
+.mdd-platform-view {
+  /* How tall the file's text area is before it scrolls: most of a laptop
+     screen under the facts and tabs (judged by eye). */
+  --platform-code-height: 60vh;
+  /* How faded the view is while another version loads (judged by eye). */
+  --platform-busy-opacity: 0.6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Another version is loading: this one is still readable, but not the final answer. */
+.mdd-platform-view.is-busy {
+  opacity: var(--platform-busy-opacity);
+}
+
+.mdd-platform-view__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: 0;
+}
+.mdd-platform-view__facts dt {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--neutral-600);
+}
+.mdd-platform-view__facts dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-950);
+}
+
+.mdd-platform-view__select {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  color: var(--neutral-950);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.mdd-platform-view__select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.mdd-platform-view__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.mdd-platform-view__source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-800);
+}
+.mdd-platform-view__source p {
+  margin: 0;
+}
+
+.mdd-platform-view__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-600);
+}
+
+/* The code block fills its parent's height and scrolls inside it. */
+.mdd-platform-view__code {
+  display: flex;
+  flex-direction: column;
+  height: var(--platform-code-height);
+}

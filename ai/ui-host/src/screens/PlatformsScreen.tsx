@@ -7,15 +7,17 @@ import './platforms-screen.css';
 interface PlatformsScreenProps {
   onBack: () => void;
   onNew: () => void;
+  onOpen: (platformId: string) => void;
 }
 
 /**
  * PlatformsScreen - the first screen of the "Add or update a CI/CD platform"
  * mode: the platforms already supported, as the pipelines screen lists the
- * pipelines, with "+ New platform" to add one. The editing view (the
- * integration screen) is behind that button, not the first thing seen.
+ * pipelines, each opening its platform, with "+ New platform" to add one. The
+ * editing view (the integration screen) is behind that button, not the first
+ * thing seen.
  */
-export default function PlatformsScreen({ onBack, onNew }: PlatformsScreenProps) {
+export default function PlatformsScreen({ onBack, onNew, onOpen }: PlatformsScreenProps) {
   const copy = PLATFORMS_COPY;
 
   return (
@@ -33,7 +35,7 @@ export default function PlatformsScreen({ onBack, onNew }: PlatformsScreenProps)
         </div>
 
         <h2 className="mdd-platforms__section-title">{copy.listTitle}</h2>
-        <PlatformsList />
+        <PlatformsList onOpen={onOpen} />
       </div>
     </div>
   );

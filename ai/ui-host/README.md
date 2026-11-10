@@ -54,8 +54,9 @@ Where things live:
 - **Start screen and platforms**: components under `src/features/start/` and
   `src/features/platforms/`, copy in `src/config/`. The start screen draws the two modes as a
   cycle, and the list under it follows the sidebar's tab: the latest pipelines on Pipelines, the
-  supported platforms on Platforms. That platforms list is shared with the platforms screen and
-  uses mock data from the platforms service in `src/services/`.
+  supported platforms on Platforms. That platforms list is shared with the platforms screen, reads
+  the real platforms through the orchestrator client in `src/services/`, and each row opens that
+  platform's screen, which shows its files and the run that made it.
 - **Shared components**: `src/components/` holds the pieces several screens use and that belong to
   neither the shell nor one mode, such as the back control every screen's header uses, so going
   back looks the same everywhere.
@@ -144,7 +145,7 @@ organised by role:
 - `layout/` holds the persistent shell.
 - `features/<area>/` holds the components and hooks that belong to one area of the app.
 - `config/` holds copy and settings as data.
-- `services/` holds the API clients and the mock data.
+- `services/` holds the API clients.
 - `hooks/` holds hooks that do not live inside a feature folder.
 - `federated/` holds the remote boundary and the ambient TypeScript declarations for every
   federated import.

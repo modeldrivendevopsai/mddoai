@@ -18,12 +18,20 @@ vi.mock("design-system", () => ({
 
 afterEach(cleanup)
 
-const SHIPPED: PlatformSummary = {
+// Only what this list reads is given; the rest is the same for every platform here.
+const summary = (fields: Omit<PlatformSummary, "output_model_name" | "source_run_id" | "published_at">): PlatformSummary => ({
+  output_model_name: "Model",
+  source_run_id: fields.published ? "run1" : null,
+  published_at: fields.published ? "2026-11-01T00:00:00Z" : null,
+  ...fields,
+})
+
+const SHIPPED = summary({
   id: "gitlab", name: "GitLab CI", output_filename: ".gitlab-ci.yml", version: "1.0.0", versions: ["1.0.0"], published_versions: [], published: false,
-}
-const WOODPECKER: PlatformSummary = {
+})
+const WOODPECKER = summary({
   id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.1.0", versions: ["1.0.0", "1.1.0"], published_versions: ["1.0.0", "1.1.0"], published: true,
-}
+})
 
 function renderList(overrides: Partial<Parameters<typeof PublishedPlatforms>[0]> = {}) {
   const props = {
@@ -47,10 +55,10 @@ describe("PublishedPlatforms", () => {
   })
 
   it("lists a platform that has some published versions and only those, and offers no remove-all", async () => {
-    const mixed: PlatformSummary = {
+    const mixed = summary({
       id: "mixed", name: "Mixed CI", output_filename: "m.yml", version: "1.2.0",
       versions: ["1.0.0", "1.1.0", "1.2.0"], published_versions: ["1.1.0", "1.2.0"], published: true,
-    }
+    })
     renderList({ loadPlatforms: vi.fn().mockResolvedValue([mixed]) })
 
     expect(await screen.findByText("Mixed CI")).toBeTruthy()
@@ -61,10 +69,10 @@ describe("PublishedPlatforms", () => {
   })
 
   it("lists a platform whose latest version came with the stack if an older one was published", async () => {
-    const older: PlatformSummary = {
+    const older = summary({
       id: "mixed", name: "Mixed CI", output_filename: "m.yml", version: "2.0.0",
       versions: ["1.0.0", "2.0.0"], published_versions: ["1.0.0"], published: false,
-    }
+    })
     renderList({ loadPlatforms: vi.fn().mockResolvedValue([older]) })
 
     expect(await screen.findByRole("button", { name: "Remove 1.0.0" })).toBeTruthy()

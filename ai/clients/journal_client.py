@@ -247,11 +247,15 @@ def get_platform(platform_id: str, version: str | None = None) -> dict | None:
     None when there is no such platform or version."""
     path = f"/platforms/{_seg(platform_id)}" + (f"?version={_seg(version)}" if version else "")
     try:
-        return _request("GET", path, READ_TIMEOUT).json()
+        platform = _request("GET", path, READ_TIMEOUT).json()
     except AgentServiceError as e:
         if e.status_code == 404:
             return None
         raise
+    # A name the journal keeps for something else (its SWArch to PIM
+    # transformation) is answered with that, not with a platform. An answer is
+    # the platform asked for only if it says it is.
+    return platform if platform.get("id") == platform_id else None
 
 
 def get_pim_transformation() -> str:

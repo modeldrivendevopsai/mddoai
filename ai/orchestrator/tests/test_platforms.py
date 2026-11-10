@@ -61,6 +61,63 @@ def test_the_list_shows_each_platform_with_its_versions_and_whether_it_was_publi
     )
 
 
+def test_one_platform_shows_its_three_files_its_versions_and_the_run_it_came_from():
+    _publish("1.0.0", "1.1.0")
+
+    platform = client.get("/platforms/woodpecker-ci").json()
+
+    assert (platform["version"], platform["versions"], platform["source_run_id"]) == ("1.1.0", ["1.0.0", "1.1.0"], "run1")
+    assert platform["files"] == {"metamodel": "<ecore/>", "transformation": "<atl/>", "template": "<mtl/>"}
+
+
+def test_a_named_version_is_shown_instead_of_the_latest():
+    journal_client.publish_platform(**{**PLATFORM, "metamodel": "<old/>"}, version="1.0.0")
+    journal_client.publish_platform(**{**PLATFORM, "metamodel": "<new/>"}, version="1.1.0")
+
+    older = client.get("/platforms/woodpecker-ci", params={"version": "1.0.0"}).json()
+
+    assert (older["version"], older["files"]["metamodel"]) == ("1.0.0", "<old/>")
+
+
+def test_a_platform_that_came_with_the_stack_shows_its_files_and_no_source_run(journal):
+    _ship_gitlab(journal)
+
+    platform = client.get("/platforms/gitlab").json()
+
+    assert (platform["published"], platform["source_run_id"]) == (False, None)
+    assert platform["files"]["transformation"] == "x"
+
+
+def test_showing_a_platform_or_version_that_is_not_there_is_a_404_naming_it():
+    _publish("1.0.0")
+
+    missing = client.get("/platforms/nothing")
+    version = client.get("/platforms/woodpecker-ci", params={"version": "9.9.9"})
+
+    assert missing.status_code == 404 and "nothing" in missing.json()["detail"]
+    assert version.status_code == 404 and "9.9.9" in version.json()["detail"]
+
+
+def test_the_name_the_journal_keeps_for_its_own_transformation_is_not_a_platform(journal):
+    # The journal answers /platforms/pim-transformation with the SWArch to PIM
+    # transformation, not with a platform, so it must not reach the UI as one.
+    (journal / "platforms" / "swarch2pim.atl").write_text("-- atl", encoding="utf-8")
+
+    response = client.get("/platforms/pim-transformation")
+
+    assert response.status_code == 404
+    assert "pim-transformation" in response.json()["detail"]
+
+
+def test_a_version_that_cannot_be_part_of_an_address_is_a_404_not_a_server_error():
+    _publish("1.0.0")
+
+    response = client.get("/platforms/woodpecker-ci", params={"version": ".."})
+
+    assert response.status_code == 404
+    assert ".." in response.json()["detail"]
+
+
 def test_one_version_can_be_purged_and_the_others_stay():
     _publish("1.0.0", "1.1.0")
 
@@ -99,7 +156,15 @@ def test_a_platform_that_came_with_the_stack_is_a_409_and_stays(journal):
     assert _ids() == ["gitlab"]
 
 
-@pytest.mark.parametrize("call", [lambda: client.get("/platforms"), lambda: client.delete("/platforms/x"), lambda: client.delete("/platforms/x/versions/1.0.0")])
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda: client.get("/platforms"),
+        lambda: client.get("/platforms/x"),
+        lambda: client.delete("/platforms/x"),
+        lambda: client.delete("/platforms/x/versions/1.0.0"),
+    ],
+)
 def test_a_journal_that_cannot_be_reached_is_a_502(call):
     def down(*args, **kwargs):
         raise httpx.ConnectError("refused")

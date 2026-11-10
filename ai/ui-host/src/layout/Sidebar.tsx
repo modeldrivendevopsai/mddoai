@@ -51,7 +51,9 @@ export function Sidebar({ onAction, onOpenPipeline, openPipelineId }: SidebarPro
   // would otherwise only ever be set once and never react to a later route
   // change.
   useLayoutEffect(() => {
-    if (pathname === ROUTES.platforms || pathname === ROUTES.integration) setActiveTab('platform');
+    if (pathname === ROUTES.platforms || pathname.startsWith(`${ROUTES.platforms}/`) || pathname === ROUTES.integration) {
+      setActiveTab('platform');
+    }
     if (pathname === ROUTES.pipelines || pathname.startsWith(`${ROUTES.pipelines}/`)) setActiveTab('pipeline');
   }, [pathname, setActiveTab]);
 

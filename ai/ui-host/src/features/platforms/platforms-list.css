@@ -1,27 +1,63 @@
+/* The list of platforms: a table whose rows open their platform, tinted purple
+   when pointed at, the platforms mode's colour. */
+
 .mdd-platforms-list {
-  /* Room for a platform's name and version (judged by eye). */
-  --platforms-name-width: 180px;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
-.mdd-platforms-list__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.mdd-platforms-list__row:last-child {
-  border-bottom: none;
-}
-.mdd-platforms-list__row:hover {
-  background: var(--surface-sunken);
-}
-
-.mdd-platforms-list__name {
-  font-family: var(--font-mono);
+.mdd-platforms-list__table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: var(--text-sm);
+}
+.mdd-platforms-list__table th,
+.mdd-platforms-list__table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--neutral-800);
+  font-weight: 400;
+}
+.mdd-platforms-list__table thead th {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--neutral-600);
+  border-bottom-color: var(--border-default);
+}
+.mdd-platforms-list__table tbody th {
+  font-weight: 500;
   color: var(--neutral-950);
-  width: var(--platforms-name-width);
-  flex-shrink: 0;
+}
+.mdd-platforms-list__table tbody tr {
+  cursor: pointer;
+}
+.mdd-platforms-list__table tbody tr:hover,
+.mdd-platforms-list__table tbody tr:focus-within {
+  background: var(--tint-platform);
+}
+
+.mdd-platforms-list__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.mdd-platforms-list__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-link);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mdd-platforms-list__link:hover {
+  text-decoration: underline;
+}
+.mdd-platforms-list__link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
 }
