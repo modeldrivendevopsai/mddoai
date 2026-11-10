@@ -270,6 +270,19 @@ def test_a_restart_mirrors_and_narrates_nothing_twice():
     assert [e["type"] for e in after] == [e["type"] for e in before] == ["call_started", "call_completed", "message", "message"]
 
 
+def test_a_poll_with_nothing_new_makes_no_request_to_the_journal():
+    chat_log.load_saved(ChatStore())
+    raw = _raw(["constraint_added"])
+
+    with patch.object(chat_log.integration_runner_client, "get_events", return_value=raw):
+        chat_log.get_events("r1")
+        journal_client.httpx.request.reset_mock()
+        for _ in range(5):
+            chat_log.get_events("r1")
+
+    journal_client.httpx.request.assert_not_called()
+
+
 def test_an_event_that_arrives_after_a_restart_is_narrated_once():
     chat_log.load_saved(ChatStore())
     calls = []
