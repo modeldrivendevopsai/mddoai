@@ -24,10 +24,10 @@ function targetKey(platformId: string, version?: string): string {
 }
 
 /**
- * The platforms published from a run, each with its versions and a button to
- * remove one version or all of them. A platform that came with the stack is not
- * listed, because it cannot be removed. Removing asks once more first, since it
- * cannot be undone.
+ * The platforms published from a run, each with its published versions and a
+ * button to remove one version, or all of them when every version was published.
+ * A version that came with the stack is not listed, because it cannot be removed.
+ * Removing asks once more first, since it cannot be undone.
  */
 export function PublishedPlatforms({ loadPlatforms, onPurge, refreshKey }: PublishedPlatformsProps) {
   const [platforms, setPlatforms] = useState<PlatformSummary[] | null>(null)
@@ -41,7 +41,7 @@ export function PublishedPlatforms({ loadPlatforms, onPurge, refreshKey }: Publi
     let current = true
     loadPlatforms()
       .then((all) => {
-        if (current) setPlatforms(all.filter((platform) => platform.published))
+        if (current) setPlatforms(all.filter((platform) => platform.published_versions.length > 0))
       })
       .catch((err) => {
         if (current) setError(err instanceof Error && err.message ? err.message : "Could not load the published platforms.")
@@ -100,9 +100,9 @@ export function PublishedPlatforms({ loadPlatforms, onPurge, refreshKey }: Publi
         <div key={platform.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <div style={rowStyle}>
             <strong style={{ color: "var(--text-strong)", fontSize: 14 }}>{platform.name}</strong>
-            {removeControl(platform)}
+            {platform.published_versions.length === platform.versions.length && removeControl(platform)}
           </div>
-          {platform.versions.map((version) => (
+          {platform.published_versions.map((version) => (
             <div key={version} style={{ ...rowStyle, paddingLeft: "var(--space-3)" }}>
               <span style={textStyle}>{version}</span>
               {removeControl(platform, version)}

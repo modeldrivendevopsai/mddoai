@@ -19,10 +19,10 @@ vi.mock("design-system", () => ({
 afterEach(cleanup)
 
 const SHIPPED: PlatformSummary = {
-  id: "gitlab", name: "GitLab CI", output_filename: ".gitlab-ci.yml", version: "1.0.0", versions: ["1.0.0"], published: false,
+  id: "gitlab", name: "GitLab CI", output_filename: ".gitlab-ci.yml", version: "1.0.0", versions: ["1.0.0"], published_versions: [], published: false,
 }
 const WOODPECKER: PlatformSummary = {
-  id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.1.0", versions: ["1.0.0", "1.1.0"], published: true,
+  id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.1.0", versions: ["1.0.0", "1.1.0"], published_versions: ["1.0.0", "1.1.0"], published: true,
 }
 
 function renderList(overrides: Partial<Parameters<typeof PublishedPlatforms>[0]> = {}) {
@@ -46,6 +46,31 @@ describe("PublishedPlatforms", () => {
     expect(screen.queryByText("GitLab CI")).toBeNull()
   })
 
+  it("lists a platform that has some published versions and only those, and offers no remove-all", async () => {
+    const mixed: PlatformSummary = {
+      id: "mixed", name: "Mixed CI", output_filename: "m.yml", version: "1.2.0",
+      versions: ["1.0.0", "1.1.0", "1.2.0"], published_versions: ["1.1.0", "1.2.0"], published: true,
+    }
+    renderList({ loadPlatforms: vi.fn().mockResolvedValue([mixed]) })
+
+    expect(await screen.findByText("Mixed CI")).toBeTruthy()
+    expect(screen.queryByText("1.0.0")).toBeNull()
+    expect(screen.getByRole("button", { name: "Remove 1.1.0" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Remove 1.2.0" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Remove all" })).toBeNull()
+  })
+
+  it("lists a platform whose latest version came with the stack if an older one was published", async () => {
+    const older: PlatformSummary = {
+      id: "mixed", name: "Mixed CI", output_filename: "m.yml", version: "2.0.0",
+      versions: ["1.0.0", "2.0.0"], published_versions: ["1.0.0"], published: false,
+    }
+    renderList({ loadPlatforms: vi.fn().mockResolvedValue([older]) })
+
+    expect(await screen.findByRole("button", { name: "Remove 1.0.0" })).toBeTruthy()
+    expect(screen.queryByText("2.0.0")).toBeNull()
+  })
+
   it("says so when none was published", async () => {
     renderList({ loadPlatforms: vi.fn().mockResolvedValue([SHIPPED]) })
 
@@ -67,7 +92,7 @@ describe("PublishedPlatforms", () => {
     const loadPlatforms = vi
       .fn()
       .mockResolvedValueOnce([SHIPPED, WOODPECKER])
-      .mockResolvedValue([SHIPPED, { ...WOODPECKER, versions: ["1.1.0"] }])
+      .mockResolvedValue([SHIPPED, { ...WOODPECKER, versions: ["1.1.0"], published_versions: ["1.1.0"] }])
     const { props } = renderList({ loadPlatforms })
     fireEvent.click(await screen.findByRole("button", { name: "Remove 1.0.0" }))
 

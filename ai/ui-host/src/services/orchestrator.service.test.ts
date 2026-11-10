@@ -395,7 +395,7 @@ describe("orchestratorService", () => {
   })
 
   it("getPlatforms returns the list from the platforms key", async () => {
-    const platform = { id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.0.0", versions: ["1.0.0"], published: true }
+    const platform = { id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.0.0", versions: ["1.0.0"], published_versions: ["1.0.0"], published: true }
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ platforms: [platform] }) })
     vi.stubGlobal("fetch", mockFetch)
 

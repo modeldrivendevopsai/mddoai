@@ -86,9 +86,8 @@ server {
 
     # The generator's API, the backend of the "Generate a CI/CD pipeline" mode.
     # Reads pass through, and so do the writes the generate mode makes. Any other
-    # write, such as publishing a platform, is for the services behind this
-    # proxy: a published platform runs on every later generation. nginx matches
-    # the decoded path, so another spelling of it is refused too.
+    # write is for the services behind this proxy. nginx matches the decoded
+    # path, so another spelling of it is refused too.
     location /generator-api/ {
         limit_except GET HEAD { deny all; }
         set $generator ${GENERATOR_UPSTREAM};

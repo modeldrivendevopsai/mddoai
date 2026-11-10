@@ -89,7 +89,7 @@ describe("CompletePanel", () => {
   })
 
   it("lists the published platforms even for a run that cannot be published from", async () => {
-    const platform = { id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.0.0", versions: ["1.0.0"], published: true }
+    const platform = { id: "woodpecker-ci", name: "Woodpecker CI", output_filename: "w.yaml", version: "1.0.0", versions: ["1.0.0"], published_versions: ["1.0.0"], published: true }
     renderPanel({ canPublish: false, loadPlatforms: vi.fn().mockResolvedValue([platform]) })
 
     expect(await screen.findByRole("button", { name: "Remove 1.0.0" })).toBeTruthy()

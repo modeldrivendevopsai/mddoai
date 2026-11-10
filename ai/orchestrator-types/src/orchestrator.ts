@@ -147,13 +147,15 @@ export interface PublishedPlatform {
 }
 
 // GET /platforms: a platform at its latest version, with every version it has.
-// published is false for a platform that came with the stack, which cannot be purged.
+// Only the published versions can be purged: a version that came with the stack
+// cannot, so published_versions can be fewer than versions.
 export interface PlatformSummary {
   id: string
   name: string
   output_filename: string
   version: string
   versions: string[]
+  published_versions: string[]
   published: boolean
 }
 
