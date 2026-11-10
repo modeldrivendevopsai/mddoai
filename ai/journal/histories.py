@@ -108,7 +108,10 @@ class HistoryStore:
         if key in self._counts:
             return self._counts[key], True
         events, _, clean = self._read(key)
-        self._counts[key] = len(events)
+        # Only a journal that ends cleanly is remembered, so a cut-short one is
+        # still known to be cut short at the next append, whatever came between.
+        if clean:
+            self._counts[key] = len(events)
         return len(events), clean
 
     def _read(self, key: str) -> tuple[list[dict], dict, bool]:

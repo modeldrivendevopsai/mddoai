@@ -26,6 +26,14 @@ _FILE_NAME = re.compile(r"[^\x00-\x1f/\\:]{1,255}")
 _RESULT = "result.json"
 _PROMPT = "prompt.json"
 _MANIFEST = "manifest.json"
+# Names which of the attempt's files is its artifact, since the others, such as an
+# intermediate model, sit beside it.
+_ARTIFACT_NAME = ".artifact"
+# The longest path of an extra file, in characters. Engineering guess: far longer
+# than any generated file's name.
+_MAX_EXTRA_PATH_CHARS = 1024
+# The longest run id, stage or other name that becomes a folder, in characters.
+_MAX_NAME_CHARS = 64
 
 
 class AttemptNotFound(KeyError):
@@ -101,6 +109,7 @@ class AttemptStore:
             raise AttemptConflict(f"{attempt} is already recorded")
         extras = {self._extra_target(folder, name, filename): text for name, text in (extra_files or {}).items()}
         (folder / filename).write_text(content, encoding="utf-8")
+        (folder / _ARTIFACT_NAME).write_text(filename, encoding="utf-8")
         for target, text in extras.items():
             try:
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -127,14 +136,7 @@ class AttemptStore:
         result_path = folder / _RESULT
         if not result_path.is_file():
             raise AttemptNotFound(f"{attempt} of {stage!r} in run {run_id!r} is not recorded")
-        artifact = None
-        files = [
-            path
-            for path in sorted(folder.iterdir())
-            if path.is_file() and path.name not in (_RESULT, _PROMPT) and not path.name.startswith(".")
-        ]
-        if files:
-            artifact = {"filename": files[0].name, "content": files[0].read_text(encoding="utf-8")}
+        artifact = self._read_artifact(folder)
         prompt = prompt_version = None
         if (folder / _PROMPT).is_file():
             record = json.loads((folder / _PROMPT).read_text(encoding="utf-8"))
@@ -147,6 +149,21 @@ class AttemptStore:
         }
 
     @staticmethod
+    def _read_artifact(folder: Path) -> dict | None:
+        """The attempt's artifact. An attempt recorded before the artifact was
+        named has the first of its files, by name, standing in for it."""
+        marker = folder / _ARTIFACT_NAME
+        if marker.is_file():
+            path = folder / marker.read_text(encoding="utf-8")
+            return {"filename": path.name, "content": path.read_text(encoding="utf-8")} if path.is_file() else None
+        files = [
+            path
+            for path in sorted(folder.iterdir())
+            if path.is_file() and path.name not in (_RESULT, _PROMPT) and not path.name.startswith(".")
+        ]
+        return {"filename": files[0].name, "content": files[0].read_text(encoding="utf-8")} if files else None
+
+    @staticmethod
     def _extra_target(folder: Path, name: str, artifact: str) -> Path:
         """Where an extra file goes, which is inside the attempt's folder. The
         name is a relative path: no empty or dot part, no drive colon, backslash
@@ -154,9 +171,9 @@ class AttemptStore:
         parts = name.split("/")
         if (
             not name
-            or len(name) > 1024
+            or len(name) > _MAX_EXTRA_PATH_CHARS
             or any(part in ("", ".", "..") or not _FILE_NAME.fullmatch(part) for part in parts)
-            or parts[0] in (_RESULT, _PROMPT, artifact)
+            or parts[0] in (_RESULT, _PROMPT, _ARTIFACT_NAME, artifact)
         ):
             raise ValueError(f"not a path for an extra file: {name!r}")
         target = folder.joinpath(*parts)

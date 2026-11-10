@@ -167,6 +167,19 @@ def test_a_journal_ending_in_a_cut_short_line_is_written_whole_and_clean_before_
     assert _numbers(tmp_path) == [1, 2, 3]
 
 
+def test_a_cut_short_journal_is_still_known_to_be_cut_short_after_an_append_that_started_too_late(store, tmp_path):
+    store.replace("one", {"stage": 0}, [{"n": 1}, {"n": 2}])
+    with open(_journal(tmp_path).path, "ab") as handle:
+        handle.write(b'{"event": {"n": ')
+    restarted = HistoryStore(store._path_for, store._keys_in_folder)
+    with pytest.raises(HistoryGap):
+        restarted.append("one", 5, {}, [{"n": 6}])
+
+    restarted.append("one", 2, {}, [{"n": 3}])
+
+    assert _journal(tmp_path).read()[1] is True
+    assert _numbers(tmp_path) == [1, 2, 3]
+
 @pytest.mark.parametrize("key", ["../evil", "a/b", "", "x" * 65, None, 5])
 def test_a_key_that_cannot_name_a_file_is_refused_everywhere_and_nothing_is_written(store, tmp_path, key):
     for call in (

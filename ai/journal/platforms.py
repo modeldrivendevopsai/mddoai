@@ -21,113 +21,35 @@ version whose files are not all written yet is never listed. Purging removes a
 published version, or a platform's published versions. A platform that came with
 the stack, which has no publish record, is never purged.
 """
-import json
 import logging
-import os
-import re
 import shutil
 import threading
-import uuid
-from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 from . import versions
+from .platform_meta import (
+    ID_PATTERN,
+    METAMODEL,
+    NotPurgeable,
+    PlatformNotFound,
+    PlatformVersion,
+    PublishError,
+    TEMPLATE,
+    TRANSFORMATION,
+    VersionTaken,
+    check_publish_input,
+    may_be_purged,
+    read_meta,
+    read_text,
+    write_meta,
+    write_text,
+)
 
 logger = logging.getLogger(__name__)
 
-# A platform id is a folder name and a URL segment: lowercase letters, digits
-# and dashes, up to 40 characters (an engineering guess, far longer than any
-# real platform's name).
-ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
-
-_METAMODEL = "metamodel.ecore"
-_TRANSFORMATION = "transformation.atl"
-_TEMPLATE = "template.mtl"
-_META = "platform.json"
 # The step every platform starts with, beside the platform folders.
 _PIM_TRANSFORMATION = "swarch2pim.atl"
-
-# The longest display name and output file name accepted. Engineering guess:
-# far longer than any real platform name or CI file name.
-MAX_NAME_CHARS = 100
-MAX_OUTPUT_FILENAME_CHARS = 255
-
-# One file name: no folder separator, no drive colon, no control character.
-_FILE_NAME = re.compile(r"[^\x00-\x1f/\\:]+")
-
-
-class PlatformNotFound(KeyError):
-    """No such platform or version."""
-
-
-class PublishError(ValueError):
-    """What was sent cannot be published. The message says why, in words a
-    person can act on."""
-
-
-class VersionTaken(Exception):
-    """The version asked for already exists."""
-
-
-class NotPurgeable(Exception):
-    """A version that came with the stack cannot be purged."""
-
-
-@dataclass(frozen=True)
-class PlatformVersion:
-    id: str
-    name: str
-    version: str
-    # The file the platform's template generates: one plain file name.
-    output_filename: str
-    # The name the transformation gives the model it creates, as declared in
-    # it: "create OUT : <name> from IN : PIM;".
-    output_model_name: str
-    source_run_id: str | None = None
-    published_at: str | None = None
-
-    @property
-    def published(self) -> bool:
-        return self.published_at is not None
-
-    def as_dict(self) -> dict:
-        return {**asdict(self), "published": self.published}
-
-
-def _read_text(path: Path) -> str:
-    with open(path, encoding="utf-8", newline="") as handle:
-        return handle.read()
-
-
-def _write_text(path: Path, content: str) -> None:
-    with open(path, "w", encoding="utf-8", newline="") as handle:
-        handle.write(content)
-
-
-def platform_id_for(name: str) -> str:
-    """The id a display name is published under: lowercase letters, digits and
-    dashes, so it can be a folder name and a URL segment."""
-    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40].strip("-")
-    if not slug:
-        raise PublishError("The platform name needs at least one letter or digit.")
-    return slug
-
-
-def _check_publish_input(name: str, output_filename: str, output_model_name: str) -> str:
-    """The id `name` is published under, once everything sent is acceptable."""
-    if not name or len(name) > MAX_NAME_CHARS:
-        raise PublishError(f"The platform name must be 1 to {MAX_NAME_CHARS} characters.")
-    platform_id = platform_id_for(name)
-    if (
-        len(output_filename) > MAX_OUTPUT_FILENAME_CHARS
-        or output_filename in (".", "..")
-        or not _FILE_NAME.fullmatch(output_filename)
-    ):
-        raise PublishError("The output file name must be one file name, such as .ci.yml, not a path.")
-    if not re.fullmatch(r"\w+", output_model_name):
-        raise PublishError("The output model name must be a single word, as declared in the transformation.")
-    return platform_id
 
 
 class PlatformStore:
@@ -161,7 +83,7 @@ class PlatformStore:
         for entry in folder.iterdir():
             if not versions.VERSION_PATTERN.fullmatch(entry.name):
                 continue
-            platform = self._read_meta(entry)
+            platform = read_meta(entry)
             # A folder is only what it says it is: its own id and version.
             if platform is not None and platform.id == platform_id and platform.version == entry.name:
                 usable.append(platform)
@@ -180,14 +102,14 @@ class PlatformStore:
             raise PlatformNotFound(f"no platform '{platform_id}' version {version}")
         folder = self._directory / platform_id / version
         return {
-            "metamodel": _read_text(folder / _METAMODEL),
-            "transformation": _read_text(folder / _TRANSFORMATION),
-            "template": _read_text(folder / _TEMPLATE),
+            "metamodel": read_text(folder / METAMODEL),
+            "transformation": read_text(folder / TRANSFORMATION),
+            "template": read_text(folder / TEMPLATE),
         }
 
     def pim_transformation(self) -> str:
         """The SWArch-to-PIM transformation, as ATL source text."""
-        return _read_text(self._directory / _PIM_TRANSFORMATION)
+        return read_text(self._directory / _PIM_TRANSFORMATION)
 
     def publish(
         self,
@@ -204,7 +126,7 @@ class PlatformStore:
         """Stores a new version of the platform `name`, under `version` if given
         and as the patch after its highest one if not. Returns it."""
         name = name.strip()
-        platform_id = _check_publish_input(name, output_filename, output_model_name)
+        platform_id = check_publish_input(name, output_filename, output_model_name)
         if version is not None:
             try:
                 versions.parse(version)
@@ -230,10 +152,10 @@ class PlatformStore:
                 published_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
             )
             try:
-                _write_text(version_folder / _METAMODEL, metamodel)
-                _write_text(version_folder / _TRANSFORMATION, transformation)
-                _write_text(version_folder / _TEMPLATE, template)
-                self._write_meta(version_folder, published)
+                write_text(version_folder / METAMODEL, metamodel)
+                write_text(version_folder / TRANSFORMATION, transformation)
+                write_text(version_folder / TEMPLATE, template)
+                write_meta(version_folder, published)
             except BaseException:
                 # The version folder stays claimed but has no platform.json, so it
                 # is never listed and its number is never reused. Purging clears it.
@@ -264,10 +186,10 @@ class PlatformStore:
             else:
                 doomed = [entry.name for entry in folder.iterdir() if versions.VERSION_PATTERN.fullmatch(entry.name)]
             for name in doomed:
-                kept = self._read_meta(folder / name)
-                if kept is not None and not kept.published:
+                if not may_be_purged(folder / name):
                     raise NotPurgeable(
-                        f"'{platform_id}' version {name} came with the stack and was not published, so it is kept."
+                        f"'{platform_id}' version {name} has no record of being published, so it is kept. "
+                        "A version that came with the stack is never removed."
                     )
             for name in sorted(doomed, key=versions.parse):
                 shutil.rmtree(folder / name)
@@ -293,50 +215,3 @@ class PlatformStore:
                 return folder / candidate, candidate
             except FileExistsError:
                 candidate = versions.next_patch(candidate)
-
-    @staticmethod
-    def _read_meta(folder: Path) -> PlatformVersion | None:
-        """The version a folder describes, or None (with the reason in the log)
-        if it has no usable platform.json or lacks one of its files."""
-        try:
-            raw = json.loads((folder / _META).read_text(encoding="utf-8"))
-            if not isinstance(raw, dict):
-                raise ValueError("platform.json is not an object")
-            for field in ("id", "name", "output_filename", "output_model_name"):
-                if not isinstance(raw.get(field), str) or not raw[field]:
-                    raise ValueError(f"{field} must be a non-empty string")
-            versions.parse(raw.get("version"))
-            for field in ("source_run_id", "published_at"):
-                if raw.get(field) is not None and not isinstance(raw[field], str):
-                    raise ValueError(f"{field} must be text")
-            if raw["output_filename"] in (".", "..") or not _FILE_NAME.fullmatch(raw["output_filename"]):
-                raise ValueError("output_filename must be a plain file name, not a path")
-            for filename in (_METAMODEL, _TRANSFORMATION, _TEMPLATE):
-                if not (folder / filename).is_file():
-                    raise ValueError(f"{filename} is missing")
-            return PlatformVersion(
-                id=raw["id"],
-                name=raw["name"],
-                version=raw["version"],
-                output_filename=raw["output_filename"],
-                output_model_name=raw["output_model_name"],
-                source_run_id=raw.get("source_run_id"),
-                published_at=raw.get("published_at"),
-            )
-        except (OSError, ValueError) as e:
-            logger.warning("ignoring platform version %s: %s", folder, e)
-            return None
-
-    @staticmethod
-    def _write_meta(folder: Path, published: PlatformVersion) -> None:
-        # Written beside its final name and renamed into place, with the
-        # ordinary file mode, so it appears whole or not at all.
-        temporary = folder / f".writing-{uuid.uuid4().hex}"
-        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-                json.dump(asdict(published), handle, indent=2)
-            os.replace(temporary, folder / _META)
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise

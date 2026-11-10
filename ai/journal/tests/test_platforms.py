@@ -3,14 +3,8 @@ import logging
 
 import pytest
 
-from journal.platforms import (
-    NotPurgeable,
-    PlatformNotFound,
-    PlatformStore,
-    PublishError,
-    VersionTaken,
-    platform_id_for,
-)
+from journal.platform_meta import NotPurgeable, PlatformNotFound, PublishError, VersionTaken, platform_id_for
+from journal.platforms import PlatformStore
 
 FILES = {"metamodel": "<ecore/>", "transformation": "module T;", "template": "[template]"}
 
@@ -149,15 +143,13 @@ def test_a_publish_with_input_that_could_not_be_used_is_refused_and_creates_noth
 
 
 def test_a_publish_that_fails_part_way_is_never_listed_and_its_number_is_not_reused(store, folder, monkeypatch):
-    real = PlatformStore._write_meta
-
     def failing(version_folder, published):
         raise OSError("disk full")
 
-    monkeypatch.setattr(PlatformStore, "_write_meta", staticmethod(failing))
-    with pytest.raises(OSError):
-        _publish(store)
-    monkeypatch.setattr(PlatformStore, "_write_meta", staticmethod(real))
+    with monkeypatch.context() as patched:
+        patched.setattr("journal.platforms.write_meta", failing)
+        with pytest.raises(OSError):
+            _publish(store)
 
     assert store.latest() == []
     assert _publish(store).version == "1.0.1"
@@ -173,6 +165,13 @@ def test_a_publish_leaves_no_temporary_file_behind(store, folder):
         "transformation.atl",
     ]
 
+
+@pytest.mark.parametrize("name", ["PIM Transformation", "pim-transformation", "  Pim_Transformation! "])
+def test_a_name_whose_id_a_route_of_the_service_uses_is_refused(store, folder, name):
+    with pytest.raises(PublishError, match="used by the service itself"):
+        _publish(store, name=name)
+
+    assert list(folder.iterdir()) == []
 
 # --- reading --------------------------------------------------------------------------
 
@@ -299,6 +298,25 @@ def test_a_version_that_came_with_the_stack_is_never_purged(store, folder):
     assert store.get("gitlab").version == "1.0.0"
 
 
+def test_a_version_whose_platform_json_cannot_be_read_is_kept_since_nothing_says_it_was_published(store, folder):
+    _ship(folder)
+    (folder / "gitlab" / "1.0.0" / "platform.json").write_text("{not json", encoding="utf-8")
+
+    with pytest.raises(NotPurgeable):
+        store.purge("gitlab", "1.0.0")
+
+    assert (folder / "gitlab" / "1.0.0" / "metamodel.ecore").is_file()
+
+
+def test_a_version_with_a_file_missing_but_no_publish_record_is_kept(store, folder):
+    _ship(folder)
+    (folder / "gitlab" / "1.0.0" / "template.mtl").unlink()
+
+    with pytest.raises(NotPurgeable):
+        store.purge("gitlab")
+
+    assert (folder / "gitlab" / "1.0.0").is_dir()
+
 def test_a_platform_with_one_shipped_version_loses_nothing_when_all_are_purged(store, folder):
     _ship(folder, platform_id="mixed", name="Mixed", version="1.0.0")
     _publish(store, name="Mixed")
@@ -310,10 +328,10 @@ def test_a_platform_with_one_shipped_version_loses_nothing_when_all_are_purged(s
 
 
 def test_a_publish_that_stopped_part_way_can_be_purged(store, folder, monkeypatch):
-    monkeypatch.setattr(PlatformStore, "_write_meta", staticmethod(lambda *args: (_ for _ in ()).throw(OSError("full"))))
-    with pytest.raises(OSError):
-        _publish(store)
-    monkeypatch.undo()
+    with monkeypatch.context() as patched:
+        patched.setattr("journal.platforms.write_meta", lambda *args: (_ for _ in ()).throw(OSError("full")))
+        with pytest.raises(OSError):
+            _publish(store)
 
     assert store.purge("woodpecker-ci", "1.0.0") == ["1.0.0"]
     assert not (folder / "woodpecker-ci").exists()

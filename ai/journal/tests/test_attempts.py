@@ -245,6 +245,37 @@ def test_an_extra_file_that_could_leave_the_attempt_or_clash_with_its_files_is_r
     assert not (tmp_path / "x").exists()
 
 
+def test_the_artifact_is_the_file_recorded_as_one_even_when_extra_files_sort_before_it(store):
+    attempt = _record(
+        store,
+        filename="output.yaml",
+        content="joined",
+        extra_files={"Jenkinsfile": "pipeline {}", "azure-pipelines.yml": "steps: []", "psm_instance.xmi": "<xmi/>"},
+    )
+
+    assert store.read("run1", "psm", attempt)["artifact"] == {"filename": "output.yaml", "content": "joined"}
+
+
+def test_an_artifact_whose_name_starts_with_a_dot_is_still_the_artifact(store):
+    attempt = _record(store, filename=".gitlab-ci.yml", content="stages: []", extra_files={"a.txt": "x"})
+
+    assert store.read("run1", "psm", attempt)["artifact"] == {"filename": ".gitlab-ci.yml", "content": "stages: []"}
+
+
+def test_an_attempt_recorded_before_artifacts_were_named_still_reads_with_its_first_file(store, tmp_path):
+    attempt = _record(store)
+    (tmp_path / "runs" / "run1" / "psm" / attempt / ".artifact").unlink()
+
+    assert store.read("run1", "psm", attempt)["artifact"]["filename"] == "psm.ecore"
+
+
+def test_an_extra_file_cannot_take_the_name_the_artifact_is_marked_with(store):
+    attempt = store.reserve("run1", "psm")
+
+    with pytest.raises(ValueError):
+        _record(store, attempt=attempt, extra_files={".artifact": "other.txt"})
+
+
 def test_an_extra_file_cannot_be_written_through_a_link_that_leaves_the_attempt(store, tmp_path):
     attempt = store.reserve("run1", "psm")
     folder = tmp_path / "runs" / "run1" / "psm" / attempt

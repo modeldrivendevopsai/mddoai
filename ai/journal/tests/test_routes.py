@@ -4,7 +4,8 @@ import json
 import pytest
 
 from journal import settings
-from journal.platforms import PlatformNotFound, PlatformStore
+from journal.platform_meta import PlatformNotFound
+from journal.platforms import PlatformStore
 
 PLATFORM = {
     "name": "Woodpecker CI",
@@ -181,6 +182,38 @@ def test_a_platform_purged_while_its_files_are_being_read_is_a_404_and_not_a_500
     monkeypatch.setattr(PlatformStore, "files", purged)
 
     assert client.get("/platforms/woodpecker-ci").status_code == 404
+
+
+def test_the_list_says_which_versions_were_published_since_only_those_can_be_purged(client, folders):
+    _, _, platforms = folders
+    shipped = platforms / "woodpecker-ci" / "1.0.0"
+    shipped.mkdir(parents=True)
+    for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
+        (shipped / filename).write_text("x", encoding="utf-8")
+    shipped_meta = {"id": "woodpecker-ci", "name": "Woodpecker CI", "version": "1.0.0", "output_filename": "w.yaml", "output_model_name": "W"}
+    (shipped / "platform.json").write_text(json.dumps(shipped_meta), encoding="utf-8")
+    client.post("/platforms", json={**PLATFORM, "version": "1.1.0"})
+    client.post("/platforms", json={**PLATFORM, "version": "1.2.0"})
+
+    listed = client.get("/platforms").json()["platforms"][0]
+    read = client.get("/platforms/woodpecker-ci?version=1.0.0").json()
+
+    assert listed["versions"] == ["1.0.0", "1.1.0", "1.2.0"]
+    assert listed["published_versions"] == ["1.1.0", "1.2.0"]
+    assert (read["published"], read["published_versions"]) == (False, ["1.1.0", "1.2.0"])
+
+
+def test_a_platform_whose_name_is_a_route_of_the_service_cannot_be_published(client):
+    response = client.post("/platforms", json={**PLATFORM, "name": "PIM Transformation"})
+
+    assert response.status_code == 422 and "used by the service itself" in response.json()["detail"]
+
+
+def test_a_body_the_service_cannot_use_is_refused_with_a_plain_text_reason(client):
+    response = client.post("/platforms", json={**PLATFORM, "version": "1" * 21})
+
+    assert response.status_code == 422
+    assert isinstance(response.json()["detail"], str) and "version" in response.json()["detail"]
 
 
 def test_a_version_that_exists_is_a_409_and_a_bad_one_a_422(client):

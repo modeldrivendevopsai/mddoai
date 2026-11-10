@@ -20,7 +20,7 @@ Each folder is its own required setting with no default. In Docker they are the 
 
 **Attempts.** `POST /attempts/{run_id}` reserves the next attempt of a stage, which claims its number. `PUT /attempts/{run_id}/{stage}/{attempt}` records it: the artifact, the validator's result, and optionally the prompt and other files, which can sit in subfolders. `DELETE` releases a reserved attempt that was never recorded, and refuses one that was. `GET /attempts/{run_id}/manifest` lists every recorded attempt of a run. `GET /attempts/{run_id}/{stage}/{attempt}` reads one.
 
-**Platforms.** `GET /platforms` lists each platform's latest version, with the versions it has and whether it was published. `GET /platforms/{id}?version=` reads a version, its latest when none is named, with its three files. `POST /platforms` publishes a version, the patch after the highest unless `version` is given. `DELETE /platforms/{id}/versions/{version}` and `DELETE /platforms/{id}` purge published versions. `GET /platforms/pim-transformation` serves the SWArch to PIM transformation.
+**Platforms.** `GET /platforms` lists each platform's latest version, with every version it has (`versions`), which of those were published (`published_versions`, the only ones that can be purged), and whether the latest was (`published`). `GET /platforms/{id}?version=` reads a version, its latest when none is named, with its three files. `POST /platforms` publishes a version, the patch after the highest unless `version` is given. `DELETE /platforms/{id}/versions/{version}` and `DELETE /platforms/{id}` purge published versions. `GET /platforms/pim-transformation` serves the SWArch to PIM transformation.
 
 A request it refuses is `404` for an unknown name, `409` for a version that exists or a platform that came with the stack, `413` for a file over `JOURNAL_MAX_ARTIFACT_BYTES`, and `422` for input that cannot be used, always with a `detail` a person can read.
 
@@ -32,10 +32,16 @@ A platform version is `MAJOR.MINOR.PATCH`, as in [semantic versioning](https://s
 
 Only a published version can be purged. A version that came with the stack has no publish record, so it is kept, and a purge of a whole platform that holds one removes nothing. A publish that stopped part way leaves a folder that is never listed and that a purge clears.
 
+## Settings
+
+The three folders above are required, with no default. `JOURNAL_MAX_ARTIFACT_BYTES` is the largest file a publish accepts. The services that call it set `JOURNAL_URL`, and can tune how long they wait with the `JOURNAL_*` timeouts described in their own `.env.example`.
+
+A service that cannot reach the journal goes on in memory and logs it once. After a failed save it skips further saves for a few seconds, so a journal that hangs costs one wait and not one per save, and the next save that gets through sends everything since the last one that did. A run or a chat is therefore kept again at its next change after an outage. A service that starts while the journal is not answering asks for its saved histories again for a while and then stops, because it would otherwise show nothing and narrate every event again.
+
 ## Layout
 
 - `main.py` assembles the app, and `routes/` holds one file per resource.
-- `histories.py`, `attempts.py` and `platforms.py` keep each resource on disk, and `file.py` is the append-only file of JSON records under the histories.
+- `histories.py`, `attempts.py` and `platforms.py` keep each resource on disk, `platform_meta.py` is what one platform version is on disk and what a publish must satisfy, and `file.py` is the append-only file of JSON records under the histories.
 - `versions.py` is the version rules.
 - `dependencies.py` builds the stores from the settings. `settings.py` reads them.
 
