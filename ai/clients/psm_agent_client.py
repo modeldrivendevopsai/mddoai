@@ -4,20 +4,19 @@ psm_agent/psm_flow.py). No fallback on failure, matching this repo's other
 client modules. Generous timeout: a real call can run the Generation Agent's
 multi-round regenerate loop, each round doing one real LLM call plus one real
 validator-agent call."""
-import os
-
 import httpx
 
 from clients.agent_service_errors import raise_for_business_error
+from clients.required_env import required_env
 
-PSM_AGENT_URL = os.environ.get("PSM_AGENT_URL", "http://localhost:8040")
-PSM_TIMEOUT = float(os.environ.get("PSM_TIMEOUT", "960.0"))
+PSM_AGENT_URL = required_env("PSM_AGENT_URL")
+PSM_TIMEOUT = 960.0
 # Every prompt-config endpoint below is a fast, local filesystem/JSON
 # operation, never a real LLM call (even /preview only renders text, it
 # doesn't call the model) - a much shorter budget than PSM_TIMEOUT's own
 # real multi-round-regenerate-loop margin above is deliberate, a hung
 # config read/write shouldn't leave a caller waiting 16 minutes to find out.
-PSM_CONFIG_TIMEOUT = float(os.environ.get("PSM_CONFIG_TIMEOUT", "10.0"))
+PSM_CONFIG_TIMEOUT = 10.0
 
 
 def run_psm(

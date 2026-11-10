@@ -17,14 +17,7 @@ from typing import Literal, TypedDict
 
 logger = logging.getLogger(__name__)
 
-# In Docker/production, ai/docker-compose.yml always sets this explicitly
-# (pointed at the gradle-builder service's shared build-output volume) —
-# this default only matters for local dev, run directly against a sibling
-# main/ checkout already built via `cd main && ./gradlew installDist`.
-LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
-
-
-def _required(name: str) -> str:
+def required_env(name: str) -> str:
     """A required setting. Unset or empty stops the service."""
     value = os.environ[name].strip()
     if not value:
@@ -32,13 +25,19 @@ def _required(name: str) -> str:
     return value
 
 
+# The Java libraries the validators run from. Required: no default. Docker Compose points it
+# at the gradle-builder service's shared build-output volume. Run directly against a sibling
+# main/ checkout, point it at that checkout's build/install/com.mddoai/lib.
+LIB_DIR = required_env("VALIDATOR_LIB_DIR")
 # Where the compiled output is kept. Required: no default, and not the temp folder.
-OUTPUT_ROOT = Path(_required("VALIDATOR_OUTPUT_DIR"))
+OUTPUT_ROOT = Path(required_env("VALIDATOR_OUTPUT_DIR"))
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
 SWARCH_MAIN_CLASS = "main.java.mddoai.validation.swarch.SwarchValidatorCli"
-TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
+# How long one validator subprocess may run before it is treated as failed (engineering guess:
+# a real validation takes a few seconds).
+TIMEOUT_SECONDS = 60.0
 
 
 class Issue(TypedDict):

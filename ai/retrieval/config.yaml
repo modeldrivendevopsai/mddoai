@@ -1,12 +1,8 @@
-# Retrieval service tuning defaults.
+# Retrieval service tuning.
 #
-# Every key here is loaded by retrieval.py at import time. The numeric/threshold
-# keys can still be overridden per-deploy by setting an environment variable of
-# the same name (see README's Configuration section); this file is just the
-# checked-in default, so tuning no longer requires editing retrieval.py itself.
-# QUERY and the two *_PROMPT keys have no environment variable equivalent
-# (multi-line prompt text doesn't fit a docker-compose `environment:` entry
-# sanely); edit them here directly.
+# Every key here is loaded by retrieval.py at import time, and this file is the
+# only place they are set: no environment variable overrides one, so every
+# environment runs the same tuning (see README's Configuration section).
 #
 # Provenance note, so "why this exact number" isn't a mystery: some values
 # below are crawl4ai's own library defaults, left untouched; some were

@@ -260,6 +260,7 @@ services:
       dockerfile: retrieval/Dockerfile
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
+      - LOG_LEVEL=INFO
     expose:
       - "8010"
     # crawl4ai hardcodes --no-sandbox and --disable-dev-shm-usage into every
@@ -434,6 +435,7 @@ services:
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
+      - LOG_LEVEL=INFO
       - VALIDATOR_OUTPUT_DIR=/data/output
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
     depends_on:
@@ -469,6 +471,7 @@ services:
       - main-build-output:/main-build:ro
     environment:
       - EXECUTION_LIB_DIR=/main-build/install/com.mddoai/lib
+      - LOG_LEVEL=INFO
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
@@ -511,6 +514,7 @@ services:
       # Shown in Browse.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
       - GENERATOR_PIPELINES_DIR=/data/pipelines
+      - LOG_LEVEL=INFO
     depends_on:
       journal:
         condition: service_healthy

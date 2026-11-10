@@ -36,32 +36,19 @@ real {path: content} map AcceleoExecutor produced, before it was joined
 into output) - the chat-ui's own "what generation actually produced" needs
 both, not just the joined text.
 """
-import os
 from pathlib import Path
 
 from clients import execution_agent_client
+from clients.required_env import required_env
 from integration_runner.atl_source import output_model_name as _output_model_name
 from integration_runner.stages._validation import Attempt, persist_attempt, reserved_attempt
 
 # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's own
 # PIM concepts), this stage's own real input to the real ATL execution it
 # runs - main/'s own real Java test fixture, a temporary stand-in until a
-# real SWArch-driven PIM extraction replaces it here. Env-overridable so a
-# container deployment can bind-mount a real, git-committed file here
-# instead, matching stages/pim/agent.py's own PIM_METAMODEL_PATH
-# convention - this file's own path is
-# ai/integration_runner/stages/generation/agent.py, the same four
-# directories under ai/'s own parent that pim/agent.py's default resolves
-# from.
-PIM_SAMPLE_INSTANCE_PATH = Path(
-    os.environ.get(
-        "PIM_SAMPLE_INSTANCE_PATH",
-        str(
-            Path(__file__).resolve().parents[4]
-            / "main" / "src" / "test" / "resources" / "testCases" / "execution" / "gitlab" / "input.pimmm"
-        ),
-    )
-)
+# real SWArch-driven PIM extraction replaces it here. Required, no default:
+# Docker Compose bind-mounts the file and sets this to where it is.
+PIM_SAMPLE_INSTANCE_PATH = Path(required_env("PIM_SAMPLE_INSTANCE_PATH"))
 
 
 # The primary artifact persist_attempt() writes for this stage, matching

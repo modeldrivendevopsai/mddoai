@@ -1,4 +1,5 @@
 """Shared pytest fixtures for acceleo_agent's own test suite."""
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
 import atexit
 import os
 import shutil

@@ -1,4 +1,5 @@
 """Shared pytest fixtures for psm_agent's own test suite."""
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
 import atexit
 import os
 import shutil
@@ -13,6 +14,8 @@ _AI_DIR = Path(__file__).resolve().parents[2]
 _session_dir = Path(tempfile.mkdtemp(prefix="psm-agent-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 shutil.copytree(_AI_DIR / "data" / "prompts" / "psm", _session_dir / "prompts")
+# The MDE engine's metamodels, which Docker Compose mounts read-only.
+os.environ.setdefault("META_MODELS_DIR", str(_AI_DIR.parent / "meta_models"))
 os.environ["PSM_PROMPT_CONFIG_DIR"] = str(_session_dir / "prompts")
 os.environ["PSM_ATTACHMENT_UPLOADS_DIR"] = str(_session_dir / "attachments")
 

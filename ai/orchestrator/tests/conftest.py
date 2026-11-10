@@ -1,4 +1,6 @@
 """Shared pytest configuration for orchestrator's test suite."""
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
+import integration_runner.testing_env  # noqa: F401  (the PIM files, which compose mounts)
 from unittest.mock import patch
 
 import pytest

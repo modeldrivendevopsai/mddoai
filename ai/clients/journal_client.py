@@ -9,7 +9,6 @@ it remembers how much the journal already has, and sends only what is new.
 import copy
 import json
 import logging
-import os
 import time
 from collections.abc import Callable
 from typing import TypeVar
@@ -18,28 +17,29 @@ from urllib.parse import quote
 import httpx
 
 from clients.agent_service_errors import AgentServiceError, raise_for_business_error
+from clients.required_env import required_env
 
 logger = logging.getLogger(__name__)
 
-JOURNAL_URL = os.environ.get("JOURNAL_URL", "http://localhost:8120")
+JOURNAL_URL = required_env("JOURNAL_URL")
 # What a caller waits for the journal before it goes on without. A save is the
 # new records only, over the compose network, so a few seconds is generous
 # (engineering guess).
-SAVE_TIMEOUT = float(os.environ.get("JOURNAL_SAVE_TIMEOUT", "5.0"))
+SAVE_TIMEOUT = 5.0
 # After a save fails, further quiet saves are skipped for this long, so a journal
 # that hangs costs a caller one wait per cool-down and not one per save (engineering
 # guess: longer than a restart of the journal needs to be noticed, short enough that
 # nothing waits long to be kept again).
-RETRY_COOLDOWN = float(os.environ.get("JOURNAL_RETRY_COOLDOWN", "5.0"))
+RETRY_COOLDOWN = 5.0
 # Starting up, the journal may not answer yet. The saved histories are asked for this
 # many times, this far apart, before the service gives up and stops: a service that
 # started without them would show nothing and narrate every event again.
-LOAD_ATTEMPTS = int(os.environ.get("JOURNAL_LOAD_ATTEMPTS", "10"))
-LOAD_RETRY_DELAY = float(os.environ.get("JOURNAL_LOAD_RETRY_DELAY", "3.0"))
+LOAD_ATTEMPTS = 10
+LOAD_RETRY_DELAY = 3.0
 # Reading a whole history can be several megabytes of stage output.
-READ_TIMEOUT = float(os.environ.get("JOURNAL_READ_TIMEOUT", "60.0"))
+READ_TIMEOUT = 60.0
 # A publish only writes four small files.
-PUBLISH_TIMEOUT = float(os.environ.get("JOURNAL_PUBLISH_TIMEOUT", "30.0"))
+PUBLISH_TIMEOUT = 30.0
 
 # The journal's answer to a platform file over its size limit. Sending it again
 # cannot succeed, so it is a refusal like the business errors, not an outage.

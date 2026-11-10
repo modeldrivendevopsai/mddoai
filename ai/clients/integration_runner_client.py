@@ -11,17 +11,17 @@ a raw httpx.HTTPStatusError string. A genuine connection failure or 5xx
 still propagates raw, there's no fallback for those, same as every other
 client in this repo.
 """
-import os
-
 import httpx
 
-INTEGRATION_RUNNER_URL = os.environ.get("INTEGRATION_RUNNER_URL", "http://localhost:8050")
+from clients.required_env import required_env
+
+INTEGRATION_RUNNER_URL = required_env("INTEGRATION_RUNNER_URL")
 # 16 minutes: real margin above retrieval_client.RETRIEVAL_TIMEOUT (15 min),
 # for /docs/extend specifically — see add_page_to_docs's own docstring for
 # why that one endpoint needs more than the fast-bookkeeping default below.
-DOCS_EXTEND_TIMEOUT = float(os.environ.get("DOCS_EXTEND_TIMEOUT", "960.0"))
+DOCS_EXTEND_TIMEOUT = 960.0
 # Longer than integration_runner's own wait on the journal for a publish.
-PUBLISH_TIMEOUT = float(os.environ.get("INTEGRATION_RUNNER_PUBLISH_TIMEOUT", "60.0"))
+PUBLISH_TIMEOUT = 60.0
 
 _BUSINESS_ERROR_CODES = (400, 404, 409)
 

@@ -189,14 +189,11 @@ attachment's `path` against, since a client can't be trusted to only send what t
 pip install -r requirements.txt
 ```
 
-`META_MODELS_DIR` is optional, defaulting to the real relative repo path to the root
-`meta_models/` tree (`Path(__file__).resolve().parents[2] / "meta_models"`) for local/non-Docker
-dev. Override it only if `meta_models/` is reachable somewhere else, e.g. the Docker Compose
-read-only bind mount `ai/docker-compose.yml`'s `psm-agent` service entry sets it to.
-`PIM_AGENT_URL`/`VALIDATOR_AGENT_URL` (both `ai/clients/` modules) point at those sibling
-services, defaulting to their own local-dev ports. `PSM_PROMPT_CONFIG_DIR` and
-`PSM_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or empty. For a local
-run, point them at `ai/data/prompts/psm` and a writable folder of your own.
+`META_MODELS_DIR`, `AI_LAYER_URL`, `VALIDATOR_AGENT_URL`, `PSM_PROMPT_CONFIG_DIR` and
+`PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service stops at start if one is unset
+or empty. Docker Compose sets them, and mounts the root `meta_models/` tree read-only for
+`META_MODELS_DIR`. For a local run, export them: that tree, the links of ai-layer and validator-agent
+(both `ai/clients/` modules), `ai/data/prompts/psm`, and a writable folder of your own.
 
 ## Run
 

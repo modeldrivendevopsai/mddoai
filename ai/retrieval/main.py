@@ -1,9 +1,9 @@
 import logging
-import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 
+from clients.required_env import required_env
 from retrieval import (
     DEFAULT_MAX_DEPTH,
     DEFAULT_MAX_PAGES,
@@ -18,14 +18,16 @@ from retrieval import (
 # retrieval.py only calls logger.info/.warning; basicConfig here is what
 # actually makes those calls visible. LOG_LEVEL is operator-tunable.
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=required_env("LOG_LEVEL").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MDDOAI Retrieval")
 
-MAX_HINT_LENGTH = int(os.environ.get("MAX_HINT_LENGTH", "500"))
+# The longest hint a request may carry (engineering guess: far longer than a sentence
+# typed into the start form).
+MAX_HINT_LENGTH = 500
 
 
 class FetchRequest(BaseModel):

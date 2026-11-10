@@ -4,16 +4,16 @@ matching this repo's other client modules. Generous timeout: a real call
 does one LLM extraction call (ai_layer_client.chat's own default is now 15
 minutes) plus one fast grounding call per extracted fragment against
 pim_agent."""
-import os
-
 import httpx
 
-SERIALIZATION_AGENT_URL = os.environ.get("SERIALIZATION_AGENT_URL", "http://localhost:8060")
+from clients.required_env import required_env
+
+SERIALIZATION_AGENT_URL = required_env("SERIALIZATION_AGENT_URL")
 # 16 minutes: real margin above the inner extraction call's own 15-minute
 # budget (ai_layer_client.LLM_CHAT_TIMEOUT) - observed for real: a 180s value
 # here died silently, serialization-agent's own logs showed the request still
 # in flight, not even failed yet, when this client had already given up.
-SERIALIZE_TIMEOUT = float(os.environ.get("SERIALIZE_TIMEOUT", "960.0"))
+SERIALIZE_TIMEOUT = 960.0
 
 
 def serialize(docs_output: str, model: str | None = None) -> str:

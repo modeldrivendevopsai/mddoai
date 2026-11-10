@@ -22,7 +22,7 @@ Each folder is its own required setting with no default. In Docker they are the 
 
 **Platforms.** `GET /platforms` lists each platform's latest version, with every version it has (`versions`), which of those were published (`published_versions`, the only ones that can be purged), and whether the latest was (`published`). `GET /platforms/{id}?version=` reads a version, its latest when none is named, with its three files. `POST /platforms` publishes a version, the patch after the highest unless `version` is given. `DELETE /platforms/{id}/versions/{version}` and `DELETE /platforms/{id}` purge published versions. `GET /platforms/pim-transformation` serves the SWArch to PIM transformation.
 
-A request it refuses is `404` for an unknown name, `409` for a version that exists or a platform that came with the stack, `413` for a file over `JOURNAL_MAX_ARTIFACT_BYTES`, and `422` for input that cannot be used, always with a `detail` a person can read.
+A request it refuses is `404` for an unknown name, `409` for a version that exists or a platform that came with the stack, `413` for a file over the largest a publish accepts (`MAX_ARTIFACT_BYTES` in `settings.py`), and `422` for input that cannot be used, always with a `detail` a person can read.
 
 ## Versions
 
@@ -34,7 +34,7 @@ Only a published version can be purged. A version that came with the stack has n
 
 ## Settings
 
-The three folders above are required, with no default. `JOURNAL_MAX_ARTIFACT_BYTES` is the largest file a publish accepts. The services that call it set `JOURNAL_URL`, and can tune how long they wait with the `JOURNAL_*` timeouts described in their own `.env.example`.
+The three folders above are required, with no default. The largest file a publish accepts is a named constant in `settings.py`. A service that calls the journal must be given `JOURNAL_URL`, also with no default: Docker Compose sets it, and the service stops at start without it. How long a caller waits, and how often it asks again, are named constants in `clients/journal_client.py`.
 
 A service that cannot reach the journal goes on in memory and logs it once. After a failed save it skips further saves for a few seconds, so a journal that hangs costs one wait and not one per save, and the next save that gets through sends everything since the last one that did. A run or a chat is therefore kept again at its next change after an outage. A service that starts while the journal is not answering asks for its saved histories again for a while and then stops, because it would otherwise show nothing and narrate every event again.
 

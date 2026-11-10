@@ -7,7 +7,6 @@ in either of those two: generation.py already imports from comparison.py
 generation.py would be a real import cycle, a shared, tiny, dependency-free
 module avoids that without either module duplicating the same path logic.
 """
-import os
 from pathlib import Path
 
 from generation_toolkit.required_env import required_env
@@ -27,4 +26,4 @@ ATTACHMENT_UPLOADS_DIR = Path(required_env("PSM_ATTACHMENT_UPLOADS_DIR"))
 # in this service's own shipped defaults are a few KB; 5MB comfortably
 # covers a large real metamodel or a documentation dump without letting an
 # upload endpoint accept an unbounded amount of data.
-MAX_UPLOAD_BYTES = int(os.environ.get("PSM_MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024

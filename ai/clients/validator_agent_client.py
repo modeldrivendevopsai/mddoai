@@ -10,15 +10,14 @@ reports no structured business error to branch on, only 200 (valid or not), a
 rejected request (413, 422) or 500 (infra), so there's nothing that wrapper
 would add here.
 """
-import os
-
 import httpx
 
-VALIDATOR_AGENT_URL = os.environ.get("VALIDATOR_AGENT_URL", "http://localhost:8020")
-# Comfortably above validator-agent's own VALIDATOR_TIMEOUT_SECONDS default
-# (60s, see validator_agent/.env.example) so a real subprocess run never
-# gets cut off from this side first.
-VALIDATE_TIMEOUT = float(os.environ.get("VALIDATE_TIMEOUT", "90.0"))
+from clients.required_env import required_env
+
+VALIDATOR_AGENT_URL = required_env("VALIDATOR_AGENT_URL")
+# Comfortably above the 60 seconds validator-agent gives one of its own subprocess
+# runs, so a real run never gets cut off from this side first.
+VALIDATE_TIMEOUT = 90.0
 
 
 def validate_ecore(

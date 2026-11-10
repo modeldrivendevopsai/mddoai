@@ -45,10 +45,11 @@ Used by the Dockerfile's `HEALTHCHECK`.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# AI_LAYER_URL defaults to http://localhost:8000, PIM_AGENT_URL to
-# http://localhost:8030, if unset — override only if either runs somewhere else.
 ```
+
+`AI_LAYER_URL` and `PIM_AGENT_URL` are required settings with no default: Docker Compose sets them for the
+container. Running outside Docker, export both first (uvicorn does not read `.env.example`). Without
+one the service stops at start and names it.
 
 ## Run
 

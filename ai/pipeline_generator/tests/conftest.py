@@ -1,3 +1,4 @@
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
 import atexit
 import os
 import shutil
@@ -9,6 +10,7 @@ _session_dir = Path(tempfile.mkdtemp(prefix="generator-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["GENERATOR_WORKSPACE_DIR"] = str(_session_dir / "workspace")
 os.environ["GENERATOR_WORKSPACE_LABEL"] = "the test workspace"
+os.environ.setdefault("LOG_LEVEL", "INFO")
 os.environ["GENERATOR_PIPELINES_DIR"] = str(_session_dir / "pipelines")
 
 import pytest  # noqa: E402

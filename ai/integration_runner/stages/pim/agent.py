@@ -12,10 +12,10 @@ history. Ignores its input context for the same reason it always did:
 corrections/constraints have nothing to act on against fixed content, until
 a real SWArch-driven PIM extraction replaces this.
 """
-import os
 from pathlib import Path
 
 from clients import validator_agent_client
+from clients.required_env import required_env
 from integration_runner.stages._validation import persist_attempt, raise_if_invalid
 
 _FILENAME = "pimMM.ecore"
@@ -23,21 +23,9 @@ _FILENAME = "pimMM.ecore"
 # The project's own real, git-committed PIM metamodel - read-only, a real
 # MDE-engine *data* file this service doesn't own, not Java/Eclipse *code*
 # (see ai/CLAUDE.md's folder-boundaries section for why that distinction is
-# what actually licenses this read). Env-overridable so Docker can bind-mount
-# a single real file here (matching atl_agent's/acceleo_agent's own
-# REFERENCE_EXAMPLE_PATH convention) instead of this default, which assumes
-# a real checkout's own repo-relative layout (this file's own path is
-# ai/integration_runner/stages/pim/agent.py, four directories under ai/'s
-# own parent).
-PIM_METAMODEL_PATH = Path(
-    os.environ.get(
-        "PIM_METAMODEL_PATH",
-        str(
-            Path(__file__).resolve().parents[4]
-            / "meta_models" / "com.mddoai.metamodel.pim" / "model" / "pimMM.ecore"
-        ),
-    )
-)
+# what actually licenses this read). Required, no default: Docker Compose
+# bind-mounts the file and sets this to where it is.
+PIM_METAMODEL_PATH = Path(required_env("PIM_METAMODEL_PATH"))
 
 
 def pim_stage(context: dict) -> str:

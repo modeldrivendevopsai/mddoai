@@ -1,11 +1,11 @@
 """HTTP client for pim_agent: real grounding lookups against the reference
 PIM knowledge base. No fallback on failure, matching ai_layer_client.py and
 retrieval_client.py's pattern."""
-import os
-
 import httpx
 
-PIM_AGENT_URL = os.environ.get("PIM_AGENT_URL", "http://localhost:8030")
+from clients.required_env import required_env
+
+PIM_AGENT_URL = required_env("PIM_AGENT_URL")
 
 
 def ground(query: str, top_k: int = 5) -> list[dict]:

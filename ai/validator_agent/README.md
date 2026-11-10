@@ -120,8 +120,12 @@ This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-c
 ## Setup
 
 ```
-cp .env.example .env   # optional — every setting has a working default
 ```
+
+`LOG_LEVEL`, `VALIDATOR_LIB_DIR` and `VALIDATOR_OUTPUT_DIR` are required, with no default: the service
+stops at start if one is unset or empty. Docker Compose sets them. Outside Docker, export them (names in
+`.env.example`). The limits this service holds itself to, such as the largest request body and the largest
+pipeline, are named constants in `main.py`.
 
 `ATL_SMOKE_TEST_PIM_INSTANCE_PATH` (Java-side env var, read by `AtlValidator`/`AcceleoValidator`
 directly) points at the real, fixed PIM model instance their own execution smoke test runs a

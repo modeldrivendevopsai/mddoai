@@ -1,6 +1,5 @@
 import functools
 import logging
-import os
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -9,6 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
+from clients.required_env import required_env
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
 from pipeline_history import PipelineHistory
@@ -23,7 +23,7 @@ from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=required_env("LOG_LEVEL").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)

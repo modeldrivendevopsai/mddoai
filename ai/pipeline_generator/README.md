@@ -46,7 +46,7 @@ then used, not held open in between.
 - **Reading.** `GET /workspace/browse` lists a folder (for the Browse dialog). `GET /workspace/file`
   returns a model file's text, so it loads exactly like an upload. Every folder and regular file
   is listed by name, so a person can see what is in the workspace. Only `.swarch` files are read,
-  and only up to `GENERATOR_MAX_MODEL_BYTES`. Other files are never opened. Links that leave the
+  and only up to the largest model size (`MAX_MODEL_BYTES` in `settings.py`). Other files are never opened. Links that leave the
   workspace are not listed.
 - **No writing.** Nothing is ever written into the workspace. A generated pipeline is shown and
   downloaded in the browser, and kept in the pipeline history.
@@ -164,21 +164,23 @@ checked.
 
 ## Configuration
 
-The folder settings are required: the service stops at start if one is unset or empty. Outside
-Docker, export them in your shell (names in `.env.example`). Every other setting has a default.
+Every setting here is required, with no default: the service stops at start if one is unset or empty.
+Docker Compose sets them in the container. Outside Docker, export them in your shell (names in
+`.env.example`).
 
 | Variable | Meaning |
 |---|---|
-| `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` | Where `validator_agent` and `execution_agent` are reached. |
-| `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn. |
-| `GENERATOR_MAX_FINISHED_JOBS` | How many finished generations are kept for their callers to fetch. |
 | `LOG_LEVEL` | Logging verbosity. |
-| `GENERATOR_WORKSPACE_DIR` | Required. The workspace folder (see above). In Docker it is `/workspace`. |
-| `GENERATOR_WORKSPACE_LABEL` | Required. How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
-| `GENERATOR_PIPELINES_DIR` | Required. Where the pipeline history is kept. |
-| `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
-| `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
-| `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. `validator_agent`'s own `MAX_PIPELINE_BYTES` must be at least as large, or it refuses a pipeline this service accepted (the answer is then `413`). |
+| `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL`, `JOURNAL_URL` | Where `validator_agent`, `execution_agent` and the journal are reached. |
+| `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
+| `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
+| `GENERATOR_PIPELINES_DIR` | Where the pipeline history is kept. |
+
+The limits this service holds itself to are named constants in `settings.py`, the same in every
+environment: how many generations run at once, how many finished jobs and pipelines are kept, and the
+largest model and the largest pipeline accepted. The largest pipeline must not be above
+`validator_agent`'s own limit for what it checks, or that service refuses a pipeline this one accepted
+(the answer is then `413`). A test checks the two agree.
 
 In Docker, `ai/docker-compose.yml` sets the services' addresses and the folder settings, and mounts the folders.
 
@@ -194,7 +196,7 @@ PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
 
-The `export` lines are the required folder settings. `JOURNAL_URL` says where the journal is, `http://localhost:8120` if unset, and it must be running. `pytest` needs none: it runs the real journal in its own process.
+The `export` lines are required folder settings. `LOG_LEVEL` and the links `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` and `JOURNAL_URL` are required too, and the journal must be running. None has a default: Docker Compose sets them, and the service stops at start without one. `pytest` needs none: it runs the real journal in its own process.
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
 platform through a real `execution_agent`, and skip themselves unless it answers. Inside this

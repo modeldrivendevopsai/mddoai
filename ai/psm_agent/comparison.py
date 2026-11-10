@@ -13,15 +13,13 @@ points at gitlabMM.ecore since MDDOAI targets GitLab specifically (see pim_agent
 reusability notes), but any of the three can be passed explicitly (bitbucketMM.ecore's
 path too, once that metamodel exists).
 
-META_MODELS_DIR (env-configurable) is where meta_models/ (the real Java/Eclipse
+META_MODELS_DIR (required, no default) is where meta_models/ (the real Java/Eclipse
 metamodel source tree, outside ai/ entirely) is reachable from inside this
-container. Defaults to the real relative repo path for local/non-Docker dev;
-the real docker-compose entry sets it to the container's mount point.
+container. The docker-compose entry sets it to the container's mount point.
 """
 
 import json
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,6 +28,7 @@ from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import ai_layer_client
+from clients.required_env import required_env
 
 import prompt_paths
 
@@ -41,9 +40,7 @@ COMPARISON_CONFIG_NAME = "comparison"
 
 # Public: reused by generation.py/psm_flow.py too, both of which also need
 # to resolve real .ecore paths under meta_models/, not just this module.
-META_MODELS_DIR = os.environ.get(
-    "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
-)
+META_MODELS_DIR = required_env("META_MODELS_DIR")
 
 
 def files_root() -> list[str]:

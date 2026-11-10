@@ -139,14 +139,12 @@ master-example file plus every real uploaded file under `ATTACHMENT_UPLOADS_DIR`
 pip install -r requirements.txt
 ```
 
-`ACCELEO_AGENT_REFERENCE_EXAMPLE_PATH` is optional, defaulting to the real relative repo path to
-`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl` for
-local/non-Docker dev. Override it only if that file is reachable somewhere else, e.g. the Docker
-Compose read-only bind mount `ai/docker-compose.yml`'s `acceleo-agent` service entry sets it to.
-`VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service,
-defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and
-`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or
-empty. For a local run, point them at `ai/data/prompts/acceleo` and a writable folder of your own.
+The reference example is a file shipped inside this service, so it needs no setting.
+`VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service.
+`VALIDATOR_AGENT_URL`, `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and `ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are
+required, with no default: the service stops at start if one is unset or empty. Docker Compose sets
+them. For a local run, export them: the link of validator-agent, `ai/data/prompts/acceleo`, and a
+writable folder of your own.
 
 ## Run
 

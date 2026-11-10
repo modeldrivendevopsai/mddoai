@@ -6,7 +6,6 @@ directly under its own reference_example/ (see that constant's own comment
 for why, unlike psm_agent's whole META_MODELS_DIR tree, this needs no
 Docker bind mount at all).
 """
-import os
 from pathlib import Path
 
 from generation_toolkit.required_env import required_env
@@ -42,15 +41,10 @@ ATTACHMENT_UPLOADS_DIR = Path(required_env("ATL_AGENT_ATTACHMENT_UPLOADS_DIR"))
 # this used to point at, this file exists solely as this stage's own
 # prompt-engineering asset, so it lives, and ships, with this service like
 # any other of its own source files - no separate Docker bind mount needed.
-REFERENCE_EXAMPLE_PATH = Path(
-    os.environ.get(
-        "ATL_AGENT_REFERENCE_EXAMPLE_PATH",
-        str(Path(__file__).resolve().parent / "reference_example" / "cicd2gha.atl"),
-    )
-)
+REFERENCE_EXAMPLE_PATH = Path(__file__).resolve().parent / "reference_example" / "cicd2gha.atl"
 
 # An engineering guess, not a measured limit: real .ecore/ATL attachments in
 # this service's own shipped defaults are a few KB; 5MB comfortably covers
 # a large real metamodel without letting an upload endpoint accept an
 # unbounded amount of data. Matches psm_agent's own MAX_UPLOAD_BYTES.
-MAX_UPLOAD_BYTES = int(os.environ.get("ATL_AGENT_MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024

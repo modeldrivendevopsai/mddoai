@@ -2,16 +2,16 @@
 fallback on failure, the call's result is the deliverable, so errors
 propagate as real httpx.HTTPStatusErrors (status code + URL included),
 matching retrieval's own top-level call pattern, not caught here."""
-import os
-
 import httpx
 
-AI_LAYER_URL = os.environ.get("AI_LAYER_URL", "http://localhost:8000")
+from clients.required_env import required_env
+
+AI_LAYER_URL = required_env("AI_LAYER_URL")
 # 15 minutes: real free-tier LLM latency (rate-limit backoff, a long prompt, a
 # slow provider) is unpredictable enough that a tighter default just trades a
 # slow-but-real answer for a false failure. Every caller in this repo shares
 # this one default rather than tuning a different number per call site.
-LLM_CHAT_TIMEOUT = float(os.environ.get("LLM_CHAT_TIMEOUT", "900.0"))
+LLM_CHAT_TIMEOUT = 900.0
 
 
 def _chat_payload(

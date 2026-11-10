@@ -389,13 +389,12 @@ are identical here, this service just sits in front of it.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# AI_LAYER_URL defaults to http://localhost:8000, INTEGRATION_RUNNER_URL to
-# http://localhost:8050, if unset — override only if either runs somewhere
-# else (e.g. a different port, or a Docker Compose service name).
 ```
 
-`JOURNAL_URL` says where the journal is, `http://localhost:8120` if unset. Run it first: chats are kept there.
+`AI_LAYER_URL`, `INTEGRATION_RUNNER_URL` and `JOURNAL_URL` are required settings with no default: Docker
+Compose sets them for the container. Running outside Docker, export them first (uvicorn does not read
+`.env.example`), and run the journal first: chats are kept there. Without a setting the service
+stops at start and names it.
 
 This service's production code has no import on `ai-layer`'s or `integration_runner`'s source,
 only real HTTP calls to each (see [Test](#test) below for the one test-only exception). It does

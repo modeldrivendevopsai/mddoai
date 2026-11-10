@@ -2,17 +2,17 @@
 integration_runner's docs stage. No fallback on failure, the fetch result is
 the deliverable, errors propagate as real httpx.HTTPStatusErrors, matching
 ai_layer_client.py and retrieval's own top-level call pattern."""
-import os
-
 import httpx
 
-RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://localhost:8010")
+from clients.required_env import required_env
+
+RETRIEVAL_URL = required_env("RETRIEVAL_URL")
 # 15 minutes, matching ai_layer_client.LLM_CHAT_TIMEOUT: a real crawl or page
 # fetch can involve retrieval's own real render/fetch time on top of its
 # chunk-cleanup LLM calls, and real free-tier LLM latency is unpredictable
 # enough that a tighter default just trades a slow-but-real answer for a
 # false failure.
-RETRIEVAL_TIMEOUT = float(os.environ.get("RETRIEVAL_TIMEOUT", "900.0"))
+RETRIEVAL_TIMEOUT = 900.0
 
 
 def fetch_documentation(

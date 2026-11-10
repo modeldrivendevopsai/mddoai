@@ -1,3 +1,5 @@
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
+import integration_runner.testing_env  # noqa: F401  (the PIM files, which compose mounts)
 import pytest
 
 from clients.journal_testing import journal_in_process

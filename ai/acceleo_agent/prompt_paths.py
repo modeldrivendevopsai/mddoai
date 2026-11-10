@@ -5,7 +5,6 @@ real master-example Acceleo template instead of an ATL transformation - see
 that constant's own comment for why this is a real file this service owns
 directly, needing no Docker bind mount.
 """
-import os
 from pathlib import Path
 
 from generation_toolkit.required_env import required_env
@@ -51,16 +50,11 @@ ATTACHMENT_UPLOADS_DIR = Path(required_env("ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR
 # this used to point at, this file exists solely as this stage's own
 # prompt-engineering asset, so it lives, and ships, with this service like
 # any other of its own source files - no separate Docker bind mount needed.
-REFERENCE_EXAMPLE_PATH = Path(
-    os.environ.get(
-        "ACCELEO_AGENT_REFERENCE_EXAMPLE_PATH",
-        str(Path(__file__).resolve().parent / "reference_example" / "generate.mtl"),
-    )
-)
+REFERENCE_EXAMPLE_PATH = Path(__file__).resolve().parent / "reference_example" / "generate.mtl"
 
 # An engineering guess, not a measured limit: real .ecore/docs attachments
 # in this service's own shipped defaults are a few KB; 5MB comfortably
 # covers a large real metamodel or a documentation dump without letting an
 # upload endpoint accept an unbounded amount of data. Matches psm_agent's
 # own MAX_UPLOAD_BYTES.
-MAX_UPLOAD_BYTES = int(os.environ.get("ACCELEO_AGENT_MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024

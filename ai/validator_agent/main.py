@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -16,22 +15,23 @@ from validator_runner import (
     run_acceleo_validator,
     run_atl_validator,
     run_ecore_validator,
+    required_env,
     run_swarch_validator,
 )
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=required_env("LOG_LEVEL").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MDDOAI Validator Agent")
 
-MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
+MAX_CONTENT_BYTES = 5 * 1024 * 1024
 # The largest pipeline file /validate/pipeline accepts. A real pipeline is a
 # few KB, and parsing YAML costs seconds per megabyte, so this is far below
 # MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
-MAX_PIPELINE_BYTES = int(os.environ.get("MAX_PIPELINE_BYTES", str(512 * 1024)))
+MAX_PIPELINE_BYTES = 512 * 1024
 
 # Every request model below that takes a run_id (it scopes where the
 # compiled output of a check is kept) shares this same pattern and
@@ -61,9 +61,7 @@ _RUN_ID_PATTERN = r"^[A-Za-z0-9._-]+$"
 # Pydantic enforces on its own. 128 is a generous ceiling for any real
 # identifier this field is ever actually used for, comfortably below where
 # that OS limit could ever be reached even with all three fields combined.
-# Env-configurable, matching this file's own MAX_CONTENT_BYTES/
-# VALIDATOR_TIMEOUT_SECONDS convention rather than a bare literal.
-_ID_MAX_LENGTH = int(os.environ.get("VALIDATOR_ID_MAX_LENGTH", "128"))
+_ID_MAX_LENGTH = 128
 
 
 def _reject_dot_segments(value: str | None) -> str | None:

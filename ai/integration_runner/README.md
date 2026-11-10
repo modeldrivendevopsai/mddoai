@@ -510,15 +510,12 @@ second implementation of it.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# AI_LAYER_URL defaults to http://localhost:8000, RETRIEVAL_URL to
-# http://localhost:8010, SERIALIZATION_AGENT_URL to http://localhost:8060,
-# VALIDATOR_AGENT_URL to http://localhost:8020, PSM_AGENT_URL to
-# http://localhost:8040, PIPELINE_GENERATOR_URL to http://localhost:8100,
-# if unset. Override only if any of them run somewhere else.
 ```
 
-`JOURNAL_URL` says where the journal is, `http://localhost:8120` if unset. Run the journal first: runs and attempts are kept there.
+Every link to another service, and the two PIM files, are required settings with no default: Docker
+Compose sets them for the container. Running outside Docker, export each one listed in `.env.example`
+first (uvicorn does not read that file), and run the journal first: runs and attempts are kept there.
+Without a setting the service stops at start and names it.
 
 ## Run
 
