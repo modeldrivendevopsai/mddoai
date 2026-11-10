@@ -191,9 +191,12 @@ This module is the one place that turns those facts into a running conversation,
    chat has not seen, not the run's whole history, from `integration_runner`, and immediately,
    synchronously, mirrors them into this run's own `ChatLog` (an ordered, append-only list) —
    visible on this very call, even before any comment exists.
-2. Narrating those new events (a real LLM call) happens **in the background**, one at a time, in
-   order, and never blocks the request: a comment on the very latest event may only show up on
-   the next poll. An event that arrives while a comment is being written waits its turn. `constraint_added` is mirrored like any other event but never narrated
+2. Only the **newest** of those new events gets a comment (a real LLM call), so there is no backlog:
+   a run that moved on while nobody watched, or a burst of events, costs one call, not one per
+   event. The older events are still in the transcript as facts. The comment is written **in the
+   background** and never blocks the request, so it may only show up on the next poll. An event
+   that arrives while a comment is being written replaces one that is still waiting.
+   `constraint_added` is mirrored like any other event but never narrated
    (`chat_log._NOT_NARRATED`) - the atl/acceleo repair-and-promote loop can add a dozen or more of
    these in one go, and narrating each individually wastes a real LLM call per entry for what's
    really one bulk, automatic bookkeeping action, reading as the same comment repeated over and
@@ -212,8 +215,8 @@ Each run's chat is kept in the journal, as a history of kind `chats` per run: th
 its events. `chat_store.py` sends the journal only what is new, through `clients/journal_client.py`.
 The chats are loaded when the service starts. They include how many of `integration_runner`'s events
 are already in the chat, so after a restart nothing is mirrored or narrated twice. An event whose
-narration was still being written when the service stopped is not narrated afterwards, and neither are the events queued behind it. A run with
-no saved chat is narrated from its first event. If the journal cannot be reached, that is logged once and
+narration was still being written when the service stopped is not narrated afterwards. A run with
+no saved chat has all its events mirrored at its first poll, and only the newest is commented on. If the journal cannot be reached, that is logged once and
 the chat goes on in memory. The next save that gets through sends everything since the last one that did.
 
 ## API endpoints (`main.py`)
@@ -431,7 +434,7 @@ ASGI-routed HTTP call above, never a direct internals call.
 - **`tests/test_assistant.py`** — `react_to_event()`/`accept_message()`, tool dispatch for every
   declared tool, and the multi-step `add_constraint` → `rerun_stage` sequence.
 - **`tests/test_chat_log.py`** — the narration mechanism: synchronous mirroring, background
-  narration order and history, `constraint_added` mirrored but not narrated, failure fallback,
+  narration of the newest event only and its history, `constraint_added` mirrored but not narrated, failure fallback,
   per-run isolation, `since_index` slicing.
 - **`tests/test_chat_store.py`**: chats kept in the journal and brought back, so nothing is narrated twice.
 - **`tests/test_event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`'s

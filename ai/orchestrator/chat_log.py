@@ -3,12 +3,13 @@
 integration_runner produces raw pipeline facts (call_started, call_completed,
 call_failed, review_approved, review_rejected, constraint_added, ...) and
 knows nothing about chat or narration. This module is the one place that
-turns those facts into a running conversation: for each new raw event it
-notices, it mirrors the raw fact itself into this run's transcript, then
-(for every type except _NOT_NARRATED below) asks the wired-in reactor (see
-set_reactor(), same pattern integration_runner's own pipeline.py used before
-this split, just relocated) for a short comment and appends that as its own
-"message" turn. A human's chat message and its answer (see assistant.py)
+turns those facts into a running conversation: every new raw event it
+notices is mirrored into this run's transcript as a fact, and the newest of
+them (leaving out the _NOT_NARRATED types below) is also given a short comment,
+from the wired-in reactor (see set_reactor(), same pattern integration_runner's
+own pipeline.py used before this split, just relocated), appended as its own
+"message" turn. Older events in the same batch get no comment, so a run that
+moved on while nobody watched costs one LLM call, not one per event. A human's chat message and its answer (see assistant.py)
 go through begin_reply()/end_reply() below. All of them append to the exact
 same list, in
 real arrival order, so this is genuinely one merged, ordered chat transcript
@@ -96,10 +97,9 @@ class ChatLog:
         # to read the chat and add to it in one step.
         self.lock = threading.RLock()
         self.narrating = False   # true while a background thread is writing new comments in
-        # Raw events mirrored into the chat and waiting for their comment. The
-        # background thread takes them from the front, so one that arrives
-        # while it runs is narrated after the others, not skipped.
-        self.pending: list[dict] = []
+        # The one raw event waiting for its comment, if any. Only the newest event
+        # is commented on, so a newer one replaces it and there is never a backlog.
+        self.pending: dict | None = None
         # A chat_store.ChatStore, or None for a chat that is not kept on disk.
         self._store = store
         # The most recently started narration thread, if any. Not used by
@@ -177,8 +177,8 @@ def end_reply(chat: ChatLog, message: dict, outcome: list[dict], new_run_chat: C
 
 # One chat log per run, keyed by integration_runner's real run_id. They are
 # kept on disk through the store set by load_saved(), and come back after a
-# restart. A run with no saved chat gets a fresh one, and its events are
-# narrated from the first.
+# restart. A run with no saved chat gets a fresh one, all its events are
+# mirrored at the first poll, and only the newest is commented on.
 _chat_logs: dict[str, ChatLog] = {}
 _store = None
 
@@ -200,30 +200,34 @@ def get_chat_log(run_id: str) -> ChatLog:
 
 
 def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict]) -> None:
-    """Queues new_raw_events to get a "message" comment each, one at a time, in
-    order, by a background thread that is started if none is running. Events
-    that arrive while it runs join the queue behind the others, so none is left
-    without a comment. Each raw event has already been appended to
-    chat.events by the caller (get_events(), synchronously, before this
-    thread even starts) — that's what makes the raw fact visible
-    on the very next poll even if its comment takes a moment longer. history
-    for each event is looked up by identity (`is`, not position), not a
-    captured index, since chat.events keeps growing (both from narration
-    appended here and, concurrently, from a real accept_message() call) while
-    this loop runs; an index captured up front would silently drift."""
+    """Gives the newest of new_raw_events a "message" comment, written by a
+    background thread that is started if none is running. Older events get none:
+    a run that moved on while nobody watched, or a burst of events, is commented
+    on once, for where it is now, not once per event, which would cost one LLM
+    call each. An event that arrives while a comment is being written replaces
+    one that is still waiting, so the thread never has more than one to do next.
+    Every raw event has already been appended to chat.events by the caller
+    (get_events(), synchronously, before this thread even starts), so each is
+    visible on the very next poll whether it is commented on or not. history for
+    the event is looked up by identity (`is`, not position), not a captured
+    index, since chat.events keeps growing (both from narration appended here
+    and, concurrently, from a real accept_message() call) while this loop runs;
+    an index captured up front would silently drift."""
+    newest = next((event for event in reversed(new_raw_events) if event.get("type") not in _NOT_NARRATED), None)
+    if newest is None:
+        return
+
     def _run():
         try:
             while True:
                 with chat.lock:
-                    if not chat.pending:
-                        # Checked under the lock that queues events, so an event
-                        # queued right after this finds narrating False and
-                        # starts a thread of its own.
+                    event, chat.pending = chat.pending, None
+                    if event is None:
+                        # Checked under the lock that sets pending, so an event
+                        # set right after this finds narrating False and starts
+                        # a thread of its own.
                         chat.narrating = False
                         return
-                    event = chat.pending.pop(0)
-                if event.get("type") in _NOT_NARRATED:
-                    continue
                 position = next(i for i, e in enumerate(chat.events) if e is event)
                 history = summarize_history(chat.events[:position])
                 try:
@@ -245,7 +249,7 @@ def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict
             raise
 
     with chat.lock:
-        chat.pending.extend(new_raw_events)
+        chat.pending = newest
         if chat.narrating:
             return
         chat.narrating = True

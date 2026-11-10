@@ -12,11 +12,12 @@ Tests verify:
   1. New raw events are mirrored into the chat log synchronously, inside
      get_events() itself — visible on the very same call, before narration
      has necessarily run.
-  2. Narration happens on a background thread and appends a "message" turn
-     per new raw event, in order.
-  3. Each event's narration history is everything already in the transcript
-     before that event's own position, not a stale snapshot and not
-     including events queued after it in the same batch.
+  2. Narration happens on a background thread and appends one "message" turn,
+     on the newest new raw event. Older events in the batch get no comment,
+     and an event that arrives mid-comment replaces one still waiting.
+  3. The narration history is everything already in the transcript before
+     that event's own position, not a stale snapshot and not including the
+     event itself.
   4. A narration failure (reactor raises, or none wired in at all) falls
      back to a fixed message without crashing or losing the real event.
   5. Long string fields are truncated for the narration prompt, but the
@@ -71,7 +72,7 @@ def test_get_events_mirrors_new_raw_events_immediately(fake_reactor):
     assert raw_event in result["events"]
 
 
-def test_narration_appends_a_message_turn_per_new_raw_event(fake_reactor):
+def test_only_the_newest_of_several_new_events_gets_a_comment(fake_reactor):
     events = [
         {"type": "call_started", "stage": "docs", "data": {}, "timestamp": 1.0},
         {"type": "call_completed", "stage": "docs", "data": {}, "timestamp": 2.0},
@@ -81,18 +82,29 @@ def test_narration_appends_a_message_turn_per_new_raw_event(fake_reactor):
     _wait_for_narration("run-2")
 
     # Both raw events are mirrored synchronously, up front (see
-    # test_get_events_mirrors_new_raw_events_immediately); their comments
-    # are appended afterward, one at a time, in the same order — so a
-    # batch of more than one new event lands as "facts first, then
-    # comments", not strictly alternating.
+    # test_get_events_mirrors_new_raw_events_immediately). Only the newest
+    # earns a comment, appended after them.
     transcript = chat_log.get_chat_log("run-2").events
-    types = [e["type"] for e in transcript]
-    assert types == ["call_started", "call_completed", "message", "message"]
-    assert transcript[2]["text"] == "Narrated: call_started"
-    assert transcript[3]["text"] == "Narrated: call_completed"
+    assert [e["type"] for e in transcript] == ["call_started", "call_completed", "message"]
+    assert transcript[2]["text"] == "Narrated: call_completed"
+    assert [call["event"]["type"] for call in fake_reactor.calls] == ["call_completed"]
 
 
-def test_narration_history_for_each_event_excludes_events_queued_after_it(fake_reactor):
+def test_a_run_opened_after_it_moved_on_costs_one_comment_not_one_per_event(fake_reactor):
+    # Regression test: opening the browser on runs that advanced while nobody
+    # watched mirrored all their events and wrote an LLM comment on each,
+    # which spent the provider's per-minute request limit in one go.
+    events = [{"type": "call_completed", "stage": "docs", "data": {"n": n}, "timestamp": float(n)} for n in range(30)]
+    with patch.object(integration_runner_client, "get_events", return_value=_raw_events_response("run-bl", events)):
+        chat_log.get_events(run_id="run-bl")
+    _wait_for_narration("run-bl")
+
+    transcript = chat_log.get_chat_log("run-bl").events
+    assert [e["type"] for e in transcript].count("call_completed") == 30  # every fact is kept
+    assert [call["event"]["data"]["n"] for call in fake_reactor.calls] == [29]
+
+
+def test_the_comment_on_the_newest_event_sees_the_events_before_it(fake_reactor):
     events = [
         {"type": "call_started", "stage": "docs", "data": {}, "timestamp": 1.0},
         {"type": "call_completed", "stage": "docs", "data": {}, "timestamp": 2.0},
@@ -101,16 +113,10 @@ def test_narration_history_for_each_event_excludes_events_queued_after_it(fake_r
         chat_log.get_events(run_id="run-3")
     _wait_for_narration("run-3")
 
-    first_call, second_call = fake_reactor.calls
-    # call_started's own narration ran with nothing before it yet.
-    assert first_call["history"] == []
-    # call_completed's narration saw only call_started: both raw events were
-    # already mirrored by the time narration started, but call_completed
-    # sits at index 1 (before call_started's own message, appended after
-    # it) — history is "everything before this event's own position",
-    # never the event itself or anything queued after it.
-    history_types = [e["type"] for e in second_call["history"]]
-    assert history_types == ["call_started"]
+    (call,) = fake_reactor.calls
+    # History is everything before the event's own position, never the event
+    # itself, even though it was mirrored before narration started.
+    assert [e["type"] for e in call["history"]] == ["call_started"]
 
 
 def test_constraint_added_events_are_mirrored_but_not_narrated(fake_reactor):
@@ -137,6 +143,18 @@ def test_constraint_added_events_are_mirrored_but_not_narrated(fake_reactor):
     # The reactor was never called for either constraint_added event.
     narrated_types = [call["event"]["type"] for call in fake_reactor.calls]
     assert narrated_types == ["call_completed"]
+
+
+def test_a_batch_that_ends_in_constraint_added_comments_on_the_newest_event_that_is_narrated(fake_reactor):
+    events = [
+        {"type": "call_completed", "stage": "atl", "data": {}, "timestamp": 1.0},
+        {"type": "constraint_added", "stage": "atl", "data": {"constraint": "x"}, "timestamp": 2.0},
+    ]
+    with patch.object(integration_runner_client, "get_events", return_value=_raw_events_response("run-ce", events)):
+        chat_log.get_events(run_id="run-ce")
+    _wait_for_narration("run-ce")
+
+    assert [call["event"]["type"] for call in fake_reactor.calls] == ["call_completed"]
 
 
 def test_narration_failure_falls_back_without_crashing_or_losing_the_event():
@@ -358,10 +376,10 @@ def test_a_runner_that_sends_every_event_and_says_nothing_of_where_they_start_is
     assert _raw_numbers("run-q") == [0, 1, 2, 3]
 
 
-# --- an event that arrives while a narration runs is narrated too ------------------
+# --- events that arrive while a narration runs: only the newest waits ----------------
 
 
-def test_an_event_that_arrives_while_a_narration_is_running_is_narrated_too():
+def test_events_that_arrive_while_a_narration_is_running_leave_only_the_newest_to_comment_on():
     runner = _FakeRunner("run-n", count=1, event_type="call_completed")
     started, release = threading.Event(), threading.Event()
     narrated = []
@@ -385,6 +403,8 @@ def test_an_event_that_arrives_while_a_narration_is_running_is_narrated_too():
             assert started.wait(5)
             runner.add(1)
             chat_log.get_events(run_id="run-n")  # the first event is still being narrated
+            runner.add(1)
+            chat_log.get_events(run_id="run-n")  # this one replaces the one waiting
             release.set()
             _wait_for_narration("run-n")
     finally:
@@ -392,10 +412,11 @@ def test_an_event_that_arrives_while_a_narration_is_running_is_narrated_too():
         chat_log.set_reactor(original)
 
     chat = chat_log.get_chat_log("run-n")
-    assert narrated == [0, 1]
+    assert narrated == [0, 2]  # event 1 was outdated before its turn came
     assert max(most_at_once) == 1  # one thread narrates them, one after the other
     assert [e["type"] for e in chat.events].count("message") == 2
-    assert chat.pending == []
+    assert [e["data"]["n"] for e in chat.events if e["type"] == "call_completed"] == [0, 1, 2]  # every fact is kept
+    assert chat.pending is None
     assert chat.narrating is False
 
 

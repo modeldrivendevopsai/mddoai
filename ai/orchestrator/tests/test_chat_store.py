@@ -266,8 +266,9 @@ def test_a_restart_mirrors_and_narrates_nothing_twice():
         after = chat_log.get_events("r1")["events"]
         _wait_for_narration("r1")
 
-    assert calls == ["call_started", "call_completed"]
-    assert [e["type"] for e in after] == [e["type"] for e in before] == ["call_started", "call_completed", "message", "message"]
+    # Only the newest event is commented on, and the restart adds no second comment.
+    assert calls == ["call_completed"]
+    assert [e["type"] for e in after] == [e["type"] for e in before] == ["call_started", "call_completed", "message"]
 
 
 def test_a_poll_with_nothing_new_makes_no_request_to_the_journal():
