@@ -5,9 +5,10 @@ no LLM call of its own any more. No real HTTP call -
 clients/execution_agent_client.execute_atl_from_pim/execute_acceleo are mocked.
 PIM_SAMPLE_INSTANCE_PATH is redirected to a throwaway fixture file per test
 (see _pim_sample_fixture below), so these tests never depend on this
-repo's real main/ test-resources tree. RUNS_DIR is redirected to a tmp_path
-by integration_runner/tests/conftest.py's own autouse fixture, so real
-persistence tests below read back real files under tmp_path, never this
+repo's real main/ test-resources tree. The journal that keeps each attempt runs
+in the test's own process over a tmp_path (integration_runner/tests/conftest.py's
+autouse fixture), so real persistence tests below read back real files under
+tmp_path, never this
 repo's own runs/ tree.
 
 Tests verify:

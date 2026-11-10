@@ -13,15 +13,10 @@ class ChatStore:
     def __init__(self):
         self._history = HistoryClient("chats", "chat")
 
-    def save(self, chat: ChatLog) -> None:
-        """Sends the journal what is new in the chat since the last save. A chat
-        with nothing in it is not kept."""
-        if chat.events or chat.raw_seen:
-            self._history.save(chat.run_id, chat.events, {"raw_seen": chat.raw_seen})
-
     def save_quietly(self, chat: ChatLog) -> None:
-        """save() for a chat that must go on if the journal fails: the failure
-        is logged, not raised."""
+        """Sends the journal what is new in the chat since the last save. A chat
+        with nothing in it is not kept. The chat goes on if the journal fails: the
+        failure is logged, not raised."""
         if chat.events or chat.raw_seen:
             self._history.save_quietly(chat.run_id, chat.events, {"raw_seen": chat.raw_seen})
 

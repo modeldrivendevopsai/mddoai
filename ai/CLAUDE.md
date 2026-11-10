@@ -6,7 +6,7 @@ All AI-related work for MDDOAI (Model-Driven DevOps AI) lives under this folder,
 
 - A deployed service under `ai/` touches only its own folder. It calls another service over HTTP and never imports that service's Python code. [ai/README.md](./README.md) lists the services and how they call each other.
 - Some folders are not services: no port, no Dockerfile, no compose entry.
-  - `clients/` holds thin HTTP wrappers, one module per service it can reach. Services import it to call each other. `clients/journal_client.py` also holds the small tracker that sends the journal only what it does not have yet.
+  - `clients/` holds thin HTTP wrappers, one module per service it can reach. Services import it to call each other. `clients/journal_client.py` also holds the small tracker that sends the journal only what it does not have yet, and `clients/journal_testing.py` is a helper for tests only: it runs the journal's own code in the test's process, which no service does.
   - `generation_toolkit/` holds the shared "build a prompt, call the LLM, validate, retry" code. A stage with a config-driven generation step uses it instead of rebuilding that loop. A stage with no validator omits `validate_fn` and gets one call.
   - `design-system/` and `orchestrator-types/` are shared frontend packages. They are local npm dependencies bundled into each consumer's build, not Module Federation remotes: every frontend piece needs them to render or compile, so a container would make them a single point of failure. `orchestrator-types` holds the type contract and nothing else, so a helper that several remotes use stays local to each.
   - `data/` holds the starting platforms and prompt configs and a layout for the host folders. `tests/` checks the compose file.

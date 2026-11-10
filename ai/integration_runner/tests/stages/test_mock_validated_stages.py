@@ -4,9 +4,9 @@ and validates it for real against validator-agent, persisted to disk win
 or lose (see stages/_validation.py). No real validator-agent HTTP calls
 here - validator_agent_client's validate_ecore is mocked at that boundary;
 see test_mock_validated_stages_real_validator.py for the real end-to-end
-exception. RUNS_DIR is redirected to a throwaway tmp_path for every test in
-this whole suite by conftest.py's own autouse fixture, so persist_attempt()
-runs for real here without touching this repo's actual runs/ directory.
+exception. The journal that keeps each attempt runs in the test's own process over
+a throwaway tmp_path for every test in this whole suite (conftest.py's autouse
+fixture), so persist_attempt() runs for real here without touching a real runs folder.
 PIM_METAMODEL_PATH is likewise redirected to a throwaway fixture file per
 test (see _real_content below), so these tests never depend on this repo's
 real meta_models/ tree either.

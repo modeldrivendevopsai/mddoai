@@ -355,7 +355,7 @@ def test_a_journal_with_no_chats_holds_none():
 def test_the_service_loads_its_chats_when_it_starts():
     chat = ChatLog("started")
     chat.events.append({"type": "message", "text": "kept"})
-    ChatStore().save(chat)
+    ChatStore().save_quietly(chat)
 
     with TestClient(main.app):
         pass

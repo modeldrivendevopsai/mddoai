@@ -91,7 +91,7 @@ def test_reserves_and_forwards_its_own_stage_and_attempt_name(tmp_path):
     assert mock_run.call_args.kwargs.get("stage") == "atl"
     assert mock_run.call_args.kwargs.get("attempt") == "attempt_1"
     # The reservation really happened on disk, not just a string the mock
-    # received - the same real attempt_dir persist_attempt() then reuses.
+    # received - the same real attempt persist_attempt() then reuses.
     assert (tmp_path / "runs" / "run-1" / "atl" / "attempt_1").is_dir()
 
 

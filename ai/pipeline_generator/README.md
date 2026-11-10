@@ -216,10 +216,11 @@ a folder you are comfortable exposing that way.
 
 The platforms are trusted input. Their transformations and templates are compiled and run by
 `execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to them is
-reviewed like any other code change. Only the journal writes the platforms, when a completed
-integration run's platform is published, and anyone who can reach the UI can start that from a
-finished run. Publishing never changes an earlier version, and a platform name that already belongs to
-another platform is refused.
+reviewed like any other code change. Only the journal writes the platforms: when a completed
+integration run's platform is published, and when a published version is purged. Anyone who can reach
+the UI can start either, from a finished run or the Published platforms list. Publishing never changes an
+earlier version, and a platform name that already belongs to another platform is refused. A version
+that came with the stack is never purged.
 
 This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent` and
 `execution_agent` through the shared `clients/` package, like every other service.

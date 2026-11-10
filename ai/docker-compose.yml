@@ -477,8 +477,8 @@ services:
 
   # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
   # Software Architecture model into a pipeline for each chosen platform, by
-  # running that platform's own files (from the platforms folder it is
-  # given) through execution-agent, and checks the model (via
+  # running that platform's own files (read from the journal) through
+  # execution-agent, and checks the model (via
   # validator-agent) and the generated pipeline. UI-facing, the way
   # orchestrator is for the platform-integration mode, but with no pipeline
   # run or LLM involved.

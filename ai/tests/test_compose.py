@@ -319,3 +319,10 @@ def test_there_are_services_whose_code_uses_the_journal_client():
 
 def test_every_service_whose_code_uses_the_journal_client_is_one_that_compose_tells_where_it_is():
     assert _services_whose_code_uses_the_journal_client() == _services_that_call_the_journal()
+
+
+def test_the_journal_publishes_no_port_on_the_host():
+    journal = _services()["journal"]
+
+    assert "ports" not in journal
+    assert journal["expose"] == ["8120"]

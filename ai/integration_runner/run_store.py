@@ -28,16 +28,10 @@ class RunStore:
     def __init__(self):
         self._history = HistoryClient("runs", "run")
 
-    def save(self, run: IntegrationRun) -> None:
-        """Sends the journal what changed in the run since the last save. A run
-        nothing has happened on is not kept."""
-        events, state = _events_and_state(run)
-        if events:
-            self._history.save(run.run_id, events, state)
-
     def save_quietly(self, run: IntegrationRun) -> None:
-        """save() for a run that must go on if the journal fails: the failure is
-        logged, not raised."""
+        """Sends the journal what changed in the run since the last save. A run
+        nothing has happened on is not kept. The run goes on if the journal
+        fails: the failure is logged, not raised."""
         events, state = _events_and_state(run)
         if events:
             self._history.save_quietly(run.run_id, events, state)
