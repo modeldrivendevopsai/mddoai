@@ -46,7 +46,10 @@ def _get_oauth_token():
 # change, rebuild, and hunt through every test file that names it.
 MODELS = [
     {"name": "gemini-flash",       "model": os.getenv("GEMINI_FLASH_MODEL", "gemini/gemini-3.5-flash-lite"), "key": os.getenv("GOOGLE_API_KEY"),    "tier": "free"},
-    {"name": "cerebras-120b",      "model": os.getenv("CEREBRAS_MODEL", "cerebras/gpt-oss-120b"),            "key": os.getenv("CEREBRAS_API_KEY"),  "tier": "free"},
+    # Same key, a second Gemini model: each model has its own per-minute request budget, so
+    # when the first is rate limited this one often still answers before the chain leaves Gemini.
+    {"name": "gemini-3.1-flash-lite", "model": os.getenv("GEMINI_31_FLASH_LITE_MODEL", "gemini/gemini-3.1-flash-lite"), "key": os.getenv("GOOGLE_API_KEY"), "tier": "free"},
+    {"name": "cerebras-120b",     "model": os.getenv("CEREBRAS_MODEL", "cerebras/gpt-oss-120b"),            "key": os.getenv("CEREBRAS_API_KEY"),  "tier": "free"},
     {"name": "groq-oss-120b",      "model": os.getenv("GROQ_MODEL", "groq/openai/gpt-oss-120b"),             "key": os.getenv("GROQ_API_KEY"),      "tier": "free"},
     {"name": "mistral-small",      "model": os.getenv("MISTRAL_SMALL_MODEL", "mistral/mistral-small-latest"), "key": os.getenv("MISTRAL_API_KEY"),   "tier": "free"},
     # Claude Pro/Max subscription — token from env or ~/.claude/.credentials.json
