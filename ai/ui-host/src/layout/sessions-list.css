@@ -44,6 +44,13 @@
   border-color: var(--brand);
   box-shadow: 0 0 0 1px var(--brand);
 }
+/* The chat on screen: a filled row, so it reads at a glance among the tinted ones. */
+.mdd-sessions__item--platform.is-selected {
+  background: var(--brand-subtle);
+}
+.mdd-sessions__item--platform.is-selected .mdd-sessions__name {
+  font-weight: 600;
+}
 .mdd-sessions__item.is-attention {
   border-color: var(--danger-500);
 }
