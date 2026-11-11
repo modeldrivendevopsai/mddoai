@@ -103,7 +103,7 @@ class AttemptStore:
         """Writes the attempt's artifact, its result, its prompt if it had one
         and any extra files, and adds it to the run's manifest. The attempt must
         be reserved."""
-        if filename in (_RESULT, _PROMPT) or not _FILE_NAME.fullmatch(filename) or filename in (".", ".."):
+        if filename in (_RESULT, _PROMPT, _COMPILED) or not _FILE_NAME.fullmatch(filename) or filename in (".", ".."):
             raise ValueError(f"not a file name for an artifact: {filename!r}")
         if not isinstance(result.get("valid"), bool):
             raise ValueError("the result needs a valid field that is true or false")
@@ -184,7 +184,7 @@ class AttemptStore:
         files = [
             path
             for path in sorted(folder.iterdir())
-            if path.is_file() and path.name not in (_RESULT, _PROMPT, _COMPILED) and path.name != _COMPILED and not path.name.startswith(".")
+            if path.is_file() and path.name not in (_RESULT, _PROMPT, _COMPILED) and not path.name.startswith(".")
         ]
         return {"filename": files[0].name, "content": files[0].read_text(encoding="utf-8")} if files else None
 

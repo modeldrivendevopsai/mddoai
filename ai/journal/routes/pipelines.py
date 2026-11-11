@@ -24,6 +24,8 @@ def record_pipeline(body: Record, stores: Stores = Depends(get_stores)):
         return {"id": stores.pipelines.record(**body.model_dump())}
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+    except (KeyError, TypeError) as e:
+        raise HTTPException(status_code=422, detail=f"a result is not shaped as a generation is: {e!r}") from e
 
 
 @router.get("")

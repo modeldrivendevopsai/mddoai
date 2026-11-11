@@ -487,3 +487,20 @@ def test_a_result_that_cannot_be_kept_is_a_422_with_the_reason(client):
     assert response.status_code == 422
     assert "pipeline" in response.json()["detail"]
     assert client.get("/pipelines").json() == {"pipelines": []}
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"platform": {"id": "gitlab"}, "pipeline": "x"},
+        {"platform": "gitlab", "output_filename": ".gitlab-ci.yml", "pipeline": "x"},
+        {"platform": {"id": "gitlab"}, "output_filename": ".gitlab-ci.yml", "pipeline": "x", "intermediates": [{"filename": "a.xmi"}]},
+        "not a dict",
+    ],
+    ids=["no output file", "platform is not an object", "intermediate without content", "not an object"],
+)
+def test_a_result_that_is_not_shaped_as_a_generation_is_a_422_and_nothing_is_kept(client, result):
+    response = client.post("/pipelines", json={**_BODY, "results": [result]})
+
+    assert response.status_code == 422
+    assert client.get("/pipelines").json() == {"pipelines": []}

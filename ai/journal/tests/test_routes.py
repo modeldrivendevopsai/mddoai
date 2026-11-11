@@ -421,3 +421,16 @@ def test_a_released_attempt_takes_its_compiled_output_with_it(client):
     client.delete(f"/attempts/run1/atl/{attempt}")
 
     assert client.get(f"/attempts/run1/atl/{attempt}/compiled").status_code == 404
+
+
+def test_an_artifact_cannot_take_the_name_of_the_kept_compiled_zip(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    response = client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "compiled.zip", "content": "module M;", "result": {"valid": True}},
+    )
+
+    assert response.status_code == 422
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}
