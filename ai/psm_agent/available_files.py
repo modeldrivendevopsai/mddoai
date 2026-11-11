@@ -3,8 +3,8 @@ scanning real directories directly rather than a hardcoded list, so a
 newly added metamodel or upload is picked up with no code change here.
 
 Two real, separately-scanned roots, both valid: META_MODELS_DIR (real,
-pre-existing repo .ecore files) and ATTACHMENT_UPLOADS_DIR (a human's own
-uploaded files, see routes/uploads.py) - the same two roots
+pre-existing repo .ecore files) and the files a human uploaded (kept by the
+journal, see routes/uploads.py) - the same two roots
 generation_toolkit.attachments.files.resolve_file_attachment's own
 multi-root support tries in order when actually resolving a "file"
 attachment's path, so a path this function lists is always one that root
@@ -30,7 +30,7 @@ import prompt_settings
 
 def list_available_files() -> list[str]:
     """Every real .ecore file under META_MODELS_DIR, plus every real
-    uploaded file under ATTACHMENT_UPLOADS_DIR, as forward-slash paths
+    uploaded file, as forward-slash paths
     relative to their own root. Sorted for a deterministic, stable UI
     listing, not whatever order the filesystem happens to return. The two
     roots never produce colliding path strings in practice (an upload's

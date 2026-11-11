@@ -132,21 +132,13 @@ services:
       - META_MODELS_DIR=/meta_models
       - PIM_AGENT_URL=http://pim-agent:8030
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - PSM_PROMPT_CONFIG_DIR=/data/prompts
-      - PSM_ATTACHMENT_UPLOADS_DIR=/data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     volumes:
       - ../meta_models:/meta_models:ro
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_PSM_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_PSM_ATTACHMENTS_DIR:?}
-        target: /data/attachments
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       pim-agent:
@@ -174,20 +166,11 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - ATL_AGENT_PROMPT_CONFIG_DIR=/data/prompts
-      - ATL_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
-    volumes:
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_ATL_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_ATL_ATTACHMENTS_DIR:?}
-        target: /data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       validator-agent:
@@ -210,20 +193,11 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - ACCELEO_AGENT_PROMPT_CONFIG_DIR=/data/prompts
-      - ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
-    volumes:
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_ACCELEO_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_ACCELEO_ATTACHMENTS_DIR:?}
-        target: /data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       validator-agent:
@@ -522,8 +496,8 @@ services:
     expose:
       - "8100"
 
-  # Own container: the one service that reads and writes the run, chat and
-  # platform folders. Every other service reaches them through its API (see
+  # Own container: the one service that reads and writes the run, chat, platform,
+  # prompt config and attachment folders. Every other service reaches them through its API (see
   # clients/journal_client.py), so a change to where or how they are kept
   # touches this service and nothing else. It knows nothing about what a run, a
   # chat or a platform means beyond how to keep it.
@@ -535,6 +509,8 @@ services:
       - JOURNAL_RUNS_DIR=/data/runs
       - JOURNAL_CHATS_DIR=/data/chats
       - JOURNAL_PLATFORMS_DIR=/data/platforms
+      - JOURNAL_PROMPTS_DIR=/data/prompts
+      - JOURNAL_ATTACHMENTS_DIR=/data/attachments
     volumes:
       # Each run's journal and attempts.
       - type: bind
@@ -551,6 +527,17 @@ services:
         target: /data/platforms
         bind:
           create_host_path: false
+      # The prompt configs of the agents that write prompts, a folder each. It must already
+      # hold the starting configs: Docker would create it empty.
+      - type: bind
+        source: ${MDDOAI_PROMPTS_DIR:?}
+        target: /data/prompts
+        bind:
+          create_host_path: false
+      # The files uploaded to those agents as attachments, a folder each.
+      - type: bind
+        source: ${MDDOAI_ATTACHMENTS_DIR:?}
+        target: /data/attachments
     expose:
       - "8120"
 

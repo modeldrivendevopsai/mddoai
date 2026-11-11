@@ -134,9 +134,9 @@ it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP 
 `routes/`, this service's own equivalent of `integration_runner/routes/`, and are wired into
 `main.py` via `app.include_router(...)`.
 
-Configs live under `{name}/` in the prompt folder, `name` one of `"generation"`/`"comparison"` (matching this
-service's two real LLM capabilities above). The folder is `PROMPT_CONFIG_DIR` (`prompt_settings.py`), the
-required `PSM_PROMPT_CONFIG_DIR`:
+Configs are kept by the journal, under this service's name `AGENT` (`prompt_settings.py`) and `{name}/`, `name` one of
+`"generation"`/`"comparison"` (matching this service's two real LLM capabilities above). A config is these files in
+the journal's prompts folder:
 
 - `default.default.json`: the immutable, git-committed shipped default. Every `name` ships one,
   seeded from the real experiment with the most already-proven `learned_constraints` at the time
@@ -189,18 +189,16 @@ attachment's `path` against, since a client can't be trusted to only send what t
 pip install -r requirements.txt
 ```
 
-`META_MODELS_DIR`, `AI_LAYER_URL`, `VALIDATOR_AGENT_URL`, `PSM_PROMPT_CONFIG_DIR` and
-`PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service stops at start if one is unset
-or empty. Docker Compose sets them, and mounts the root `meta_models/` tree read-only for
-`META_MODELS_DIR`. For a local run, export them: that tree, the links of ai-layer and validator-agent
-(both `ai/clients/` modules), `ai/data/prompts/psm`, and a writable folder of your own.
+`META_MODELS_DIR`, `AI_LAYER_URL`, `VALIDATOR_AGENT_URL`, `PIM_AGENT_URL` and `JOURNAL_URL` are required, with no default: the
+service stops at start if one is unset or empty. Docker Compose sets them, and mounts the root `meta_models/` tree
+read-only for `META_MODELS_DIR`. The prompt configs and uploaded files are in the journal, so this service mounts
+no folder for them. For a local run, export them: that tree, and the links of ai-layer, validator-agent, pim-agent
+and the journal (all `ai/clients/` modules).
 
 ## Run
 
 ```bash
 # from ai/psm_agent/
-export PSM_PROMPT_CONFIG_DIR=$PWD/../data/prompts/psm
-export PSM_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 uvicorn main:app --reload --port 8040
 ```
 

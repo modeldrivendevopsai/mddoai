@@ -21,7 +21,7 @@ REQUIRED_SETTING = re.compile(r"\$\{([A-Z0-9_]+):\?")
 HOST_FOLDER_SETTING = re.compile(r"^\$\{(MDDOAI_[A-Z0-9_]+):\?\}$")
 
 # Folders that must already hold content, so Docker must not create them.
-MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
+MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|PROMPTS)_DIR:\?\}$")
 READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_WORKSPACE_DIR:\?\}$")
 
 # The host setting passed into a container: the workspace name Browse shows.
@@ -316,7 +316,7 @@ def test_the_test_setup_script_fills_in_every_host_setting_compose_requires():
 
 # The folders only the journal reads and writes: every other service reaches
 # what is in them through the journal's API.
-JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR"}
+JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR", "MDDOAI_PROMPTS_DIR", "MDDOAI_ATTACHMENTS_DIR"}
 JOURNAL_URL = "http://journal:8120"
 
 
@@ -346,15 +346,20 @@ def test_a_service_that_calls_the_journal_is_told_where_it_is_and_starts_after_i
     assert service["depends_on"]["journal"] == {"condition": "service_healthy"}
 
 
+# What a service's code names when it keeps something in the journal: the client itself, or the
+# shared prompt code, which keeps the service's prompt configs and uploads there.
+JOURNAL_USERS = ("journal_client", "generation_toolkit.prompt_config", "generation_toolkit.attachments.uploads")
+
+
 def _services_whose_code_uses_the_journal_client() -> list[str]:
     found = set()
     for folder in sorted(AI_DIR.iterdir()):
-        if not folder.is_dir() or folder.name in ("clients", "journal", "tests"):
+        if not folder.is_dir() or folder.name in (*LIBRARY_FOLDERS, "journal", "tests"):
             continue
         for path in folder.rglob("*.py"):
             if {"tests", ".venv", "__pycache__", "node_modules"} & set(path.parts):
                 continue
-            if "journal_client" in path.read_text(encoding="utf-8"):
+            if any(marker in path.read_text(encoding="utf-8") for marker in JOURNAL_USERS):
                 found.add(folder.name.replace("_", "-"))
     return sorted(found)
 

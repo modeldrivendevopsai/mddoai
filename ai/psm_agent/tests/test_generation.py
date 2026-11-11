@@ -182,7 +182,7 @@ def test_generate_resolves_a_file_attachment_the_human_uploaded(
     # Real regression test: a "file" attachment referencing a human's own
     # upload is already validated as resolvable by routes/prompt_config.py's
     # own save/check-references (both resolve against comparison.files_root(),
-    # which includes ATTACHMENT_UPLOADS_DIR) - a real generate() call must
+    # which includes the uploaded files) - a real generate() call must
     # resolve that same attachment too, not only the editor. Before
     # comparison.files_root() existed, generate() resolved "file" attachments
     # against META_MODELS_DIR alone, so this exact config would have raised
