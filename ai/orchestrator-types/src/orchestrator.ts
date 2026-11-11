@@ -36,6 +36,8 @@ export type OrchestratorEventType =
   | "documentation_extended"
   | "constraints_promoted"
   | "platform_published"
+  // A run made by forking an earlier one at a stage: its data names that run.
+  | "forked_from"
   | "tool_called"
   | "user_message"
   | "message"
@@ -56,6 +58,9 @@ export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
   "documentation_extended",
   "constraints_promoted",
   "platform_published",
+  // A forked run has only this event until its first stage runs, and it is
+  // still a real run, paused at the stage it was forked at.
+  "forked_from",
 ]
 
 export interface OrchestratorEvent {

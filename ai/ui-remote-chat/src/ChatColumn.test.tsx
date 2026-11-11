@@ -62,4 +62,38 @@ describe("ChatColumn", () => {
     expect(screen.getByText("Reply failed: psm")).toBeTruthy()
     expect(screen.getByText(/all providers exhausted/)).toBeTruthy()
   })
+
+  it("shows where a forked run was forked and from which run", () => {
+    const forked: OrchestratorEvent = {
+      type: "forked_from",
+      stage: "psm",
+      timestamp: 0,
+      data: { source_run_id: "c2eb61ee4f20466c" },
+    }
+    renderChat({ events: [forked] })
+
+    expect(screen.getByText("Forked at: psm")).toBeTruthy()
+    expect(screen.getByText("From run c2eb61ee4f20466c")).toBeTruthy()
+  })
+
+  it("shows an event type it does not know as a plain chip, and keeps the rest of the chat", () => {
+    // The backend can record a type before this chat learns it.
+    const unknown = { type: "something_new", stage: "atl", timestamp: 0 } as unknown as OrchestratorEvent
+    const reply: OrchestratorEvent = { type: "message", stage: null, timestamp: 1, text: "Still here." }
+    renderChat({ events: [unknown, reply] })
+
+    expect(screen.getByText("something new: atl")).toBeTruthy()
+    expect(screen.getByText("Still here.")).toBeTruthy()
+  })
+
+  it("does not let a type named like an Object method, or a missing type, stop the chat", () => {
+    const methodNamed = { type: "constructor", stage: "atl", timestamp: 0 } as unknown as OrchestratorEvent
+    const noType = { stage: null, timestamp: 1 } as unknown as OrchestratorEvent
+    const reply: OrchestratorEvent = { type: "message", stage: null, timestamp: 2, text: "Still here." }
+    renderChat({ events: [methodNamed, noType, reply] })
+
+    expect(screen.getByText("constructor: atl")).toBeTruthy()
+    expect(screen.getByText("unknown event")).toBeTruthy()
+    expect(screen.getByText("Still here.")).toBeTruthy()
+  })
 })

@@ -46,6 +46,24 @@ afterEach(() => {
 })
 
 describe("useIntegration", () => {
+  it("counts a run that was only forked as started, so its stage is shown and not the start form", async () => {
+    const forked: OrchestratorEvent = { type: "forked_from", stage: "psm", timestamp: 0, data: { source_run_id: "run-a" } }
+    server = { ...server, run_id: "run-f", events: [forked] }
+    const { result } = renderHook(() => useIntegration())
+
+    await waitFor(() => expect(result.current.events).toHaveLength(1))
+
+    expect(result.current.started).toBe(true)
+  })
+
+  it("does not count chat-only events as a started run", async () => {
+    const { result } = renderHook(() => useIntegration())
+
+    await waitFor(() => expect(result.current.events).toHaveLength(3))
+
+    expect(result.current.started).toBe(false)
+  })
+
   it("replaces the log when a chat answer switched to a new run", async () => {
     const { result } = renderHook(() => useIntegration())
     await waitFor(() => expect(result.current.events).toHaveLength(3))
