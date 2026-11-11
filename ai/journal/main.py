@@ -1,5 +1,5 @@
 """The journal's REST surface: the stack's histories, run attempts, published
-platforms, prompt configs and uploaded attachments, kept on disk. Reached only by the other services through
+platforms, prompt configs, uploaded attachments and generated pipelines, kept on disk. Reached only by the other services through
 clients/journal_client.py. It knows nothing about what a run, a chat or a stage
 means: that stays with the service that owns the idea.
 
@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from journal.routes import attempts, histories, platforms, prompt_configs, uploads
+from journal.routes import attempts, histories, pipelines, platforms, prompt_configs, uploads
 
 app = FastAPI(title="MDDOAI Journal")
 
@@ -33,3 +33,4 @@ app.include_router(attempts.router)
 app.include_router(platforms.router)
 app.include_router(prompt_configs.router)
 app.include_router(uploads.router)
+app.include_router(pipelines.router)

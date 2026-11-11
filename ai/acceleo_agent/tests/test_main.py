@@ -23,7 +23,7 @@ def test_generate_endpoint_forwards_request_fields_to_generate():
     fake_result = {
         "artifact": "[module m('x')]",
         "prompt": {"constraints": ""},
-        "validation": {"valid": True, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": True, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }
@@ -58,7 +58,7 @@ def test_generate_endpoint_forwards_atl_artifact():
     fake_result = {
         "artifact": "[module m('x')]",
         "prompt": {"constraints": ""},
-        "validation": {"valid": True, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": True, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }

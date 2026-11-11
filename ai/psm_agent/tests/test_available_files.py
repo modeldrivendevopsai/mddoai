@@ -37,6 +37,6 @@ def test_includes_real_uploaded_files(tmp_path, isolated_attachment_uploads_dir)
         assert available_files.list_available_files() == ["abc123-model.ecore"]
 
 
-def test_returns_empty_list_when_neither_root_exists(tmp_path, isolated_attachment_uploads_dir):
+def test_returns_empty_list_when_there_are_no_metamodels_and_no_upload(tmp_path):
     with patch.object(available_files, "META_MODELS_DIR", str(tmp_path / "no-metamodels")):
         assert available_files.list_available_files() == []

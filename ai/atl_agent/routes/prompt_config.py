@@ -6,12 +6,13 @@ generic HTTP surface every generation-capable service exposes identically
 over it. This service only ever has one real config name, "generation" -
 _context_for below 404s on anything else.
 
-Every real path (config_dir, files_root) and the real sample context
-values a dry-run validation or a static preview needs both live here, not
-in generation_toolkit itself, which stays fully generic: it takes a
-config_dir and context_values from its caller, it has no idea this
-service's own directory layout or which context keys generation.py
-actually supplies for a real call.
+The agent name (where the journal keeps this service's configs), the
+files a "file" attachment can resolve against, and the real sample context
+values a dry-run validation or a static preview needs all live here, not
+in generation_toolkit itself, which stays fully generic: it takes an
+agent name, files_root and context_values from its caller, it has no idea
+which files this service ships or which context keys it actually supplies
+for a real call.
 """
 from fastapi import HTTPException
 

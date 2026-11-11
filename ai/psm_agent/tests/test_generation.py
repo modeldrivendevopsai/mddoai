@@ -24,7 +24,7 @@ def ok_response(content):
 
 
 def valid_result():
-    return {"valid": True, "mode": "reflective", "issues": [], "duration_ms": 5, "generated_source_path": None}
+    return {"valid": True, "mode": "reflective", "issues": [], "duration_ms": 5, "compiled_output_kept": False}
 
 
 def invalid_result(message="dangling reference"):
@@ -33,7 +33,7 @@ def invalid_result(message="dangling reference"):
         "mode": "reflective",
         "issues": [{"severity": "ERROR", "message": message, "source": None}],
         "duration_ms": 5,
-        "generated_source_path": None,
+        "compiled_output_kept": False,
     }
 
 

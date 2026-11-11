@@ -62,7 +62,7 @@ master example the default prompt attaches, the same role `psm_agent`'s own mast
   "prompt": {"psm_ecore": "...", "platform_docs": "...", "acceleo_example": "...", "constraints": ""},
   "validation": {
     "valid": true, "issues": [], "duration_ms": 120,
-    "generated_source_path": "<validator output folder>/run-123/acceleo/attempt_1/acceleo-validate-abc123"
+    "compiled_output_kept": true
   },
   "rounds": 2,
   "prompt_version": null
@@ -86,7 +86,7 @@ Used by the Dockerfile's `HEALTHCHECK`.
 
 `generate()` has no hardcoded system prompt: it resolves a real, UI-editable config
 through `generation_toolkit.prompt_config` (see `generation_toolkit/README.md` for the mechanism
-itself, generic across any service that supplies it a `config_dir`). This service's own
+itself, generic across any service that supplies it an agent name). This service's own
 `routes/prompt_config.py` is a thin HTTP surface over it, `routes/files.py` a related but separate
 concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.

@@ -4,10 +4,12 @@ temporary folders."""
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
 
 from . import settings
 from .attempts import AttemptStore
 from .histories import HistoryStore
+from .pipelines import PipelineStore
 from .platforms import PlatformStore
 from .prompt_configs import PromptConfigStore
 from .uploads import UploadStore
@@ -27,6 +29,7 @@ class Stores:
     platforms: PlatformStore
     prompt_configs: PromptConfigStore
     uploads: UploadStore
+    pipelines: PipelineStore
 
 
 def _run_keys(runs_dir: Path) -> list[str]:
@@ -41,21 +44,40 @@ def _chat_keys(chats_dir: Path) -> list[str]:
     return [path.name.removesuffix(_CHAT_SUFFIX) for path in chats_dir.glob(f"*{_CHAT_SUFFIX}")]
 
 
-def build_stores(runs_dir: Path, chats_dir: Path, platforms_dir: Path, prompts_dir: Path, attachments_dir: Path) -> Stores:
+class Folders(NamedTuple):
+    """The folders the journal keeps its files in, one for each kind."""
+
+    runs: Path
+    chats: Path
+    platforms: Path
+    prompts: Path
+    attachments: Path
+    pipelines: Path
+
+    @classmethod
+    def under(cls, base: Path) -> "Folders":
+        """One folder of each kind inside `base`, named for the kind. For tests."""
+        return cls(*(base / name for name in cls._fields))
+
+
+def build_stores(folders: Folders) -> Stores:
     return Stores(
         histories={
             # A run is a folder: its journal and the files of its attempts, so a run goes whole.
             RUNS: HistoryStore(
-                lambda key: runs_dir / key / _RUN_JOURNAL,
-                lambda: _run_keys(runs_dir),
-                lambda key: shutil.rmtree(runs_dir / key),
+                lambda key: folders.runs / key / _RUN_JOURNAL,
+                lambda: _run_keys(folders.runs),
+                lambda key: shutil.rmtree(folders.runs / key),
             ),
-            CHATS: HistoryStore(lambda key: chats_dir / f"{key}{_CHAT_SUFFIX}", lambda: _chat_keys(chats_dir)),
+            CHATS: HistoryStore(
+                lambda key: folders.chats / f"{key}{_CHAT_SUFFIX}", lambda: _chat_keys(folders.chats)
+            ),
         },
-        attempts=AttemptStore(runs_dir),
-        platforms=PlatformStore(platforms_dir),
-        prompt_configs=PromptConfigStore(prompts_dir, settings.MAX_PROMPT_VERSIONS),
-        uploads=UploadStore(attachments_dir, settings.MAX_UPLOAD_BYTES),
+        attempts=AttemptStore(folders.runs),
+        platforms=PlatformStore(folders.platforms),
+        prompt_configs=PromptConfigStore(folders.prompts, settings.MAX_PROMPT_VERSIONS),
+        uploads=UploadStore(folders.attachments, settings.MAX_UPLOAD_BYTES),
+        pipelines=PipelineStore(folders.pipelines, settings.MAX_PIPELINES),
     )
 
 
@@ -66,13 +88,20 @@ def get_stores() -> Stores:
     global _stores
     if _stores is None:
         _stores = build_stores(
-            settings.RUNS_DIR, settings.CHATS_DIR, settings.PLATFORMS_DIR, settings.PROMPTS_DIR, settings.ATTACHMENTS_DIR
+            Folders(
+                settings.RUNS_DIR,
+                settings.CHATS_DIR,
+                settings.PLATFORMS_DIR,
+                settings.PROMPTS_DIR,
+                settings.ATTACHMENTS_DIR,
+                settings.PIPELINES_DIR,
+            )
         )
     return _stores
 
 
-def use_folders(runs_dir: Path, chats_dir: Path, platforms_dir: Path, prompts_dir: Path, attachments_dir: Path) -> None:
+def use_folders(folders: Folders) -> None:
     """Keeps everything in these folders from now on, with nothing remembered
     from before. For tests."""
     global _stores
-    _stores = build_stores(runs_dir, chats_dir, platforms_dir, prompts_dir, attachments_dir)
+    _stores = build_stores(folders)

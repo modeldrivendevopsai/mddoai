@@ -30,7 +30,7 @@ def test_a_second_upload_under_a_taken_name_is_refused_and_the_first_stays(clien
 
 def test_a_file_over_the_size_limit_is_a_413_and_is_not_kept(client, folders, monkeypatch):
     monkeypatch.setattr(settings, "MAX_UPLOAD_BYTES", 10)
-    dependencies.use_folders(*folders)
+    dependencies.use_folders(folders)
 
     response = client.put("/uploads/psm/big.txt", json={"content": "x" * 11})
 

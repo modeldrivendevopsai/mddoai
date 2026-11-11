@@ -29,14 +29,6 @@ WORKSPACE_DIR = Path(required_env("GENERATOR_WORKSPACE_DIR"))
 # The workspace's name in Browse: inside a container WORKSPACE_DIR is only a mount point.
 WORKSPACE_LABEL = required_env("GENERATOR_WORKSPACE_LABEL")
 
-# Where generated pipelines are kept so they can be reopened later.
-PIPELINES_DIR = Path(required_env("GENERATOR_PIPELINES_DIR"))
-
-# How many generated pipelines are kept; the oldest are forgotten beyond this.
-# Engineering guess: far more than anyone reopens, small enough that the list
-# and the folder stay small.
-MAX_PIPELINES = 200
-
 # How many finished generation jobs are kept for their callers to fetch. The
 # browser that started a job fetches it within seconds of it finishing, so
 # this only needs to cover a handful of open tabs (engineering guess).

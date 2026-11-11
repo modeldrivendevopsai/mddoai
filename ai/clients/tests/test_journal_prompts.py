@@ -5,14 +5,14 @@ import pytest
 
 from clients import journal_client as prompts
 from clients.agent_service_errors import AgentServiceError
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 
 SHIPPED = {"attachments": [{"id": "system", "type": "text", "content": "shipped"}]}
 
 
 @pytest.fixture
 def folders(tmp_path):
-    return tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", tmp_path / "prompts", tmp_path / "attachments"
+    return folders_in(tmp_path)
 
 
 @pytest.fixture(autouse=True)
@@ -20,7 +20,7 @@ def journal(folders):
     shipped = folders[3] / "psm" / "generation"
     shipped.mkdir(parents=True)
     (shipped / "default.default.json").write_text(json.dumps(SHIPPED), encoding="utf-8")
-    with journal_in_process(*folders):
+    with journal_in_process(folders):
         yield
 
 

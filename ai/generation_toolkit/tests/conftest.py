@@ -3,7 +3,7 @@ environment, and every test gets a real journal over folders of its own."""
 import clients.testing_urls  # noqa: F401
 import pytest
 
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 from helpers import AGENT
 
 
@@ -11,10 +11,9 @@ from helpers import AGENT
 def journal(tmp_path):
     """The real journal, in this process, over folders of this test alone. Yields the
     prompts and attachments folders."""
-    base = tmp_path / "journal"
-    prompts, attachments = base / "prompts", base / "attachments"
-    with journal_in_process(base / "runs", base / "chats", base / "platforms", prompts, attachments):
-        yield prompts, attachments
+    folders = folders_in(tmp_path / "journal")
+    with journal_in_process(folders):
+        yield folders.prompts, folders.attachments
 
 
 @pytest.fixture

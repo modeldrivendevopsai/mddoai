@@ -53,12 +53,12 @@ Every environment on the same machine reads the same `~/.claude` folder (see `ai
 Each folder a service keeps files in, and each folder of content people maintain, is its own required setting in the environment's `config.env`. A service stops at start if one of its settings is missing or empty.
 
 - **You fill in:** the models, the platforms and the prompt configs of the agents that write prompts (one folder, with a folder per agent). These folders must already exist, and the platforms and prompt configs must already hold their content.
-- **Docker creates:** the uploaded attachments (one folder, with a folder per agent), the integration runs, their chats, the validators' compiled output and the pipelines.
+- **Docker creates:** the uploaded attachments (one folder, with a folder per agent), the integration runs, their chats and the pipelines.
 - **The LLM keys file** is the setting `MDDOAI_LLM_KEYS_FILE`. It must exist. Keep it out of git and readable by you only.
 
 `ai/data` ships the starting platforms and prompt configs and a layout to follow (see [data/README.md](./data/README.md)).
 
-Each folder has one writer service. Other services reach what it generates through its API, never through its folder. The `journal` is the writer of the runs, chats, platforms, prompt configs and attachments folders: it adds a version to the platforms folder when a completed run's platform is published, removes one when a published platform is purged, and keeps an agent's prompt config and uploads when its agent saves them.
+Each folder has one writer service. Other services reach what it generates through its API, never through its folder. The `journal` is the writer of the runs, chats, platforms, prompt configs, attachments and pipelines folders: it adds a version to the platforms folder when a completed run's platform is published, removes one when a published platform is purged, keeps an agent's prompt config and uploads when its agent saves them, and keeps each generated pipeline and each attempt's compiled output.
 
 Folders are bind-mounted so you can open them from the host ([Docker's guidance](https://docs.docker.com/engine/storage/bind-mounts/)). Build caches and the built `main/` distribution are Docker volumes, and scratch files are temporary.
 

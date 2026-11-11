@@ -335,3 +335,89 @@ def test_the_swarch_to_pim_transformation_is_served_or_not_found(client, folders
     (platforms / "swarch2pim.atl").write_text("module S;", encoding="utf-8")
 
     assert client.get("/platforms/pim-transformation").json() == {"transformation": "module S;"}
+
+
+# --- what the validators compiled during an attempt -----------------------------------------------
+
+
+def _reserved(client, run_id="run1", stage="atl"):
+    return client.post(f"/attempts/{run_id}", json={"stage": stage}).json()["attempt"]
+
+
+def _b64(data: bytes) -> str:
+    import base64
+
+    return base64.b64encode(data).decode("ascii")
+
+
+def test_what_was_compiled_is_kept_with_a_reserved_attempt_and_read_back_as_it_was(client):
+    attempt = _reserved(client)
+
+    kept = client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"PK\x03\x04 zipped \xff")})
+
+    assert kept.status_code == 200
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"PK\x03\x04 zipped \xff")}
+
+
+def test_a_second_keep_replaces_the_first(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"first")})
+
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"second")})
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"second")}
+
+
+def test_nothing_compiled_or_an_unknown_attempt_is_a_404(client):
+    attempt = _reserved(client)
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").status_code == 404
+    assert client.put("/attempts/run1/atl/attempt_9/compiled", json={"content_base64": _b64(b"x")}).status_code == 404
+    assert client.put("/attempts/none/atl/attempt_1/compiled", json={"content_base64": _b64(b"x")}).status_code == 404
+
+
+def test_a_recorded_attempt_keeps_the_compiled_output_it_has_and_takes_no_more(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+    client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "a.atl", "content": "module M;", "result": {"valid": True}},
+    )
+
+    again = client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"late")})
+
+    assert again.status_code == 409
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}
+    assert client.get(f"/attempts/run1/atl/{attempt}").json()["artifact"] == {"filename": "a.atl", "content": "module M;"}
+
+
+def test_the_compiled_zip_is_never_taken_for_the_attempts_artifact_and_an_extra_file_cannot_take_its_name(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    clash = client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "a.atl", "content": "m", "result": {"valid": True}, "extra_files": {"compiled.zip": "x"}},
+    )
+
+    assert clash.status_code == 422
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}
+
+
+def test_compiled_output_that_is_not_base64_is_a_422_and_over_the_limit_a_413(client, folders, monkeypatch):
+    attempt = _reserved(client)
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": "not base64!"}).status_code == 422
+
+    monkeypatch.setattr(settings, "MAX_COMPILED_BYTES", 4)
+
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"12345")}).status_code == 413
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"1234")}).status_code == 200
+
+
+def test_a_released_attempt_takes_its_compiled_output_with_it(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    client.delete(f"/attempts/run1/atl/{attempt}")
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").status_code == 404

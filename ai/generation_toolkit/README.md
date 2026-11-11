@@ -94,10 +94,10 @@ real content, rejecting an absolute path, a disallowed character, or a resolved 
 single path segment with no `/` allowed at all — reused for a `run_id`/`stage`/`attempt` route
 parameter, not just a file attachment's path.
 
-`attachments.files.list_reference_and_uploads(reference_example_path, uploads_dir) -> list[str]`
+`attachments.files.list_reference_and_uploads(reference_example_path, uploads) -> list[str]`
 lists a service's real "file" attachment candidates for the common one-reference-file shape
 (`atl_agent`/`acceleo_agent`, each with exactly one master example): that one file's own name, plus
-every real uploaded file under `uploads_dir`, sorted. A service with a broader real listing (e.g.
+every file uploaded to the service (`uploads`, an `attachments.uploads.UploadedFiles`), sorted. A service with a broader real listing (e.g.
 `psm_agent`, scanning every known platform's own metamodel) keeps that logic itself rather than
 forcing it through this shape.
 

@@ -33,12 +33,12 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 {"filename": "pimMM.ecore", "content": "<?xml ...>", "mode": "reflective"}
 
 // response (200)
-{"valid": false, "mode": "reflective", "issues": [{"severity": "ERROR", "message": "...", "source": "..."}], "duration_ms": 842, "generated_source_path": null}
+{"valid": false, "mode": "reflective", "issues": [{"severity": "ERROR", "message": "...", "source": "..."}], "duration_ms": 842, "compiled_output_kept": false}
 ```
 
 `mode` is `"reflective"` (structural check only — is the metamodel well-formed) or `"codegen"` (also generates real Java from it and compiles that with a real `javac` — the only way to catch problems like an `instanceClassName` pointing at a Java class that doesn't actually exist). `codegen` always runs the reflective check first and returns immediately if that fails, so it never spends time generating code for an already-broken metamodel.
 
-`generated_source_path` is only ever non-null for `codegen` mode, and only once generation got far enough to actually produce `src-gen/` (a genmodel-level failure before that point has nothing worth keeping). It's `main/`'s real `EcoreValidator.OUTPUT_ROOT` path (`VALIDATOR_OUTPUT_DIR` below) where the generated `.genmodel`/`src-gen`/`classes-out` survive on disk — kept even when the generated source fails to actually compile, since that's exactly the output a human debugging the failure needs to see.
+`compiled_output_kept` says whether what `codegen` mode compiled (the `.genmodel`, `src-gen` and `classes-out` output) was kept, as one zip with the attempt it was compiled for in the journal. It is `false` in `reflective` mode, when generation got nowhere (a genmodel-level failure has nothing worth keeping), when the request names no whole attempt, or when the journal could not keep it. The output is kept even when the generated source fails to compile, since that is exactly the output a human debugging the failure needs to see.
 
 ### `POST /validate/atl`
 
@@ -47,14 +47,14 @@ Each call spawns a fresh `java` process rather than keeping one JVM warm across 
 {"filename": "swarch2pim.atl", "content": "module ...;", "metamodel_ecore": "<ecore:EPackage .../>"}
 
 // response (200)
-{"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310, "generated_source_path": null}
+{"valid": false, "issues": [{"severity": "ERROR", "message": "mismatched input '<EOF>' expecting RPAREN", "source": "swarch2pim.atl#6:3"}], "duration_ms": 310, "compiled_output_kept": false}
 ```
 
 Compiles the `.atl` source with ATL's own standalone compiler (`AtlCompiler.getCompiler("atl2006")`) and reports the real parser/compiler diagnostics. This catches syntax errors, reserved-word misuse, and malformed rule structure, all with real `line:col` locations. Compiling alone does **not** catch every real problem, though: ATL's compiler does no static type checking against real metamodels (confirmed against ATL's own documented architecture), and even a reference to a real type can still crash at runtime (e.g. a lazy rule instantiating an abstract classifier directly instead of dispatching to a concrete subtype rule — confirmed against a genuine LLM-generated transformation that compiled clean and only failed once it actually ran).
 
 `metamodel_ecore` closes that second gap: given the target platform's own real PSM `.ecore` content, `AtlValidator` also actually **runs** the compiled transformation, via `main/`'s own execution classes, against a real, fixed PIM model instance mounted into this container (`ATL_SMOKE_TEST_PIM_INSTANCE_PATH` — see [Setup](#setup) below). A real runtime-only failure is reported as an `ERROR` issue the same way a compile error is, so the regenerate loop can act on it during the calling stage's own retry rounds instead of only discovering it later, with no retries left. Optional: without it, this endpoint behaves exactly as it always has (compile-only checking).
 
-Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has without a target metamodel, so `generated_source_path` reports the real compiled `.asm` bytecode's path whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt directory as `stage`/`attempt`, scoping the compiled output two levels deeper still, see [Setup](#setup) below.
+Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* the only validation ATL has without a target metamodel, so `compiled_output_kept` says whether the compiled `.asm` bytecode was kept whenever compilation actually produces one (win or lose, a source with real errors can still emit a partial `.asm`). A request can also carry the same `run_id` field `/validate/ecore` does, plus the calling stage's own name and its already-reserved attempt as `stage`/`attempt`, which together name the attempt the output is kept with, see [Setup](#setup) below.
 
 ### `POST /validate/acceleo`
 
@@ -63,7 +63,7 @@ Unlike `/validate/ecore`, there's no separate cheap mode here, compiling *is* th
 {"filename": "generate.mtl", "content": "[module generate('http://...')]", "metamodel_ecore": "<ecore:EPackage .../>"}
 
 // response (200)
-{"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512, "generated_source_path": null}
+{"valid": false, "issues": [{"severity": "ERROR", "message": "'for' block body isn't terminated", "source": "generate.mtl#13"}], "duration_ms": 512, "compiled_output_kept": false}
 ```
 
 Compiles the `.mtl` source with Acceleo's own classic standalone compiler (`AcceleoCompilerHelper`) and reports the real compiler diagnostics, with real source-line locations. The submitted `filename` must end in `.mtl` — the compiler resolves the file to compile by scanning its source folder for that extension, not by parsing whatever single file it's handed, so a request whose `filename` doesn't end in `.mtl` is rejected as invalid up front rather than silently reporting a trivial pass.
@@ -74,7 +74,7 @@ Since this field's content ultimately traces back to a stage-agent's own request
 
 `atl_source` is optional too, and only does anything alongside `metamodel_ecore`: this run's own already-generated, already-approved ATL. Given both, `AcceleoValidator` also actually **generates** real output — it first runs `atl_source` against the same fixed PIM sample `/validate/atl`'s own execution smoke test uses to produce a real PSM model instance, then runs the compiled Acceleo module against that, catching a real runtime-only Acceleo failure (a template that compiles clean but produces no real output, say) that compiling alone can never see. A real failure anywhere in that chain, including in the given `atl_source` itself, is reported as an `ERROR` issue. Without `atl_source` (or without `metamodel_ecore`), this behaves exactly as it always has.
 
-Same real-compiled-output behavior as `/validate/atl`: `generated_source_path` reports where the compiled `.emtl` module actually landed, and the same optional `run_id`/`stage`/`attempt` fields scope it.
+Same real-compiled-output behavior as `/validate/atl`: `compiled_output_kept` says whether the compiled `.emtl` module was kept, and the same optional `run_id`/`stage`/`attempt` fields name the attempt.
 
 ### `POST /validate/swarch`
 
@@ -122,7 +122,7 @@ This service never bundles a Gradle/JDK toolchain in its own image. `ai/docker-c
 ```
 ```
 
-`LOG_LEVEL`, `VALIDATOR_LIB_DIR` and `VALIDATOR_OUTPUT_DIR` are required, with no default: the service
+`LOG_LEVEL`, `VALIDATOR_LIB_DIR` and `JOURNAL_URL` are required, with no default: the service
 stops at start if one is unset or empty. Docker Compose sets them. Outside Docker, export them (names in
 `.env.example`). The limits this service holds itself to, such as the largest request body and the largest
 pipeline, are named constants in `main.py`.
@@ -138,21 +138,15 @@ services, caches, artifacts) is enough to smoke-test any future platform's gener
 the one it was originally authored against. Unset (e.g. a plain local run with no Docker mount),
 this endpoint simply skips execution and falls back to compile-only checking.
 
-`VALIDATOR_OUTPUT_DIR` is the folder the compiled artifacts of the validators are kept in, instead of
-being deleted after the check. It is required, with no default: this service and the Java validators,
-which read the same variable, fail naming it when it is missing. In Docker it is the validator output
-folder set in `config.env`, which only this service uses. A request
-may include a validated `run_id`, in which case the compiled output is scoped under a subfolder
-named for it; every codegen-producing request (`/validate/atl`, `/validate/acceleo`, and
-`/validate/ecore` in `codegen` mode) may also include `stage` and `attempt` (the calling stage's
-own name and its already-reserved `attempt_N` name, forwarded on `psm_agent`'s own behalf for its
-`/validate/ecore` calls, since it has no attempt-numbering concept of its own - see
-[integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)),
-in which case the output is scoped two levels deeper still
-(`<run_id>/<stage>/<attempt>/<type>-validate-<uuid>/`), so two stages' same-numbered attempts
-never collide. The real path comes back as `generated_source_path`, and `persist_attempt()` records it in the calling
-stage's own `result.json`. It is a path in this service's own storage, which the caller never opens.
-These artifacts are real and reusable, not debugging output, so they are kept.
+The Java validators compile into a folder in scratch, which is deleted with the call: this service keeps no
+folder of its own. When a request names a whole attempt (`run_id`, `stage` and `attempt`, the calling stage's own
+name and its already-reserved `attempt_N`, forwarded on `psm_agent`'s own behalf for its `/validate/ecore` calls,
+since it has no attempt-numbering concept of its own, see
+[integration_runner's own README](../integration_runner/README.md#persisted-validation-attempts)), what the
+validator compiled is zipped and handed to the journal, which keeps it with that attempt as `compiled.zip`. The answer says
+whether it was kept (`compiled_output_kept`). A journal that cannot keep it is logged and does not fail the
+validation. Nothing is kept for a call that names no attempt, or that compiled nothing. These artifacts are real
+and reusable, not debugging output, so they are kept.
 
 ## Run
 
@@ -165,7 +159,7 @@ Standalone (needs `main/`'s distribution already built):
 ```
 cd main && ./gradlew installDist
 cd ai/validator_agent && VALIDATOR_LIB_DIR=../../main/build/install/com.mddoai/lib \
-    VALIDATOR_OUTPUT_DIR=/path/to/a/folder \
+    JOURNAL_URL=http://localhost:8120 \
     uvicorn main:app --port 8020
 ```
 

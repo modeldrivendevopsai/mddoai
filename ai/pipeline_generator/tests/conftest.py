@@ -11,12 +11,11 @@ atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["GENERATOR_WORKSPACE_DIR"] = str(_session_dir / "workspace")
 os.environ["GENERATOR_WORKSPACE_LABEL"] = "the test workspace"
 os.environ.setdefault("LOG_LEVEL", "INFO")
-os.environ["GENERATOR_PIPELINES_DIR"] = str(_session_dir / "pipelines")
 
 import pytest  # noqa: E402
 
 import main  # noqa: E402
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from generation_jobs import GenerationJobs
@@ -35,8 +34,8 @@ def workspace_dir(tmp_path):
 
 
 @pytest.fixture
-def history(tmp_path):
-    return PipelineHistory(tmp_path / "data")
+def history():
+    return PipelineHistory()
 
 
 @pytest.fixture
@@ -50,7 +49,7 @@ def platforms_dir(tmp_path):
 @pytest.fixture(autouse=True)
 def journal(tmp_path, platforms_dir):
     """The real journal, over the copy of the platforms and folders of its own."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", platforms_dir, tmp_path / "prompts", tmp_path / "attachments"):
+    with journal_in_process(folders_in(tmp_path)._replace(platforms=platforms_dir)):
         yield
 
 

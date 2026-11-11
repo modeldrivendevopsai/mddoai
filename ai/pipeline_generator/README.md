@@ -53,9 +53,9 @@ then used, not held open in between.
 
 ## The pipeline history
 
-Each successful generation is recorded under `GENERATOR_PIPELINES_DIR` (in Docker, the
-pipelines folder set in `config.env`, see [ai/README.md](../README.md)'s "Where
-files live"), one folder per pipeline named by a random id, holding the generation as real files:
+Each successful generation is recorded by the journal (the pipelines folder set in `config.env`, see
+[ai/README.md](../README.md)'s "Where files live"), one folder per pipeline named by a random id,
+holding the generation as real files:
 
 ```
 <pipeline-id>/
@@ -174,7 +174,6 @@ Docker Compose sets them in the container. Outside Docker, export them in your s
 | `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL`, `JOURNAL_URL` | Where `validator_agent`, `execution_agent` and the journal are reached. |
 | `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
 | `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
-| `GENERATOR_PIPELINES_DIR` | Where the pipeline history is kept. |
 
 The limits this service holds itself to are named constants in `settings.py`, the same in every
 environment: how many generations run at once, how many finished jobs and pipelines are kept, and the
@@ -191,12 +190,11 @@ cd ai/pipeline_generator
 pip install -r requirements.txt
 export GENERATOR_WORKSPACE_DIR=/path/to/your/models
 export GENERATOR_WORKSPACE_LABEL=/path/to/your/models
-export GENERATOR_PIPELINES_DIR=/path/to/a/folder
 PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
 
-The `export` lines are required folder settings. `LOG_LEVEL` and the links `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` and `JOURNAL_URL` are required too, and the journal must be running. None has a default: Docker Compose sets them, and the service stops at start without one. `pytest` needs none: it runs the real journal in its own process.
+The `export` lines are the required settings. `LOG_LEVEL` and the links `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` and `JOURNAL_URL` are required too, and the journal must be running. None has a default: Docker Compose sets them, and the service stops at start without one. `pytest` needs none: it runs the real journal in its own process.
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
 platform through a real `execution_agent`, and skip themselves unless it answers. Inside this

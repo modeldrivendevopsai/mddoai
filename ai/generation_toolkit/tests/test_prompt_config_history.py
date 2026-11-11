@@ -52,7 +52,7 @@ def test_list_history_always_ends_with_the_shipped_default(config_dir, tmp_path)
 
 def test_list_history_omits_the_shipped_entry_when_no_default_exists(config_dir, tmp_path):
     """A name with no default.default.json ever committed (mid-onboarding,
-    or a config_dir reseeded without it) shouldn't advertise a "shipped"
+    or an agent reseeded without it) shouldn't advertise a "shipped"
     version a Restore or Diff call would only 404 on - see _load_snapshot's
     own FileNotFoundError for exactly that."""
     assert list_history(AGENT, "generation") == []

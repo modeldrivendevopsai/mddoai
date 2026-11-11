@@ -71,16 +71,16 @@ def test_render_prompt_includes_persisted_learned_constraints(tmp_path):
 
 
 def test_resolve_config_resolves_a_given_config_without_touching_disk(config_dir, tmp_path):
-    """resolve_for_call above always loads from config_dir first - this is
+    """resolve_for_call above always loads a saved config first - this is
     the entry point a "preview my current, unsaved draft" caller uses
-    instead, against a config it already has in hand, with config_dir/name
+    instead, against a config it already has in hand, with an agent and name
     playing no role at all (nothing is saved or read for this config)."""
     config, parts = resolve_config(_CONFIG, {"pim_ecore": "<pim/>"}, tmp_path)
 
     assert config["system_prompt"] == "x"
     assert parts == {"pim_ecore": "<pim/>"}
-    # tmp_path was never written to - resolve_config takes no config_dir at
-    # all, so there's nothing on disk to find in the first place.
+    # tmp_path was never written to - resolve_config takes no agent at
+    # all, so there's nothing in the journal to find in the first place.
     assert not (tmp_path / "generation").exists()
 
 

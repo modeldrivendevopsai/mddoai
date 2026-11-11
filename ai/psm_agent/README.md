@@ -75,7 +75,7 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   },
   "validation": {
     "valid": true, "mode": "codegen", "issues": [], "duration_ms": 120,
-    "generated_source_path": "<validator output folder>/run-123/psm/attempt_1/ecore-validate-abc123"
+    "compiled_output_kept": true
   },
   "rounds": 2,
   "prompt_version": null
@@ -129,7 +129,7 @@ Used by the Dockerfile's `HEALTHCHECK`.
 Neither `generate()` nor `compare()` has a hardcoded system prompt: both resolve a real,
 git-committed, UI-editable config through `generation_toolkit.prompt_config` (see
 `generation_toolkit/README.md` for the mechanism itself, generic across any service that supplies
-it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP surface over it,
+it an agent name). This service's own `routes/prompt_config.py` is a thin HTTP surface over it,
 `routes/files.py` a related but separate concern (see below); both routers live under
 `routes/`, this service's own equivalent of `integration_runner/routes/`, and are wired into
 `main.py` via `app.include_router(...)`.

@@ -4,10 +4,12 @@ other services are mocked, as in test_main.py."""
 import json
 from unittest.mock import patch
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 import main
+from clients import journal_client
 from helpers import generate
 from platform_runner import PlatformRunError
 
@@ -225,7 +227,7 @@ def test_a_refused_model_is_not_recorded():
 
 
 def test_failing_to_record_does_not_lose_the_generated_pipeline(history):
-    with patch.object(history, "record", side_effect=OSError("disk full")):
+    with patch.object(journal_client, "record_pipeline", side_effect=httpx.ConnectError("the journal is down")):
         body = _generate().json()
 
     assert body["pipeline_id"] is None
@@ -276,7 +278,7 @@ def test_an_id_that_is_not_an_id_is_simply_not_found():
 
 
 @pytest.mark.parametrize(
-    "name", ["GENERATOR_WORKSPACE_DIR", "GENERATOR_WORKSPACE_LABEL", "GENERATOR_PIPELINES_DIR"]
+    "name", ["GENERATOR_WORKSPACE_DIR", "GENERATOR_WORKSPACE_LABEL"]
 )
 @pytest.mark.parametrize("value", [None, "", "   "], ids=["unset", "empty", "blank"])
 def test_the_service_does_not_start_without_a_folder_setting(monkeypatch, name, value):

@@ -1,11 +1,12 @@
 """HTTP client for the journal: the service that keeps histories, run attempts,
-published platforms, prompt configs and uploaded attachments on disk. A request the journal refuses (an unknown
+published platforms, prompt configs, uploaded attachments and generated pipelines on disk. A request the journal refuses (an unknown
 name, a version that exists, a gap in a history) raises AgentServiceError with
 its reason. An unreachable journal surfaces as a raw httpx error.
 
 HistoryClient keeps a history there without sending the whole of it each time:
 it remembers how much the journal already has, and sends only what is new.
 """
+import base64
 import copy
 import json
 import logging
@@ -242,6 +243,19 @@ def record_attempt(
     )
 
 
+def keep_compiled_output(run_id: str, stage: str, attempt: str, data: bytes) -> None:
+    """Keeps what the validators compiled during an attempt, as one zip, with the attempt. The
+    attempt must be reserved and not recorded yet."""
+    body = {"content_base64": base64.b64encode(data).decode("ascii")}
+    _request("PUT", f"/attempts/{_seg(run_id)}/{_seg(stage)}/{_seg(attempt)}/compiled", UPLOAD_TIMEOUT, body)
+
+
+def get_compiled_output(run_id: str, stage: str, attempt: str) -> bytes | None:
+    """What the validators compiled during an attempt, as the zip it was kept as, or None."""
+    answer = _or_none("GET", f"/attempts/{_seg(run_id)}/{_seg(stage)}/{_seg(attempt)}/compiled", READ_TIMEOUT)
+    return None if answer is None else base64.b64decode(answer["content_base64"])
+
+
 def discard_attempt(run_id: str, stage: str, attempt: str) -> None:
     """Removes an attempt that was reserved and never recorded."""
     _request("DELETE", f"/attempts/{_seg(run_id)}/{_seg(stage)}/{_seg(attempt)}")
@@ -389,3 +403,33 @@ def get_upload(agent: str, name: str) -> str | None:
     """The uploaded file's text, or None when there is no such file."""
     answer = _or_none("GET", f"/uploads/{_seg(agent)}/{_seg(name)}")
     return None if answer is None else answer["content"]
+
+
+# --- generated pipelines --------------------------------------------------------------------
+
+
+def record_pipeline(
+    *, key: str, swarch_name: str, source_path: str | None, content: str, results: list[dict], generated_at: str | None = None
+) -> str:
+    """Keeps a generation so it can be reopened, and returns its id: the earlier generation's
+    when the key is the same, since the newest generation for a key replaces the older. Each
+    result carries its platform, its pipeline text and its intermediate models."""
+    body = {
+        "key": key,
+        "swarch_name": swarch_name,
+        "source_path": source_path,
+        "content": content,
+        "results": results,
+        "generated_at": generated_at,
+    }
+    return _request("POST", "/pipelines", PUBLISH_TIMEOUT, body).json()["id"]
+
+
+def list_pipelines() -> list[dict]:
+    """Every pipeline, newest first, without the bulky parts."""
+    return _request("GET", "/pipelines", READ_TIMEOUT).json()["pipelines"]
+
+
+def get_pipeline(pipeline_id: str) -> dict | None:
+    """One pipeline in full, or None when there is no such one."""
+    return _or_none("GET", f"/pipelines/{_seg(pipeline_id)}", READ_TIMEOUT)

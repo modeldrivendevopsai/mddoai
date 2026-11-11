@@ -31,7 +31,7 @@ def validate_ecore(
     """POSTs to validator-agent's real /validate/ecore, returns its parsed
     JSON response directly: {"valid": bool, "mode": str, "issues":
     [{"severity", "message", "source"}], "duration_ms": int,
-    "generated_source_path": str | None}. filename defaults to a generic
+    "compiled_output_kept": bool}. filename defaults to a generic
     name for callers (e.g. psm_agent's own generate()) that validate
     in-memory content with no real source file of its own. stage and
     attempt name the calling stage (e.g. "psm") and its own reserved attempt
@@ -67,9 +67,8 @@ def validate_atl(
 ) -> dict:
     """POSTs to validator-agent's real /validate/atl, returns its parsed
     JSON response directly: {"valid": bool, "issues": [...], "duration_ms":
-    int, "generated_source_path": str | None} — the compiled .asm bytecode's
-    real path on disk, when compiling actually produced one (see
-    validate_ecore's own generated_source_path for why this is kept). stage
+    int, "compiled_output_kept": bool} — whether the compiled .asm bytecode was
+    kept with the attempt in the journal (see validate_ecore's own compiled_output_kept). stage
     and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled
     output is kept under that exact stage and attempt rather than only
@@ -109,7 +108,7 @@ def validate_acceleo(
 ) -> dict:
     """POSTs to validator-agent's real /validate/acceleo, returns its
     parsed JSON response directly: {"valid": bool, "issues": [...],
-    "duration_ms": int, "generated_source_path": str | None} — the compiled
+    "duration_ms": int, "compiled_output_kept": bool} — the compiled
     .emtl module's real path on disk, when compiling actually produced one.
     stage and attempt name the calling stage and its own reserved attempt
     directory, joined in that order onto run_id, so that real compiled

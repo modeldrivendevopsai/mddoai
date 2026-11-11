@@ -5,11 +5,12 @@ persistence mechanism and generation_toolkit.routes.prompt_config.PromptConfigRo
 for the shared, generic HTTP surface every generation-capable service
 exposes identically over it.
 
-Every real path (config_dir, files_root) and the real sample context
-values a dry-run validation or a static preview needs both live here, not
-in generation_toolkit itself, which stays fully generic: it takes a
-config_dir and context_values from its caller, it has no idea this
-service's own directory layout or which context keys generation.py/
+The agent name (where the journal keeps this service's configs), the
+files a "file" attachment can resolve against, and the real sample context
+values a dry-run validation or a static preview needs all live here, not
+in generation_toolkit itself, which stays fully generic: it takes an
+agent name, files_root and context_values from its caller, it has no idea
+which files this service ships or which context keys generation.py/
 comparison.py actually supply for a real call.
 """
 from fastapi import HTTPException

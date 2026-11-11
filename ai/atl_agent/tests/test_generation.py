@@ -23,7 +23,7 @@ def ok_response(content):
 
 
 def valid_result():
-    return {"valid": True, "issues": [], "duration_ms": 5, "generated_source_path": None}
+    return {"valid": True, "issues": [], "duration_ms": 5, "compiled_output_kept": False}
 
 
 def invalid_result(message="reserved keyword used as target variable name"):
@@ -31,7 +31,7 @@ def invalid_result(message="reserved keyword used as target variable name"):
         "valid": False,
         "issues": [{"severity": "ERROR", "message": message, "source": None}],
         "duration_ms": 5,
-        "generated_source_path": None,
+        "compiled_output_kept": False,
     }
 
 

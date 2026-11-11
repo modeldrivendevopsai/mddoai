@@ -30,6 +30,6 @@ def test_includes_real_uploaded_files(tmp_path, isolated_attachment_uploads_dir)
         assert available_files.list_available_files() == ["abc123-example.atl"]
 
 
-def test_returns_empty_list_when_neither_root_exists(tmp_path, isolated_attachment_uploads_dir):
+def test_returns_empty_list_when_there_is_no_reference_file_and_no_upload(tmp_path):
     with patch("prompt_settings.REFERENCE_EXAMPLE_PATH", tmp_path / "does-not-exist.atl"):
         assert available_files.list_available_files() == []

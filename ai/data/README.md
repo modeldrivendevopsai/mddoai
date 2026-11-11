@@ -9,8 +9,7 @@ attachments/<agent>/   files uploaded to an agent, kept by the journal
 workspace/             the models you pick from
 runs/                  every platform integration run
 chats/                 the chat of each run
-validator-output/      the validators' compiled output
-pipelines/             the pipelines generated so far
+pipelines/             the pipelines generated so far, kept by the journal
 ```
 
 Git tracks the platform files and the starting prompt configs, as `.gitignore` here says. Everything else here is git-ignored.

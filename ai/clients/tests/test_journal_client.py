@@ -9,17 +9,17 @@ import pytest
 from clients import journal_client
 from clients.agent_service_errors import AgentServiceError
 from clients.journal_client import HistoryClient
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 
 
 @pytest.fixture
 def folders(tmp_path):
-    return tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", tmp_path / "prompts", tmp_path / "attachments"
+    return folders_in(tmp_path)
 
 
 @pytest.fixture(autouse=True)
 def journal(folders):
-    with journal_in_process(*folders):
+    with journal_in_process(folders):
         yield
 
 
@@ -543,3 +543,53 @@ def test_the_swarch_to_pim_transformation_is_read(folders):
     (folders[2] / "swarch2pim.atl").write_text("module S;", encoding="utf-8")
 
     assert journal_client.get_pim_transformation() == "module S;"
+
+
+# --- compiled output and generated pipelines ----------------------------------------------------
+
+
+def test_compiled_output_is_kept_with_a_reserved_attempt_and_read_back_as_bytes():
+    attempt = journal_client.reserve_attempt("r1", "atl")
+
+    journal_client.keep_compiled_output("r1", "atl", attempt, b"PK\x03\x04 zipped \xff")
+
+    assert journal_client.get_compiled_output("r1", "atl", attempt) == b"PK\x03\x04 zipped \xff"
+    assert journal_client.get_compiled_output("r1", "psm", "attempt_1") is None
+
+
+def test_compiled_output_for_an_attempt_that_is_not_reserved_is_refused():
+    with pytest.raises(AgentServiceError) as error:
+        journal_client.keep_compiled_output("r1", "atl", "attempt_1", b"x")
+
+    assert error.value.status_code == 404
+
+
+def _result(pipeline="stages: [build]\n"):
+    return {
+        "platform": {"id": "gitlab", "name": "GitLab CI"},
+        "output_filename": ".gitlab-ci.yml",
+        "pipeline": pipeline,
+        "intermediates": [],
+    }
+
+
+def test_a_pipeline_is_kept_listed_and_read_back():
+    pipeline_id = journal_client.record_pipeline(
+        key="path:/m/a.swarch", swarch_name="a.swarch", source_path="/m/a.swarch", content="<a/>", results=[_result()]
+    )
+
+    [summary] = journal_client.list_pipelines()
+    assert summary["id"] == pipeline_id and summary["swarch_name"] == "a.swarch"
+    record = journal_client.get_pipeline(pipeline_id)
+    assert record["content"] == "<a/>" and record["results"][0]["pipeline"] == "stages: [build]\n"
+    assert journal_client.get_pipeline("0" * 32) is None
+
+
+def test_a_newer_generation_for_the_same_key_keeps_the_id_and_a_bad_result_is_refused():
+    first = journal_client.record_pipeline(key="k", swarch_name="a", source_path=None, content="<old/>", results=[_result()])
+    second = journal_client.record_pipeline(key="k", swarch_name="a", source_path=None, content="<new/>", results=[_result()])
+
+    assert second == first
+    with pytest.raises(AgentServiceError) as error:
+        journal_client.record_pipeline(key="k2", swarch_name="a", source_path=None, content="<x/>", results=[_result(pipeline=None)])
+    assert error.value.status_code == 422

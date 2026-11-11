@@ -1,12 +1,11 @@
 """Shared pytest fixtures for acceleo_agent's own test suite."""
 import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
-import os
 import shutil
 from pathlib import Path
 
 import pytest
 
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 
 import prompt_settings  # noqa: E402
 
@@ -19,10 +18,10 @@ def journal(tmp_path):
     folder starts as a copy of the shipped starting configs, so no test writes into the
     committed files, and a test that saves a config or uploads a file keeps it there and
     nowhere else. Yields the prompts and attachments folders."""
-    prompts, attachments = tmp_path / "journal-prompts", tmp_path / "journal-attachments"
-    shutil.copytree(_AI_DIR / "data" / "prompts" / prompt_settings.AGENT, prompts / prompt_settings.AGENT)
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", prompts, attachments):
-        yield prompts, attachments
+    folders = folders_in(tmp_path)
+    shutil.copytree(_AI_DIR / "data" / "prompts" / prompt_settings.AGENT, folders.prompts / prompt_settings.AGENT)
+    with journal_in_process(folders):
+        yield folders.prompts, folders.attachments
 
 
 @pytest.fixture

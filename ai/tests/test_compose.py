@@ -316,7 +316,7 @@ def test_the_test_setup_script_fills_in_every_host_setting_compose_requires():
 
 # The folders only the journal reads and writes: every other service reaches
 # what is in them through the journal's API.
-JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR", "MDDOAI_PROMPTS_DIR", "MDDOAI_ATTACHMENTS_DIR"}
+JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR", "MDDOAI_PROMPTS_DIR", "MDDOAI_ATTACHMENTS_DIR", "MDDOAI_PIPELINES_DIR"}
 JOURNAL_URL = "http://journal:8120"
 
 

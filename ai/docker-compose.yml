@@ -391,27 +391,27 @@ services:
   # add another sibling /validate/<type> route to this same service.
   validator-agent:
     build:
-      context: ./validator_agent
+      context: .
+      dockerfile: validator_agent/Dockerfile
     env_file:
       - path: ./validator_agent/.env
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # Compiled output of the validators. Nothing deletes old output.
-      - type: bind
-        source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
-        target: /data/output
       # The same sample PIM instance. The validators run a generated ATL/Acceleo pair
       # against it, so a pair that compiles but crashes at runtime fails in the retry loop.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
       - LOG_LEVEL=INFO
-      - VALIDATOR_OUTPUT_DIR=/data/output
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
+      # Where what a validator compiled is kept, with the attempt it was compiled for.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
+      journal:
+        condition: service_healthy
     expose:
       - "8020"
 
@@ -472,19 +472,15 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      # What "Your pipelines" lists.
-      - type: bind
-        source: ${MDDOAI_PIPELINES_DIR:?}
-        target: /data/pipelines
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
-      # Where the platforms are kept, read on every request so a published version applies to the next generation.
+      # Where the platforms and the generated pipelines are kept. The platforms are read on every request, so a
+      # published version applies to the next generation.
       - JOURNAL_URL=http://journal:8120
       - GENERATOR_WORKSPACE_DIR=/workspace
       # Shown in Browse.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
-      - GENERATOR_PIPELINES_DIR=/data/pipelines
       - LOG_LEVEL=INFO
     depends_on:
       journal:
@@ -497,7 +493,7 @@ services:
       - "8100"
 
   # Own container: the one service that reads and writes the run, chat, platform,
-  # prompt config and attachment folders. Every other service reaches them through its API (see
+  # prompt config, attachment and pipeline folders. Every other service reaches them through its API (see
   # clients/journal_client.py), so a change to where or how they are kept
   # touches this service and nothing else. It knows nothing about what a run, a
   # chat or a platform means beyond how to keep it.
@@ -511,6 +507,7 @@ services:
       - JOURNAL_PLATFORMS_DIR=/data/platforms
       - JOURNAL_PROMPTS_DIR=/data/prompts
       - JOURNAL_ATTACHMENTS_DIR=/data/attachments
+      - JOURNAL_PIPELINES_DIR=/data/pipelines
     volumes:
       # Each run's journal and attempts.
       - type: bind
@@ -538,6 +535,10 @@ services:
       - type: bind
         source: ${MDDOAI_ATTACHMENTS_DIR:?}
         target: /data/attachments
+      # The pipelines generated so far, which "Your pipelines" lists.
+      - type: bind
+        source: ${MDDOAI_PIPELINES_DIR:?}
+        target: /data/pipelines
     expose:
       - "8120"
 
