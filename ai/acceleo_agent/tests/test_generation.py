@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from clients import ai_layer_client, validator_agent_client
 from generation import generate
+from generation_toolkit.mock_chain import MOCK_ATL, MOCK_MTL, MOCK_PSM_ECORE
 from prompt_paths import REFERENCE_EXAMPLE_PATH
 
 
@@ -106,30 +107,18 @@ def test_forwards_the_real_psm_artifact_as_the_target_metamodel_to_validate():
     assert mock_validate.call_args.kwargs["metamodel_ecore"] == "<teamcity-psm-ecore/>"
 
 
-def test_mock_mode_does_not_forward_a_metamodel_since_it_always_targets_gitlab():
-    # mock=True's own fixed _MOCK_ARTIFACT always targets the real,
-    # registered GitLab metamodel URI regardless of which real platform is
-    # under test (see generation.py's own _MOCK_ARTIFACT comment) - passing
-    # a different platform's own ecore here would be actively wrong, not
-    # just unnecessary.
+def test_mock_mode_validates_against_the_mock_chains_own_metamodel_and_atl_not_this_runs():
+    # The mock template reads the mock metamodel only, so this run's own
+    # psm_artifact and atl_artifact would be the wrong ones to run it against.
     with patch.object(ai_layer_client, "chat") as mock_chat, \
          patch.object(validator_agent_client, "validate_acceleo", return_value=valid_result()) as mock_validate:
-        generate("<teamcity-psm-ecore/>", "docs", mock=True)
+        result = generate("<teamcity-psm-ecore/>", "docs", atl_artifact="module m; ...", mock=True)
 
     mock_chat.assert_not_called()
-    assert mock_validate.call_args.kwargs.get("metamodel_ecore") is None
-
-
-def test_mock_mode_does_not_forward_this_runs_own_atl_either():
-    # Same reasoning as the metamodel case just above: _MOCK_ARTIFACT is a
-    # fixed, already-proven-valid module, not something meant to be run
-    # against this run's own real, unrelated atl_artifact.
-    with patch.object(ai_layer_client, "chat") as mock_chat, \
-         patch.object(validator_agent_client, "validate_acceleo", return_value=valid_result()) as mock_validate:
-        generate("<psm/>", "docs", atl_artifact="module m; ...", mock=True)
-
-    mock_chat.assert_not_called()
-    assert mock_validate.call_args.kwargs.get("atl_source") is None
+    assert result["artifact"] == MOCK_MTL
+    assert mock_validate.call_args.args[:2] == (MOCK_MTL, "generate.mtl")
+    assert mock_validate.call_args.kwargs["metamodel_ecore"] == MOCK_PSM_ECORE
+    assert mock_validate.call_args.kwargs["atl_source"] == MOCK_ATL
 
 
 def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
@@ -144,11 +133,10 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
     # round_constraints is what lets integration_runner's own acceleo_stage
     # persist this real, per-run fix as a real constraint, so the NEXT
     # external retry builds on it instead of rediscovering it from scratch
-    # (see pipeline.py's own _persist_round_constraints()). A membership
-    # check, not exact equality: it also carries this config's own real,
-    # already-promoted learned_constraints (a separate, permanent concept),
-    # which real prompt configs already have some of.
-    assert "Fix: bad template" in result["round_constraints"]
+    # (see pipeline.py's own _persist_round_constraints()). Only the fix: the
+    # config's permanent learned_constraints stay in the config and are not
+    # copied into the run.
+    assert result["round_constraints"] == ["Fix: bad template"]
 
 
 def test_prior_constraints_carried_into_first_round():
@@ -187,7 +175,5 @@ def test_mock_skips_the_real_llm_call_but_still_validates_and_resolves_config():
     assert result["rounds"] == 1
     # Real config still resolved: prompt still carries the real master example.
     assert result["prompt"]["acceleo_example"] == Path(REFERENCE_EXAMPLE_PATH).read_text()
-    # Present even in mock mode (a real list, not missing) - its exact
-    # content here is just the config's own real, already-promoted
-    # learned_constraints, a separate concern this test isn't about.
-    assert isinstance(result["round_constraints"], list)
+    # A mocked call learns no fix.
+    assert result["round_constraints"] == []

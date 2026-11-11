@@ -575,6 +575,10 @@ real folder.
   validation + persistence, `validator_agent_client` mocked. `psm`/`atl`/`acceleo` aren't part of
   this file: each is a real proxy to its own real service, not fixed content — see
   `tests/stages/test_psm_stage.py`/`test_atl_stage.py`/`test_acceleo_stage.py` instead.
+- **`tests/stages/test_mock_chain_real_engines.py`** — the mock chain (`generation_toolkit`'s
+  `mock_chain`) through the real `validator-agent` and `execution-agent`: each artifact compiles, and
+  the chain runs on the sample PIM the generation stage uses and writes its file. Auto-skips when
+  either isn't reachable.
 - **`tests/stages/test_mock_validated_stages_real_validator.py`** — the real end-to-end
   exception for `pim`: no mocking of `validator_agent_client`, a real HTTP call to a real running
   `validator-agent`. Auto-skips when it isn't reachable (`docker compose up validator-agent`, or

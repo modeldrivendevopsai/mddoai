@@ -27,6 +27,7 @@ holds them, beginning from the starting content the repository ships.
 """
 
 from generation_toolkit.generation_agent import run_with_retry
+from generation_toolkit.mock_chain import MOCK_PSM_ECORE, mock_generation_result
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
@@ -36,21 +37,6 @@ from clients import validator_agent_client
 from comparison import files_root
 import prompt_paths
 
-# mock=True's fixed stand-in output: the same minimal, already-proven-valid
-# shape the pim stage's own placeholder mock content uses (matching
-# validator_agent/tests/fixtures/valid.ecore, which that service's own
-# real test suite already asserts passes reflective validation), so a
-# mocked round-trip still exercises the real validator-agent call and the
-# real attempt-persistence path, just never the real (slow, billed) LLM call.
-# Named distinctly so it's never mistaken for a real generated metamodel.
-_MOCK_ARTIFACT = """<?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="mockPsm" nsURI="http://mddoai.com/mock/psm" nsPrefix="mockPsm">
-  <eClassifiers xsi:type="ecore:EClass" name="MockPipelineBlock">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-  </eClassifiers>
-</ecore:EPackage>
-"""
 
 
 def _validate(artifact: str, run_id: str | None = None, stage: str | None = None, attempt: str | None = None) -> dict:
@@ -86,10 +72,10 @@ def generate(
 
     mock=True (the per-run "Mock" override, same opt-in as docs_stage's own
     context["mock"]) still resolves the real config/attachments and still
-    runs the real validator-agent call against a fixed, already-valid
-    artifact, so the prompt-builder mechanism and the real attempt-
-    persistence path are both exercised for real - it only skips the real
-    LLM call, for fast local iteration on a config without spending it."""
+    runs the real validator-agent call, so the prompt-builder mechanism and
+    the real attempt-persistence path are both exercised for real. It
+    returns the mock chain's fixed metamodel (see generation_toolkit's
+    mock_chain) and never calls a model, so no constraint changes it."""
     if mock:
         context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
         config, parts = prompt_resolution.resolve_for_call(
@@ -97,15 +83,8 @@ def generate(
         )
         combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
         prompt = build_prompt(parts, combined_constraints)
-        validation = _validate(_MOCK_ARTIFACT, run_id, stage, attempt)
-        return {
-            "artifact": _MOCK_ARTIFACT,
-            "prompt": prompt,
-            "validation": validation,
-            "rounds": 1,
-            "prompt_version": config.get("_version"),
-            "round_constraints": combined_constraints,
-        }
+        validation = _validate(MOCK_PSM_ECORE, run_id, stage, attempt)
+        return mock_generation_result(MOCK_PSM_ECORE, prompt, validation, config.get("_version"))
 
     context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
     config, parts = prompt_resolution.resolve_for_call(

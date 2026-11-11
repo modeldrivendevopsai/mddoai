@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from clients import ai_layer_client, validator_agent_client
 from generation import generate
+from generation_toolkit.mock_chain import MOCK_ATL, MOCK_PSM_ECORE
 from prompt_paths import REFERENCE_EXAMPLE_PATH
 
 
@@ -91,18 +92,16 @@ def test_forwards_the_real_psm_artifact_as_the_target_metamodel_to_validate():
     assert mock_validate.call_args.kwargs["metamodel_ecore"] == "<real-psm-ecore/>"
 
 
-def test_mock_mode_does_not_forward_a_metamodel_since_it_always_targets_a_fixed_fake():
-    # mock=True's own fixed _MOCK_ARTIFACT always targets a fictional "PSM"
-    # package, never this run's own real psm_artifact (see generation.py's
-    # own _MOCK_ARTIFACT) - forwarding a real, unrelated target metamodel
-    # alongside it would make the real execution smoke test run the mock
-    # ATL against the wrong metamodel entirely.
+def test_mock_mode_validates_against_the_mock_chains_own_metamodel_not_this_runs():
+    # The mock transformation targets the mock metamodel only, so forwarding
+    # this run's own psm_artifact would run it against the wrong metamodel.
     with patch.object(ai_layer_client, "chat") as mock_chat, \
          patch.object(validator_agent_client, "validate_atl", return_value=valid_result()) as mock_validate:
-        generate("<pim/>", "<real-psm-ecore/>", mock=True)
+        result = generate("<pim/>", "<real-psm-ecore/>", mock=True)
 
     mock_chat.assert_not_called()
-    assert mock_validate.call_args.kwargs.get("metamodel_ecore") is None
+    assert result["artifact"] == MOCK_ATL
+    assert mock_validate.call_args.kwargs["metamodel_ecore"] == MOCK_PSM_ECORE
 
 
 def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
@@ -117,11 +116,10 @@ def test_regenerates_once_on_a_real_validation_failure_then_succeeds():
     # round_constraints is what lets integration_runner's own atl_stage
     # persist this real, per-run fix as a real constraint, so the NEXT
     # external retry builds on it instead of rediscovering it from scratch
-    # (see pipeline.py's own _persist_round_constraints()). A membership
-    # check, not exact equality: it also carries this config's own real,
-    # already-promoted learned_constraints (a separate, permanent concept),
-    # which real prompt configs already have some of.
-    assert "Fix: dangling reference" in result["round_constraints"]
+    # (see pipeline.py's own _persist_round_constraints()). Only the fix: the
+    # config's permanent learned_constraints stay in the config and are not
+    # copied into the run.
+    assert result["round_constraints"] == ["Fix: dangling reference"]
 
 
 def test_prior_constraints_carried_into_first_round():
@@ -160,7 +158,5 @@ def test_mock_skips_the_real_llm_call_but_still_validates_and_resolves_config():
     assert result["rounds"] == 1
     # Real config still resolved: prompt still carries the real master example.
     assert result["prompt"]["atl_example"] == Path(REFERENCE_EXAMPLE_PATH).read_text()
-    # Present even in mock mode (a real list, not missing) - its exact
-    # content here is just the config's own real, already-promoted
-    # learned_constraints, a separate concern this test isn't about.
-    assert isinstance(result["round_constraints"], list)
+    # A mocked call learns no fix.
+    assert result["round_constraints"] == []

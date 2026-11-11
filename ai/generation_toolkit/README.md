@@ -35,7 +35,7 @@ result = run_with_retry(
     max_regenerate_rounds=DEFAULT_MAX_REGENERATE_ROUNDS,  # 6
     model=None,
 )
-# -> {"output": str, "prompt": dict, "validation": dict | None, "rounds": int}
+# -> {"output": str, "prompt": dict, "validation": dict | None, "rounds": int, "round_constraints": list[str]}
 ```
 
 Loop: build the prompt, call `ai-layer` via `clients/ai_layer_client.py`, strip a markdown code
@@ -46,11 +46,28 @@ new constraints, one per validator issue (`root_cause_fn`, default: every issue,
 another round. Bounded, so a persistently-invalid generation fails closed (returns its last,
 still-invalid attempt) instead of looping forever.
 
+`round_constraints` is only the fixes this call found, not the `constraints` it was given. The caller
+saves them as the run's own corrections so the next call builds on them. The permanent constraints
+stay in the saved prompt config: copying them into the run made every later prompt list them twice.
+Each fix is a validator message with the engine's object addresses masked (they change on every
+run, so the same failure is recorded once) and cut to `MAX_FIX_CHARS`, keeping its start and its end.
+The ATL engine's "Operation not found" message embeds a dump of its internal link set, which was
+once 68,776 characters in every later prompt.
+
 `validation` is `None` when `validate_fn` was never given — a stage with no real validator yet
 just omits it and gets a plain single-shot call, no code path change needed once that stage grows
 a real validator to check against later. `prompt` in the result always reflects the round that
 actually produced `output`, so a caller showing "what was fed to the model" is always showing the
 truth, not a stale first attempt.
+
+## `mock_chain` — what a mocked stage returns
+
+The fixed metamodel, transformation and template that `psm_agent`, `atl_agent` and `acceleo_agent`
+return when `mock` is on. They belong together: the transformation reads the real PIM (its
+namespace and classes) and writes a small mock platform, and the template reads that platform. So a
+mocked run compiles at every stage, goes through generation on the real PIM, and can be published
+and used like any platform. No model is called and no correction changes the output. A mocked stage
+fits only a run whose stages are all mocked.
 
 ## `attachments/` — turning a UI-editable list into prompt parts
 

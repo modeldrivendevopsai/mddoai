@@ -6,9 +6,8 @@ generates a new Acceleo model-to-text template that generates that platform's re
 configuration from a PSM model instance, refined against real `validator_agent` feedback
 (`validator_agent_client.validate_acceleo`, given the run's own real PSM ecore as
 `metamodel_ecore` so the target platform's own metamodel resolves during compilation even when
-it's a brand-new platform with no genmodel or compiled Java package of its own — mock mode omits
-this, since its own fixed mock artifact always targets the one metamodel already registered
-ahead of time regardless of which real platform is under test) rather than accepted on the first
+it's a brand-new platform with no genmodel or compiled Java package of its own — mock mode gives
+the validator the mock chain's own metamodel and transformation instead) rather than accepted on the first
 attempt, via the
 shared `generation_toolkit` package's `run_with_retry()` (a stage-agnostic "build a prompt, call
 the LLM, validate, retry" toolkit, not specific to Acceleo — see `generation_toolkit/README.md`).
@@ -75,8 +74,9 @@ scoping the real compiled `.emtl` module a real validator-agent call produces: p
 fields, forwarded unchanged into `validator_agent_client.validate_acceleo`.
 
 `mock: true` (the same per-run "Mock" override every other real stage shares) still resolves the
-real prompt config and runs the real `validator_agent` call against a small, fixed, already-valid
-artifact — it only skips the real, slow, billed LLM call, for fast local iteration on a config.
+real prompt config and runs the real `validator_agent` call, against the mock chain's fixed template
+(see `generation_toolkit`'s `mock_chain`) and the mock chain's own metamodel, not the run's. It skips
+the real LLM call, so no constraint changes the result, and a mocked call learns no fix.
 
 ### `GET /health`
 

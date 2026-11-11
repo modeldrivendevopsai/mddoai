@@ -63,8 +63,9 @@ scoping the real compiled `.asm` bytecode a real validator-agent call produces: 
 fields, forwarded unchanged into `validator_agent_client.validate_atl`.
 
 `mock: true` (the same per-run "Mock" override every other real stage shares) still resolves the
-real prompt config and runs the real `validator_agent` call against a small, fixed, already-valid
-artifact — it only skips the real, slow, billed LLM call, for fast local iteration on a config.
+real prompt config and runs the real `validator_agent` call, against the mock chain's fixed transformation
+(see `generation_toolkit`'s `mock_chain`) and the mock chain's own metamodel, not the run's. It skips
+the real LLM call, so no constraint changes the result, and a mocked call learns no fix.
 
 ### `GET /health`
 

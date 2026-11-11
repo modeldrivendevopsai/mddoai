@@ -16,6 +16,7 @@ from unittest.mock import patch
 from clients import ai_layer_client, validator_agent_client
 from comparison import DEFAULT_PSM_MASTER_EXAMPLE_PATH
 from generation import generate
+from generation_toolkit.mock_chain import MOCK_PSM_ECORE
 
 
 def ok_response(content):
@@ -167,12 +168,12 @@ def test_mock_skips_the_real_llm_call_but_still_validates():
     # Real config resolution still happened - same real master example and
     # real learned constraints a non-mock call would resolve.
     assert result["prompt"]["psm_example"] == Path(DEFAULT_PSM_MASTER_EXAMPLE_PATH).read_text()
-    # Present even in mock mode (a real list, not missing) - its exact
-    # content here is just the config's own real, already-promoted
-    # learned_constraints, a separate concern this test isn't about.
-    assert isinstance(result["round_constraints"], list)
+    # A mocked call learns no fix, and the permanent constraints stay in the
+    # config. They are still in the prompt, which a mocked call builds for display.
+    assert result["round_constraints"] == []
     assert "valid Java identifier" in result["prompt"]["constraints"]
-    assert "ecore:EPackage" in result["artifact"]
+    assert result["artifact"] == MOCK_PSM_ECORE
+    mock_validate.assert_called_once_with(MOCK_PSM_ECORE, mode="codegen", run_id=None, stage=None, attempt=None)
 
 
 def test_generate_resolves_a_file_attachment_the_human_uploaded(

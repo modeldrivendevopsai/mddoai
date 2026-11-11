@@ -4,7 +4,12 @@ convention of mocking the network boundary, not internal logic)."""
 from unittest.mock import patch
 
 from clients import ai_layer_client
-from generation_toolkit.generation_agent import DEFAULT_MAX_REGENERATE_ROUNDS, run_with_retry, strip_code_fence
+from generation_toolkit.generation_agent import (
+    DEFAULT_MAX_REGENERATE_ROUNDS,
+    MAX_FIX_CHARS,
+    run_with_retry,
+    strip_code_fence,
+)
 
 
 def ok_response(content):
@@ -54,33 +59,80 @@ def test_regenerates_once_then_succeeds_and_adds_one_constraint():
     assert "Fix: missing thing" in result["prompt"]["constraints"]
 
 
-def test_round_constraints_includes_the_original_plus_every_real_fix_found():
+def test_round_constraints_is_every_real_fix_found_and_not_the_constraints_given():
     # The whole point of returning this: a caller (integration_runner's own
     # stage agents) persists it as real constraints so the NEXT external
     # retry doesn't have to rediscover the same real mistakes from a blank
     # slate - confirmed for real against a stuck run that needed 5 external
     # retries, each silently re-spending its own internal budget, before
-    # this field existed.
+    # this field existed. The constraints given are not returned: the
+    # permanent ones live in the saved config, and the caller persisting them
+    # into the run made every later prompt list them twice.
     validations = [invalid_result("missing thing"), invalid_result("another problem"), valid_result()]
     with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
         result = run_with_retry(
             "system prompt", {"a": "x"}, constraints=["already known"], validate_fn=lambda _: validations.pop(0)
         )
 
-    assert result["round_constraints"] == [
-        "already known",
-        "Fix: missing thing",
-        "Fix: another problem",
-    ]
+    assert result["round_constraints"] == ["Fix: missing thing", "Fix: another problem"]
+    # What the model was told still starts with what the caller gave.
+    assert result["prompt"]["constraints"].startswith("- already known")
 
 
-def test_round_constraints_stays_just_the_original_when_valid_on_first_round():
+def test_round_constraints_is_empty_when_valid_on_first_round():
     with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
         result = run_with_retry(
             "system prompt", {"a": "x"}, constraints=["already known"], validate_fn=lambda _: valid_result()
         )
 
-    assert result["round_constraints"] == ["already known"]
+    assert result["round_constraints"] == []
+
+
+def test_a_fix_that_is_an_engine_dump_is_cut_to_its_start_and_its_end():
+    # The ATL engine's "Operation not found" message embeds its whole internal
+    # link set: one real one was 68,776 characters in every later prompt.
+    dump = "Operation not found: TransientLinkSet {" + "TransientLink {rule = R} " * 4000 + "}.addSourceElement(String)"
+    validations = [invalid_result(dump), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    (fix,) = result["round_constraints"]
+    assert len(fix) <= len("Fix: ") + MAX_FIX_CHARS
+    assert fix.startswith("Fix: Operation not found: TransientLinkSet {")
+    assert fix.endswith(".addSourceElement(String)")
+    assert "[...]" in fix
+
+
+def test_an_ordinary_error_message_is_kept_whole():
+    message = "Feature program does not exist on Cache"
+    validations = [invalid_result(message), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    assert result["round_constraints"] == [f"Fix: {message}"]
+
+
+def test_text_that_only_looks_like_an_object_address_is_kept():
+    message = "Cannot resolve user@deadbeef.example in com.pkg.Name@ab12cd34f and @cafe123"
+    validations = [invalid_result(message), valid_result()]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    # Neither an address-like part of an e-mail, nor a hash too long to be one, nor one with no class before it.
+    assert result["round_constraints"] == [f"Fix: {message}"]
+
+
+def test_the_same_failure_on_two_rounds_is_recorded_once_although_its_object_addresses_differ():
+    # An engine message names objects by address, which changes on every run.
+    validations = [
+        invalid_result("failed on StepImpl@38499e48 (name: build)"),
+        invalid_result("failed on StepImpl@5b78fdb1 (name: build)"),
+        valid_result(),
+    ]
+    with patch.object(ai_layer_client, "chat", return_value=ok_response("output")):
+        result = run_with_retry("system prompt", {"a": "x"}, validate_fn=lambda _: validations.pop(0))
+
+    assert result["round_constraints"] == ["Fix: failed on StepImpl@ (name: build)"]
 
 
 def test_stops_at_max_rounds_when_never_valid():

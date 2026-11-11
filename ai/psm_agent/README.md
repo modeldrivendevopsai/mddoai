@@ -106,10 +106,10 @@ this service never touches the filesystem with them directly. `400` if a resolve
 doesn't exist on disk.
 
 `mock` (optional, default `false`) only ever matters on the generation path too: it skips the two
-slow, billed steps (PIM-concept grounding and the real LLM call), returning a fixed, already-valid
-placeholder artifact instead, while still resolving the real prompt config and still running the
-real `validator_agent` call against that placeholder — a fast, free way to exercise the prompt
-config mechanism and the real attempt-persistence path without spending either. `prompt_version`
+slow, billed steps (PIM-concept grounding and the real LLM call), returning the mock chain's fixed
+metamodel instead (see `generation_toolkit`'s `mock_chain`), while still resolving the real prompt
+config and still running the real `validator_agent` call against it. No constraint changes a mocked
+result, and a mocked call learns no fix (`round_constraints` is empty). `prompt_version`
 in a generation-mode response names exactly which saved config (see below) produced this output,
 the real link an attempt's own persisted `prompt.json` and a later "restore the config that
 produced this" UI action both need.
