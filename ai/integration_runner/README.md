@@ -119,8 +119,9 @@ stage_agents = {
 - **`stages/docs/agent.py`** and **`stages/serialization/agent.py`** are real agents: the former
   calls `retrieval`'s actual `POST /fetch` via `clients/retrieval_client.py`; the latter calls the
   real, separate [`ai/serialization_agent`](../serialization_agent) service's `POST /serialize`
-  via `clients/serialization_agent_client.py` — a multi-step extraction/labeling pipeline, its own
-  container since it makes its own outbound call to `pim_agent`.
+  via `clients/serialization_agent_client.py` — it cuts the docs into sections and labels each against
+  the PIM concepts, keeping all of the text and calling no model; its own container since it makes its
+  own outbound call to `pim_agent`.
 - **`stages/pim/agent.py`** is still a placeholder in one real sense, no real PIM *instance*
   extraction pipeline exists yet, so it ignores a run's own real SWArch/serialization input, but
   its output is MDDOAI's own real, fixed PIM metamodel (`meta_models/com.mddoai.metamodel.pim`'s
@@ -193,10 +194,10 @@ file, not a restructuring.
   `extend_with_page()` despite both wrapping retrieval calls — see
   [The docs stage's extra action](#the-docs-stages-extra-action-stagesdocsactionspy) below for
   exactly how and why they differ.
-- **`serialization_stage(context)`** — reads `context["docs_output"]` and the run's chosen
-  model, and forwards both to the real `serialization_agent` service's `POST /serialize` via
-  `clients/serialization_agent_client.py`. No constraints support today: this stage has no
-  correction-taking parameter of its own to fold one into.
+- **`serialization_stage(context)`** — reads `context["docs_output"]` and forwards it to the real
+  `serialization_agent` service's `POST /serialize` via `clients/serialization_agent_client.py`. The
+  run's model is not forwarded, since the stage calls none. No constraints support today: this stage
+  has no correction-taking parameter of its own to fold one into.
 - **`pim_stage(context)`** — ignores its input context (fixed content has nothing to prefer/fall
   back between). Returns MDDOAI's own real, fixed PIM metamodel content, read off
   `PIM_METAMODEL_PATH`, after validating it for real via `validator_agent_client.validate_ecore()`.
@@ -565,7 +566,7 @@ real folder.
 - **`tests/stages/test_docs_actions.py`** — `extend_with_page()`'s real appending behavior and
   event recording, against a real `IntegrationRun` (`stages/docs/actions.py`).
 - **`tests/stages/test_serialization_agent.py`** — the `serialization_stage` wrapper
-  (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
+  (`stages/serialization/agent.py`); the real sectioning and labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_generation_stage.py`** — the real (non-placeholder) `gen_stage` agent
   (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl_from_pim()` then

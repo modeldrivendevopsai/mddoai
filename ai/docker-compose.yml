@@ -234,18 +234,15 @@ services:
   # Own container, same reasoning as pim-agent/psm-agent: a real pipeline
   # capability (the docs stage's raw output -> a PIM-concept-labeled
   # markdown artifact) gets independent deployability, not bundled into
-  # whichever process happens to call it. Calls ai-layer directly (its own
-  # extraction LLM call) and pim-agent (concept grounding).
+  # whichever process happens to call it. Calls pim-agent (concept grounding)
+  # and no model.
   serialization-agent:
     build:
       context: .
       dockerfile: serialization_agent/Dockerfile
     environment:
-      - AI_LAYER_URL=http://ai-layer:8000
       - PIM_AGENT_URL=http://pim-agent:8030
     depends_on:
-      ai-layer:
-        condition: service_healthy
       pim-agent:
         condition: service_healthy
     expose:
