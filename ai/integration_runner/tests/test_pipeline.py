@@ -170,6 +170,23 @@ def test_run_stage_persists_round_constraints_as_real_constraints():
     assert o.constraints["atl"] == ["Fix: dangling reference"]
 
 
+def _constraint_events(run):
+    return [e for e in run.event_log.events if e["type"] == "constraint_added"]
+
+
+def test_a_fix_learned_from_validation_is_marked_as_such_and_a_persons_correction_is_not():
+    o = pipeline.IntegrationRun()
+    _fast_forward_to(o, "atl")
+    o.add_constraint("atl", "Use kebab-case rule names")
+    result_with_learning = {**_atl_generation_result(valid=False), "round_constraints": ["Fix: dangling reference"]}
+    with patch.object(atl_agent_client, "run_atl", return_value=result_with_learning):
+        o.run_stage({"platform_description": "A GitLab CI platform"})
+
+    typed, learned = _constraint_events(o)
+    assert typed["data"] == {"constraint": "Use kebab-case rule names"}
+    assert learned["data"] == {"constraint": "Fix: dangling reference", "source": pipeline.FIX_SOURCE_VALIDATION}
+
+
 def test_run_stage_does_not_duplicate_a_round_constraint_already_recorded():
     o = pipeline.IntegrationRun()
     _fast_forward_to(o, "atl")

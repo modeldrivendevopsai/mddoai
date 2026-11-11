@@ -63,6 +63,30 @@ describe("ChatColumn", () => {
     expect(screen.getByText(/all providers exhausted/)).toBeTruthy()
   })
 
+  it("labels a fix the validator produced differently from a correction a person typed", () => {
+    const typed: OrchestratorEvent = { type: "constraint_added", stage: "atl", timestamp: 0, data: { constraint: "Use kebab-case" } }
+    const learned: OrchestratorEvent = {
+      type: "constraint_added",
+      stage: "atl",
+      timestamp: 1,
+      data: { constraint: "Fix: dangling reference", source: "validation" },
+    }
+    renderChat({ events: [typed, learned] })
+
+    expect(screen.getByText("Correction added: atl")).toBeTruthy()
+    expect(screen.getByText("Fix learned: atl")).toBeTruthy()
+  })
+
+  it("lets a long unbroken name in a message break, so the chip stays inside the chat", () => {
+    const name = "ASMModule.DockerContainer2Service(com.mddoai.metamodel.pim.pimMM.impl.DockerContainerImpl)"
+    const failed: OrchestratorEvent = { type: "call_failed", stage: "atl", timestamp: 0, data: { error: `Operation not found: ${name}` } }
+    renderChat({ events: [failed] })
+
+    const summary = screen.getByText(`Operation not found: ${name}`)
+    expect(summary.style.overflowWrap).toBe("anywhere")
+    expect((summary.parentElement as HTMLElement).style.minWidth).toBe("0px")
+  })
+
   it("shows where a forked run was forked and from which run", () => {
     const forked: OrchestratorEvent = {
       type: "forked_from",

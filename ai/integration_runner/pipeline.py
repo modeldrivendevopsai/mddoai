@@ -66,6 +66,12 @@ _STAGE_OVERRIDE_KEYS: dict[str, set[str]] = {
 }
 
 
+# The `source` a constraint_added event carries for a fix the validator's errors
+# produced, as against a correction a person typed (which carries none). The
+# chat reads this name.
+FIX_SOURCE_VALIDATION = "validation"
+
+
 def _check_saved(state: object) -> None:
     """Raises ValueError unless `state` has the shape snapshot() writes."""
     if not isinstance(state, dict):
@@ -255,7 +261,7 @@ class IntegrationRun:
         stage already had an entry before this call."""
         for fix in round_constraints or []:
             if fix not in self.constraints.get(stage, []):
-                self.add_constraint(stage, fix)
+                self.add_constraint(stage, fix, source=FIX_SOURCE_VALIDATION)
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
@@ -290,9 +296,15 @@ class IntegrationRun:
         self.run_stage_async(context)
         return {"status": "started", "stage": self.current_stage}
 
-    def add_constraint(self, stage: str, constraint: str) -> None:
+    def add_constraint(self, stage: str, constraint: str, source: str | None = None) -> None:
+        """`source` says where it came from when a person did not write it: the
+        event carries it, so the chat can tell a fix the validator's errors
+        produced from a correction a person typed."""
         self.constraints.setdefault(stage, []).append(constraint)
-        self.record_event("constraint_added", stage, {"constraint": constraint})
+        data = {"constraint": constraint}
+        if source:
+            data["source"] = source
+        self.record_event("constraint_added", stage, data)
 
     def set_model(self, model: str | None) -> None:
         """Changes the model for the rest of this run, not just what

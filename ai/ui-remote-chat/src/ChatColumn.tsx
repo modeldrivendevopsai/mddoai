@@ -347,7 +347,18 @@ const UNKNOWN_EVENT_STATUS: EventStatus = {
   label: "unknown event",
 }
 
-function statusFor(type: unknown): EventStatus {
+// A constraint the validator's errors produced, as against a correction a
+// person typed: neutral, since nobody did anything.
+const LEARNED_FIX_STATUS: EventStatus = {
+  bg: "var(--brand-faint)",
+  fg: "var(--text-muted)",
+  dot: "var(--text-faint)",
+  label: "Fix learned",
+}
+
+function statusFor(event: OrchestratorEvent): EventStatus {
+  const type: unknown = event.type
+  if (type === "constraint_added" && event.data?.source === "validation") return LEARNED_FIX_STATUS
   // Own properties only: a type named like an Object method (constructor,
   // toString) must not resolve to one.
   if (typeof type === "string" && Object.prototype.hasOwnProperty.call(EVENT_STATUS, type)) {
@@ -375,7 +386,7 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
 
 function EventChip({ event }: { event: OrchestratorEvent }) {
   const [expanded, setExpanded] = useState(false)
-  const s = statusFor(event.type)
+  const s = statusFor(event)
   const summary = eventSummary(event)
   const hasDetails = Boolean(event.data && Object.keys(event.data).length > 0)
 
@@ -387,6 +398,10 @@ function EventChip({ event }: { event: OrchestratorEvent }) {
           flexDirection: "column",
           gap: "var(--space-2)",
           width: "min(420px, 90%)",
+          // A flex child does not shrink below its content: without this a long
+          // unbroken name (a class path in an engine error) pushed the chip out
+          // of the column.
+          minWidth: 0,
           padding: "var(--space-3) var(--space-4)",
           borderRadius: "var(--radius-lg)",
           background: s.bg,
@@ -419,7 +434,16 @@ function EventChip({ event }: { event: OrchestratorEvent }) {
         </div>
 
         {summary && (
-          <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--text-xs)",
+              color: "var(--text-muted)",
+              // Dots and brackets are not break points, so a class path in an
+              // error message needs permission to break anywhere.
+              overflowWrap: "anywhere",
+            }}
+          >
             {summary}
           </span>
         )}
