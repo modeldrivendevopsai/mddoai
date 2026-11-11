@@ -1,6 +1,6 @@
 """serialization_agent/serialization.py unit tests: the serialization stage
 that sits between docs and pim, turning docs_agent's raw markdown into a
-structured, PIM-concept-labeled artifact.
+structured, PIM-concept-labeled artifact that holds all of it.
 
 pim_agent is a real, separate service now (own container), reached via
 clients/pim_agent_client.py — mocked at that boundary throughout this file,
@@ -10,39 +10,31 @@ mock to pim_agent's own real, unmocked ground() (pure/deterministic keyword
 matching, already exercised for real in ai/pim_agent/tests/
 test_reference_knowledge.py), so labeling tests here still exercise real
 matching behavior over the mocked HTTP boundary, not a hand-faked stub.
-ai_layer_client.chat is mocked per-test for the one real LLM call
-(extraction), exactly like test_placeholder_stages.py mocks it for every
-other stage agent.
+No model is called by this stage.
 
 Tests verify:
-  1. _extract_fragments parses a well-formed JSON array response (including
-     one wrapped in a ```json code fence, a real model's actual behavior
-     even when told not to - see _strip_code_fence's own docstring), and
-     degrades gracefully (one unparsed fragment, not a crash) on genuinely
-     malformed JSON or JSON that isn't a list.
+  1. _split_into_fragments cuts at markdown headings outside code fences
+     (matching a closing fence to its opening one), only at newlines, keeps
+     every line in order, and leaves out only whitespace.
   2. _label_fragment matches real CI/CD vocabulary to the right PIM concept
      via pim_agent's real (mocked-boundary) ground(), and leaves genuinely
      unrelated text unmatched.
   3. _build_markdown always emits all 9 PIM_CONCEPTS headers plus a final
-     Unrecognized section, even when empty, and places each fragment under
-     its matched concept's header (or Unrecognized when unmatched).
-  4. serialization_agent() end-to-end (chat mocked): reads context["docs_output"],
-     forwards the chosen model, and returns markdown with the expected headers.
+     Unrecognized section, even when empty, places each fragment under its
+     matched concept's header (or Unrecognized when unmatched), and keeps its
+     text exactly as it is, even text that holds code fences of its own.
+  4. serialization_agent() end-to-end: reads context["docs_output"], calls no
+     model, and holds all of a long, heading-less page (the shape of a
+     platform's JSON schema), which an earlier version that asked a model to
+     extract fragments reduced to a few hundred characters.
   5. Regression guard: PIM_CONCEPTS has exactly 9 keys, and every metamodel-
      category entry in reference_knowledge._KNOWLEDGE is mapped to one of them,
      so a future new metamodel entry can't silently go unlabeled.
   6. Issue #221's AC: a real Atlassian Bamboo documentation excerpt (a
      platform not seen during development, see tests/fixtures/bamboo_sample.md)
-     runs through the real, unmocked extraction-output-shaped fragments and
-     real ground()/_label_fragment/_build_markdown pipeline (only chat() -
-     the extraction call - is mocked, with a fragment list plausible for a
-     real LLM to have extracted from that excerpt). Confirms nothing is
-     dropped (every extracted fragment survives into the output somewhere),
-     and that fragments with a real, unambiguous PIM equivalent (a
-     cron-scheduled trigger; script/plugin/checkout/artifact-shaped task
-     steps) land under the correct concept header.
+     runs through the real, unmocked sectioning, ground(), labeling and
+     markdown assembly, and every line of it is in the output.
 """
-import json
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import patch
@@ -52,7 +44,6 @@ import pytest
 import serialization_agent
 from serialization_agent import serialization
 from clients import ai_layer_client, pim_agent_client
-from helpers import ok_response
 from pim_agent import PIM_CONCEPTS, reference_knowledge
 
 _FIXTURES = Path(__file__).parent / "fixtures"
@@ -73,50 +64,83 @@ def real_ground():
         yield
 
 
-# --- _extract_fragments -----------------------------------------------------
+def _lines(text):
+    return [line.strip() for line in text.splitlines() if line.strip()]
 
 
-def test_extract_fragments_parses_valid_json_response():
-    fragments_json = (
-        '[{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]'
-    )
-    with patch.object(ai_layer_client, "chat", return_value=ok_response(fragments_json)):
-        result = serialization._extract_fragments("some raw docs text", None)
-
-    assert result == [{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]
+# --- _split_into_fragments ---------------------------------------------------
 
 
-def test_extract_fragments_parses_json_wrapped_in_a_markdown_code_fence():
-    # Regression test: a real model, asked for "only JSON, no markdown," was
-    # observed wrapping its answer in a ```json ... ``` fence anyway. Without
-    # unwrapping it first, json.loads() sees the fence markers as invalid
-    # syntax and the whole response falls into the unparsed-fragment
-    # fallback below, silently discarding a perfectly good extraction.
-    fenced = (
-        '```json\n'
-        '[{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]\n'
-        '```'
-    )
-    with patch.object(ai_layer_client, "chat", return_value=ok_response(fenced)):
-        result = serialization._extract_fragments("some raw docs text", None)
+def test_split_cuts_at_each_heading_and_keeps_the_text_before_the_first_one():
+    docs = "Fetched 1 page(s).\n\n# Page\nintro\n## Steps\nrun it\n### Detail\nmore\n"
 
-    assert result == [{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]
+    fragments = serialization._split_into_fragments(docs)
+
+    assert [f["name"] for f in fragments] == ["Documentation", "Page", "Steps", "Detail"]
+    assert fragments[0]["raw_text"] == "Fetched 1 page(s).\n\n"
+    assert fragments[2]["raw_text"] == "## Steps\nrun it\n"
 
 
-def test_extract_fragments_falls_back_to_one_fragment_on_malformed_json():
-    with patch.object(ai_layer_client, "chat", return_value=ok_response("not valid json at all")):
-        result = serialization._extract_fragments("some raw docs text", None)
+def test_split_keeps_every_line_in_order():
+    docs = "pre\n# A\na1\na2\n## B\nb1\n"
 
-    assert len(result) == 1
-    assert result[0]["raw_text"] == "some raw docs text"
+    fragments = serialization._split_into_fragments(docs)
+
+    assert "".join(f["raw_text"] for f in fragments) == docs
 
 
-def test_extract_fragments_falls_back_when_json_is_not_a_list():
-    with patch.object(ai_layer_client, "chat", return_value=ok_response('{"not": "a list"}')):
-        result = serialization._extract_fragments("some raw docs text", None)
+def test_split_does_not_cut_at_a_hash_line_inside_a_code_fence():
+    docs = "# Setup\n```bash\n# install it\nnpm ci\n```\n~~~\n# also code\n~~~\n## After\ntext\n"
 
-    assert len(result) == 1
-    assert result[0]["raw_text"] == "some raw docs text"
+    fragments = serialization._split_into_fragments(docs)
+
+    assert [f["name"] for f in fragments] == ["Setup", "After"]
+    assert "# install it" in fragments[0]["raw_text"] and "# also code" in fragments[0]["raw_text"]
+
+
+def test_split_matches_a_closing_fence_to_its_opening_one():
+    # A tilde fence line inside a backtick fence, and a bare ``` inside a four-backtick fence, do not close them.
+    docs = "# A\n```md\n~~~\n# not a heading\n```\n## B\ntext\n# C\n````\n```\n# still code\n````\n## D\nend\n"
+
+    fragments = serialization._split_into_fragments(docs)
+
+    assert [f["name"] for f in fragments] == ["A", "B", "C", "D"]
+    assert "# not a heading" in fragments[0]["raw_text"] and "# still code" in fragments[2]["raw_text"]
+
+
+def test_split_does_not_treat_inline_code_that_starts_a_line_as_a_fence():
+    docs = "# A\n```code``` is inline.\n# B\ntext\n"
+
+    assert [f["name"] for f in serialization._split_into_fragments(docs)] == ["A", "B"]
+
+
+def test_split_cuts_only_at_newlines_not_at_other_line_separators():
+    # A Unicode line separator and a form feed inside scraped text are not line ends.
+    docs = "# A\nbefore # not a heading\fx\n## B\ntext\n"
+
+    fragments = serialization._split_into_fragments(docs)
+
+    assert [f["name"] for f in fragments] == ["A", "B"]
+    assert "".join(f["raw_text"] for f in fragments) == docs
+
+
+def test_split_keeps_windows_line_endings():
+    docs = "# A\r\nline\r\n## B\r\ntext\r\n"
+
+    fragments = serialization._split_into_fragments(docs)
+
+    assert [f["name"] for f in fragments] == ["A", "B"]
+    assert "".join(f["raw_text"] for f in fragments) == docs
+
+
+def test_split_leaves_out_only_a_fragment_that_is_all_whitespace():
+    docs = "\n\n# Only\ntext\n"
+
+    assert [f["name"] for f in serialization._split_into_fragments(docs)] == ["Only"]
+
+
+def test_split_of_nothing_is_nothing():
+    assert serialization._split_into_fragments("") == []
 
 
 # --- _label_fragment ---------------------------------------------------------
@@ -124,7 +148,6 @@ def test_extract_fragments_falls_back_when_json_is_not_a_list():
 
 def test_label_fragment_matches_real_ci_cd_vocabulary():
     fragment = {
-        "type": "trigger",
         "name": "Scheduled build",
         "raw_text": "Runs on a cron expression schedule trigger",
     }
@@ -136,7 +159,7 @@ def test_label_fragment_matches_real_ci_cd_vocabulary():
 
 
 def test_label_fragment_leaves_unrelated_text_unmatched():
-    fragment = {"type": "other", "name": "", "raw_text": "What's the weather like in Paris tomorrow"}
+    fragment = {"name": "", "raw_text": "What's the weather like in Paris tomorrow"}
 
     labeled = serialization._label_fragment(fragment, _CONCEPTS)
 
@@ -153,7 +176,6 @@ def test_label_fragment_finds_a_metamodel_match_ranked_past_grounds_default_top_
     # requesting a large top_k in _label_fragment, this fragment would incorrectly
     # come back unmatched despite a clear, real concept for it.
     fragment = {
-        "type": "step",
         "name": "Build step",
         "raw_text": (
             "Command step build step init environment output script "
@@ -179,23 +201,17 @@ def test_build_markdown_always_includes_all_nine_concept_headers_and_unrecognize
 
 
 def test_build_markdown_places_matched_fragment_under_its_concept_header():
-    labeled = [{
-        "type": "trigger", "name": "Nightly build", "raw_text": "cron schedule",
-        "concept": "Trigger", "matched": True,
-    }]
+    labeled = [{"name": "Nightly build", "raw_text": "cron schedule", "concept": "Trigger", "matched": True}]
 
     markdown = serialization._build_markdown(labeled, "1 page(s)", _CONCEPTS)
 
-    trigger_section = markdown.split("## Trigger")[1].split("## ")[0]
+    trigger_section = markdown.split("## Trigger")[1].split("\n## ")[0]
     assert "Nightly build" in trigger_section
     assert "cron schedule" in trigger_section
 
 
 def test_build_markdown_places_unmatched_fragment_under_unrecognized():
-    labeled = [{
-        "type": "other", "name": "Mystery thing", "raw_text": "platform-specific oddity",
-        "concept": None, "matched": False,
-    }]
+    labeled = [{"name": "Mystery thing", "raw_text": "platform-specific oddity", "concept": None, "matched": False}]
 
     markdown = serialization._build_markdown(labeled, "1 page(s)", _CONCEPTS)
 
@@ -204,16 +220,31 @@ def test_build_markdown_places_unmatched_fragment_under_unrecognized():
     assert "platform-specific oddity" in unrecognized_section
 
 
+def test_build_markdown_keeps_text_that_holds_code_fences_of_its_own():
+    text = "Use this:\n```yaml\nsteps:\n  - name: build\n```\nand that:\n````\nnested ``` inside\n````\n"
+    labeled = [{"name": "Example", "raw_text": text, "concept": None, "matched": False}]
+
+    markdown = serialization._build_markdown(labeled, "1 page(s)", _CONCEPTS)
+
+    # The text is inside the fence exactly as it is, and the fence is longer than any run of backticks inside it.
+    assert f"`````\n{text.removesuffix(chr(10))}\n`````" in markdown
+
+
+def test_build_markdown_keeps_leading_blank_lines_and_trailing_spaces():
+    text = "\n\n  indented first line\nlast line with trailing spaces   \n"
+    labeled = [{"name": "Spaced", "raw_text": text, "concept": None, "matched": False}]
+
+    markdown = serialization._build_markdown(labeled, "1 page(s)", _CONCEPTS)
+
+    assert f"```\n{text.removesuffix(chr(10))}\n```" in markdown
+
+
 # --- serialization_agent() end-to-end -----------------------------------------
 
 
 def test_serialization_agent_reads_docs_output_and_returns_labeled_markdown():
-    docs_output = "Fetched 2 page(s) from https://example.com/docs, confidence 0.80.\n\n# Docs\nRuns on a cron schedule."
-    fragments_json = (
-        '[{"type": "trigger", "name": "Nightly build", "raw_text": "Runs on a cron schedule"}]'
-    )
-    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response(fragments_json)):
+    docs_output = "Fetched 2 page(s) from https://example.com/docs, confidence 0.80.\n\n# Docs\n## Nightly build\nRuns on a cron schedule trigger."
+    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS):
         result = serialization_agent.serialization_agent({"docs_output": docs_output})
 
     assert "## Trigger" in result
@@ -221,12 +252,29 @@ def test_serialization_agent_reads_docs_output_and_returns_labeled_markdown():
     assert "2 page(s)" in result
 
 
-def test_serialization_agent_forwards_the_chosen_model():
-    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response("[]")) as mock_chat:
-        serialization_agent.serialization_agent({"docs_output": "some docs", "model": "gemini-flash"})
+def test_a_long_page_without_headings_is_kept_whole():
+    # The shape of a platform's JSON schema: tens of thousands of characters, no heading. An earlier version
+    # asked a model for the relevant fragments and kept a few hundred characters of 60,000.
+    schema = "{\n" + "".join(f'  "definition_{i}": {{"type": "object", "description": "step setting number {i}"}},\n' for i in range(700)) + "}\n"
+    docs_output = f"Fetched 1 page(s) from https://example.com/schema.json, confidence 0.61.\n\n# https://example.com/schema.json\n{schema}"
+    assert len(docs_output) > 40_000
 
-    assert mock_chat.call_args.kwargs["model"] == "gemini-flash"
+    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS):
+        result = serialization_agent.serialization_agent({"docs_output": docs_output})
+
+    assert len(result) >= len(docs_output)
+    assert '"definition_0"' in result and '"definition_699"' in result
+    assert all(line in result for line in _lines(docs_output))
+
+
+def test_serialization_calls_no_model():
+    # The one client every stage reaches a model through must never be called.
+    docs_output = "# Docs\n## Triggers\nA cron schedule trigger.\n"
+    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS), \
+         patch.object(ai_layer_client, "chat", side_effect=AssertionError("a model was called")) as chat:
+        serialization_agent.serialization_agent({"docs_output": docs_output, "model": "gemini-flash"})
+
+    chat.assert_not_called()
 
 
 # --- PIM_CONCEPTS regression guard --------------------------------------------
@@ -250,134 +298,22 @@ def test_every_metamodel_entry_is_mapped_to_a_pim_concept():
 
 # --- Issue #221 AC: Atlassian Bamboo (a platform not seen during development) ---
 #
-# The extraction call (ai_layer_client.chat) is mocked, same as every other test
-# in this file, with a fragment list plausible for a real LLM to have pulled
-# out of tests/fixtures/bamboo_sample.md. Labeling and markdown assembly are
-# the real, unmocked code (ground() delegated to the real implementation via
-# the autouse real_ground fixture). Real, measured behavior against this
-# fixture (see the PR that added this test for the manual ground() trace)
-# shows the plain keyword-overlap scorer sometimes over-matches genuinely
-# Bamboo-specific text (deployment environments, branch config, notifications)
-# to an unrelated PIM concept via generic word overlap ("job", "environment",
-# "plan"), rather than leaving it unmatched, because "matched" here means
-# "any nonzero overlap," per serialization_agent.py's own documented Phase 0
-# limitation (no score threshold). This test doesn't assert a specific label
-# for that ambiguous text, asserting either "matched" or "unmatched" there
-# would be asserting scorer internals, not this stage's real contract. What
-# IS this stage's real contract, and what this test asserts: nothing is ever
-# silently dropped, and fragments with a genuinely strong, unambiguous PIM
-# vocabulary match land under the right header.
-_BAMBOO_FRAGMENTS = [
-    {
-        "type": "pipeline",
-        "name": "Build the rockets",
-        "raw_text": (
-            "A plan defines everything about your continuous integration build "
-            "process in Bamboo. Every plan belongs to a project and has a single "
-            "stage by default, but can be used to group jobs into multiple stages."
-        ),
-    },
-    {
-        "type": "job",
-        "name": "Build",
-        "raw_text": (
-            "A job is a single build unit within a plan. One or more jobs can be "
-            "organized into one or more stages. A job checks out the repository "
-            "and processes a series of one or more tasks that are run "
-            "sequentially on the same agent."
-        ),
-    },
-    {
-        "type": "task",
-        "name": "Build tasks",
-        "raw_text": (
-            "tasks: script command mkdir echo sleep, test-parser plugin junit "
-            "test-results checkout artifact"
-        ),
-    },
-    {
-        "type": "trigger",
-        "name": "Default Job triggers",
-        "raw_text": (
-            "A plan can be triggered by a repository polling schedule, a "
-            "scheduled cron-style trigger, or manually by a user through the "
-            "Bamboo UI. triggers: polling: period 180"
-        ),
-    },
-    {
-        "type": "requirement",
-        "name": "Job requirements",
-        "raw_text": (
-            "Job requirements specify capabilities a Bamboo agent must have in "
-            "order to run a given job's tasks, for example a specific operating "
-            "system or an installed tool such as Maven or a JDK version."
-        ),
-    },
-    {
-        "type": "variable",
-        "name": "Plan variables",
-        "raw_text": (
-            "Provides for the definition of plan variables. Plan variables can "
-            "be referenced inside task scripts using the bamboo variableName "
-            "syntax, and can be overridden per-branch or per-execution."
-        ),
-    },
-    {
-        "type": "deployment",
-        "name": "Deployment projects and environments",
-        "raw_text": (
-            "A deployment project takes a completed plan result and deploys it "
-            "to one or more environments, such as QA or Production, in a "
-            "defined release sequence."
-        ),
-    },
-    {
-        "type": "branch-config",
-        "name": "Branch configuration",
-        "raw_text": (
-            "Bamboo can automatically create a plan branch when a matching VCS "
-            "branch is pushed. Branch behaviour, such as whether to merge from "
-            "a parent branch or push changes back on a successful build, is "
-            "configured under branch-config."
-        ),
-    },
-    {
-        "type": "notification",
-        "name": "Notifications and permissions",
-        "raw_text": (
-            "Specifies notifications of build results, sent to watchers, "
-            "committers, or a configured chat integration on build completion "
-            "or failure. Also specifies who has permission to view and "
-            "configure the plan and its jobs."
-        ),
-    },
-]
+# Sectioning, labeling and markdown assembly are the real, unmocked code (ground() is delegated to the
+# real implementation via the autouse real_ground fixture). The plain keyword-overlap scorer
+# sometimes over-matches genuinely Bamboo-specific text to an unrelated PIM concept via generic word
+# overlap, because "matched" means "any nonzero overlap" (see this module's documented Phase 0
+# limitation), so this test does not assert which concept a particular section lands under. What
+# IS this stage's real contract, and what it asserts: nothing is ever dropped.
 
 
-def test_bamboo_excerpt_extraction_and_labeling_drops_nothing_and_labels_known_concepts_correctly():
+def test_bamboo_excerpt_is_kept_whole_under_the_nine_concept_headers_and_unrecognized():
     docs_output = (_FIXTURES / "bamboo_sample.md").read_text()
 
-    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS), \
-         patch.object(ai_layer_client, "chat", return_value=ok_response(json.dumps(_BAMBOO_FRAGMENTS))):
+    with patch.object(pim_agent_client, "concepts", return_value=_CONCEPTS):
         markdown = serialization_agent.serialization_agent({"docs_output": docs_output})
 
-    # Nothing dropped: every extracted fragment's name shows up somewhere in
-    # the output, whether under a real concept header or Unrecognized.
-    for fragment in _BAMBOO_FRAGMENTS:
-        assert fragment["name"] in markdown, f"fragment {fragment['name']!r} vanished from the output"
-
-    # A cron-scheduled trigger has a real, unambiguous PIM equivalent (Trigger
-    # types: ScheduledTrigger carries a cron expression) - correctly labeled.
-    trigger_section = markdown.split("## Trigger")[1].split("## ")[0]
-    assert "Default Job triggers" in trigger_section
-
-    # script/plugin/checkout/artifact task steps mirror the Step types
-    # entry's own subclasses almost one-to-one - correctly labeled.
-    steps_section = markdown.split("## Steps")[1].split("## ")[0]
-    assert "Build tasks" in steps_section
-
-    # All 9 concept headers plus Unrecognized are always present, even on a
-    # platform never seen during development.
+    missing = [line for line in _lines(docs_output) if line not in markdown]
+    assert not missing, f"lines of the documentation vanished from the output: {missing[:3]}"
     for concept in PIM_CONCEPTS:
         assert f"## {concept}" in markdown
     assert "## Unrecognized" in markdown

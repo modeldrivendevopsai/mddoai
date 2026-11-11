@@ -26,6 +26,9 @@ _FILE_NAME = re.compile(r"[^\x00-\x1f/\\:]{1,255}")
 _RESULT = "result.json"
 _PROMPT = "prompt.json"
 _MANIFEST = "manifest.json"
+# What the validators compiled during the attempt, as one zip. It is kept while the attempt is
+# being worked on, before it is recorded.
+_COMPILED = "compiled.zip"
 # Names which of the attempt's files is its artifact, since the others, such as an
 # intermediate model, sit beside it.
 _ARTIFACT_NAME = ".artifact"
@@ -100,7 +103,7 @@ class AttemptStore:
         """Writes the attempt's artifact, its result, its prompt if it had one
         and any extra files, and adds it to the run's manifest. The attempt must
         be reserved."""
-        if filename in (_RESULT, _PROMPT) or not _FILE_NAME.fullmatch(filename) or filename in (".", ".."):
+        if filename in (_RESULT, _PROMPT, _COMPILED) or not _FILE_NAME.fullmatch(filename) or filename in (".", ".."):
             raise ValueError(f"not a file name for an artifact: {filename!r}")
         if not isinstance(result.get("valid"), bool):
             raise ValueError("the result needs a valid field that is true or false")
@@ -122,6 +125,28 @@ class AttemptStore:
             )
         self._write_json(folder / _RESULT, result)
         self._add_to_manifest(run_id, stage, int(attempt.removeprefix("attempt_")), result["valid"])
+
+    def keep_compiled(self, run_id: str, stage: str, attempt: str, data: bytes) -> None:
+        """Keeps what the validators compiled during the attempt, as one zip. It is kept while the
+        attempt is being worked on: a recorded attempt is final, so a recorded one is refused. A
+        second call replaces the first."""
+        folder = self._attempt_dir(run_id, stage, attempt)
+        if (folder / _RESULT).exists():
+            raise AttemptConflict(f"{attempt} is already recorded")
+        temporary = folder / f".{_COMPILED}.{os.getpid()}.{threading.get_ident()}"
+        try:
+            temporary.write_bytes(data)
+            os.replace(temporary, folder / _COMPILED)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+
+    def compiled(self, run_id: str, stage: str, attempt: str) -> bytes:
+        """What the validators compiled during the attempt, as the zip it was kept as."""
+        path = self._attempt_dir(run_id, stage, attempt) / _COMPILED
+        if not path.is_file():
+            raise AttemptNotFound(f"nothing was compiled during {attempt} of {stage!r} in run {run_id!r}")
+        return path.read_bytes()
 
     def manifest(self, run_id: str) -> list[dict]:
         path = self._runs_dir / _segment(run_id, "run id") / _MANIFEST
@@ -159,7 +184,7 @@ class AttemptStore:
         files = [
             path
             for path in sorted(folder.iterdir())
-            if path.is_file() and path.name not in (_RESULT, _PROMPT) and not path.name.startswith(".")
+            if path.is_file() and path.name not in (_RESULT, _PROMPT, _COMPILED) and not path.name.startswith(".")
         ]
         return {"filename": files[0].name, "content": files[0].read_text(encoding="utf-8")} if files else None
 
@@ -173,7 +198,7 @@ class AttemptStore:
             not name
             or len(name) > _MAX_EXTRA_PATH_CHARS
             or any(part in ("", ".", "..") or not _FILE_NAME.fullmatch(part) for part in parts)
-            or parts[0] in (_RESULT, _PROMPT, _ARTIFACT_NAME, artifact)
+            or parts[0] in (_RESULT, _PROMPT, _COMPILED, _ARTIFACT_NAME, artifact)
         ):
             raise ValueError(f"not a path for an extra file: {name!r}")
         target = folder.joinpath(*parts)

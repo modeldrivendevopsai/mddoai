@@ -1,6 +1,6 @@
-"""Saving a real, human-uploaded file to a writable "attachments" root, so
-it can become a real `type: "file"` attachment (see resolve.py) instead of
-a client-side-only copy pasted into a `type: "text"` one.
+"""Saving a real, human-uploaded file in the journal, under the agent's own
+name, so it can become a real `type: "file"` attachment (see resolve.py)
+instead of a client-side-only copy pasted into a `type: "text"` one.
 
 A real, different risk from resolve_file_attachment's own (files.py):
 that function defends *reading* an already-known, already-real filename
@@ -15,6 +15,8 @@ package follows.
 import re
 import uuid
 from pathlib import Path
+
+from clients import journal_client
 
 _ALLOWED_NAME_CHARACTERS = re.compile(r"^[A-Za-z0-9._-]+$")
 
@@ -43,22 +45,41 @@ def _safe_stem_and_suffix(filename: str) -> tuple[str, str]:
     return candidate, f".{suffix}" if suffix else ""
 
 
+class UploadedFiles:
+    """The files uploaded to one agent, kept by the journal: a place a "file"
+    attachment's path can resolve in, next to the real files a service ships.
+    A path that names no uploaded file is None, so the next place is tried."""
+
+    def __init__(self, agent: str):
+        self.agent = agent
+
+    def read(self, path: str) -> str | None:
+        # Uploads are kept by a flat name, so a path with folders in it is never one: no request.
+        if "/" in path:
+            return None
+        return journal_client.get_upload(self.agent, path)
+
+    def names(self) -> list[str]:
+        return journal_client.list_uploads(self.agent)
+
+
 def save_uploaded_file(
-    uploads_root: str | Path,
+    agent: str,
     filename: str,
     content: bytes,
     max_bytes: int,
 ) -> str:
-    """Writes `content` under `uploads_root` at a real, safe, collision-free
-    path derived from `filename` (never the raw client-supplied name), and
-    returns that relative path - the value to store as a new `type: "file"`
-    attachment's own `path`. Raises UploadError over `max_bytes`, on an
-    empty/unusable filename, or if the computed path would somehow still
-    resolve outside `uploads_root` (the same root-confinement check
-    resolve_file_attachment's own read side already relies on, applied
-    here on write instead)."""
+    """Has the journal keep `content` for `agent` under a real, safe, collision-free
+    name derived from `filename` (never the raw client-supplied name), and returns
+    that name - the value to store as a new `type: "file"` attachment's own `path`.
+    Raises UploadError over `max_bytes`, on an empty/unusable filename, or on bytes
+    that are not UTF-8 text (an attachment is text, put into a prompt)."""
     if len(content) > max_bytes:
         raise UploadError(f"uploaded file is {len(content)} bytes, over the {max_bytes}-byte limit")
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise UploadError("uploaded file is not UTF-8 text") from e
 
     stem, suffix = _safe_stem_and_suffix(filename)
     # A random prefix, not the bare sanitized name: two different uploads
@@ -69,11 +90,5 @@ def save_uploaded_file(
     if not _ALLOWED_NAME_CHARACTERS.match(stored_name):
         raise UploadError(f"computed storage name {stored_name!r} is not safe")
 
-    root = Path(uploads_root).resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    destination = (root / stored_name).resolve()
-    if not destination.is_relative_to(root):
-        raise UploadError("computed storage path resolves outside the uploads root")
-
-    destination.write_bytes(content)
+    journal_client.save_upload(agent, stored_name, text)
     return stored_name

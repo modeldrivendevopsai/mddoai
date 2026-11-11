@@ -20,6 +20,10 @@ class ChatStore:
         if chat.events or chat.raw_seen:
             self._history.save_quietly(chat.run_id, chat.events, {"raw_seen": chat.raw_seen})
 
+    def delete(self, run_id: str) -> None:
+        """Removes the chat from the journal. A chat the journal does not hold is not an error."""
+        self._history.delete(run_id)
+
     def load_all(self) -> dict[str, ChatLog]:
         """Every chat the journal holds. One that is not a saved chat is
         skipped with a log line."""

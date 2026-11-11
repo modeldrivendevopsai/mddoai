@@ -47,3 +47,10 @@ def test_a_caller_waits_longer_for_the_execution_agent_than_it_waits_for_its_own
     service = _constant(AI_DIR / "execution_agent" / "execution_runner.py", "TIMEOUT_SECONDS")
 
     assert caller > service
+
+
+def test_the_journal_accepts_every_upload_a_prompt_agent_accepts():
+    journal = _constant(AI_DIR / "journal" / "settings.py", "MAX_UPLOAD_BYTES")
+
+    for agent in ("psm_agent", "atl_agent", "acceleo_agent"):
+        assert journal >= _constant(AI_DIR / agent / "prompt_settings.py", "MAX_UPLOAD_BYTES"), agent

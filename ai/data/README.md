@@ -4,13 +4,12 @@ The starting platforms and prompt configs, and a layout for the stack's other fo
 
 ```
 platforms/             the platforms, a folder per version such as 1.2.0 (a starting platform ships here)
-prompts/<agent>/       each prompt agent's prompt configs (starting configs ship here)
-attachments/<agent>/   files uploaded to an agent
+prompts/<agent>/       each prompt agent's prompt configs, kept by the journal (starting configs ship here)
+attachments/<agent>/   files uploaded to an agent, kept by the journal
 workspace/             the models you pick from
 runs/                  every platform integration run
 chats/                 the chat of each run
-validator-output/      the validators' compiled output
-pipelines/             the pipelines generated so far
+pipelines/             the pipelines generated so far, kept by the journal
 ```
 
 Git tracks the platform files and the starting prompt configs, as `.gitignore` here says. Everything else here is git-ignored.

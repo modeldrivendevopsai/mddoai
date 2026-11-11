@@ -33,7 +33,7 @@ vi.mock("design-system", () => ({
   ),
 }))
 vi.mock("../services/generator.service", () => ({ listPipelines: vi.fn() }))
-vi.mock("../services/sessions.service", () => ({ getSessions: vi.fn(), closeSession: vi.fn() }))
+vi.mock("../services/sessions.service", () => ({ getSessions: vi.fn(), deleteSession: vi.fn() }))
 
 const PIPELINE = {
   id: "p1",
@@ -118,8 +118,8 @@ describe("the sidebar's tabs", () => {
 
 describe("which open session is highlighted", () => {
   const RUNS = [
-    { id: "r1", name: "Woodpecker CI", type: "platform" as const, state: "selected" as const },
-    { id: "r2", name: "GitHub Actions", type: "platform" as const, state: "normal" as const },
+    { id: "r1", name: "Woodpecker CI", type: "platform" as const, state: "selected" as const, stage: "psm" as const, startedAt: null },
+    { id: "r2", name: "GitHub Actions", type: "platform" as const, state: "normal" as const, stage: "atl" as const, startedAt: null },
   ]
   const isOnScreen = (name: string) => screen.getByRole("button", { name }).getAttribute("aria-current") === "true"
 

@@ -33,13 +33,11 @@ MAX_CONTENT_BYTES = 5 * 1024 * 1024
 # MAX_CONTENT_BYTES, which was sized for the JVM routes (engineering guess).
 MAX_PIPELINE_BYTES = 512 * 1024
 
-# Every request model below that takes a run_id (it scopes where the
-# compiled output of a check is kept) shares this same pattern and
-# validator, not three independent copies that could quietly drift out of
-# sync on a security-relevant check. stage and attempt (below) reuse the
-# exact same pattern and validator for the same reason: both are joined onto
-# the same output path, right under run_id (see validator_runner.py's own
-# _scoped_output_env()), so each needs the exact same path-traversal defense.
+# Every request model below that takes a run_id (it names the attempt a check's compiled output
+# is kept with, in the journal) shares this same pattern and validator, not three independent
+# copies that could quietly drift out of sync on a security-relevant check. stage and attempt
+# (below) reuse the exact same pattern and validator for the same reason: all three become parts
+# of a request address to the journal.
 # Pydantic v2 enforces `pattern=` via pydantic_core's own Rust regex engine,
 # not Python's re module - confirmed directly that this engine's $ requires
 # true end-of-string (rejects "..\n"/"abc\n"), unlike Python's re.match,
@@ -51,27 +49,18 @@ MAX_PIPELINE_BYTES = 512 * 1024
 _RUN_ID_PATTERN = r"^[A-Za-z0-9._-]+$"
 
 # A real run_id/stage/attempt is short (a uuid4().hex, a one-word stage name,
-# "attempt_N") - nowhere near this. Without any cap, these three values get
-# joined into one path and passed as an env var to a subprocess.run() call
-# (validator_runner.py's own _scoped_output_env()); confirmed directly, in a
-# real Linux container matching this project's own Docker deployment, that a
-# combined size in the low hundreds of KB makes that subprocess.run() raise
-# an uncaught OSError ("Argument list too long") instead of a clean 422 -
-# the OS's own execve() argv+envp size limit, not something Python or
-# Pydantic enforces on its own. 128 is a generous ceiling for any real
-# identifier this field is ever actually used for, comfortably below where
-# that OS limit could ever be reached even with all three fields combined.
+# "attempt_N"), nowhere near this. 128 is a generous ceiling that keeps an absurd value from
+# being sent on to the journal.
 _ID_MAX_LENGTH = 128
 
 
 def _reject_dot_segments(value: str | None) -> str | None:
     """The character-class pattern alone still lets "." or ".." through
-    (both are made only of allowed characters), and either would resolve to
-    the parent directory once joined onto a base output path - see
-    validator_runner.py's own _scoped_output_env(). No character-class regex
+    (both are made only of allowed characters), and either would step up a
+    level once it is part of an address. No character-class regex
     can distinguish "a run_id that happens to be only dots" from "the
     literal path-traversal segment" without this same explicit check. Also
-    guards stage and attempt, each joined onto that same path in turn.
+    guards stage and attempt, which become parts of the same address.
 
     Rejects every all-dot value ("...", "....", not just "."/".."), not
     because three-or-more dots is a real traversal segment on any OS

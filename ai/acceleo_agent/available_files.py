@@ -7,9 +7,10 @@ broader multi-metamodel listing (its own available_files.py stays
 separate).
 """
 from generation_toolkit.attachments.files import list_reference_and_uploads
+from generation_toolkit.attachments.uploads import UploadedFiles
 
-import prompt_paths
+import prompt_settings
 
 
 def list_available_files() -> list[str]:
-    return list_reference_and_uploads(prompt_paths.REFERENCE_EXAMPLE_PATH, prompt_paths.ATTACHMENT_UPLOADS_DIR)
+    return list_reference_and_uploads(prompt_settings.REFERENCE_EXAMPLE_PATH, UploadedFiles(prompt_settings.AGENT))

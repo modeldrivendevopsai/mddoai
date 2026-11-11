@@ -145,7 +145,7 @@ def _fake_psm_response(artifact="Generic stage output", valid=True):
         "mode": "generation",
         "artifact": artifact,
         "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
-        "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
     }
     return resp
@@ -159,7 +159,7 @@ def _fake_atl_response(artifact="Generic stage output", valid=True):
     resp.json.return_value = {
         "artifact": artifact,
         "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
-        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }
@@ -174,7 +174,7 @@ def _fake_acceleo_response(artifact="Generic stage output", valid=True):
     resp.json.return_value = {
         "artifact": artifact,
         "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
-        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }

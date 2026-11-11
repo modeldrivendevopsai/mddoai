@@ -6,6 +6,18 @@
 export const STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"] as const
 export type StageId = (typeof STAGES)[number]
 
+// What each stage is called on screen, in one place so every screen that names a
+// stage (the stepper, the sidebar's list of runs) says the same thing.
+export const STAGE_LABELS: Record<StageId, string> = {
+  docs: "Docs",
+  serialization: "Serialization",
+  pim: "PIM",
+  psm: "PSM",
+  atl: "ATL",
+  acceleo: "Acceleo",
+  generation: "Generation + Test",
+}
+
 // Mirrors the backend's own real per-stage metadata shape, fetched once
 // from GET /stages (see StageMetadataResponse below), so a panel can
 // explain its own stage honestly instead of a hand-written description
@@ -36,6 +48,8 @@ export type OrchestratorEventType =
   | "documentation_extended"
   | "constraints_promoted"
   | "platform_published"
+  // A run made by forking an earlier one at a stage: its data names that run.
+  | "forked_from"
   | "tool_called"
   | "user_message"
   | "message"
@@ -56,6 +70,9 @@ export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
   "documentation_extended",
   "constraints_promoted",
   "platform_published",
+  // A forked run has only this event until its first stage runs, and it is
+  // still a real run, paused at the stage it was forked at.
+  "forked_from",
 ]
 
 export interface OrchestratorEvent {
@@ -93,13 +110,15 @@ export interface EventsResponse {
 
 // One entry per run, for the sidebar's
 // session list. is_current is false for anything but the live run; those
-// are read-only history.
+// are read-only history. started_at is when the run's first event happened, in
+// seconds since the epoch, or null for a run nothing has happened on.
 export interface RunSummary {
   run_id: string
   platform_name: string | null
   current_stage: StageId | null
   busy: boolean
   is_current: boolean
+  started_at: number | null
 }
 
 export interface StartedResponse {

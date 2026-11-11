@@ -9,7 +9,7 @@ import assistant
 import chat_log
 import tools
 from clients import integration_runner_client
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 
 # The real STAGES/STAGE_DESCRIPTIONS content (integration_runner/pipeline.py,
 # integration_runner/stages/__init__.py), kept here, not fetched from a live
@@ -96,7 +96,7 @@ def journal(tmp_path):
     chats this service keeps, and the runs and attempts of the in-process
     integration_runner that test_main.py's real_integration_runner fixture
     runs for real, go there, so no test reads or writes another's."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"):
+    with journal_in_process(folders_in(tmp_path)):
         yield tmp_path
 
 

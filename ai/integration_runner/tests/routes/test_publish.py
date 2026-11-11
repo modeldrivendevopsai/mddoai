@@ -114,7 +114,7 @@ def test_a_refusal_from_the_journal_is_400_with_its_reason():
 def test_files_over_the_journals_limit_are_400_with_its_reason():
     _current_completed_run()
 
-    with patch(CLIENT, side_effect=AgentServiceError(413, "The platform's files are larger than the journal accepts.")):
+    with patch(CLIENT, side_effect=AgentServiceError(413, "What was sent is larger than the journal accepts.")):
         status, detail = _status(lambda: publish_endpoint(PublishRequest()))
     assert status == 400 and "larger" in detail
 

@@ -20,13 +20,15 @@ resolved the same way psm_agent's own generation.py does. The prompt folder this
 service is given holds them, beginning from the starting content the repository ships.
 """
 from generation_toolkit.generation_agent import run_with_retry
+from generation_toolkit.mock_chain import MOCK_ATL, MOCK_PSM_ECORE, mock_generation_result
+from generation_toolkit.attachments.uploads import UploadedFiles
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import validator_agent_client
 
-import prompt_paths
+import prompt_settings
 
 CONFIG_NAME = "generation"
 
@@ -38,27 +40,7 @@ CONFIG_NAME = "generation"
 # with a genuine knowledge gap the model would get wrong at any setting.
 GENERATION_TEMPERATURE = 0
 
-_FILES_ROOT = [prompt_paths.REFERENCE_EXAMPLE_PATH.parent, prompt_paths.ATTACHMENT_UPLOADS_DIR]
-
-# mock=True's fixed stand-in output: a minimal, already-proven-valid ATL
-# module (matching validator_agent/tests/fixtures/valid.atl, which that
-# service's own real test suite already asserts passes real compilation),
-# so a mocked round-trip still exercises the real validator-agent call and
-# the real attempt-persistence path, just never the real (slow, billed) LLM
-# call. Named distinctly so it's never mistaken for a real generated
-# transformation.
-_MOCK_ARTIFACT = """module MockPim2Psm;
-create OUT : PSM from IN : PIM;
-
-rule MockPipelineBlock2MockPipeline {
-\tfrom
-\t\ts : PIM!MockPipelineBlock
-\tto
-\t\tt : PSM!MockPipeline (
-\t\t\tstages <- s.name
-\t\t)
-}
-"""
+_FILES_ROOT = [prompt_settings.REFERENCE_EXAMPLE_PATH.parent, UploadedFiles(prompt_settings.AGENT)]
 
 
 def _validate(
@@ -100,35 +82,22 @@ def generate(
 
     mock=True (the per-run "Mock" override, same opt-in as psm_agent's own)
     still resolves the real config/attachments and still runs the real
-    validator-agent call against a fixed, already-valid artifact, so the
-    prompt-builder mechanism and the real attempt-persistence path are
-    both exercised for real - it only skips the real, slow, billed LLM
-    call, for fast local iteration on a config without spending it."""
+    validator-agent call, so the prompt-builder mechanism and the real
+    attempt-persistence path are both exercised for real. It returns the
+    mock chain's fixed transformation (see generation_toolkit's mock_chain)
+    and never calls a model, so no constraint changes it. The validator is
+    given the mock chain's own metamodel, not this run's psm_artifact: the
+    mock transformation targets the mock metamodel only."""
     context_values = {"pim_ecore": pim_artifact, "psm_ecore": psm_artifact}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, CONFIG_NAME, context_values, _FILES_ROOT
+        prompt_settings.AGENT, CONFIG_NAME, context_values, _FILES_ROOT
     )
     combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
 
     if mock:
-        # No metamodel_ecore here: _MOCK_ARTIFACT always targets a fixed,
-        # fictional "PSM" package name, never this run's own real
-        # psm_artifact - forwarding a real, unrelated target metamodel
-        # alongside it would make the real execution smoke test run the
-        # mock ATL against the wrong metamodel entirely (mirrors
-        # acceleo_agent's own mock branch never forwarding metamodel_ecore,
-        # for the identical reason - see its test_mock_mode_does_not_forward_
-        # a_metamodel_since_it_always_targets_gitlab).
         prompt = build_prompt(parts, combined_constraints)
-        validation = _validate(_MOCK_ARTIFACT, run_id, stage, attempt)
-        return {
-            "artifact": _MOCK_ARTIFACT,
-            "prompt": prompt,
-            "validation": validation,
-            "rounds": 1,
-            "prompt_version": config.get("_version"),
-            "round_constraints": combined_constraints,
-        }
+        validation = _validate(MOCK_ATL, run_id, stage, attempt, metamodel_ecore=MOCK_PSM_ECORE)
+        return mock_generation_result(MOCK_ATL, prompt, validation, config.get("_version"))
 
     result = run_with_retry(
         config["system_prompt"],

@@ -83,7 +83,7 @@ def test_a_negative_start_is_refused(client):
 
 
 def test_a_journal_that_is_not_a_history_is_a_422_that_names_it(client, folders):
-    runs, _, _ = folders
+    runs, *_ = folders
     (runs / "bad").mkdir(parents=True)
     (runs / "bad" / "run.jsonl").write_text("{not json\n", encoding="utf-8")
 
@@ -93,6 +93,67 @@ def test_a_journal_that_is_not_a_history_is_a_422_that_names_it(client, folders)
     assert read.status_code == 422 and "'bad'" in read.json()["detail"]
     assert appended.status_code == 422
     assert client.get("/histories/runs").json() == {"keys": ["bad"]}
+
+
+def _keep_a_run_with_an_attempt(client, run_id="r1"):
+    client.put(f"/histories/runs/{run_id}", json={"state": {}, "events": [{"n": 1}]})
+    client.post(f"/attempts/{run_id}", json={"stage": "psm"})
+    body = {"filename": "psm.ecore", "content": "<ecore/>", "result": {"valid": True, "issues": []}}
+    client.put(f"/attempts/{run_id}/psm/attempt_1", json=body)
+
+
+def test_a_run_is_deleted_with_the_files_of_its_attempts_and_a_chat_on_its_own(client, folders):
+    runs_dir, chats_dir, *_ = folders
+    _keep_a_run_with_an_attempt(client, "r1")
+    _keep_a_run_with_an_attempt(client, "r2")
+    client.put("/histories/chats/r1", json={"state": {}, "events": [{"m": 1}]})
+
+    assert client.delete("/histories/runs/r1").json() == {"deleted": "r1"}
+
+    assert client.get("/histories/runs").json() == {"keys": ["r2"]}
+    assert not (runs_dir / "r1").exists() and (runs_dir / "r2" / "run.jsonl").is_file()
+    assert client.get("/attempts/r1/manifest").status_code == 404
+    # A chat is its own history: deleting the run leaves it, and it goes with its own delete.
+    assert client.get("/histories/chats/r1").status_code == 200
+    assert client.delete("/histories/chats/r1").json() == {"deleted": "r1"}
+    assert not (chats_dir / "r1.jsonl").exists()
+
+
+def test_a_history_that_is_not_kept_or_cannot_be_a_key_is_a_404_when_deleted(client):
+    assert client.delete("/histories/runs/nothing").status_code == 404
+    assert client.delete("/histories/chats/nothing").status_code == 404
+    assert client.delete("/histories/runs/..%2Fplatforms").status_code == 404
+    assert client.delete("/histories/mystery/r1").status_code == 404
+
+
+def test_a_run_a_platform_was_published_from_is_kept_and_the_refusal_names_the_platform(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json=PLATFORM)
+
+    refused = client.delete("/histories/runs/run1")
+
+    assert refused.status_code == 409
+    assert "Woodpecker CI 1.0.0" in refused.json()["detail"]
+    assert client.get("/histories/runs/run1").status_code == 200
+    assert client.get("/attempts/run1/manifest").status_code == 200
+
+
+def test_a_run_can_be_deleted_once_the_platform_published_from_it_is_purged(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json=PLATFORM)
+    client.delete("/platforms/woodpecker-ci")
+
+    assert client.delete("/histories/runs/run1").json() == {"deleted": "run1"}
+
+
+def test_a_run_is_kept_while_any_version_of_any_platform_came_from_it(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json={**PLATFORM, "version": "1.0.0", "source_run_id": "other"})
+    client.post("/platforms", json={**PLATFORM, "version": "1.1.0"})
+
+    assert client.delete("/histories/runs/run1").status_code == 409
+    client.delete("/platforms/woodpecker-ci/versions/1.1.0")
+    assert client.delete("/histories/runs/run1").status_code == 200
 
 
 # --- attempts -------------------------------------------------------------------------
@@ -185,7 +246,7 @@ def test_a_platform_purged_while_its_files_are_being_read_is_a_404_and_not_a_500
 
 
 def test_the_list_says_which_versions_were_published_since_only_those_can_be_purged(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     shipped = platforms / "woodpecker-ci" / "1.0.0"
     shipped.mkdir(parents=True)
     for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
@@ -249,7 +310,7 @@ def test_a_version_and_a_whole_platform_can_be_purged(client):
 
 
 def test_purging_what_is_not_there_is_a_404_and_what_came_with_the_stack_is_a_409(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     shipped = platforms / "gitlab" / "1.0.0"
     shipped.mkdir(parents=True)
     for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
@@ -268,9 +329,108 @@ def test_purging_what_is_not_there_is_a_404_and_what_came_with_the_stack_is_a_40
 
 
 def test_the_swarch_to_pim_transformation_is_served_or_not_found(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     assert client.get("/platforms/pim-transformation").status_code == 404
 
     (platforms / "swarch2pim.atl").write_text("module S;", encoding="utf-8")
 
     assert client.get("/platforms/pim-transformation").json() == {"transformation": "module S;"}
+
+
+# --- what the validators compiled during an attempt -----------------------------------------------
+
+
+def _reserved(client, run_id="run1", stage="atl"):
+    return client.post(f"/attempts/{run_id}", json={"stage": stage}).json()["attempt"]
+
+
+def _b64(data: bytes) -> str:
+    import base64
+
+    return base64.b64encode(data).decode("ascii")
+
+
+def test_what_was_compiled_is_kept_with_a_reserved_attempt_and_read_back_as_it_was(client):
+    attempt = _reserved(client)
+
+    kept = client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"PK\x03\x04 zipped \xff")})
+
+    assert kept.status_code == 200
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"PK\x03\x04 zipped \xff")}
+
+
+def test_a_second_keep_replaces_the_first(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"first")})
+
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"second")})
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"second")}
+
+
+def test_nothing_compiled_or_an_unknown_attempt_is_a_404(client):
+    attempt = _reserved(client)
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").status_code == 404
+    assert client.put("/attempts/run1/atl/attempt_9/compiled", json={"content_base64": _b64(b"x")}).status_code == 404
+    assert client.put("/attempts/none/atl/attempt_1/compiled", json={"content_base64": _b64(b"x")}).status_code == 404
+
+
+def test_a_recorded_attempt_keeps_the_compiled_output_it_has_and_takes_no_more(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+    client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "a.atl", "content": "module M;", "result": {"valid": True}},
+    )
+
+    again = client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"late")})
+
+    assert again.status_code == 409
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}
+    assert client.get(f"/attempts/run1/atl/{attempt}").json()["artifact"] == {"filename": "a.atl", "content": "module M;"}
+
+
+def test_the_compiled_zip_is_never_taken_for_the_attempts_artifact_and_an_extra_file_cannot_take_its_name(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    clash = client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "a.atl", "content": "m", "result": {"valid": True}, "extra_files": {"compiled.zip": "x"}},
+    )
+
+    assert clash.status_code == 422
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}
+
+
+def test_compiled_output_that_is_not_base64_is_a_422_and_over_the_limit_a_413(client, folders, monkeypatch):
+    attempt = _reserved(client)
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": "not base64!"}).status_code == 422
+
+    monkeypatch.setattr(settings, "MAX_COMPILED_BYTES", 4)
+
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"12345")}).status_code == 413
+    assert client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"1234")}).status_code == 200
+
+
+def test_a_released_attempt_takes_its_compiled_output_with_it(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    client.delete(f"/attempts/run1/atl/{attempt}")
+
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").status_code == 404
+
+
+def test_an_artifact_cannot_take_the_name_of_the_kept_compiled_zip(client):
+    attempt = _reserved(client)
+    client.put(f"/attempts/run1/atl/{attempt}/compiled", json={"content_base64": _b64(b"zipped")})
+
+    response = client.put(
+        f"/attempts/run1/atl/{attempt}",
+        json={"filename": "compiled.zip", "content": "module M;", "result": {"valid": True}},
+    )
+
+    assert response.status_code == 422
+    assert client.get(f"/attempts/run1/atl/{attempt}/compiled").json() == {"content_base64": _b64(b"zipped")}

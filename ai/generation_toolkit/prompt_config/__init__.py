@@ -1,9 +1,10 @@
-"""Generic, path-parameterized persistence for a UI-editable prompt
-config: load/save (storage.py), version history/diff/restore
-(history.py), and on-demand drift detection against the currently loaded
-config (references.py). Every function takes a config_dir the calling
-service supplies, so this package owns no service-specific path of its
-own, the same functions work against a different directory per caller.
+"""Persistence for a UI-editable prompt config: load/save (storage.py),
+version history/diff/restore (history.py), the permanent learned constraints
+(learned_constraints.py), and on-demand drift detection against the currently
+loaded config (references.py). The journal keeps it all. Every function takes
+the agent's own name (such as "psm") that the journal keeps its configs under,
+so this package owns no service-specific path of its own, the same functions
+work against a different agent per caller.
 
 There is exactly one config per name (no per-platform preset variant):
 a target platform's identity is supplied as plain runtime data (a

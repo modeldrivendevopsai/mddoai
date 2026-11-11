@@ -119,8 +119,9 @@ stage_agents = {
 - **`stages/docs/agent.py`** and **`stages/serialization/agent.py`** are real agents: the former
   calls `retrieval`'s actual `POST /fetch` via `clients/retrieval_client.py`; the latter calls the
   real, separate [`ai/serialization_agent`](../serialization_agent) service's `POST /serialize`
-  via `clients/serialization_agent_client.py` — a multi-step extraction/labeling pipeline, its own
-  container since it makes its own outbound call to `pim_agent`.
+  via `clients/serialization_agent_client.py` — it cuts the docs into sections and labels each against
+  the PIM concepts, keeping all of the text and calling no model; its own container since it makes its
+  own outbound call to `pim_agent`.
 - **`stages/pim/agent.py`** is still a placeholder in one real sense, no real PIM *instance*
   extraction pipeline exists yet, so it ignores a run's own real SWArch/serialization input, but
   its output is MDDOAI's own real, fixed PIM metamodel (`meta_models/com.mddoai.metamodel.pim`'s
@@ -193,10 +194,10 @@ file, not a restructuring.
   `extend_with_page()` despite both wrapping retrieval calls — see
   [The docs stage's extra action](#the-docs-stages-extra-action-stagesdocsactionspy) below for
   exactly how and why they differ.
-- **`serialization_stage(context)`** — reads `context["docs_output"]` and the run's chosen
-  model, and forwards both to the real `serialization_agent` service's `POST /serialize` via
-  `clients/serialization_agent_client.py`. No constraints support today: this stage has no
-  correction-taking parameter of its own to fold one into.
+- **`serialization_stage(context)`** — reads `context["docs_output"]` and forwards it to the real
+  `serialization_agent` service's `POST /serialize` via `clients/serialization_agent_client.py`. The
+  run's model is not forwarded, since the stage calls none. No constraints support today: this stage
+  has no correction-taking parameter of its own to fold one into.
 - **`pim_stage(context)`** — ignores its input context (fixed content has nothing to prefer/fall
   back between). Returns MDDOAI's own real, fixed PIM metamodel content, read off
   `PIM_METAMODEL_PATH`, after validating it for real via `validator_agent_client.validate_ecore()`.
@@ -451,7 +452,8 @@ The service starts at `http://localhost:8050`.
 | `GET /events?since_index=&run_id=` | Raw events (no narration) from `since_index` on, for the current run or a specific past one. Includes `run_id`, so orchestrator can key its own chat log by it, `offset` (where the events returned start) and `total` (how many events the run has), so a poller asks only for what it has not seen. |
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
-| `GET /runs` | Every run, newest first. |
+| `GET /runs` | Every run, newest first, each with `started_at` (when it began, or null when nothing happened on it). |
+| `DELETE /runs/{run_id}` | Deletes a past run for good, with the files of its attempts. `404` for an unknown run. `409` for the current run, a busy one, or a run a platform was published from (the journal keeps it, the reason is in `detail`). `502` if the journal is unreachable. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
 | `POST /publish` | Body: optional `name`, `output_filename`, `version` (`MAJOR.MINOR.PATCH`, the patch after the highest when left out), `run_id`. Publishes the completed run's platform to the journal, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the journal refuses what was sent, such as a version that exists. `502` if it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |
@@ -565,7 +567,7 @@ real folder.
 - **`tests/stages/test_docs_actions.py`** — `extend_with_page()`'s real appending behavior and
   event recording, against a real `IntegrationRun` (`stages/docs/actions.py`).
 - **`tests/stages/test_serialization_agent.py`** — the `serialization_stage` wrapper
-  (`stages/serialization/agent.py`); the real extraction/labeling logic it calls out to has its
+  (`stages/serialization/agent.py`); the real sectioning and labeling logic it calls out to has its
   own tests in `ai/serialization_agent/tests/test_serialization_agent.py`.
 - **`tests/stages/test_generation_stage.py`** — the real (non-placeholder) `gen_stage` agent
   (`stages/generation/agent.py`): it calls `execution_agent_client.execute_atl_from_pim()` then
@@ -575,6 +577,10 @@ real folder.
   validation + persistence, `validator_agent_client` mocked. `psm`/`atl`/`acceleo` aren't part of
   this file: each is a real proxy to its own real service, not fixed content — see
   `tests/stages/test_psm_stage.py`/`test_atl_stage.py`/`test_acceleo_stage.py` instead.
+- **`tests/stages/test_mock_chain_real_engines.py`** — the mock chain (`generation_toolkit`'s
+  `mock_chain`) through the real `validator-agent` and `execution-agent`: each artifact compiles, and
+  the chain runs on the sample PIM the generation stage uses and writes its file. Auto-skips when
+  either isn't reachable.
 - **`tests/stages/test_mock_validated_stages_real_validator.py`** — the real end-to-end
   exception for `pim`: no mocking of `validator_agent_client`, a real HTTP call to a real running
   `validator-agent`. Auto-skips when it isn't reachable (`docker compose up validator-agent`, or

@@ -4,13 +4,11 @@ sequence every real caller of a config-driven prompt needs before it can
 either call the LLM for real (a stage's own generate()/compare()-style
 function) or show a human a static preview of what it would send.
 Extracted here, not duplicated per caller: this sequence carries zero
-stage-specific knowledge (it only needs a config_dir, name, context_values,
+stage-specific knowledge (it only needs an agent, name, context_values,
 and files_root, all supplied by the caller), the same "loosely coupled,
 same functions, different inputs" shape the rest of this package already
 follows.
 """
-from pathlib import Path
-
 from generation_toolkit.attachments.resolve import resolve_attachments
 from generation_toolkit.prompt_builder import build_prompt
 
@@ -20,14 +18,14 @@ from . import learned_constraints, storage
 def resolve_config(
     config: dict,
     context_values: dict[str, str],
-    files_root: str | Path | list[str | Path],
+    files_root: list,
 ) -> tuple[dict, dict[str, str]]:
     """The real resolution step resolve_for_call below applies to a config
     it just loaded from disk, factored out to also accept a config a
     caller already has in hand (e.g. a UI's own current, unsaved draft) -
     a "preview my current edits" capability needs the exact same
     resolution a real call would do, against attachments that were never
-    written to config_dir at all, not a second, parallel implementation
+    never kept at all, not a second, parallel implementation
     that only approximates it.
 
     Returns (config, parts): parts is the ordered dict a caller passes
@@ -49,7 +47,7 @@ def resolve_config(
     messages.
 
     Whatever `config` already carries under "learned_constraints" (if
-    anything) passes through untouched - this function has no config_dir/
+    anything) passes through untouched - this function has no agent/
     name of its own to look up the real, current constraints store with
     (see learned_constraints.load_constraints), so a caller that needs the
     real ones merged in (resolve_for_call below, or preview_endpoint's own
@@ -65,10 +63,10 @@ def resolve_config(
 
 
 def resolve_for_call(
-    config_dir: str | Path,
+    agent: str,
     name: str,
     context_values: dict[str, str],
-    files_root: str | Path | list[str | Path],
+    files_root: list,
 ) -> tuple[dict, dict[str, str]]:
     """Loads name's real, saved config, merges in its real, current
     learned_constraints (from their own separate, never-reverted store -
@@ -76,16 +74,16 @@ def resolve_for_call(
     result via resolve_config above - the shape every real generation call
     (which has no draft of its own, only ever the saved config) actually
     wants."""
-    config = storage.load_config(config_dir, name)
-    config = learned_constraints.with_current_constraints(config_dir, name, config)
+    config = storage.load_config(agent, name)
+    config = learned_constraints.with_current_constraints(agent, name, config)
     return resolve_config(config, context_values, files_root)
 
 
 def render_prompt(
-    config_dir: str | Path,
+    agent: str,
     name: str,
     context_values: dict[str, str],
-    files_root: str | Path | list[str | Path],
+    files_root: list,
 ) -> dict:
     """The real prompt (build_prompt()'s own shape) a real call for this
     config would start with, without spending a real LLM call and without
@@ -94,5 +92,5 @@ def render_prompt(
     learned_constraints. Used by a prompt-config preview capability and by
     a caller that wants to display "what would be sent" without a retry
     loop (e.g. a knowledge-mode drift check, which never retries at all)."""
-    config, parts = resolve_for_call(config_dir, name, context_values, files_root)
+    config, parts = resolve_for_call(agent, name, context_values, files_root)
     return build_prompt(parts, constraints=config.get("learned_constraints"))

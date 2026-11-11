@@ -1,11 +1,12 @@
-"""HTTP client for the journal: the service that keeps histories, run attempts
-and published platforms on disk. A request the journal refuses (an unknown
+"""HTTP client for the journal: the service that keeps histories, run attempts,
+published platforms, prompt configs, uploaded attachments and generated pipelines on disk. A request the journal refuses (an unknown
 name, a version that exists, a gap in a history) raises AgentServiceError with
 its reason. An unreachable journal surfaces as a raw httpx error.
 
 HistoryClient keeps a history there without sending the whole of it each time:
 it remembers how much the journal already has, and sends only what is new.
 """
+import base64
 import copy
 import json
 import logging
@@ -40,6 +41,10 @@ LOAD_RETRY_DELAY = 3.0
 READ_TIMEOUT = 60.0
 # A publish only writes four small files.
 PUBLISH_TIMEOUT = 30.0
+# A prompt config can carry whole documentation dumps, and a save writes a few files. An
+# upload is a file of up to a few MB.
+CONFIG_TIMEOUT = 30.0
+UPLOAD_TIMEOUT = 30.0
 
 # The journal's answer to a platform file over its size limit. Sending it again
 # cannot succeed, so it is a refusal like the business errors, not an outage.
@@ -78,7 +83,7 @@ def _send(method: str, path: str, timeout: float, body: dict | None = None) -> h
 def _request(method: str, path: str, timeout: float = SAVE_TIMEOUT, body: dict | None = None) -> httpx.Response:
     response = _send(method, path, timeout, body)
     if response.status_code == _TOO_LARGE:
-        raise AgentServiceError(_TOO_LARGE, "The platform's files are larger than the journal accepts.")
+        raise AgentServiceError(_TOO_LARGE, "What was sent is larger than the journal accepts.")
     raise_for_business_error(response)
     return response
 
@@ -153,6 +158,23 @@ class HistoryClient:
         else:
             self._failing.discard(key)
 
+    def delete(self, key: str) -> bool:
+        """Removes the history of `key` from the journal for good, with whatever
+        the journal keeps with it (a run's files). False when it holds none: a run
+        nothing happened on is never kept. A refusal, such as a run a platform was
+        published from, raises."""
+        try:
+            _request("DELETE", f"/histories/{self._kind}/{_seg(key)}")
+            removed = True
+        except AgentServiceError as e:
+            if e.status_code != 404:
+                raise
+            removed = False
+        # What is remembered of the key goes too, so a later save of the same key is sent whole.
+        self._held.pop(key, None)
+        self._failing.discard(key)
+        return removed
+
     def load_all(self, build: Callable[[str, list[dict], dict], T]) -> list[T]:
         """`build(key, events, state)` for each history the journal holds.
         `build` raises ValueError for one that is not what the caller keeps. A
@@ -219,6 +241,19 @@ def record_attempt(
             "extra_files": extra_files or {},
         },
     )
+
+
+def keep_compiled_output(run_id: str, stage: str, attempt: str, data: bytes) -> None:
+    """Keeps what the validators compiled during an attempt, as one zip, with the attempt. The
+    attempt must be reserved and not recorded yet."""
+    body = {"content_base64": base64.b64encode(data).decode("ascii")}
+    _request("PUT", f"/attempts/{_seg(run_id)}/{_seg(stage)}/{_seg(attempt)}/compiled", UPLOAD_TIMEOUT, body)
+
+
+def get_compiled_output(run_id: str, stage: str, attempt: str) -> bytes | None:
+    """What the validators compiled during an attempt, as the zip it was kept as, or None."""
+    answer = _or_none("GET", f"/attempts/{_seg(run_id)}/{_seg(stage)}/{_seg(attempt)}/compiled", READ_TIMEOUT)
+    return None if answer is None else base64.b64decode(answer["content_base64"])
 
 
 def discard_attempt(run_id: str, stage: str, attempt: str) -> None:
@@ -298,3 +333,107 @@ def purge_platform(platform_id: str, version: str | None = None) -> list[str]:
     version is named. Returns the versions removed."""
     path = f"/platforms/{_seg(platform_id)}" + (f"/versions/{_seg(version)}" if version is not None else "")
     return _request("DELETE", path).json()["purged"]
+
+# --- prompt configs and uploads -------------------------------------------------------
+
+
+# What the agents that write prompts keep here: their prompt configs, versioned, and the files
+# uploaded to them. Each is under the agent's own name, such as "psm", so one journal serves every
+# agent and none sees another's. What a config means, and whether it is valid, is the agent's to
+# say: the journal keeps what it is given. Where something may be missing, such as a config
+# nobody saved or constraints never kept, the answer is None and not an error.
+
+
+def _or_none(method: str, path: str, timeout: float = CONFIG_TIMEOUT, body: dict | None = None):
+    """The answer's JSON, or None when the journal has nothing there."""
+    try:
+        return _request(method, path, timeout, body).json()
+    except AgentServiceError as e:
+        if e.status_code == 404:
+            return None
+        raise
+
+
+def _config_path(agent: str, name: str) -> str:
+    return f"/prompt-configs/{_seg(agent)}/{_seg(name)}"
+
+
+def get_config(agent: str, name: str) -> dict | None:
+    """The live config, or the shipped one when none was saved. None when there is neither."""
+    return _or_none("GET", _config_path(agent, name))
+
+
+def get_shipped_config(agent: str, name: str) -> dict | None:
+    return _or_none("GET", f"{_config_path(agent, name)}/shipped")
+
+
+def save_config(agent: str, name: str, config: dict) -> dict:
+    """Keeps the config as a new version and returns it with its version. A config whose
+    attachments are the live one's changes nothing, and the live one comes back."""
+    return _request("PUT", _config_path(agent, name), CONFIG_TIMEOUT, {"config": config}).json()
+
+
+def list_versions(agent: str, name: str) -> tuple[list[str], bool]:
+    """The saved versions' ids, newest first, and whether a shipped config exists."""
+    answer = _request("GET", f"{_config_path(agent, name)}/versions", CONFIG_TIMEOUT).json()
+    return answer["versions"], answer["has_shipped"]
+
+
+def get_version(agent: str, name: str, version: str) -> dict | None:
+    return _or_none("GET", f"{_config_path(agent, name)}/versions/{_seg(version)}")
+
+
+def get_constraints(agent: str, name: str) -> list[str] | None:
+    """The learned constraints, or None when none were ever kept."""
+    answer = _or_none("GET", f"{_config_path(agent, name)}/constraints")
+    return None if answer is None else answer["constraints"]
+
+
+def set_constraints(agent: str, name: str, constraints: list[str]) -> None:
+    _request("PUT", f"{_config_path(agent, name)}/constraints", CONFIG_TIMEOUT, {"constraints": constraints})
+
+
+def save_upload(agent: str, name: str, content: str) -> None:
+    """Keeps an uploaded file under a name that is not taken. Refused with 409 when it is,
+    and with 413 when the file is over the size an upload may be."""
+    _request("PUT", f"/uploads/{_seg(agent)}/{_seg(name)}", UPLOAD_TIMEOUT, {"content": content})
+
+
+def list_uploads(agent: str) -> list[str]:
+    return _request("GET", f"/uploads/{_seg(agent)}", CONFIG_TIMEOUT).json()["files"]
+
+
+def get_upload(agent: str, name: str) -> str | None:
+    """The uploaded file's text, or None when there is no such file."""
+    answer = _or_none("GET", f"/uploads/{_seg(agent)}/{_seg(name)}")
+    return None if answer is None else answer["content"]
+
+
+# --- generated pipelines --------------------------------------------------------------------
+
+
+def record_pipeline(
+    *, key: str, swarch_name: str, source_path: str | None, content: str, results: list[dict], generated_at: str | None = None
+) -> str:
+    """Keeps a generation so it can be reopened, and returns its id: the earlier generation's
+    when the key is the same, since the newest generation for a key replaces the older. Each
+    result carries its platform, its pipeline text and its intermediate models."""
+    body = {
+        "key": key,
+        "swarch_name": swarch_name,
+        "source_path": source_path,
+        "content": content,
+        "results": results,
+        "generated_at": generated_at,
+    }
+    return _request("POST", "/pipelines", PUBLISH_TIMEOUT, body).json()["id"]
+
+
+def list_pipelines() -> list[dict]:
+    """Every pipeline, newest first, without the bulky parts."""
+    return _request("GET", "/pipelines", READ_TIMEOUT).json()["pipelines"]
+
+
+def get_pipeline(pipeline_id: str) -> dict | None:
+    """One pipeline in full, or None when there is no such one."""
+    return _or_none("GET", f"/pipelines/{_seg(pipeline_id)}", READ_TIMEOUT)

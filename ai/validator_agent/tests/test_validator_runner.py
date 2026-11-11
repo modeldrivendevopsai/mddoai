@@ -5,14 +5,17 @@ process — matching orchestrator's own test convention (mock the network/
 process boundary, let everything else execute for real).
 """
 import json
+import io
+import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
+from clients import journal_client
 from validator_runner import (
     ValidatorInfraError,
-    _scoped_output_env,
     run_acceleo_validator,
     run_atl_validator,
     run_ecore_validator,
@@ -26,42 +29,6 @@ def fake_completed_process(returncode=0, stdout="", stderr=""):
     proc.stdout = stdout
     proc.stderr = stderr
     return proc
-
-
-def test_scoped_output_env_is_none_when_run_id_is_none():
-    # No run_id means no run tree to scope by at all - unaffected by
-    # whatever stage/attempt happen to be passed.
-    assert _scoped_output_env(None) is None
-    assert _scoped_output_env(None, "atl", "attempt_1") is None
-
-
-def test_scoped_output_env_joins_only_run_id_when_stage_and_attempt_are_omitted():
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")):
-        env = _scoped_output_env("run-123")
-
-    assert Path(env["VALIDATOR_OUTPUT_DIR"]).as_posix() == "/validator-output/run-123"
-
-
-def test_scoped_output_env_joins_run_id_and_stage_when_attempt_is_omitted():
-    # Not the real calling convention (atl_stage/acceleo_stage always pass
-    # both together or neither), but the function itself shouldn't require
-    # that pairing to behave sensibly.
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")):
-        env = _scoped_output_env("run-123", "atl")
-
-    assert Path(env["VALIDATOR_OUTPUT_DIR"]).as_posix() == "/validator-output/run-123/atl"
-
-
-def test_scoped_output_env_joins_run_id_stage_and_attempt_when_all_given():
-    # This is the real calling convention: atl_stage/acceleo_stage forward
-    # their own stage name and reserved attempt name together, so the
-    # compiled output is scoped <run_id>/<stage>/<attempt> in the validator's
-    # own output folder - not merely by run_id, and not missing the stage
-    # segment either.
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")):
-        env = _scoped_output_env("run-123", "atl", "attempt_2")
-
-    assert Path(env["VALIDATOR_OUTPUT_DIR"]).as_posix() == "/validator-output/run-123/atl/attempt_2"
 
 
 def test_run_cli_wraps_a_generic_oserror_as_infra_error():
@@ -146,48 +113,6 @@ def test_duration_ms_is_injected_into_successful_result():
     assert result["valid"] is True
 
 
-def test_generated_source_path_is_none_when_java_omits_it():
-    # Reflective mode (and any codegen attempt that generated nothing) never
-    # has this key in the Java-side JSON at all.
-    valid_json = json.dumps({"valid": True, "mode": "reflective", "issues": []})
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)):
-        result = run_ecore_validator("<ecore/>", "model.ecore", "reflective")
-
-    assert result["generated_source_path"] is None
-
-
-def test_generated_source_path_is_translated_from_camel_case_java_key():
-    codegen_json = json.dumps({
-        "valid": True, "mode": "codegen", "issues": [],
-        "generatedOutputPath": "/validator-output/ecore-validate-abc123",
-    })
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=codegen_json)):
-        result = run_ecore_validator("<ecore/>", "model.ecore", "codegen")
-
-    assert result["generated_source_path"] == "/validator-output/ecore-validate-abc123"
-    assert "generatedOutputPath" not in result
-
-
-def test_codegen_scopes_java_output_directory_to_run_id():
-    codegen_json = json.dumps({"valid": True, "mode": "codegen", "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=codegen_json)) as mock_run:
-        run_ecore_validator("<ecore/>", "model.ecore", "codegen", "run-123")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123"
-
-
-def test_codegen_scopes_java_output_directory_to_run_id_stage_and_attempt_when_all_given():
-    codegen_json = json.dumps({"valid": True, "mode": "codegen", "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=codegen_json)) as mock_run:
-        run_ecore_validator("<ecore/>", "model.ecore", "codegen", "run-123", "pim", "attempt_2")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123/pim/attempt_2"
-
-
 def test_atl_builds_expected_argv_and_invokes_correct_class():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
@@ -235,28 +160,6 @@ def test_atl_duration_ms_is_injected_into_successful_result():
     assert result["valid"] is True
 
 
-def test_atl_generated_source_path_is_none_when_nothing_produced():
-    # A broken-enough source produces no .asm at all - AtlValidator's own
-    # keepOutput check (target.exists()) is false, so Java never reports a path.
-    invalid_json = json.dumps({"valid": False, "issues": []})
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=invalid_json)):
-        result = run_atl_validator("garbage", "sample.atl")
-
-    assert result["generated_source_path"] is None
-
-
-def test_atl_generated_source_path_is_translated_from_camel_case_java_key():
-    compiled_json = json.dumps({
-        "valid": True, "issues": [],
-        "generatedOutputPath": "/validator-output/atl-validate-abc123/sample.asm",
-    })
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=compiled_json)):
-        result = run_atl_validator("module M;", "sample.atl")
-
-    assert result["generated_source_path"] == "/validator-output/atl-validate-abc123/sample.asm"
-    assert "generatedOutputPath" not in result
-
-
 def test_atl_appends_the_target_metamodel_path_when_given():
     # Without this, AtlValidator's own execution smoke test never runs at
     # all (see its own pimSampleInstancePath comment) - a real runtime-only
@@ -284,30 +187,6 @@ def test_atl_omits_the_metamodel_arg_when_not_given():
         run_atl_validator("module M;", "sample.atl")
 
     assert len(mock_run.call_args.args[0]) == 5
-
-
-def test_atl_scopes_java_output_directory_to_run_id():
-    valid_json = json.dumps({"valid": True, "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
-        run_atl_validator("module M;", "sample.atl", "run-123")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123"
-
-
-def test_atl_scopes_java_output_directory_to_run_id_stage_and_attempt_when_all_given():
-    # This is the real calling convention atl_stage uses: stage="atl" and
-    # its own reserved attempt name forwarded together, so the compiled
-    # .asm is scoped <run_id>/atl/<attempt>, not merely by run_id and not
-    # missing the stage segment.
-    valid_json = json.dumps({"valid": True, "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
-        run_atl_validator("module M;", "sample.atl", "run-123", "atl", "attempt_3")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123/atl/attempt_3"
 
 
 def test_acceleo_builds_expected_argv_and_invokes_correct_class():
@@ -355,28 +234,6 @@ def test_acceleo_duration_ms_is_injected_into_successful_result():
     assert "duration_ms" in result
     assert result["duration_ms"] >= 0
     assert result["valid"] is True
-
-
-def test_acceleo_generated_source_path_is_none_when_nothing_produced():
-    # A broken-enough module produces nothing in outputDir at all -
-    # AcceleoValidator's own keepOutput check (hasAnyFile) is false.
-    invalid_json = json.dumps({"valid": False, "issues": []})
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=invalid_json)):
-        result = run_acceleo_validator("garbage", "generate.mtl")
-
-    assert result["generated_source_path"] is None
-
-
-def test_acceleo_generated_source_path_is_translated_from_camel_case_java_key():
-    compiled_json = json.dumps({
-        "valid": True, "issues": [],
-        "generatedOutputPath": "/validator-output/acceleo-validate-abc123/out",
-    })
-    with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=compiled_json)):
-        result = run_acceleo_validator("[module generate('http://x')]", "generate.mtl")
-
-    assert result["generated_source_path"] == "/validator-output/acceleo-validate-abc123/out"
-    assert "generatedOutputPath" not in result
 
 
 def test_acceleo_appends_the_target_metamodel_path_when_given():
@@ -447,28 +304,6 @@ def test_acceleo_omits_the_atl_source_arg_without_a_metamodel_even_if_given():
     assert len(mock_run.call_args.args[0]) == 5
 
 
-def test_acceleo_scopes_java_output_directory_to_run_id():
-    valid_json = json.dumps({"valid": True, "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
-        run_acceleo_validator("[module generate('http://x')]", "generate.mtl", "run-123")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123"
-
-
-def test_acceleo_scopes_java_output_directory_to_run_id_stage_and_attempt_when_all_given():
-    # Real calling convention acceleo_stage uses: stage="acceleo" plus its
-    # own reserved attempt name, scoping the output <run_id>/acceleo/<attempt>.
-    valid_json = json.dumps({"valid": True, "issues": []})
-    with patch("validator_runner.OUTPUT_ROOT", Path("/validator-output")), \
-         patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
-        run_acceleo_validator("[module generate('http://x')]", "generate.mtl", "run-123", "acceleo", "attempt_4")
-
-    output_dir = Path(mock_run.call_args.kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
-    assert output_dir.as_posix() == "/validator-output/run-123/acceleo/attempt_4"
-
-
 def test_swarch_builds_expected_argv_and_invokes_correct_class():
     valid_json = json.dumps({"valid": True, "issues": []})
     with patch("validator_runner.subprocess.run", return_value=fake_completed_process(stdout=valid_json)) as mock_run:
@@ -523,3 +358,134 @@ def test_swarch_duration_ms_is_injected_into_successful_result():
 
     assert result["duration_ms"] >= 0
     assert result["valid"] is True
+
+
+# --- what a validator compiled is kept with its attempt ---------------------------------------
+
+ATL_OK = json.dumps({"valid": True, "issues": []})
+
+
+def _compiling(stdout, files):
+    """A stand-in for the Java process: it compiles `files` into the folder it is told to."""
+    seen = {}
+
+    def run(argv, **kwargs):
+        output_dir = Path(kwargs["env"]["VALIDATOR_OUTPUT_DIR"])
+        seen["dir"] = output_dir
+        seen["existed"] = output_dir.is_dir()
+        for name, content in files.items():
+            (output_dir / name).parent.mkdir(parents=True, exist_ok=True)
+            (output_dir / name).write_text(content, encoding="utf-8")
+        return fake_completed_process(stdout=stdout)
+
+    return run, seen
+
+
+def _zip_of(run_id, stage, attempt):
+    kept = journal_client.get_compiled_output(run_id, stage, attempt)
+    assert kept is not None, "nothing was kept"
+    with zipfile.ZipFile(io.BytesIO(kept)) as archive:
+        return {name: archive.read(name).decode("utf-8") for name in archive.namelist()}
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda: run_ecore_validator("<ecore/>", "model.ecore", "codegen"),
+        lambda: run_ecore_validator("<ecore/>", "model.ecore", "reflective"),
+        lambda: run_atl_validator("module M;", "sample.atl"),
+        lambda: run_acceleo_validator("[module generate('http://x')]", "generate.mtl"),
+        lambda: run_swarch_validator("<swarch/>", "model.swarch"),
+    ],
+    ids=["ecore-codegen", "ecore-reflective", "atl", "acceleo", "swarch"],
+)
+def test_every_validator_compiles_into_a_scratch_folder_that_is_gone_afterwards(call):
+    run, seen = _compiling(ATL_OK, {})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        call()
+
+    assert seen["existed"] is True
+    assert not seen["dir"].exists()
+    assert not seen["dir"].parent.exists()
+
+
+def test_what_atl_compiled_is_kept_as_one_zip_with_the_attempt():
+    attempt = journal_client.reserve_attempt("run-1", "atl")
+    run, _ = _compiling(
+        json.dumps({"valid": True, "issues": [], "generatedOutputPath": "/gone/atl-validate-abc"}),
+        {"atl-validate-abc/sample.asm": "bytecode", "atl-validate-abc/nested/extra.txt": "more"},
+    )
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        result = run_atl_validator("module M;", "sample.atl", "run-1", "atl", attempt)
+
+    assert result["compiled_output_kept"] is True
+    assert "generatedOutputPath" not in result
+    assert _zip_of("run-1", "atl", attempt) == {
+        "atl-validate-abc/sample.asm": "bytecode",
+        "atl-validate-abc/nested/extra.txt": "more",
+    }
+
+
+def test_what_ecore_codegen_and_acceleo_compiled_is_kept_too():
+    ecore_attempt = journal_client.reserve_attempt("run-1", "psm")
+    run, _ = _compiling(json.dumps({"valid": True, "mode": "codegen", "issues": []}), {"src-gen/A.java": "class A {}"})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        ecore = run_ecore_validator("<ecore/>", "model.ecore", "codegen", "run-1", "psm", ecore_attempt)
+    acceleo_attempt = journal_client.reserve_attempt("run-1", "acceleo")
+    run, _ = _compiling(ATL_OK, {"generate.emtl": "module"})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        acceleo = run_acceleo_validator("[module generate('http://x')]", "generate.mtl", "run-1", "acceleo", acceleo_attempt)
+
+    assert ecore["compiled_output_kept"] is True and acceleo["compiled_output_kept"] is True
+    assert _zip_of("run-1", "psm", ecore_attempt) == {"src-gen/A.java": "class A {}"}
+    assert _zip_of("run-1", "acceleo", acceleo_attempt) == {"generate.emtl": "module"}
+
+
+@pytest.mark.parametrize("scope", [(None, None, None), ("run-1", None, None), ("run-1", "atl", None), (None, "atl", "attempt_1")])
+def test_nothing_is_kept_for_a_call_that_does_not_name_a_whole_attempt(scope):
+    run, _ = _compiling(ATL_OK, {"sample.asm": "bytecode"})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        result = run_atl_validator("module M;", "sample.atl", *scope)
+
+    assert result["compiled_output_kept"] is False
+
+
+def test_nothing_is_kept_when_nothing_was_compiled():
+    attempt = journal_client.reserve_attempt("run-1", "atl")
+    run, _ = _compiling(ATL_OK, {})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        result = run_atl_validator("module M;", "sample.atl", "run-1", "atl", attempt)
+
+    assert result["compiled_output_kept"] is False
+    assert journal_client.get_compiled_output("run-1", "atl", attempt) is None
+
+
+def test_a_journal_that_cannot_be_reached_does_not_fail_the_validation(caplog):
+    attempt = journal_client.reserve_attempt("run-1", "atl")
+    run, _ = _compiling(ATL_OK, {"sample.asm": "bytecode"})
+    with patch("validator_runner.subprocess.run", side_effect=run), patch.object(
+        journal_client, "keep_compiled_output", side_effect=httpx.ConnectError("the journal is down")
+    ):
+        result = run_atl_validator("module M;", "sample.atl", "run-1", "atl", attempt)
+
+    assert result["valid"] is True and result["compiled_output_kept"] is False
+    assert "could not keep the compiled output" in caplog.text
+
+
+def test_an_attempt_the_journal_does_not_know_is_not_kept_and_does_not_fail_the_validation():
+    run, _ = _compiling(ATL_OK, {"sample.asm": "bytecode"})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        result = run_atl_validator("module M;", "sample.atl", "no-such-run", "atl", "attempt_1")
+
+    assert result["valid"] is True and result["compiled_output_kept"] is False
+
+
+def test_an_attempt_that_is_already_recorded_is_not_changed():
+    attempt = journal_client.reserve_attempt("run-1", "atl")
+    journal_client.record_attempt("run-1", "atl", attempt, filename="a.atl", content="module M;", result={"valid": True})
+    run, _ = _compiling(ATL_OK, {"sample.asm": "bytecode"})
+    with patch("validator_runner.subprocess.run", side_effect=run):
+        result = run_atl_validator("module M;", "sample.atl", "run-1", "atl", attempt)
+
+    assert result["compiled_output_kept"] is False
+    assert journal_client.get_compiled_output("run-1", "atl", attempt) is None

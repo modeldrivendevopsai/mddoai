@@ -176,3 +176,64 @@ def test_events_endpoint_maps_an_unknown_run_to_404():
         events_endpoint(run_id="no-such-run-id")
     assert exc_info.value.status_code == 404
 
+
+
+# --- DELETE /runs/{run_id} ---------------------------------------------------------------
+
+
+def test_delete_run_endpoint_removes_a_past_run():
+    from integration_runner.routes.core import delete_run_endpoint
+
+    original = runs._default
+    try:
+        original.record_event("call_started", "docs", {"platform_description": "TeamCity"})
+        runs.reset_pipeline()
+
+        assert delete_run_endpoint(original.run_id) == {"deleted": original.run_id}
+        assert runs.get_run(original.run_id) is None
+    finally:
+        runs._default = original
+        runs._runs.clear()
+        runs._runs[original.run_id] = original
+
+
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (ValueError("No run with id 'x'"), 404),
+        (runs.CurrentRunError("That is the current run."), 409),
+        (pipeline.BusyError("busy"), 409),
+    ],
+)
+def test_delete_run_endpoint_maps_each_refusal_to_its_status(error, status):
+    from integration_runner.routes.core import delete_run_endpoint
+
+    with patch.object(runs, "delete_run", side_effect=error):
+        with pytest.raises(HTTPException) as raised:
+            delete_run_endpoint("x")
+
+    assert raised.value.status_code == status
+
+
+def test_delete_run_endpoint_passes_the_journals_refusal_on_with_its_reason():
+    from clients.agent_service_errors import AgentServiceError
+    from integration_runner.routes.core import delete_run_endpoint
+
+    refusal = AgentServiceError(409, "TeamCity 1.0.0 was published from this run, so the run is kept.")
+    with patch.object(runs, "delete_run", side_effect=refusal):
+        with pytest.raises(HTTPException) as raised:
+            delete_run_endpoint("x")
+
+    assert (raised.value.status_code, raised.value.detail) == (409, refusal.detail)
+
+
+def test_delete_run_endpoint_says_when_the_journal_is_unreachable():
+    import httpx
+
+    from integration_runner.routes.core import delete_run_endpoint
+
+    with patch.object(runs, "delete_run", side_effect=httpx.ConnectError("refused")):
+        with pytest.raises(HTTPException) as raised:
+            delete_run_endpoint("x")
+
+    assert raised.value.status_code == 502

@@ -2,7 +2,7 @@ import clients.testing_urls  # noqa: F401  (the clients' links, which a service 
 import integration_runner.testing_env  # noqa: F401  (the PIM files, which compose mounts)
 import pytest
 
-from clients.journal_testing import journal_in_process
+from clients.journal_testing import folders_in, journal_in_process
 
 
 def pytest_configure(config):
@@ -23,5 +23,5 @@ def journal(tmp_path):
     test that runs a run or a stage keeps its runs and attempts there, so none
     of them reads or writes another's. It is autouse, so no test file has to
     remember to isolate this itself."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"):
+    with journal_in_process(folders_in(tmp_path)):
         yield tmp_path / "runs"

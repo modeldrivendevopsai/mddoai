@@ -89,6 +89,15 @@ class PlatformStore:
                 usable.append(platform)
         return sorted(usable, key=lambda platform: versions.parse(platform.version))
 
+    def published_from(self, run_id: str) -> list[PlatformVersion]:
+        """Every platform version that was published from this run."""
+        return [
+            version
+            for platform in self.latest()
+            for version in self.versions(platform.id)
+            if version.source_run_id == run_id
+        ]
+
     def get(self, platform_id: str, version: str | None = None) -> PlatformVersion | None:
         """A platform's version, or its latest usable one when none is named."""
         usable = self.versions(platform_id)

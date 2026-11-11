@@ -2,20 +2,20 @@
 
 The serialization stage: turns the docs stage's raw, unstructured documentation markdown into a
 structured artifact, labeled against MDDOAI's real PIM concepts, for the pim stage (and any
-future stage) to build on. Three steps, one LLM call: an LLM call extracts pipeline/job/task-shaped
-fragments from the raw prose (`_extract_fragments`), each fragment is labeled deterministically
-against `pim_agent`'s real PIM concepts via `clients/pim_agent_client.py`'s `ground()` (no LLM
-call), then the labeled fragments are assembled into markdown by plain string formatting (no LLM
-call). A fragment that doesn't match any of the 9 concepts is never dropped, it's kept under an
-"Unrecognized" section — the point of this stage is complete, honest restructuring, not lossy
-filtering. See `serialization.py`'s own docstring for the full detail.
+future stage) to build on. It keeps all of the documentation and calls no model: the text is cut
+into its markdown sections (at headings outside code fences), each section is labeled
+deterministically against `pim_agent`'s real PIM concepts via `clients/pim_agent_client.py`'s
+`ground()`, and the sections are written out verbatim under their concept. A section that doesn't
+match any of the 9 concepts is kept under an "Unrecognized" section. A page with no headings (a
+platform's JSON schema, say) is one section. An earlier version asked a model to extract the
+relevant fragments, and it kept a few hundred characters of a 60,000 character page. See
+`serialization.py`'s own docstring for the full detail.
 
 Own container, own port (8060), same reasoning as `pim_agent`/`psm_agent`: each real pipeline
 capability gets independent deployability, not bundled into whichever process happens to call it.
 Reached by `integration_runner`'s serialization stage
 (`integration_runner/stages/serialization/agent.py`) via `clients/serialization_agent_client.py`.
-This service in turn calls `ai-layer` (the extraction LLM call) and `pim_agent` (concept
-grounding) directly.
+This service in turn calls `pim_agent` (concept grounding) directly.
 
 ## API
 
@@ -24,8 +24,7 @@ grounding) directly.
 ```json
 // request
 {
-  "docs_output": "Fetched 2 page(s) from https://example.com/docs, confidence 0.80.\n\n# Docs\nRuns on a cron schedule.",
-  "model": null
+  "docs_output": "Fetched 2 page(s) from https://example.com/docs, confidence 0.80.\n\n# Docs\nRuns on a cron schedule."
 }
 
 // response (200)
@@ -33,9 +32,6 @@ grounding) directly.
   "markdown": "# Serialization: labeled documentation structure\n\n...\n"
 }
 ```
-
-`model` is optional, forwarded to the extraction call the same way every other stage forwards the
-run's chosen model; omit or pass `null` to use `ai-layer`'s own default.
 
 ### `GET /health`
 
@@ -47,9 +43,9 @@ Used by the Dockerfile's `HEALTHCHECK`.
 pip install -r requirements.txt
 ```
 
-`AI_LAYER_URL` and `PIM_AGENT_URL` are required settings with no default: Docker Compose sets them for the
-container. Running outside Docker, export both first (uvicorn does not read `.env.example`). Without
-one the service stops at start and names it.
+`PIM_AGENT_URL` is a required setting with no default: Docker Compose sets it for the container.
+Running outside Docker, export it first (uvicorn does not read `.env.example`). Without it the
+service stops at start and names it.
 
 ## Run
 
@@ -72,8 +68,8 @@ cd serialization_agent
 pytest
 ```
 
-No real network calls — `clients/ai_layer_client.chat` and `clients/pim_agent_client.ground` are
-mocked, with `pim_agent_client.ground`'s mock delegated to `pim_agent`'s own real, unmocked
+No real network calls — `clients/pim_agent_client.ground` is mocked, with its mock delegated to
+`pim_agent`'s own real, unmocked
 `ground()` (already exercised for real in `ai/pim_agent/tests/test_reference_knowledge.py`), so
 labeling tests here still exercise real matching behavior over the mocked HTTP boundary. See
 `tests/test_serialization_agent.py`'s own module docstring for the full test breakdown, including

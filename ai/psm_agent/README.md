@@ -75,7 +75,7 @@ metamodel, not a drift-check target), so it's a separate constant, not a reuse o
   },
   "validation": {
     "valid": true, "mode": "codegen", "issues": [], "duration_ms": 120,
-    "generated_source_path": "<validator output folder>/run-123/psm/attempt_1/ecore-validate-abc123"
+    "compiled_output_kept": true
   },
   "rounds": 2,
   "prompt_version": null
@@ -106,10 +106,10 @@ this service never touches the filesystem with them directly. `400` if a resolve
 doesn't exist on disk.
 
 `mock` (optional, default `false`) only ever matters on the generation path too: it skips the two
-slow, billed steps (PIM-concept grounding and the real LLM call), returning a fixed, already-valid
-placeholder artifact instead, while still resolving the real prompt config and still running the
-real `validator_agent` call against that placeholder — a fast, free way to exercise the prompt
-config mechanism and the real attempt-persistence path without spending either. `prompt_version`
+slow, billed steps (PIM-concept grounding and the real LLM call), returning the mock chain's fixed
+metamodel instead (see `generation_toolkit`'s `mock_chain`), while still resolving the real prompt
+config and still running the real `validator_agent` call against it. No constraint changes a mocked
+result, and a mocked call learns no fix (`round_constraints` is empty). `prompt_version`
 in a generation-mode response names exactly which saved config (see below) produced this output,
 the real link an attempt's own persisted `prompt.json` and a later "restore the config that
 produced this" UI action both need.
@@ -129,14 +129,14 @@ Used by the Dockerfile's `HEALTHCHECK`.
 Neither `generate()` nor `compare()` has a hardcoded system prompt: both resolve a real,
 git-committed, UI-editable config through `generation_toolkit.prompt_config` (see
 `generation_toolkit/README.md` for the mechanism itself, generic across any service that supplies
-it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP surface over it,
+it an agent name). This service's own `routes/prompt_config.py` is a thin HTTP surface over it,
 `routes/files.py` a related but separate concern (see below); both routers live under
 `routes/`, this service's own equivalent of `integration_runner/routes/`, and are wired into
 `main.py` via `app.include_router(...)`.
 
-Configs live under `{name}/` in the prompt folder, `name` one of `"generation"`/`"comparison"` (matching this
-service's two real LLM capabilities above). The folder is `PROMPT_CONFIG_DIR` (`prompt_paths.py`), the
-required `PSM_PROMPT_CONFIG_DIR`:
+Configs are kept by the journal, under this service's name `AGENT` (`prompt_settings.py`) and `{name}/`, `name` one of
+`"generation"`/`"comparison"` (matching this service's two real LLM capabilities above). A config is these files in
+the journal's prompts folder:
 
 - `default.default.json`: the immutable, git-committed shipped default. Every `name` ships one,
   seeded from the real experiment with the most already-proven `learned_constraints` at the time
@@ -189,18 +189,16 @@ attachment's `path` against, since a client can't be trusted to only send what t
 pip install -r requirements.txt
 ```
 
-`META_MODELS_DIR`, `AI_LAYER_URL`, `VALIDATOR_AGENT_URL`, `PSM_PROMPT_CONFIG_DIR` and
-`PSM_ATTACHMENT_UPLOADS_DIR` are required, with no default: the service stops at start if one is unset
-or empty. Docker Compose sets them, and mounts the root `meta_models/` tree read-only for
-`META_MODELS_DIR`. For a local run, export them: that tree, the links of ai-layer and validator-agent
-(both `ai/clients/` modules), `ai/data/prompts/psm`, and a writable folder of your own.
+`META_MODELS_DIR`, `AI_LAYER_URL`, `VALIDATOR_AGENT_URL`, `PIM_AGENT_URL` and `JOURNAL_URL` are required, with no default: the
+service stops at start if one is unset or empty. Docker Compose sets them, and mounts the root `meta_models/` tree
+read-only for `META_MODELS_DIR`. The prompt configs and uploaded files are in the journal, so this service mounts
+no folder for them. For a local run, export them: that tree, and the links of ai-layer, validator-agent, pim-agent
+and the journal (all `ai/clients/` modules).
 
 ## Run
 
 ```bash
 # from ai/psm_agent/
-export PSM_PROMPT_CONFIG_DIR=$PWD/../data/prompts/psm
-export PSM_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 uvicorn main:app --reload --port 8040
 ```
 

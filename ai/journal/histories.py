@@ -43,11 +43,18 @@ def check_key(key: str) -> None:
 
 
 class HistoryStore:
-    def __init__(self, path_for: Callable[[str], Path], keys_in_folder: Callable[[], list[str]]):
+    def __init__(
+        self,
+        path_for: Callable[[str], Path],
+        keys_in_folder: Callable[[], list[str]],
+        remove: Callable[[str], None] | None = None,
+    ):
         """`path_for` says where a key's journal lives, `keys_in_folder` which
-        keys have one."""
+        keys have one. `remove` deletes a key and whatever is kept with it, such as
+        a run's files; left out, a key is its journal file alone."""
         self._path_for = path_for
         self._keys_in_folder = keys_in_folder
+        self._remove = remove or (lambda key: self._path_for(key).unlink())
         # How many events each key holds, as last written or read here. Saves
         # reading a journal to count it at every append.
         self._counts: dict[str, int] = {}
@@ -64,6 +71,16 @@ class HistoryStore:
         check_key(key)
         events, state, _ = self._read(key)
         return events, state
+
+    def delete(self, key: str) -> None:
+        """Removes the key's history for good, and whatever is kept with it.
+        Raises UnknownHistory when none is kept."""
+        check_key(key)
+        with self._lock:
+            if not self._path_for(key).is_file():
+                raise UnknownHistory(key)
+            self._remove(key)
+            self._counts.pop(key, None)
 
     def replace(self, key: str, state: dict, events: list[dict]) -> int:
         """Keeps exactly this history under the key. Returns the event count."""

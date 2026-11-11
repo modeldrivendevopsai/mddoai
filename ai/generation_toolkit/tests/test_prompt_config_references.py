@@ -1,5 +1,6 @@
 from generation_toolkit.prompt_config.references import check_references
 from generation_toolkit.prompt_config.storage import save_config
+from helpers import AGENT
 
 _CONFIG = {
     "system_prompt": "x",
@@ -12,20 +13,20 @@ _CONFIG = {
 
 def _seed(tmp_path):
     (tmp_path / "example.ecore").write_text("<ecore/>", encoding="utf-8")
-    save_config(tmp_path, "generation", _CONFIG, {"pim_artifact": "x"}, tmp_path)
+    save_config(AGENT, "generation", _CONFIG, {"pim_artifact": "x"}, tmp_path)
 
 
 def test_check_references_reports_nothing_broken_for_a_healthy_config(tmp_path):
     _seed(tmp_path)
 
-    assert check_references(tmp_path, "generation", {"pim_artifact": "x"}, tmp_path) == []
+    assert check_references(AGENT, "generation", {"pim_artifact": "x"}, tmp_path) == []
 
 
 def test_check_references_reports_a_deleted_file_attachment(tmp_path):
     _seed(tmp_path)
     (tmp_path / "example.ecore").unlink()
 
-    broken = check_references(tmp_path, "generation", {"pim_artifact": "x"}, tmp_path)
+    broken = check_references(AGENT, "generation", {"pim_artifact": "x"}, tmp_path)
 
     assert [b["id"] for b in broken] == ["example"]
 
@@ -33,6 +34,6 @@ def test_check_references_reports_a_deleted_file_attachment(tmp_path):
 def test_check_references_reports_a_context_key_that_stopped_existing(tmp_path):
     _seed(tmp_path)
 
-    broken = check_references(tmp_path, "generation", {}, tmp_path)
+    broken = check_references(AGENT, "generation", {}, tmp_path)
 
     assert [b["id"] for b in broken] == ["pim"]

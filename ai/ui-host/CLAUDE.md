@@ -81,6 +81,10 @@ The sidebar's "Open sessions" list shows real data. The sessions client calls th
 
 The list is polled on an interval (the generated-pipelines list shares it), not fetched once per tab switch. Which run is current, and the list itself, both change from actions taken entirely on the integration screen (starting, approving, resetting, resuming). The sidebar has to notice those on its own, not only when its own tab is clicked.
 
+A row has two lines: the platform's name, and under it the stage the run is at and how long ago it began, such as "PSM, 2 hours ago". Runs of one platform are told apart by that second line.
+
+A row's cross deletes the run for good. It asks first, in the row itself ("Delete this run for good?" with Delete and Keep), because a deleted run cannot be brought back. The current run has no cross: it is open on screen, so it is restarted or left, not deleted. The backend refuses a run a platform was published from, and the row shows its reason (remove that platform first). A run the person deleted stays out of the list even if a poll that began before the delete answers late.
+
 Clicking a row opens the integration screen with that run's id in the URL (`?run=<run_id>`), which the screen passes to the integration hook.
 
 The row marked as on screen is the chat being shown, so it is marked only on the integration screen: the run named in the URL, or the current run when the URL names none, and none for a blank run. On every other screen, such as the platforms list or a platform's own screen, no chat is on screen and no row is marked.

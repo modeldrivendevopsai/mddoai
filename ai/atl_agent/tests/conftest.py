@@ -1,50 +1,43 @@
 """Shared pytest fixtures for atl_agent's own test suite."""
 import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
-import atexit
-import os
 import shutil
-import tempfile
 from pathlib import Path
 
 import pytest
 
-# Required settings, set before the service modules read them. The prompt folder is a
-# copy of the shipped one, so no test writes into the committed files.
+from clients.journal_testing import folders_in, journal_in_process
+
+import prompt_settings  # noqa: E402
+
 _AI_DIR = Path(__file__).resolve().parents[2]
-_session_dir = Path(tempfile.mkdtemp(prefix="atl-agent-tests-"))
-atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-shutil.copytree(_AI_DIR / "data" / "prompts" / "atl", _session_dir / "prompts")
-os.environ["ATL_AGENT_PROMPT_CONFIG_DIR"] = str(_session_dir / "prompts")
-os.environ["ATL_AGENT_ATTACHMENT_UPLOADS_DIR"] = str(_session_dir / "attachments")
-
-import prompt_paths  # noqa: E402
 
 
-@pytest.fixture
-def isolated_prompt_config_dir(tmp_path, monkeypatch):
-    """Redirects every real prompt-config read/write to a fresh tmp_path,
-    for a test that wants to freely create/mutate/delete configs without
-    touching the prompt folder the suite starts from.
-
-    Deliberately NOT autouse: test_generation.py exists specifically to
-    prove the real, shipped default prompt config integrates correctly -
-    forcing isolation there would defeat its entire point.
-
-    Patching prompt_paths.PROMPT_CONFIG_DIR itself is enough: generation.py
-    and routes/prompt_config.py both reference it via module-qualified
-    access (prompt_paths.PROMPT_CONFIG_DIR), not a bare
-    `from prompt_paths import PROMPT_CONFIG_DIR`, specifically so this one
-    patch reaches both - a bare import would each bind its own separate
-    copy at import time, silently unaffected by this."""
-    monkeypatch.setattr(prompt_paths, "PROMPT_CONFIG_DIR", tmp_path)
-    return tmp_path
+@pytest.fixture(autouse=True)
+def journal(tmp_path):
+    """The real journal, in this process, over folders of this test alone. Its prompts
+    folder starts as a copy of the shipped starting configs, so no test writes into the
+    committed files, and a test that saves a config or uploads a file keeps it there and
+    nowhere else. Yields the prompts and attachments folders."""
+    folders = folders_in(tmp_path)
+    shutil.copytree(_AI_DIR / "data" / "prompts" / prompt_settings.AGENT, folders.prompts / prompt_settings.AGENT)
+    with journal_in_process(folders):
+        yield folders.prompts, folders.attachments
 
 
 @pytest.fixture
-def isolated_attachment_uploads_dir(tmp_path, monkeypatch):
-    """Same reasoning as isolated_prompt_config_dir above, for real file
-    uploads (routes/uploads.py, available_files.py) instead of prompt
-    configs - redirects to a fresh tmp_path so a test can freely upload
-    without touching a real uploads folder."""
-    monkeypatch.setattr(prompt_paths, "ATTACHMENT_UPLOADS_DIR", tmp_path)
-    return tmp_path
+def isolated_prompt_config_dir(journal):
+    """The folder the journal keeps this agent's prompt configs in, emptied: the shipped
+    starting configs are gone, so a test builds the configs it needs on disk itself."""
+    folder = journal[0] / prompt_settings.AGENT
+    shutil.rmtree(folder)
+    folder.mkdir()
+    return folder
+
+
+@pytest.fixture
+def isolated_attachment_uploads_dir(journal):
+    """The folder the journal keeps this agent's uploaded files in, for a test that puts
+    a file there directly."""
+    folder = journal[1] / prompt_settings.AGENT
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
