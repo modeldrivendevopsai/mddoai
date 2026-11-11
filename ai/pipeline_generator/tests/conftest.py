@@ -50,7 +50,7 @@ def platforms_dir(tmp_path):
 @pytest.fixture(autouse=True)
 def journal(tmp_path, platforms_dir):
     """The real journal, over the copy of the platforms and folders of its own."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", platforms_dir):
+    with journal_in_process(tmp_path / "runs", tmp_path / "chats", platforms_dir, tmp_path / "prompts", tmp_path / "attachments"):
         yield
 
 

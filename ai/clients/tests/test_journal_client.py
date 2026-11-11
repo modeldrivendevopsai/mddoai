@@ -14,7 +14,7 @@ from clients.journal_testing import journal_in_process
 
 @pytest.fixture
 def folders(tmp_path):
-    return tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"
+    return tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", tmp_path / "prompts", tmp_path / "attachments"
 
 
 @pytest.fixture(autouse=True)

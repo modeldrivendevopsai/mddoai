@@ -9,6 +9,8 @@ from . import settings
 from .attempts import AttemptStore
 from .histories import HistoryStore
 from .platforms import PlatformStore
+from .prompt_configs import PromptConfigStore
+from .uploads import UploadStore
 
 # The kinds of history, each in its own folder.
 RUNS = "runs"
@@ -23,6 +25,8 @@ class Stores:
     histories: dict[str, HistoryStore]
     attempts: AttemptStore
     platforms: PlatformStore
+    prompt_configs: PromptConfigStore
+    uploads: UploadStore
 
 
 def _run_keys(runs_dir: Path) -> list[str]:
@@ -37,7 +41,7 @@ def _chat_keys(chats_dir: Path) -> list[str]:
     return [path.name.removesuffix(_CHAT_SUFFIX) for path in chats_dir.glob(f"*{_CHAT_SUFFIX}")]
 
 
-def build_stores(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> Stores:
+def build_stores(runs_dir: Path, chats_dir: Path, platforms_dir: Path, prompts_dir: Path, attachments_dir: Path) -> Stores:
     return Stores(
         histories={
             # A run is a folder: its journal and the files of its attempts, so a run goes whole.
@@ -50,6 +54,8 @@ def build_stores(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> Stores
         },
         attempts=AttemptStore(runs_dir),
         platforms=PlatformStore(platforms_dir),
+        prompt_configs=PromptConfigStore(prompts_dir, settings.MAX_PROMPT_VERSIONS),
+        uploads=UploadStore(attachments_dir, settings.MAX_UPLOAD_BYTES),
     )
 
 
@@ -59,12 +65,14 @@ _stores: Stores | None = None
 def get_stores() -> Stores:
     global _stores
     if _stores is None:
-        _stores = build_stores(settings.RUNS_DIR, settings.CHATS_DIR, settings.PLATFORMS_DIR)
+        _stores = build_stores(
+            settings.RUNS_DIR, settings.CHATS_DIR, settings.PLATFORMS_DIR, settings.PROMPTS_DIR, settings.ATTACHMENTS_DIR
+        )
     return _stores
 
 
-def use_folders(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> None:
+def use_folders(runs_dir: Path, chats_dir: Path, platforms_dir: Path, prompts_dir: Path, attachments_dir: Path) -> None:
     """Keeps everything in these folders from now on, with nothing remembered
     from before. For tests."""
     global _stores
-    _stores = build_stores(runs_dir, chats_dir, platforms_dir)
+    _stores = build_stores(runs_dir, chats_dir, platforms_dir, prompts_dir, attachments_dir)

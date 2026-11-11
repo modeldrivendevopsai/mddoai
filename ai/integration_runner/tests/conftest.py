@@ -23,5 +23,7 @@ def journal(tmp_path):
     test that runs a run or a stage keeps its runs and attempts there, so none
     of them reads or writes another's. It is autouse, so no test file has to
     remember to isolate this itself."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"):
+    with journal_in_process(
+        tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", tmp_path / "prompts", tmp_path / "attachments"
+    ):
         yield tmp_path / "runs"

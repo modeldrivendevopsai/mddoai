@@ -83,7 +83,7 @@ def test_a_negative_start_is_refused(client):
 
 
 def test_a_journal_that_is_not_a_history_is_a_422_that_names_it(client, folders):
-    runs, _, _ = folders
+    runs, *_ = folders
     (runs / "bad").mkdir(parents=True)
     (runs / "bad" / "run.jsonl").write_text("{not json\n", encoding="utf-8")
 
@@ -103,7 +103,7 @@ def _keep_a_run_with_an_attempt(client, run_id="r1"):
 
 
 def test_a_run_is_deleted_with_the_files_of_its_attempts_and_a_chat_on_its_own(client, folders):
-    runs_dir, chats_dir, _ = folders
+    runs_dir, chats_dir, *_ = folders
     _keep_a_run_with_an_attempt(client, "r1")
     _keep_a_run_with_an_attempt(client, "r2")
     client.put("/histories/chats/r1", json={"state": {}, "events": [{"m": 1}]})
@@ -246,7 +246,7 @@ def test_a_platform_purged_while_its_files_are_being_read_is_a_404_and_not_a_500
 
 
 def test_the_list_says_which_versions_were_published_since_only_those_can_be_purged(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     shipped = platforms / "woodpecker-ci" / "1.0.0"
     shipped.mkdir(parents=True)
     for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
@@ -310,7 +310,7 @@ def test_a_version_and_a_whole_platform_can_be_purged(client):
 
 
 def test_purging_what_is_not_there_is_a_404_and_what_came_with_the_stack_is_a_409(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     shipped = platforms / "gitlab" / "1.0.0"
     shipped.mkdir(parents=True)
     for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
@@ -329,7 +329,7 @@ def test_purging_what_is_not_there_is_a_404_and_what_came_with_the_stack_is_a_40
 
 
 def test_the_swarch_to_pim_transformation_is_served_or_not_found(client, folders):
-    _, _, platforms = folders
+    _, _, platforms, *_ = folders
     assert client.get("/platforms/pim-transformation").status_code == 404
 
     (platforms / "swarch2pim.atl").write_text("module S;", encoding="utf-8")

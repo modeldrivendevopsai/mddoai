@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 _session_dir: Path | None = None
 # The folders of the journal in use, so it can be started again over them.
-_folders: tuple[Path, Path, Path] | None = None
+_folders: tuple[Path, Path, Path, Path, Path] | None = None
 
 
 def _import_journal():
@@ -24,7 +24,13 @@ def _import_journal():
     if _session_dir is None:
         _session_dir = Path(tempfile.mkdtemp(prefix="journal-session-"))
         atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-    for name, folder in (("JOURNAL_RUNS_DIR", "runs"), ("JOURNAL_CHATS_DIR", "chats"), ("JOURNAL_PLATFORMS_DIR", "platforms")):
+    for name, folder in (
+        ("JOURNAL_RUNS_DIR", "runs"),
+        ("JOURNAL_CHATS_DIR", "chats"),
+        ("JOURNAL_PLATFORMS_DIR", "platforms"),
+        ("JOURNAL_PROMPTS_DIR", "prompts"),
+        ("JOURNAL_ATTACHMENTS_DIR", "attachments"),
+    ):
         os.environ.setdefault(name, str(_session_dir / folder))
     from journal import dependencies
     from journal.main import app
@@ -33,7 +39,9 @@ def _import_journal():
 
 
 @contextmanager
-def journal_in_process(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> Iterator[None]:
+def journal_in_process(
+    runs_dir: Path, chats_dir: Path, platforms_dir: Path, prompts_dir: Path, attachments_dir: Path
+) -> Iterator[None]:
     """Until the block ends, journal_client talks to the real journal app, which
     keeps its files in these folders and remembers nothing from before. A failed
     save is tried again at the very next one, with no cool-down, so a test can
@@ -45,7 +53,7 @@ def journal_in_process(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> 
     global _folders
     dependencies, app = _import_journal()
     platforms_dir.mkdir(parents=True, exist_ok=True)
-    _folders = (runs_dir, chats_dir, platforms_dir)
+    _folders = (runs_dir, chats_dir, platforms_dir, prompts_dir, attachments_dir)
     dependencies.use_folders(*_folders)
     test_client = TestClient(app)
 

@@ -96,7 +96,9 @@ def journal(tmp_path):
     chats this service keeps, and the runs and attempts of the in-process
     integration_runner that test_main.py's real_integration_runner fixture
     runs for real, go there, so no test reads or writes another's."""
-    with journal_in_process(tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms"):
+    with journal_in_process(
+        tmp_path / "runs", tmp_path / "chats", tmp_path / "platforms", tmp_path / "prompts", tmp_path / "attachments"
+    ):
         yield tmp_path
 
 

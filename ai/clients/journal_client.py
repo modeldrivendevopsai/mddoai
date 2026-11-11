@@ -78,7 +78,7 @@ def _send(method: str, path: str, timeout: float, body: dict | None = None) -> h
 def _request(method: str, path: str, timeout: float = SAVE_TIMEOUT, body: dict | None = None) -> httpx.Response:
     response = _send(method, path, timeout, body)
     if response.status_code == _TOO_LARGE:
-        raise AgentServiceError(_TOO_LARGE, "The platform's files are larger than the journal accepts.")
+        raise AgentServiceError(_TOO_LARGE, "What was sent is larger than the journal accepts.")
     raise_for_business_error(response)
     return response
 
