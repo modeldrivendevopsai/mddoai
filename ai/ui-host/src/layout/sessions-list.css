@@ -20,6 +20,8 @@
 
 .mdd-sessions__item {
   display: flex;
+  /* So the delete confirm can drop to its own line under the text. */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) 10px;
@@ -118,11 +120,15 @@
   white-space: normal;
 }
 
-/* Deleting asks first, in the row. */
+/* Deleting asks first, in the row: the question, then the two buttons on a line of their own. */
+.mdd-sessions__meta--asking {
+  white-space: normal;
+}
 .mdd-sessions__confirm {
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-1);
-  flex-shrink: 0;
+  flex-basis: 100%;
 }
 .mdd-sessions__confirm button {
   font: inherit;

@@ -70,7 +70,7 @@ export function SessionRow({ session, selected, onOpen, onDelete }: SessionRowPr
             {error}
           </span>
         ) : (
-          <span id={detailId} className="mdd-sessions__meta">
+          <span id={detailId} className={confirming ? 'mdd-sessions__meta mdd-sessions__meta--asking' : 'mdd-sessions__meta'}>
             {confirming ? copy.confirm : sessionDetail(session)}
           </span>
         )}
