@@ -11,6 +11,8 @@ stage/attempt fields already had, not a new one.
 import re
 from pathlib import Path
 
+from clients.agent_service_errors import AgentServiceError
+
 from .uploads import UploadedFiles
 
 _ALLOWED_CHARACTERS = re.compile(r"^[A-Za-z0-9._/-]+$")
@@ -77,7 +79,12 @@ def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path 
     roots = files_root if isinstance(files_root, list) else [files_root]
     for candidate_root in roots:
         if isinstance(candidate_root, UploadedFiles):
-            uploaded = candidate_root.read(path)
+            try:
+                uploaded = candidate_root.read(path)
+            except AgentServiceError as e:
+                if e.status_code != 422:
+                    raise
+                raise AttachmentFileError(f"attachment path {path!r} is not UTF-8 text") from e
             if uploaded is not None:
                 return uploaded
             continue

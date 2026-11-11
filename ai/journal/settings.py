@@ -17,7 +17,7 @@ MAX_ARTIFACT_BYTES = 1024 * 1024
 
 # The largest file a person uploads to attach to a prompt. Engineering guess: a large
 # metamodel or a documentation dump is a few hundred KB. It must be at least what an
-# agent accepts, which tests/test_limits_agree.py pins.
+# agent accepts, and a test pins that.
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 # How many saved versions of one prompt config are kept, the oldest pruned first.

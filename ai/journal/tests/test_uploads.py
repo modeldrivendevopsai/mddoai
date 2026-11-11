@@ -39,7 +39,7 @@ def test_a_file_over_the_size_limit_is_a_413_and_is_not_kept(client, folders, mo
     assert client.put("/uploads/psm/ok.txt", json={"content": "x" * 10}).status_code == 201
 
 
-@pytest.mark.parametrize("name", ["..", "a%2Fb", "a b", "x" * 256])
+@pytest.mark.parametrize("name", ["..", ".incoming", "a%2Fb", "a b", "x" * 256])
 def test_a_name_that_could_not_be_a_file_is_refused(client, name):
     assert client.put(f"/uploads/psm/{name}", json={"content": "x"}).status_code in (404, 422)
 
@@ -53,3 +53,12 @@ def test_a_file_that_is_not_text_is_a_422(client, folders):
     (folders[4] / "psm" / "bin.dat").write_bytes(b"\xff\xfe\x00")
 
     assert client.get("/uploads/psm/bin.dat").status_code == 422
+
+
+def test_a_file_is_written_whole_and_nothing_is_left_half_done_or_listed(client, folders):
+    client.put("/uploads/psm/a.txt", json={"content": "x" * 1000})
+    client.put("/uploads/psm/a.txt", json={"content": "again"})
+
+    assert client.get("/uploads/psm").json() == {"files": ["a.txt"]}
+    assert list((folders[4] / "psm" / ".incoming").iterdir()) == []
+    assert client.get("/uploads/psm/a.txt").json() == {"content": "x" * 1000}

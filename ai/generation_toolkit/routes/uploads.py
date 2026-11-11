@@ -22,9 +22,11 @@ from ..attachments.uploads import UploadError, save_uploaded_file
 def build_uploads_router(agent: str, max_upload_bytes: Callable[[], int]) -> APIRouter:
     router = APIRouter()
 
+    # A plain def, not async: saving calls the journal, which would block the event loop,
+    # and a plain def runs in the threadpool.
     @router.post("/attachment-uploads")
-    async def upload_attachment_endpoint(file: UploadFile):
-        content = await file.read()
+    def upload_attachment_endpoint(file: UploadFile):
+        content = file.file.read()
         try:
             stored_path = save_uploaded_file(agent, file.filename or "upload", content, max_upload_bytes())
         except UploadError as e:

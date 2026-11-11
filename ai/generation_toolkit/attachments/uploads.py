@@ -54,6 +54,9 @@ class UploadedFiles:
         self.agent = agent
 
     def read(self, path: str) -> str | None:
+        # Uploads are kept by a flat name, so a path with folders in it is never one: no request.
+        if "/" in path:
+            return None
         return journal_client.get_upload(self.agent, path)
 
     def names(self) -> list[str]:

@@ -5,10 +5,14 @@ files are text: that is what an attachment is when it is put into a prompt.
 """
 import os
 import re
+import secrets
 from pathlib import Path
 
 _AGENT = re.compile(r"[A-Za-z0-9_-]{1,64}")
 _NAME = re.compile(r"[A-Za-z0-9._-]{1,255}")
+# Where a file is written before it is put under its name, inside the agent's folder so the two
+# are on one disk. It is a folder, so it is never listed as a file.
+_INCOMING = ".incoming"
 
 
 class UploadNotFound(KeyError):
@@ -30,7 +34,8 @@ def _agent(value: str) -> str:
 
 
 def _name(value: str) -> str:
-    if not isinstance(value, str) or not _NAME.fullmatch(value) or set(value) == {"."}:
+    # A name that starts with a dot is refused: that keeps ".incoming" for the folder it names.
+    if not isinstance(value, str) or not _NAME.fullmatch(value) or value.startswith("."):
         raise UploadNotFound(f"not a file name: {value!r}")
     return value
 
@@ -47,14 +52,18 @@ class UploadStore:
         data = content.encode("utf-8")
         if len(data) > self._max_bytes:
             raise UploadTooLarge(f"the file is {len(data)} bytes, over the {self._max_bytes}-byte limit")
-        path.parent.mkdir(parents=True, exist_ok=True)
+        incoming = path.parent / _INCOMING
+        incoming.mkdir(parents=True, exist_ok=True)
+        temporary = incoming / secrets.token_hex(8)
         try:
-            # Exclusive: two uploads that chose the same name cannot overwrite each other.
-            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            temporary.write_bytes(data)
+            # A hard link is made only if the name is free, so two uploads that chose the same
+            # name cannot overwrite each other, and the file appears whole or not at all.
+            os.link(temporary, path)
         except FileExistsError as e:
             raise UploadExists(f"a file named {name!r} is already kept") from e
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(data)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def names(self, agent: str) -> list[str]:
         folder = self._root / _agent(agent)

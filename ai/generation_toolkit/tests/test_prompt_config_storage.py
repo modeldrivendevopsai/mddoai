@@ -149,3 +149,19 @@ def test_save_config_does_not_overwrite_an_already_migrated_store(config_dir, tm
 
     on_disk = json.loads((config_dir / "generation" / "constraints.json").read_text(encoding="utf-8"))
     assert on_disk == {"constraints": ["real"]}
+
+
+def test_a_journal_that_cannot_be_reached_is_not_reported_as_an_invalid_config(tmp_path, monkeypatch):
+    import httpx
+
+    from clients import journal_client
+    from generation_toolkit.attachments.uploads import UploadedFiles
+
+    def unreachable(*_args):
+        raise httpx.ConnectError("the journal is down")
+
+    monkeypatch.setattr(journal_client, "get_upload", unreachable)
+    config = {"attachments": [{"id": "a", "name": "A", "type": "file", "path": "uploaded.md"}]}
+
+    with pytest.raises(httpx.ConnectError):
+        save_config(AGENT, "generation", config, {}, [tmp_path, UploadedFiles(AGENT)])

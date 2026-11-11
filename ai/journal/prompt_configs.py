@@ -6,8 +6,9 @@ prompts/<agent>/<name>/ holds default.json (the live config), default.default.js
 snapshot per save) and constraints.json (the permanent learned constraints, which are
 never versioned, so restoring an older config does not lose them).
 
-A config is a dict with an "attachments" list. What an attachment means, and whether
-a config is valid, is the agent's to say: this store keeps what it is given.
+A config is a dict with an "attachments" list, and two saves are told apart by their
+attachments. What an attachment means, and whether a config is valid, is the agent's to
+say: this store keeps what it is given.
 """
 import json
 import os

@@ -157,3 +157,21 @@ def test_an_uploaded_file_of_another_agent_is_not_found(tmp_path):
 
     with pytest.raises(AttachmentFileError):
         resolve_file_attachment("theirs.md", [tmp_path, UploadedFiles(AGENT)])
+
+
+def test_an_uploaded_file_that_is_not_text_is_an_attachment_error(tmp_path, journal):
+    (journal[1] / AGENT).mkdir(parents=True)
+    (journal[1] / AGENT / "bin.dat").write_bytes(b"\xff\xfe\x00")
+
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("bin.dat", [tmp_path, UploadedFiles(AGENT)])
+
+
+def test_a_path_with_folders_in_it_never_asks_the_journal_for_an_upload(tmp_path, monkeypatch):
+    asked = []
+    monkeypatch.setattr(journal_client, "get_upload", lambda *args: asked.append(args))
+
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("model/x.ecore", [tmp_path, UploadedFiles(AGENT)])
+
+    assert asked == []

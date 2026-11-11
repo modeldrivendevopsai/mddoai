@@ -27,13 +27,11 @@ from generation_toolkit.routes.prompt_config import (
 from generation import CONFIG_NAME
 import prompt_settings
 
-# Every "file" attachment resolves against both real roots: the one real
-# master-example template's own directory, and a human's own uploaded
-# files (see routes/uploads.py) - generation_toolkit.attachments.files.resolve_file_attachment's
-# own multi-root support tries each in order. Built locally from
-# prompt_settings, not imported from generation.py's own copy: each module
-# that needs it builds its own from the same public source, rather than
-# one reaching into another's underscore-prefixed constant. A function,
+# Every "file" attachment resolves against both places: the one real master-example
+# file's own directory, and the files a human uploaded (see routes/uploads.py). Built
+# here from prompt_settings, not imported from generation.py's copy: each module that
+# needs it builds its own from the same public source, rather than one reaching into
+# another's underscore-prefixed constant. A function, so it is read fresh on every request.
 def _files_root() -> list:
     return [prompt_settings.REFERENCE_EXAMPLE_PATH.parent, UploadedFiles(prompt_settings.AGENT)]
 

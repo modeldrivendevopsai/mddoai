@@ -60,7 +60,9 @@ def save_config(
     stripped below and kept entirely separately."""
     try:
         resolve_attachments(config.get("attachments", []), context_values, files_root)
-    except Exception as e:
+    except (ValueError, KeyError, TypeError) as e:
+        # A broken attachment: a file that is not there, an unknown context key, a malformed
+        # entry. A journal that cannot be reached is not one: it is raised as it is.
         raise PromptConfigValidationError(str(e)) from e
 
     # A local import: learned_constraints.py already imports this module at

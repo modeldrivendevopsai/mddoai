@@ -90,6 +90,11 @@ def load_constraints(agent: str, name: str) -> list[str]:
     list - silently clobbering it back to the older value. Serializing
     every reader through the same lock as every writer closes that
     window."""
+    # Constraints that are already kept are read with no lock: a read of them writes nothing,
+    # so it cannot race a write, and a slow journal does not queue every reader behind one call.
+    existing = journal_client.get_constraints(agent, name)
+    if existing is not None:
+        return existing
     with _write_lock:
         return _load_constraints_locked(agent, name)
 

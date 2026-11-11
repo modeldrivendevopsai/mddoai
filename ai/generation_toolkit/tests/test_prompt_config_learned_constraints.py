@@ -163,3 +163,19 @@ def test_load_constraints_migration_does_not_recur_once_the_store_exists(tmp_pat
     save_config(AGENT, "generation", {**_BASE, "learned_constraints": ["stale"]}, {}, tmp_path)
 
     assert load_constraints(AGENT, "generation") == []
+
+
+def test_constraints_that_are_kept_are_read_without_waiting_for_a_writer():
+    from clients import journal_client
+    from generation_toolkit.prompt_config import learned_constraints
+
+    journal_client.set_constraints(AGENT, "generation", ["kept"])
+    answer = []
+
+    # A writer is in the middle of a slow journal call, holding the lock.
+    with learned_constraints._write_lock:
+        reader = threading.Thread(target=lambda: answer.append(load_constraints(AGENT, "generation")))
+        reader.start()
+        reader.join(timeout=5)
+
+    assert answer == [["kept"]]
