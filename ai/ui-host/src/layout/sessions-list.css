@@ -20,8 +20,6 @@
 
 .mdd-sessions__item {
   display: flex;
-  /* So the delete confirm can drop to its own line under the text. */
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) 10px;
@@ -55,6 +53,13 @@
 }
 .mdd-sessions__item.is-attention {
   border-color: var(--danger-500);
+}
+
+/* A run's row: its delete confirm drops to a line of its own under the text. Not on
+   the shared row class, because a wrapping flex line is as wide as its widest item,
+   so a row whose text does not wrap would grow past its box. */
+.mdd-sessions__item--run {
+  flex-wrap: wrap;
 }
 
 /* The name and, under it, where the run is and when it began. */

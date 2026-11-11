@@ -50,6 +50,7 @@ export function SessionRow({ session, selected, onOpen, onDelete }: SessionRowPr
       aria-current={selected ? 'true' : undefined}
       className={[
         'mdd-sessions__item',
+        'mdd-sessions__item--run',
         `mdd-sessions__item--${session.type}`,
         selected ? 'is-selected' : '',
         session.state === 'attention' ? 'is-attention' : '',
