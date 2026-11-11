@@ -80,6 +80,31 @@ def test_a_value_changed_inside_the_state_after_a_save_is_still_seen_as_changed(
     assert _held()["state"] == {"constraints": {"docs": ["a", "b"]}}
 
 
+def test_a_deleted_history_is_gone_from_the_journal_and_a_save_after_it_is_sent_whole(history, folders):
+    history.save("r1", [{"n": 1}, {"n": 2}], {"stage": 0})
+
+    assert history.delete("r1") is True
+
+    assert not (folders[0] / "r1").exists()
+    history.save("r1", [{"n": 7}], {"stage": 0})
+    assert _held()["events"] == [{"n": 7}]
+
+
+def test_deleting_a_history_the_journal_does_not_hold_is_false_and_not_an_error(history):
+    assert history.delete("nothing") is False
+
+
+def test_a_delete_the_journal_refuses_raises_with_its_reason(history):
+    history.save("run1", [{"n": 1}], {"stage": 0})
+    journal_client.publish_platform(**{**PLATFORM, "source_run_id": "run1"})
+
+    with pytest.raises(AgentServiceError) as refused:
+        history.delete("run1")
+
+    assert refused.value.status_code == 409 and "Woodpecker CI" in refused.value.detail
+    assert _held("run1")["events"] == [{"n": 1}]
+
+
 def test_two_keys_are_kept_apart(history):
     history.save("r1", [{"n": 1}], {})
     history.save("r2", [{"n": 2}], {})

@@ -153,6 +153,23 @@ class HistoryClient:
         else:
             self._failing.discard(key)
 
+    def delete(self, key: str) -> bool:
+        """Removes the history of `key` from the journal for good, with whatever
+        the journal keeps with it (a run's files). False when it holds none: a run
+        nothing happened on is never kept. A refusal, such as a run a platform was
+        published from, raises."""
+        try:
+            _request("DELETE", f"/histories/{self._kind}/{_seg(key)}")
+            removed = True
+        except AgentServiceError as e:
+            if e.status_code != 404:
+                raise
+            removed = False
+        # What is remembered of the key goes too, so a later save of the same key is sent whole.
+        self._held.pop(key, None)
+        self._failing.discard(key)
+        return removed
+
     def load_all(self, build: Callable[[str, list[dict], dict], T]) -> list[T]:
         """`build(key, events, state)` for each history the journal holds.
         `build` raises ValueError for one that is not what the caller keeps. A

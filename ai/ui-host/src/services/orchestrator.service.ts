@@ -267,6 +267,17 @@ export async function getEvents(sinceIndex = 0, runId?: string): Promise<EventsR
   return res.json()
 }
 
+// Deletes a past run for good: its history, its chat and the files of its attempts.
+// The backend refuses the current run and a run a platform was published from, and
+// says why in the error's message.
+export async function deleteRun(runId: string): Promise<void> {
+  const res = await fetch(`/orchestrator-api/runs/${encodeURIComponent(runId)}`, { method: "DELETE" })
+
+  if (!res.ok) {
+    throw await errorFor("Delete", res)
+  }
+}
+
 // Every run, newest first.
 export async function getRuns(): Promise<RunSummary[]> {
   const res = await fetch("/orchestrator-api/runs")

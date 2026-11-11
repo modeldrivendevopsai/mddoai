@@ -452,7 +452,8 @@ The service starts at `http://localhost:8050`.
 | `GET /events?since_index=&run_id=` | Raw events (no narration) from `since_index` on, for the current run or a specific past one. Includes `run_id`, so orchestrator can key its own chat log by it, `offset` (where the events returned start) and `total` (how many events the run has), so a poller asks only for what it has not seen. |
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
-| `GET /runs` | Every run, newest first. |
+| `GET /runs` | Every run, newest first, each with `started_at` (when it began, or null when nothing happened on it). |
+| `DELETE /runs/{run_id}` | Deletes a past run for good, with the files of its attempts. `404` for an unknown run. `409` for the current run, a busy one, or a run a platform was published from (the journal keeps it, the reason is in `detail`). `502` if the journal is unreachable. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
 | `POST /publish` | Body: optional `name`, `output_filename`, `version` (`MAJOR.MINOR.PATCH`, the patch after the highest when left out), `run_id`. Publishes the completed run's platform to the journal, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the journal refuses what was sent, such as a version that exists. `502` if it is unreachable. |
 | `POST /start` | Resets the pipeline and starts the docs stage. `409` if busy. |

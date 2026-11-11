@@ -242,3 +242,41 @@ def test_the_keys_are_the_histories_kept_in_order(store):
     store.replace("a", {}, [])
 
     assert store.keys() == ["a", "b"]
+
+
+# --- deleting -----------------------------------------------------------------------
+
+
+def test_a_deleted_history_is_gone_and_a_new_one_under_its_key_starts_clean(store, tmp_path):
+    store.replace("one", {"a": 1}, [{"n": 1}, {"n": 2}])
+
+    store.delete("one")
+
+    with pytest.raises(UnknownHistory):
+        store.read("one")
+    assert store.keys() == []
+    # Not the two events it had: the count kept for the key went with it.
+    assert store.append("one", 0, {}, [{"n": 9}]) == 1
+    assert _numbers(tmp_path) == [9]
+
+
+def test_deleting_a_history_that_is_not_kept_or_a_key_that_is_not_a_name_is_unknown(store):
+    with pytest.raises(UnknownHistory):
+        store.delete("nothing")
+    with pytest.raises(UnknownHistory):
+        store.delete("../escape")
+
+
+def test_what_is_removed_with_a_history_is_up_to_its_kind(tmp_path):
+    removed = []
+
+    def remove(key):
+        removed.append(key)
+        (tmp_path / key / "history.jsonl").unlink()
+
+    store = HistoryStore(lambda key: tmp_path / key / "history.jsonl", lambda: [], remove)
+    store.replace("one", {}, [])
+
+    store.delete("one")
+
+    assert removed == ["one"]

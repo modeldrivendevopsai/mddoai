@@ -95,6 +95,67 @@ def test_a_journal_that_is_not_a_history_is_a_422_that_names_it(client, folders)
     assert client.get("/histories/runs").json() == {"keys": ["bad"]}
 
 
+def _keep_a_run_with_an_attempt(client, run_id="r1"):
+    client.put(f"/histories/runs/{run_id}", json={"state": {}, "events": [{"n": 1}]})
+    client.post(f"/attempts/{run_id}", json={"stage": "psm"})
+    body = {"filename": "psm.ecore", "content": "<ecore/>", "result": {"valid": True, "issues": []}}
+    client.put(f"/attempts/{run_id}/psm/attempt_1", json=body)
+
+
+def test_a_run_is_deleted_with_the_files_of_its_attempts_and_a_chat_on_its_own(client, folders):
+    runs_dir, chats_dir, _ = folders
+    _keep_a_run_with_an_attempt(client, "r1")
+    _keep_a_run_with_an_attempt(client, "r2")
+    client.put("/histories/chats/r1", json={"state": {}, "events": [{"m": 1}]})
+
+    assert client.delete("/histories/runs/r1").json() == {"deleted": "r1"}
+
+    assert client.get("/histories/runs").json() == {"keys": ["r2"]}
+    assert not (runs_dir / "r1").exists() and (runs_dir / "r2" / "run.jsonl").is_file()
+    assert client.get("/attempts/r1/manifest").status_code == 404
+    # A chat is its own history: deleting the run leaves it, and it goes with its own delete.
+    assert client.get("/histories/chats/r1").status_code == 200
+    assert client.delete("/histories/chats/r1").json() == {"deleted": "r1"}
+    assert not (chats_dir / "r1.jsonl").exists()
+
+
+def test_a_history_that_is_not_kept_or_cannot_be_a_key_is_a_404_when_deleted(client):
+    assert client.delete("/histories/runs/nothing").status_code == 404
+    assert client.delete("/histories/chats/nothing").status_code == 404
+    assert client.delete("/histories/runs/..%2Fplatforms").status_code == 404
+    assert client.delete("/histories/mystery/r1").status_code == 404
+
+
+def test_a_run_a_platform_was_published_from_is_kept_and_the_refusal_names_the_platform(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json=PLATFORM)
+
+    refused = client.delete("/histories/runs/run1")
+
+    assert refused.status_code == 409
+    assert "Woodpecker CI 1.0.0" in refused.json()["detail"]
+    assert client.get("/histories/runs/run1").status_code == 200
+    assert client.get("/attempts/run1/manifest").status_code == 200
+
+
+def test_a_run_can_be_deleted_once_the_platform_published_from_it_is_purged(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json=PLATFORM)
+    client.delete("/platforms/woodpecker-ci")
+
+    assert client.delete("/histories/runs/run1").json() == {"deleted": "run1"}
+
+
+def test_a_run_is_kept_while_any_version_of_any_platform_came_from_it(client):
+    _keep_a_run_with_an_attempt(client, "run1")
+    client.post("/platforms", json={**PLATFORM, "version": "1.0.0", "source_run_id": "other"})
+    client.post("/platforms", json={**PLATFORM, "version": "1.1.0"})
+
+    assert client.delete("/histories/runs/run1").status_code == 409
+    client.delete("/platforms/woodpecker-ci/versions/1.1.0")
+    assert client.delete("/histories/runs/run1").status_code == 200
+
+
 # --- attempts -------------------------------------------------------------------------
 
 

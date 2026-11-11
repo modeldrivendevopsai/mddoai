@@ -128,6 +128,14 @@ class ChatLog:
     def append(self, event: dict) -> None:
         self.add([event])
 
+    def stop_keeping(self) -> None:
+        """Stops saving this chat, for a chat whose run was deleted. A comment still
+        being written by a background thread that holds the chat then lands here and
+        nowhere else, instead of putting the deleted chat back in the journal. Waits
+        for a save that is under way, so the delete that follows is the last word."""
+        with self.lock:
+            self._store = None
+
 
 class ReplyInProgressError(Exception):
     """A chat message arrived while the previous one is still being
@@ -197,6 +205,17 @@ def get_chat_log(run_id: str) -> ChatLog:
     without going through get_events()'s integration_runner round-trip
     first."""
     return _chat_logs.setdefault(run_id, ChatLog(run_id, _store))
+
+
+def remove_chat_log(run_id: str) -> None:
+    """Forgets a run's chat here and removes it from the journal, for a run that
+    was deleted. The chat object is told to stop saving first, because a narration
+    thread may still hold it."""
+    chat = _chat_logs.pop(run_id, None)
+    if chat is not None:
+        chat.stop_keeping()
+    if _store is not None:
+        _store.delete(run_id)
 
 
 def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict]) -> None:

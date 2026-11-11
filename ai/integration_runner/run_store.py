@@ -36,6 +36,12 @@ class RunStore:
         if events:
             self._history.save_quietly(run.run_id, events, state)
 
+    def delete(self, run_id: str) -> bool:
+        """Removes the run from the journal, with the files of its attempts. False
+        when the journal held none (a run nothing happened on is never kept). The
+        journal refuses a run that a platform was published from, which raises."""
+        return self._history.delete(run_id)
+
     def load_all(self, on_change: Callable[[IntegrationRun], None]) -> list[IntegrationRun]:
         """Every run the journal holds, idle. One that is not a saved run is
         skipped with a log line."""

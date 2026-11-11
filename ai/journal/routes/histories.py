@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from journal.dependencies import Stores, get_stores
+from journal.dependencies import RUNS, Stores, get_stores
 from journal.histories import BadHistory, HistoryGap, HistoryStore, UnknownHistory
 
 router = APIRouter(prefix="/histories")
@@ -40,6 +40,27 @@ def read_history(kind: str, key: str, stores: Stores = Depends(get_stores)):
     except BadHistory as e:
         raise HTTPException(status_code=422, detail=f"The {kind} history '{key}' cannot be read: {e}") from e
     return {"state": state, "events": events}
+
+
+@router.delete("/{kind}/{key}")
+def delete_history(kind: str, key: str, stores: Stores = Depends(get_stores)):
+    """Removes one history for good. A run goes with the files of its attempts.
+    A run that a platform was published from is refused with 409, since that
+    platform's record points at it."""
+    store = _store(kind, stores)
+    if kind == RUNS:
+        published = stores.platforms.published_from(key)
+        if published:
+            names = ", ".join(f"{platform.name} {platform.version}" for platform in published)
+            raise HTTPException(
+                status_code=409,
+                detail=f"{names} was published from this run, so the run is kept. Remove that platform first.",
+            )
+    try:
+        store.delete(key)
+    except UnknownHistory as e:
+        raise HTTPException(status_code=404, detail=f"No {kind} history '{key}'.") from e
+    return {"deleted": key}
 
 
 @router.put("/{kind}/{key}")

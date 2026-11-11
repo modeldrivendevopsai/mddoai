@@ -1,6 +1,7 @@
 """The stores the routes depend on, built once from the settings. Routes ask for
 them through FastAPI's dependency injection, so a test can point them at
 temporary folders."""
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,7 +40,12 @@ def _chat_keys(chats_dir: Path) -> list[str]:
 def build_stores(runs_dir: Path, chats_dir: Path, platforms_dir: Path) -> Stores:
     return Stores(
         histories={
-            RUNS: HistoryStore(lambda key: runs_dir / key / _RUN_JOURNAL, lambda: _run_keys(runs_dir)),
+            # A run is a folder: its journal and the files of its attempts, so a run goes whole.
+            RUNS: HistoryStore(
+                lambda key: runs_dir / key / _RUN_JOURNAL,
+                lambda: _run_keys(runs_dir),
+                lambda key: shutil.rmtree(runs_dir / key),
+            ),
             CHATS: HistoryStore(lambda key: chats_dir / f"{key}{_CHAT_SUFFIX}", lambda: _chat_keys(chats_dir)),
         },
         attempts=AttemptStore(runs_dir),

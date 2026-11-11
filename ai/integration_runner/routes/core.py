@@ -14,10 +14,12 @@ the busy guard and the /rerun stage-mismatch check both live here, since a
 check made in one process before a mutating call to a different process is
 a real race, not just a relocation.
 """
+import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from clients.agent_service_errors import AgentServiceError
 from integration_runner import pipeline, runs, stages
 from integration_runner.pipeline import BusyError
 
@@ -133,6 +135,28 @@ def stages_endpoint():
 @router.get("/runs")
 def runs_endpoint():
     return runs.list_runs()
+
+
+@router.delete("/runs/{run_id}")
+def delete_run_endpoint(run_id: str):
+    """Removes a past run for good, with the files of its attempts. 404 for an
+    unknown run, 409 for the current run (restart it or open another first), a
+    busy one, or a run a platform was published from (the journal keeps it), and
+    502 when the journal cannot be reached."""
+    try:
+        runs.delete_run(run_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except runs.CurrentRunError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except BusyError:
+        raise HTTPException(status_code=409, detail=_BUSY_DETAIL)
+    except AgentServiceError as e:
+        # The journal's own refusal, with its reason.
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="The journal is unavailable, try again shortly.")
+    return {"deleted": run_id}
 
 
 @router.post("/model")

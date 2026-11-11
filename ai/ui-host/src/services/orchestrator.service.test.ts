@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  deleteRun,
   getEvents,
   getPlatforms,
   getProviders,
@@ -219,9 +220,27 @@ describe("orchestratorService", () => {
     expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/events?since_index=5")
   })
 
+  it("deleteRun deletes the run by id, and escapes what it puts in the path", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ deleted: "a/b" }) })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await deleteRun("a/b")
+
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/runs/a%2Fb", { method: "DELETE" })
+  })
+
+  it("deleteRun throws the backend's reason, with the status, when it refuses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ detail: "That is the current run." }) })
+    )
+
+    await expect(deleteRun("r1")).rejects.toMatchObject({ message: "That is the current run.", status: 409 })
+  })
+
   it("getRuns fetches the real run history", async () => {
     const payload = [
-      { run_id: "abc123", platform_name: "TeamCity", current_stage: "docs", busy: false, is_current: true },
+      { run_id: "abc123", platform_name: "TeamCity", current_stage: "docs", busy: false, is_current: true, started_at: 1762862400 },
     ]
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
     vi.stubGlobal("fetch", mockFetch)

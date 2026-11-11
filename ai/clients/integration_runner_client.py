@@ -92,6 +92,12 @@ def resume_run(run_id: str) -> dict:
     return _request("POST", f"/resume/{run_id}").json()
 
 
+def delete_run(run_id: str) -> dict:
+    """Removes a past run for good, with the files of its attempts. integration_runner
+    refuses the current run and a run a platform was published from, with 409."""
+    return _request("DELETE", f"/runs/{run_id}").json()
+
+
 def fork_run(source_run_id: str, from_stage: str) -> dict:
     """Starts a genuinely new run seeded with source_run_id's own real
     output up to (not including) from_stage, then pauses there pending

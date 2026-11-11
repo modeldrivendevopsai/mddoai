@@ -11,6 +11,7 @@ from chat_store import ChatStore
 from clients import ai_layer_client, integration_runner_client, journal_client
 from clients.agent_service_errors import AgentServiceError
 from clients.integration_runner_client import IntegrationRunnerError
+from run_removal import remove_run
 
 # Every new raw pipeline event chat_log notices gets narrated via the
 # wired-in reactor (see chat_log.set_reactor()'s own docstring for why this
@@ -137,6 +138,15 @@ def resume_endpoint(run_id: str):
     messaged like any other live run, picking up exactly where it left
     off. 404 for an unknown run_id, surfaced via IntegrationRunnerError."""
     return integration_runner_client.resume_run(run_id)
+
+
+@app.delete("/runs/{run_id}")
+def delete_run_endpoint(run_id: str):
+    """Deletes a past run for good: its history, its chat and the files of its
+    attempts, the same action as the delete_run chat tool. 404 for an unknown
+    run, 409 for the current run or a run a platform was published from, with
+    the reason, surfaced via IntegrationRunnerError."""
+    return remove_run(run_id)
 
 
 class ForkRequest(BaseModel):

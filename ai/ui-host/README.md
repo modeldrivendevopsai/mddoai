@@ -61,7 +61,7 @@ Where things live:
   back looks the same everywhere.
 - **Shell**: `src/layout/` holds the sidebar, its lists and the top bar. They are configured from
   `src/config/` and fed by the clients in `src/services/`: the Platforms tab lists integration
-  runs, and the Pipelines tab lists the pipelines already generated. The sidebar's active tab is
+  runs, each told apart by its stage and age and deletable once it is no longer the current run, and the Pipelines tab lists the pipelines already generated. The sidebar's active tab is
   shared state held above the routes, so a screen can follow it.
 - **Component primitives**: the sibling `design-system` package (`ai/design-system`, not a folder
   under this app's own `src/`), a real local npm dependency, not a copy. See its own README.

@@ -113,6 +113,8 @@ def list_runs() -> list[dict]:
             "current_stage": run.current_stage,
             "busy": run.busy,
             "is_current": run.run_id == current_id,
+            # When it began (its first event), so rows of the same platform can be told apart.
+            "started_at": run.events[0]["timestamp"] if run.events else None,
         }
         for run in reversed(runs_snapshot)
     ]
@@ -171,6 +173,32 @@ def resume_run(run_id: str) -> dict:
         _reject_if_busy(_default)
         _default = run
         return {"run_id": _default.run_id, "current_stage": _default.current_stage}
+
+
+class CurrentRunError(RuntimeError):
+    """The run asked to be deleted is the current one."""
+
+
+def delete_run(run_id: str) -> None:
+    """Removes a past run for good: its history and the files of its attempts in
+    the journal, and the run here. Raises ValueError for an unknown run_id, and
+    CurrentRunError for the current run, which is open on screen and may be
+    worked on: restart it, or open another run, first. Raises BusyError if the run
+    is somehow still executing. The journal's own refusal (a platform was
+    published from this run, so the run is kept) passes through as the journal
+    client's AgentServiceError, with nothing removed here. The same conventions
+    as resume_run(), for the caller (this service's own routes) to turn into
+    HTTP statuses."""
+    with _registry_lock:
+        run = get_run(run_id)
+        if run is None:
+            raise ValueError(f"No run with id {run_id!r}")
+        if run_id == _default.run_id:
+            raise CurrentRunError("That is the current run. Restart it or open another run first, then delete it.")
+        _reject_if_busy(run)
+        # The journal first: if it refuses or is down, the run stays exactly as it was.
+        _store.delete(run_id)
+        del _runs[run_id]
 
 
 def start_pipeline(

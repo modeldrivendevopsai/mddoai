@@ -46,6 +46,7 @@ the Orchestrator to eventually drive the pipeline autonomously.
 - **`chat_log.py`** — this run's chat transcript: mirrors `integration_runner`'s raw events in
   immediately, narrates them in the background, and holds `accept_message()`'s own turns. See
   [The chat log](#the-chat-log-chat_logpy) below.
+- **`run_removal.py`**: deletes a past run. The runner removes the run and its files first, and only then does the run's chat go, so a run that is refused keeps its chat. The `DELETE /runs` route and the `delete_run` tool both go through it.
 - **`chat_store.py`**: keeps each run's chat in the journal, so a restart repeats no narration.
 - **`event_summarization.py`** — `summarize_for_reaction()`/`summarize_history()`: truncating
   long event fields before they're fed into an LLM prompt. Its own module, not part of
@@ -138,6 +139,10 @@ stage. The docs-specific one is scoped to `stages: [docs]`, wrapping `integratio
   stage): list the published platforms with their versions, and permanently remove one version of a
   published platform or all of them. Purging calls the journal, as `DELETE /platforms` does. A platform
   that came with the stack is refused, and the model is told to purge only when the human clearly asked.
+- **`list_runs()`** and **`delete_run(run_id)`** (`tools/runs.py`, any stage): list the runs there have
+  been, and delete a past one for good, the same action as `DELETE /runs/{run_id}`. The current run and a
+  run a platform was published from are refused, and the model is told to delete only when the human
+  clearly asked for that run.
 - **`add_page_to_docs(url, force_refresh=False)`** (`docs` only) — fetch one specific page the
   human already knows the URL of, and APPEND its real content onto the docs stage's current
   pending output, for when the crawl mostly succeeded but missed one known page. Does not
@@ -290,6 +295,11 @@ Response:
 ### `GET /runs`
 
 Every run, newest first, proxying `integration_runner`'s own `GET /runs`.
+
+### `DELETE /runs/{run_id}`
+
+Deletes a past run for good: its history, its chat and the files of its attempts. The current run and a run
+a platform was published from are refused with a `409` and the reason. `404` for an unknown run.
 
 ### `POST /review/{stage_id}`
 
