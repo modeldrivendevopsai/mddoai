@@ -16,7 +16,7 @@ import re
 import uuid
 from pathlib import Path
 
-from clients import journal_prompt_client
+from clients import journal_client
 
 _ALLOWED_NAME_CHARACTERS = re.compile(r"^[A-Za-z0-9._-]+$")
 
@@ -54,10 +54,10 @@ class UploadedFiles:
         self.agent = agent
 
     def read(self, path: str) -> str | None:
-        return journal_prompt_client.get_upload(self.agent, path)
+        return journal_client.get_upload(self.agent, path)
 
     def names(self) -> list[str]:
-        return journal_prompt_client.list_uploads(self.agent)
+        return journal_client.list_uploads(self.agent)
 
 
 def save_uploaded_file(
@@ -87,5 +87,5 @@ def save_uploaded_file(
     if not _ALLOWED_NAME_CHARACTERS.match(stored_name):
         raise UploadError(f"computed storage name {stored_name!r} is not safe")
 
-    journal_prompt_client.save_upload(agent, stored_name, text)
+    journal_client.save_upload(agent, stored_name, text)
     return stored_name

@@ -1,9 +1,9 @@
-"""journal_prompt_client against the real journal app, in the same process."""
+"""journal_client against the real journal app, in the same process."""
 import json
 
 import pytest
 
-from clients import journal_prompt_client as prompts
+from clients import journal_client as prompts
 from clients.agent_service_errors import AgentServiceError
 from clients.journal_testing import journal_in_process
 

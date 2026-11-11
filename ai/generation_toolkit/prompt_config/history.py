@@ -18,7 +18,7 @@ to convey in the UI and easy to click by accident.
 """
 import difflib
 
-from clients import journal_prompt_client
+from clients import journal_client
 from generation_toolkit.attachments.files import validate_path_segment
 
 from . import storage
@@ -41,7 +41,7 @@ def list_history(agent: str, name: str) -> list[str]:
     reseeded without it) - _load_snapshot below raises FileNotFoundError
     for exactly this case, so listing the sentinel anyway would advertise
     a version a caller could pick for Restore or Diff only to 404."""
-    versions, has_shipped = journal_prompt_client.list_versions(agent, name)
+    versions, has_shipped = journal_client.list_versions(agent, name)
     return [*versions, SHIPPED_DEFAULT_VERSION] if has_shipped else versions
 
 
@@ -51,12 +51,12 @@ def _load_snapshot(agent: str, name: str, version: str) -> dict:
     restore_version below both go to resolve "version" into an actual
     config dict, so neither needs its own special-cased branch."""
     if version == SHIPPED_DEFAULT_VERSION:
-        snapshot = journal_prompt_client.get_shipped_config(agent, name)
+        snapshot = journal_client.get_shipped_config(agent, name)
         if snapshot is None:
             raise FileNotFoundError(f"no shipped default exists for {name!r}")
     else:
         # A version comes from a route parameter, so it is checked here, before the journal is asked.
-        snapshot = journal_prompt_client.get_version(agent, name, validate_path_segment(version))
+        snapshot = journal_client.get_version(agent, name, validate_path_segment(version))
         if snapshot is None:
             raise FileNotFoundError(f"no saved version {version!r} for {name!r}")
     return snapshot

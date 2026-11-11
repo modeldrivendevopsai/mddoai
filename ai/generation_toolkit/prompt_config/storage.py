@@ -18,7 +18,7 @@ migrates from the config it was given before it strips (see
 learned_constraints.migrate_if_missing).
 """
 
-from clients import journal_prompt_client
+from clients import journal_client
 from generation_toolkit.attachments.resolve import resolve_attachments
 
 
@@ -33,7 +33,7 @@ def load_config(agent: str, name: str) -> dict:
     """The live config for name, falling back to its shipped default, so an unsaved
     name still returns a real, working config. Raises FileNotFoundError only if
     neither exists, which should never happen once a default is committed."""
-    config = journal_prompt_client.get_config(agent, name)
+    config = journal_client.get_config(agent, name)
     if config is None:
         raise FileNotFoundError(f"no config found for {name!r} of {agent!r}, and no shipped default")
     return config
@@ -72,4 +72,4 @@ def save_config(
         learned_constraints.migrate_if_missing(agent, name, config["learned_constraints"])
 
     config = {key: value for key, value in config.items() if key != "learned_constraints"}
-    return journal_prompt_client.save_config(agent, name, config)
+    return journal_client.save_config(agent, name, config)

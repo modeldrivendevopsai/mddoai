@@ -38,7 +38,7 @@ baseline is always current for a fresh install, just never versioned.
 """
 import threading
 
-from clients import journal_prompt_client
+from clients import journal_client
 
 from . import storage
 
@@ -57,11 +57,11 @@ def _load_constraints_locked(agent: str, name: str) -> list[str]:
     directly instead of calling the public, self-locking load_constraints
     and deadlocking on a lock this module's own threading.Lock doesn't let
     the same thread re-enter."""
-    existing = journal_prompt_client.get_constraints(agent, name)
+    existing = journal_client.get_constraints(agent, name)
     if existing is not None:
         return existing
     legacy = storage.load_config(agent, name).get("learned_constraints", [])
-    journal_prompt_client.set_constraints(agent, name, legacy)
+    journal_client.set_constraints(agent, name, legacy)
     return legacy
 
 
@@ -104,7 +104,7 @@ def add_learned_constraints(agent: str, name: str, constraints: list[str]) -> li
         for constraint in constraints:
             if constraint not in merged:
                 merged.append(constraint)
-        journal_prompt_client.set_constraints(agent, name, merged)
+        journal_client.set_constraints(agent, name, merged)
         return merged
 
 
@@ -131,9 +131,9 @@ def migrate_if_missing(agent: str, name: str, legacy_constraints: list[str]) -> 
     add_learned_constraints/remove_learned_constraint might be doing to
     the same file."""
     with _write_lock:
-        if journal_prompt_client.get_constraints(agent, name) is not None:
+        if journal_client.get_constraints(agent, name) is not None:
             return
-        journal_prompt_client.set_constraints(agent, name, legacy_constraints)
+        journal_client.set_constraints(agent, name, legacy_constraints)
 
 
 def remove_learned_constraint(agent: str, name: str, constraint: str) -> list[str]:
@@ -142,7 +142,7 @@ def remove_learned_constraint(agent: str, name: str, constraint: str) -> list[st
     not left to accumulate forever. Returns the full, updated list."""
     with _write_lock:
         remaining = [c for c in _load_constraints_locked(agent, name) if c != constraint]
-        journal_prompt_client.set_constraints(agent, name, remaining)
+        journal_client.set_constraints(agent, name, remaining)
         return remaining
 
 
@@ -160,7 +160,7 @@ def reorder_learned_constraints(agent: str, name: str, constraints: list[str]) -
             raise ValueError(
                 "reordered constraints must be exactly the current set, just reordered"
             )
-        journal_prompt_client.set_constraints(agent, name, constraints)
+        journal_client.set_constraints(agent, name, constraints)
         return constraints
 
 
