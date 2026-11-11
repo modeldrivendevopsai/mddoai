@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude" pages="3">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="1848" dy="989" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="834" dy="447" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" value="Base (always visible)" />
@@ -65,7 +65,7 @@
         <mxCell id="row3" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;fontSize=14;fillColor=none;" value="Generation Loop (MVP)" vertex="1">
           <mxGeometry height="220" width="880" x="120" y="350" as="geometry" />
         </mxCell>
-        <mxCell id="inttest" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#ffffff;" value="Integration Test Agent&#xa;Executes the generated artifact and checks that it builds and runs" vertex="1">
+        <mxCell id="inttest" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#ffffff;" value="Executor Agent&lt;br&gt;Executes the generated artifact and checks that it builds and runs" vertex="1">
           <mxGeometry height="90" width="820" x="150" y="460" as="geometry" />
         </mxCell>
         <mxCell id="e_inttest_fail" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=10;fontColor=#1B3A5C;exitX=0.05;exitY=0;entryX=0.05;entryY=1;rounded=1;" value="Fail - manual prompt fix (human, MVP)">
@@ -93,7 +93,7 @@
         <mxCell id="psm" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 PSM Agent" vertex="1">
           <mxGeometry height="45" width="230" x="1050" y="350" as="geometry" />
         </mxCell>
-        <mxCell id="cicd" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 CI/CD Pipeline Agent" vertex="1">
+        <mxCell id="cicd" parent="layerPhase0" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;fontColor=#ffffff;" value="🛡 Pipeline Generation Agent" vertex="1">
           <mxGeometry height="50" width="230" x="1050" y="530" as="geometry" />
         </mxCell>
         <mxCell id="HCKi1c_Dbqlze6w4hmlM-8" edge="1" parent="layerPhase0" source="atl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="acceleo">
@@ -157,7 +157,7 @@
             <mxPoint x="1219" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rsZ4uEINc2u_vfYEfqJd-4" parent="layerPhase0" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;strokeColor=#2D7600;fillColor=#60a917;fontSize=11;fontStyle=1;fontColor=#ffffff;align=center;verticalAlign=middle;" value="Run Storage (File System)&#xa;runs/&lt;run_id&gt;/&lt;stage&gt;/attempt_N/&#xa;  artifact + result.json&#xa;runs/&lt;run_id&gt;/manifest.json&#xa;  ordered attempt history" vertex="1">
+        <mxCell id="rsZ4uEINc2u_vfYEfqJd-4" parent="layerPhase0" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;strokeColor=#2D7600;fillColor=#60a917;fontSize=11;fontStyle=1;fontColor=#ffffff;align=center;verticalAlign=middle;" value="Journal Service&lt;br&gt;&lt;br&gt;Saves Chats, Runs, platforms, pipelines, compiled files, validation results, atachments&lt;br&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="135" width="270" x="1030" y="770" as="geometry" />
         </mxCell>
         <mxCell id="rsZ4uEINc2u_vfYEfqJd-5" edge="1" parent="layerPhase0" source="rsZ4uEINc2u_vfYEfqJd-1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=9;fontColor=#1B3A5C;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="rsZ4uEINc2u_vfYEfqJd-4" value="persist attempt">
@@ -250,7 +250,7 @@
           <mxGeometry height="50" width="820" x="150" y="385" as="geometry" />
         </mxCell>
         <mxCell id="GL-uriySzJIIhjQ2wKux-9" parent="layerPhase1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;strokeColor=#6F0000;fillColor=#a20025;fontColor=#ffffff;" value="Grounding Agent&#xa;Takes finished feature, breaks into artifacts, sends to RAG to memorize" vertex="1">
-          <mxGeometry height="60" width="880" x="130" y="860" as="geometry" />
+          <mxGeometry height="60" width="880" x="130" y="850" as="geometry" />
         </mxCell>
         <mxCell id="GL-uriySzJIIhjQ2wKux-15" edge="1" parent="layerPhase1" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry">
@@ -985,7 +985,7 @@
         <mxCell edge="1" id="jrnl-call-4" parent="1" source="jrnl-caller-prompts" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.7941;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=default;" target="jrnl-kind-4" value="upload, read">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="jrnl-note" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" value="Every other service reaches these files through the Journal's API. None of them mounts these folders." vertex="1">
+        <mxCell id="jrnl-note" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" value="Every other service reaches these files through the Journal&#39;s API. None of them mounts these folders." vertex="1">
           <mxGeometry height="40" width="640" x="6140" y="2875" as="geometry" />
         </mxCell>
       </root>
@@ -1103,7 +1103,7 @@
         <mxCell id="devhost-44" parent="devhostV4" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#4a7fb5;strokeColor=#2c5580;" value="&lt;b&gt;Other developer&lt;/b&gt;&lt;br&gt;VS Code + browser, from a listed IP" vertex="1">
           <mxGeometry height="70" width="240" x="70" y="565" as="geometry" />
         </mxCell>
-        <mxCell id="devhost-51" parent="devhostV4" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="&lt;b&gt;Other developer&#x27;s account&lt;/b&gt;&lt;br&gt;own home, clone and branch&lt;br&gt;keys from their GitHub, no sudo" vertex="1">
+        <mxCell id="devhost-51" parent="devhostV4" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="&lt;b&gt;Other developer&#39;s account&lt;/b&gt;&lt;br&gt;own home, clone and branch&lt;br&gt;keys from their GitHub, no sudo" vertex="1">
           <mxGeometry height="80" width="270" x="740" y="560" as="geometry" />
         </mxCell>
         <mxCell id="devhost-48" parent="devhostV4" style="rounded=1;whiteSpace=wrap;html=1;fontColor=#ffffff;fontSize=12;fillColor=#707070;strokeColor=#454545;" value="&lt;b&gt;Their own stack&lt;/b&gt;&lt;br&gt;own Compose project and ports&lt;br&gt;mapped to localhost on their PC" vertex="1">
