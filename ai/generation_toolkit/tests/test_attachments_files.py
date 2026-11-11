@@ -1,5 +1,6 @@
 import pytest
 
+from clients import journal_prompt_client
 from generation_toolkit.attachments.files import (
     AttachmentFileError,
     PathSegmentError,
@@ -7,6 +8,8 @@ from generation_toolkit.attachments.files import (
     resolve_file_attachment,
     validate_path_segment,
 )
+from generation_toolkit.attachments.uploads import UploadedFiles
+from helpers import AGENT
 
 
 def test_reads_a_real_file_under_the_root(tmp_path):
@@ -112,32 +115,45 @@ def test_validate_path_segment_rejects_a_bare_dot_segment():
 def test_list_reference_and_uploads_includes_the_reference_file(tmp_path):
     reference = tmp_path / "generate.mtl"
     reference.write_text("[module m('x')]", encoding="utf-8")
-    uploads_dir = tmp_path / "uploads"
-    uploads_dir.mkdir()
 
-    assert list_reference_and_uploads(reference, uploads_dir) == ["generate.mtl"]
+    assert list_reference_and_uploads(reference, UploadedFiles(AGENT)) == ["generate.mtl"]
 
 
 def test_list_reference_and_uploads_includes_every_real_upload(tmp_path):
     reference = tmp_path / "generate.mtl"
     reference.write_text("[module m('x')]", encoding="utf-8")
-    uploads_dir = tmp_path / "uploads"
-    uploads_dir.mkdir()
-    (uploads_dir / "abc123-custom.mtl").write_text("[module custom('x')]", encoding="utf-8")
+    journal_prompt_client.save_upload(AGENT, "abc123-custom.mtl", "[module custom('x')]")
 
-    assert list_reference_and_uploads(reference, uploads_dir) == ["abc123-custom.mtl", "generate.mtl"]
+    assert list_reference_and_uploads(reference, UploadedFiles(AGENT)) == ["abc123-custom.mtl", "generate.mtl"]
 
 
 def test_list_reference_and_uploads_omits_a_missing_reference_file(tmp_path):
-    reference = tmp_path / "missing.mtl"
-    uploads_dir = tmp_path / "uploads"
-    uploads_dir.mkdir()
-
-    assert list_reference_and_uploads(reference, uploads_dir) == []
+    assert list_reference_and_uploads(tmp_path / "missing.mtl", UploadedFiles(AGENT)) == []
 
 
-def test_list_reference_and_uploads_tolerates_a_missing_uploads_dir(tmp_path):
-    reference = tmp_path / "generate.mtl"
-    reference.write_text("[module m('x')]", encoding="utf-8")
+def test_a_file_attachment_resolves_in_the_uploaded_files_after_the_folders(tmp_path):
+    (tmp_path / "shipped.md").write_text("from the folder", encoding="utf-8")
+    journal_prompt_client.save_upload(AGENT, "uploaded.md", "from the journal")
+    roots = [tmp_path, UploadedFiles(AGENT)]
 
-    assert list_reference_and_uploads(reference, tmp_path / "no-such-uploads-dir") == ["generate.mtl"]
+    assert resolve_file_attachment("shipped.md", roots) == "from the folder"
+    assert resolve_file_attachment("uploaded.md", roots) == "from the journal"
+
+
+def test_a_folder_file_wins_over_an_uploaded_one_of_the_same_name(tmp_path):
+    (tmp_path / "same.md").write_text("folder", encoding="utf-8")
+    journal_prompt_client.save_upload(AGENT, "same.md", "journal")
+
+    assert resolve_file_attachment("same.md", [tmp_path, UploadedFiles(AGENT)]) == "folder"
+
+
+def test_a_file_attachment_that_no_root_holds_is_an_attachment_error(tmp_path):
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("none.md", [tmp_path, UploadedFiles(AGENT)])
+
+
+def test_an_uploaded_file_of_another_agent_is_not_found(tmp_path):
+    journal_prompt_client.save_upload("another-agent", "theirs.md", "x")
+
+    with pytest.raises(AttachmentFileError):
+        resolve_file_attachment("theirs.md", [tmp_path, UploadedFiles(AGENT)])

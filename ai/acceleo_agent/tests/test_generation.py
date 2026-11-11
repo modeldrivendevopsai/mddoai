@@ -15,7 +15,7 @@ from unittest.mock import patch
 from clients import ai_layer_client, validator_agent_client
 from generation import generate
 from generation_toolkit.mock_chain import MOCK_ATL, MOCK_MTL, MOCK_PSM_ECORE
-from prompt_paths import REFERENCE_EXAMPLE_PATH
+from prompt_settings import REFERENCE_EXAMPLE_PATH
 
 
 def ok_response(content):

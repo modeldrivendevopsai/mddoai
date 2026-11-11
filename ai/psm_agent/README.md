@@ -135,7 +135,7 @@ it a `config_dir`). This service's own `routes/prompt_config.py` is a thin HTTP 
 `main.py` via `app.include_router(...)`.
 
 Configs live under `{name}/` in the prompt folder, `name` one of `"generation"`/`"comparison"` (matching this
-service's two real LLM capabilities above). The folder is `PROMPT_CONFIG_DIR` (`prompt_paths.py`), the
+service's two real LLM capabilities above). The folder is `PROMPT_CONFIG_DIR` (`prompt_settings.py`), the
 required `PSM_PROMPT_CONFIG_DIR`:
 
 - `default.default.json`: the immutable, git-committed shipped default. Every `name` ships one,

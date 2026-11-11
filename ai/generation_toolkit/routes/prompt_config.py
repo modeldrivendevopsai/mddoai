@@ -1,7 +1,7 @@
 """The real, shared prompt-config HTTP surface every generation-capable
 service (psm_agent, atl_agent, acceleo_agent) exposes identically - each
 service's own routes/prompt_config.py builds one PromptConfigRouter with
-its own real config_dir/files_root/context_for and re-exports its bound
+its own real agent/files_root/context_for and re-exports its bound
 methods under the same names its own tests already import, rather than
 duplicating every one of these endpoint bodies per service.
 
@@ -18,13 +18,10 @@ target platform's identity is supplied as plain runtime data (a
 saved document, so onboarding a new platform never requires creating any
 new config here.
 
-`config_dir` and `files_root` are both zero-arg getters, not plain values,
-and are called fresh on every request rather than captured once at
-construction time: each service's own test suite isolates prompt-config
-reads/writes by monkeypatching its own prompt_paths.PROMPT_CONFIG_DIR/
-ATTACHMENT_UPLOADS_DIR module attributes for the duration of one test (see
-each service's own conftest.py), which only works if this class re-reads
-them through that same module reference on every call, not once up front.
+`agent` is the name the journal keeps this service's configs under.
+`files_root` is a zero-arg getter, not a plain value, called fresh on every
+request rather than captured once at construction time, so a test that
+changes what the service resolves files against is seen on the next call.
 """
 from typing import Callable
 
@@ -61,11 +58,11 @@ class ReorderLearnedConstraintsBody(BaseModel):
 class PromptConfigRouter:
     def __init__(
         self,
-        config_dir: Callable[[], object],
-        files_root: Callable[[], object],
+        agent: str,
+        files_root: Callable[[], list],
         context_for: Callable[[str], dict[str, str]],
     ):
-        self._config_dir = config_dir
+        self._agent = agent
         self._files_root = files_root
         self._context_for = context_for
 
@@ -100,12 +97,12 @@ class PromptConfigRouter:
         before returning it - a UI that only ever reads this field off a
         get/save/restore response should never see it go missing or stale
         just because those actions no longer store it themselves."""
-        return learned_constraints.with_current_constraints(self._config_dir(), name, config)
+        return learned_constraints.with_current_constraints(self._agent, name, config)
 
     def get_config_endpoint(self, name: str):
         self._context_for(name)
         try:
-            config = storage.load_config(self._config_dir(), name)
+            config = storage.load_config(self._agent, name)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         return self._with_constraints(name, config)
@@ -114,7 +111,7 @@ class PromptConfigRouter:
         context_values = self._context_for(name)
         try:
             saved = storage.save_config(
-                self._config_dir(), name, body.model_dump(), context_values, self._files_root()
+                self._agent, name, body.model_dump(), context_values, self._files_root()
             )
         except storage.PromptConfigValidationError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
@@ -122,19 +119,19 @@ class PromptConfigRouter:
 
     def history_endpoint(self, name: str):
         self._context_for(name)
-        return {"versions": history.list_history(self._config_dir(), name)}
+        return {"versions": history.list_history(self._agent, name)}
 
     def diff_endpoint(self, name: str, a: str, b: str):
         self._context_for(name)
         try:
-            return history.diff_versions(self._config_dir(), name, a, b)
+            return history.diff_versions(self._agent, name, a, b)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
     def restore_endpoint(self, name: str, version: str):
         context_values = self._context_for(name)
         try:
-            restored = history.restore_version(self._config_dir(), name, version, context_values, self._files_root())
+            restored = history.restore_version(self._agent, name, version, context_values, self._files_root())
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         except storage.PromptConfigValidationError as e:
@@ -144,7 +141,7 @@ class PromptConfigRouter:
     def check_references_endpoint(self, name: str):
         context_values = self._context_for(name)
         try:
-            broken = references.check_references(self._config_dir(), name, context_values, self._files_root())
+            broken = references.check_references(self._agent, name, context_values, self._files_root())
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         return {"broken": broken}
@@ -152,7 +149,7 @@ class PromptConfigRouter:
     def add_learned_constraints_endpoint(self, name: str, body: LearnedConstraintsBody):
         self._context_for(name)
         try:
-            constraints = learned_constraints.add_learned_constraints(self._config_dir(), name, body.constraints)
+            constraints = learned_constraints.add_learned_constraints(self._agent, name, body.constraints)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         return {"learned_constraints": constraints}
@@ -160,7 +157,7 @@ class PromptConfigRouter:
     def remove_learned_constraint_endpoint(self, name: str, body: RemoveLearnedConstraintBody):
         self._context_for(name)
         try:
-            constraints = learned_constraints.remove_learned_constraint(self._config_dir(), name, body.constraint)
+            constraints = learned_constraints.remove_learned_constraint(self._agent, name, body.constraint)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         return {"learned_constraints": constraints}
@@ -169,7 +166,7 @@ class PromptConfigRouter:
         self._context_for(name)
         try:
             constraints = learned_constraints.reorder_learned_constraints(
-                self._config_dir(), name, body.constraints
+                self._agent, name, body.constraints
             )
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
@@ -213,7 +210,7 @@ class PromptConfigRouter:
                 draft = self._with_constraints(name, body.model_dump())
                 config, parts = resolution.resolve_config(draft, context_values, self._files_root())
             else:
-                config, parts = resolution.resolve_for_call(self._config_dir(), name, context_values, self._files_root())
+                config, parts = resolution.resolve_for_call(self._agent, name, context_values, self._files_root())
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 

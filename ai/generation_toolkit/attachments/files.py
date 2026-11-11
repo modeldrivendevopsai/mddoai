@@ -11,6 +11,8 @@ stage/attempt fields already had, not a new one.
 import re
 from pathlib import Path
 
+from .uploads import UploadedFiles
+
 _ALLOWED_CHARACTERS = re.compile(r"^[A-Za-z0-9._/-]+$")
 _SEGMENT_ALLOWED_CHARACTERS = re.compile(r"^[A-Za-z0-9._-]+$")
 
@@ -43,18 +45,18 @@ def validate_path_segment(segment: str) -> str:
     return segment
 
 
-def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path]) -> str:
+def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path | UploadedFiles]) -> str:
     """Reads and returns the real content of `path`, resolved against
-    `files_root`. Refuses anything that doesn't stay under that root, even
-    after resolving symlinks and any ".."-style segment.
+    `files_root`. A folder root refuses anything that doesn't stay under it,
+    even after resolving symlinks and any ".."-style segment.
 
     `files_root` accepts a list of roots, tried in order, for a caller that
-    resolves "file" attachments against more than one real directory (e.g.
-    psm_agent's own read-only META_MODELS_DIR plus a separate, writable
-    uploads directory - two directories with two different real reasons to
-    stay distinct, see generation_toolkit/README.md's own attachments
-    section) - a single caller-supplied root is still just as valid, kept
-    as the common case every existing caller already uses.
+    resolves "file" attachments in more than one place (e.g. psm_agent's own
+    read-only META_MODELS_DIR plus the files a person uploaded, which the
+    journal keeps: two places with two different real reasons to stay
+    distinct, see generation_toolkit/README.md's own attachments section). A
+    root is a folder, or an UploadedFiles for what was uploaded to an agent.
+    A single root is still just as valid.
 
     The leading-slash check exists even though Path's own `/` operator
     already makes an absolute right-hand side discard `files_root`
@@ -74,6 +76,11 @@ def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path]
 
     roots = files_root if isinstance(files_root, list) else [files_root]
     for candidate_root in roots:
+        if isinstance(candidate_root, UploadedFiles):
+            uploaded = candidate_root.read(path)
+            if uploaded is not None:
+                return uploaded
+            continue
         root = Path(candidate_root).resolve()
         resolved = (root / path).resolve()
         if not resolved.is_relative_to(root):
@@ -83,11 +90,11 @@ def resolve_file_attachment(path: str, files_root: str | Path | list[str | Path]
     raise AttachmentFileError(f"attachment path {path!r} does not exist under any allowed root")
 
 
-def list_reference_and_uploads(reference_example_path: str | Path, uploads_dir: str | Path) -> list[str]:
+def list_reference_and_uploads(reference_example_path: str | Path, uploads: UploadedFiles) -> list[str]:
     """Real, already-existing files a "file" attachment can reference,
-    found by scanning real directories directly rather than a hardcoded
+    found by looking at what is really there rather than a hardcoded
     list: the one real master-example file (`reference_example_path`) plus
-    every real uploaded file under `uploads_dir` - the shape shared by
+    every file uploaded to the agent (`uploads`) - the shape shared by
     every generation-capable service whose picker only ever has one real
     reference file (atl_agent, acceleo_agent), unlike psm_agent's own
     broader multi-metamodel listing (its own available_files.py stays
@@ -100,8 +107,6 @@ def list_reference_and_uploads(reference_example_path: str | Path, uploads_dir: 
     if reference.is_file():
         files.append(reference.name)
 
-    uploads_root = Path(uploads_dir)
-    if uploads_root.is_dir():
-        files.extend(path.name for path in uploads_root.iterdir() if path.is_file())
+    files.extend(uploads.names())
 
     return sorted(files)

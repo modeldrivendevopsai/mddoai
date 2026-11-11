@@ -232,11 +232,15 @@ def test_compare_ignores_stray_bracket_in_trailing_prose():
     ]
 
 
-def test_files_root_includes_both_metamodels_and_uploads_dir():
+def test_files_root_includes_both_metamodels_and_the_uploaded_files():
     from comparison import META_MODELS_DIR
-    import prompt_paths
+    import prompt_settings
+    from generation_toolkit.attachments.uploads import UploadedFiles
 
-    assert files_root() == [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+    metamodels, uploaded = files_root()
+
+    assert metamodels == META_MODELS_DIR
+    assert isinstance(uploaded, UploadedFiles) and uploaded.agent == prompt_settings.AGENT
 
 
 def test_compare_resolves_a_file_attachment_the_human_uploaded(

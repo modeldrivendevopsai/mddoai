@@ -21,13 +21,14 @@ service is given holds them, beginning from the starting content the repository 
 """
 from generation_toolkit.generation_agent import run_with_retry
 from generation_toolkit.mock_chain import MOCK_ATL, MOCK_PSM_ECORE, mock_generation_result
+from generation_toolkit.attachments.uploads import UploadedFiles
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import validator_agent_client
 
-import prompt_paths
+import prompt_settings
 
 CONFIG_NAME = "generation"
 
@@ -39,7 +40,7 @@ CONFIG_NAME = "generation"
 # with a genuine knowledge gap the model would get wrong at any setting.
 GENERATION_TEMPERATURE = 0
 
-_FILES_ROOT = [prompt_paths.REFERENCE_EXAMPLE_PATH.parent, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+_FILES_ROOT = [prompt_settings.REFERENCE_EXAMPLE_PATH.parent, UploadedFiles(prompt_settings.AGENT)]
 
 
 def _validate(
@@ -89,7 +90,7 @@ def generate(
     mock transformation targets the mock metamodel only."""
     context_values = {"pim_ecore": pim_artifact, "psm_ecore": psm_artifact}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, CONFIG_NAME, context_values, _FILES_ROOT
+        prompt_settings.AGENT, CONFIG_NAME, context_values, _FILES_ROOT
     )
     combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
 

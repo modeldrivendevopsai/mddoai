@@ -26,7 +26,7 @@ The one real, pre-existing repo file this service reads is `main/`'s own real, w
 `pim2gitlabmodel.atl` (a real PIM→GitLab transformation, `main/src/main/resources/transformations/pim2psm/`) —
 the master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
+`prompt_settings.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 
@@ -81,7 +81,7 @@ concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.
 
 Configs live under `generation/` in the prompt folder (this service has only one real config name,
-`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, the required `ATL_AGENT_PROMPT_CONFIG_DIR`):
+`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_settings.py`, the required `ATL_AGENT_PROMPT_CONFIG_DIR`):
 
 - `default.default.json` — the immutable, git-committed shipped default, seeded from the real
   experiment's own final, most-refined accumulated `learned_constraints` (see

@@ -17,15 +17,16 @@ button whose one-way effect ("no history of its own to undo it") was hard
 to convey in the UI and easy to click by accident.
 """
 import difflib
-import json
-from pathlib import Path
 
-from . import _paths, storage
+from clients import journal_prompt_client
+from generation_toolkit.attachments.files import validate_path_segment
+
+from . import storage
 
 SHIPPED_DEFAULT_VERSION = "shipped"
 
 
-def list_history(config_dir: str | Path, name: str) -> list[str]:
+def list_history(agent: str, name: str) -> list[str]:
     """Every saved version id for name, newest first, with
     SHIPPED_DEFAULT_VERSION appended last whenever a real default.default.json
     actually exists for name - the version id is an ISO-sortable UTC
@@ -36,37 +37,29 @@ def list_history(config_dir: str | Path, name: str) -> list[str]:
     timestamp happens to look like.
 
     Skips the sentinel entirely when no shipped default is actually on
-    disk (a name introduced without ever committing one, or a config_dir
+    disk (a name introduced without ever committing one, or an agent
     reseeded without it) - _load_snapshot below raises FileNotFoundError
     for exactly this case, so listing the sentinel anyway would advertise
     a version a caller could pick for Restore or Diff only to 404."""
-    directory = _paths.history_dir(config_dir, name)
-    prefix = "default."
-    versions = []
-    if directory.is_dir():
-        for entry in directory.iterdir():
-            if entry.name.startswith(prefix) and entry.name.endswith(".json"):
-                versions.append(entry.name.removeprefix(prefix).removesuffix(".json"))
-    sorted_versions = sorted(versions, reverse=True)
-    if _paths.default_path(config_dir, name).is_file():
-        sorted_versions.append(SHIPPED_DEFAULT_VERSION)
-    return sorted_versions
+    versions, has_shipped = journal_prompt_client.list_versions(agent, name)
+    return [*versions, SHIPPED_DEFAULT_VERSION] if has_shipped else versions
 
 
-def _load_snapshot(config_dir: str | Path, name: str, version: str) -> dict:
+def _load_snapshot(agent: str, name: str, version: str) -> dict:
     """A real saved version's own snapshot, or the shipped default when
     `version` is SHIPPED_DEFAULT_VERSION - the one place diff_versions and
     restore_version below both go to resolve "version" into an actual
     config dict, so neither needs its own special-cased branch."""
     if version == SHIPPED_DEFAULT_VERSION:
-        path = _paths.default_path(config_dir, name)
-        if not path.is_file():
+        snapshot = journal_prompt_client.get_shipped_config(agent, name)
+        if snapshot is None:
             raise FileNotFoundError(f"no shipped default exists for {name!r}")
     else:
-        path = _paths.history_path(config_dir, name, version)
-        if not path.is_file():
+        # A version comes from a route parameter, so it is checked here, before the journal is asked.
+        snapshot = journal_prompt_client.get_version(agent, name, validate_path_segment(version))
+        if snapshot is None:
             raise FileNotFoundError(f"no saved version {version!r} for {name!r}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return snapshot
 
 
 def _attachment_text(attachment: dict) -> str:
@@ -99,7 +92,7 @@ def _line_diff(before: str, after: str) -> list[dict]:
     return lines
 
 
-def diff_versions(config_dir: str | Path, name: str, version_a: str, version_b: str) -> dict:
+def diff_versions(agent: str, name: str, version_a: str, version_b: str) -> dict:
     """A real structural diff between two saved versions (either may be
     SHIPPED_DEFAULT_VERSION): per attachment, added / removed / changed,
     comparing the two JSON documents field by field, not a raw text diff of
@@ -118,8 +111,8 @@ def diff_versions(config_dir: str | Path, name: str, version_a: str, version_b: 
     attachment's meaningful text - a UI showing only a changed/unchanged
     count, with no way to see which lines actually moved, is exactly the
     gap this closes."""
-    a = _load_snapshot(config_dir, name, version_a)
-    b = _load_snapshot(config_dir, name, version_b)
+    a = _load_snapshot(agent, name, version_a)
+    b = _load_snapshot(agent, name, version_b)
 
     attachments_a = {att["id"]: att for att in a.get("attachments", [])}
     attachments_b = {att["id"]: att for att in b.get("attachments", [])}
@@ -141,11 +134,11 @@ def diff_versions(config_dir: str | Path, name: str, version_a: str, version_b: 
 
 
 def restore_version(
-    config_dir: str | Path,
+    agent: str,
     name: str,
     version: str,
     context_values: dict[str, str],
-    files_root: str | Path | list[str | Path],
+    files_root: list,
 ) -> dict:
     """Copies a saved version (or, for SHIPPED_DEFAULT_VERSION, the shipped
     default) back over the live file, itself going through
@@ -160,5 +153,5 @@ def restore_version(
     attachments (see its own docstring) - there's genuinely nothing to
     restore to when you're already there. The UI never offers Restore on
     the row it's already marked "Current" for exactly this reason."""
-    snapshot = _load_snapshot(config_dir, name, version)
-    return storage.save_config(config_dir, name, snapshot, context_values, files_root)
+    snapshot = _load_snapshot(agent, name, version)
+    return storage.save_config(agent, name, snapshot, context_values, files_root)

@@ -1,20 +1,13 @@
-"""Where this service's own real, UI-editable prompt config (and its "file"
-attachment's uploaded copies) lives on disk - mirrors atl_agent's own
-prompt_paths.py, one real difference: REFERENCE_EXAMPLE_PATH points at the
-real master-example Acceleo template instead of an ATL transformation - see
-that constant's own comment for why this is a real file this service owns
-directly, needing no Docker bind mount.
+"""This service's prompt settings: the name the journal keeps its prompt configs
+and uploaded attachments under, and the limit on an upload.
+REFERENCE_EXAMPLE_PATH is the real master-example Acceleo template this service ships.
 """
 from pathlib import Path
 
-from generation_toolkit.required_env import required_env
-
-PROMPT_CONFIG_DIR = Path(required_env("ACCELEO_AGENT_PROMPT_CONFIG_DIR"))
-
-# Separate from PROMPT_CONFIG_DIR (config JSON):
-# a real human's file upload is not that, a writable directory of its own,
-# so an upload never needs write access to the config directory itself.
-ATTACHMENT_UPLOADS_DIR = Path(required_env("ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR"))
+# The journal keeps this service's configs and uploads under this name, so one journal
+# serves every agent and none sees another's. It is also the folder the shipped starting
+# configs sit in, under the prompts folder.
+AGENT = "acceleo"
 
 # The master example this stage's own default prompt attaches, the same
 # role psm_agent's own master-example .ecore file plays for it: a real,

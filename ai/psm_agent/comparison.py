@@ -23,6 +23,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from generation_toolkit.attachments.uploads import UploadedFiles
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
@@ -30,11 +31,11 @@ from generation_toolkit.prompt_config import resolution as prompt_resolution
 from clients import ai_layer_client
 from clients.required_env import required_env
 
-import prompt_paths
+import prompt_settings
 
 logger = logging.getLogger(__name__)
 
-# This mode's own name under prompt_paths.PROMPT_CONFIG_DIR (see
+# This mode's own name under the agent's configs in the journal (see
 # generation.py's own "generation").
 COMPARISON_CONFIG_NAME = "comparison"
 
@@ -43,7 +44,7 @@ COMPARISON_CONFIG_NAME = "comparison"
 META_MODELS_DIR = required_env("META_MODELS_DIR")
 
 
-def files_root() -> list[str]:
+def files_root() -> list:
     """Every real root a "file" attachment can resolve against: the
     read-only, pre-existing repo metamodels, and a human's own uploaded
     files (see routes/uploads.py). Public and called fresh each time
@@ -53,7 +54,7 @@ def files_root() -> list[str]:
     editor (which already validates references against both roots, see
     routes/prompt_config.py) actually resolves on a real call too, not
     only during editing."""
-    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+    return [META_MODELS_DIR, UploadedFiles(prompt_settings.AGENT)]
 DEFAULT_PSM_METAMODEL_PATH = str(
     Path(META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
 )
@@ -203,7 +204,7 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
 
     context_values = {"psm_metamodel": metamodel_content, "serialized_docs": serialized_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, context_values, files_root()
+        prompt_settings.AGENT, COMPARISON_CONFIG_NAME, context_values, files_root()
     )
     prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     messages = [

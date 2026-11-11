@@ -3,7 +3,6 @@ import threading
 
 import pytest
 
-from generation_toolkit.prompt_config._paths import constraints_path
 from generation_toolkit.prompt_config.learned_constraints import (
     add_learned_constraints,
     load_constraints,
@@ -11,33 +10,34 @@ from generation_toolkit.prompt_config.learned_constraints import (
     reorder_learned_constraints,
 )
 from generation_toolkit.prompt_config.storage import load_config, save_config
+from helpers import AGENT
 
 _BASE = {"system_prompt": "x", "attachments": []}
 
 
 def test_add_learned_constraints_to_a_config_with_none_yet(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
 
-    result = add_learned_constraints(tmp_path, "generation", ["Fix: use camelCase"])
+    result = add_learned_constraints(AGENT, "generation", ["Fix: use camelCase"])
 
     assert result == ["Fix: use camelCase"]
-    assert load_constraints(tmp_path, "generation") == ["Fix: use camelCase"]
+    assert load_constraints(AGENT, "generation") == ["Fix: use camelCase"]
 
 
 def test_add_learned_constraints_appends_to_existing_ones(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first"])
 
-    result = add_learned_constraints(tmp_path, "generation", ["second"])
+    result = add_learned_constraints(AGENT, "generation", ["second"])
 
     assert result == ["first", "second"]
 
 
 def test_add_learned_constraints_deduplicates(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first"])
 
-    result = add_learned_constraints(tmp_path, "generation", ["first", "second"])
+    result = add_learned_constraints(AGENT, "generation", ["first", "second"])
 
     assert result == ["first", "second"]
 
@@ -47,76 +47,76 @@ def test_add_learned_constraints_never_touches_the_versioned_config(tmp_path):
     versioned file now - this is the actual fix for reverting silently
     wiping accumulated constraints: there's no version of the config for a
     revert/restore to swap that constraints were ever a part of."""
-    saved = save_config(tmp_path, "generation", _BASE, {}, tmp_path)
+    saved = save_config(AGENT, "generation", _BASE, {}, tmp_path)
 
-    add_learned_constraints(tmp_path, "generation", ["Fix: x"])
+    add_learned_constraints(AGENT, "generation", ["Fix: x"])
 
-    assert load_config(tmp_path, "generation")["_version"] == saved["_version"]
-    assert "learned_constraints" not in load_config(tmp_path, "generation")
+    assert load_config(AGENT, "generation")["_version"] == saved["_version"]
+    assert "learned_constraints" not in load_config(AGENT, "generation")
 
 
 def test_remove_learned_constraint(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first", "second"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first", "second"])
 
-    result = remove_learned_constraint(tmp_path, "generation", "first")
+    result = remove_learned_constraint(AGENT, "generation", "first")
 
     assert result == ["second"]
-    assert load_constraints(tmp_path, "generation") == ["second"]
+    assert load_constraints(AGENT, "generation") == ["second"]
 
 
 def test_remove_learned_constraint_that_is_not_present_is_a_no_op(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first"])
 
-    result = remove_learned_constraint(tmp_path, "generation", "not-there")
+    result = remove_learned_constraint(AGENT, "generation", "not-there")
 
     assert result == ["first"]
 
 
 def test_reorder_learned_constraints_persists_the_new_order(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first", "second", "third"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first", "second", "third"])
 
-    result = reorder_learned_constraints(tmp_path, "generation", ["third", "first", "second"])
+    result = reorder_learned_constraints(AGENT, "generation", ["third", "first", "second"])
 
     assert result == ["third", "first", "second"]
-    assert load_constraints(tmp_path, "generation") == ["third", "first", "second"]
+    assert load_constraints(AGENT, "generation") == ["third", "first", "second"]
 
 
 def test_reorder_learned_constraints_rejects_a_set_that_does_not_match(tmp_path):
     """A stale client racing a concurrent add/remove elsewhere must not be
     able to silently replace the real, current set with whatever it had on
     screen - only a genuine reordering of the CURRENT set is accepted."""
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["first", "second"])
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["first", "second"])
 
     with pytest.raises(ValueError):
-        reorder_learned_constraints(tmp_path, "generation", ["first", "second", "third"])
+        reorder_learned_constraints(AGENT, "generation", ["first", "second", "third"])
 
     # The real, current set on disk is untouched by the rejected call.
-    assert load_constraints(tmp_path, "generation") == ["first", "second"]
+    assert load_constraints(AGENT, "generation") == ["first", "second"]
 
 
 def test_load_constraints_is_empty_when_nothing_was_ever_added(tmp_path):
-    save_config(tmp_path, "generation", _BASE, {}, tmp_path)
+    save_config(AGENT, "generation", _BASE, {}, tmp_path)
 
-    assert load_constraints(tmp_path, "generation") == []
+    assert load_constraints(AGENT, "generation") == []
 
 
-def test_load_constraints_migrates_once_from_an_older_embedded_shape(tmp_path):
+def test_load_constraints_migrates_once_from_an_older_embedded_shape(config_dir, tmp_path):
     """Before constraints got their own store, they lived inside the
     versioned config's own "learned_constraints" key - an existing config
     saved that way must not silently lose them the first time this newer
     code reads it."""
-    save_config(tmp_path, "generation", {**_BASE, "learned_constraints": ["already there"]}, {}, tmp_path)
+    save_config(AGENT, "generation", {**_BASE, "learned_constraints": ["already there"]}, {}, tmp_path)
 
-    result = load_constraints(tmp_path, "generation")
+    result = load_constraints(AGENT, "generation")
 
     assert result == ["already there"]
     # Migrated for real, not just faked for this one read - the file this
     # module owns now exists on disk with that same content.
-    on_disk = json.loads(constraints_path(tmp_path, "generation").read_text(encoding="utf-8"))
+    on_disk = json.loads((config_dir / "generation" / "constraints.json").read_text(encoding="utf-8"))
     assert on_disk == {"constraints": ["already there"]}
 
 
@@ -130,16 +130,16 @@ def test_concurrent_migration_read_and_add_never_lose_either_ones_write(tmp_path
     fully completes before the other's own critical section can even
     begin, so the final state always has both values regardless of which
     one actually wins the race to start first."""
-    save_config(tmp_path, "generation", {**_BASE, "learned_constraints": ["legacy"]}, {}, tmp_path)
+    save_config(AGENT, "generation", {**_BASE, "learned_constraints": ["legacy"]}, {}, tmp_path)
     barrier = threading.Barrier(2)
 
     def reader():
         barrier.wait()
-        load_constraints(tmp_path, "generation")
+        load_constraints(AGENT, "generation")
 
     def writer():
         barrier.wait()
-        add_learned_constraints(tmp_path, "generation", ["new"])
+        add_learned_constraints(AGENT, "generation", ["new"])
 
     threads = [threading.Thread(target=reader), threading.Thread(target=writer)]
     for t in threads:
@@ -147,7 +147,7 @@ def test_concurrent_migration_read_and_add_never_lose_either_ones_write(tmp_path
     for t in threads:
         t.join()
 
-    assert load_constraints(tmp_path, "generation") == ["legacy", "new"]
+    assert load_constraints(AGENT, "generation") == ["legacy", "new"]
 
 
 def test_load_constraints_migration_does_not_recur_once_the_store_exists(tmp_path):
@@ -156,10 +156,10 @@ def test_load_constraints_migration_does_not_recur_once_the_store_exists(tmp_pat
     caller that round-trips whatever GET handed back) must not resurrect
     stale embedded constraints on a later read - the store, once it
     exists, is the one source of truth."""
-    save_config(tmp_path, "generation", {**_BASE, "learned_constraints": ["stale"]}, {}, tmp_path)
-    load_constraints(tmp_path, "generation")
+    save_config(AGENT, "generation", {**_BASE, "learned_constraints": ["stale"]}, {}, tmp_path)
+    load_constraints(AGENT, "generation")
 
-    remove_learned_constraint(tmp_path, "generation", "stale")
-    save_config(tmp_path, "generation", {**_BASE, "learned_constraints": ["stale"]}, {}, tmp_path)
+    remove_learned_constraint(AGENT, "generation", "stale")
+    save_config(AGENT, "generation", {**_BASE, "learned_constraints": ["stale"]}, {}, tmp_path)
 
-    assert load_constraints(tmp_path, "generation") == []
+    assert load_constraints(AGENT, "generation") == []

@@ -22,8 +22,10 @@ naming convention.
 """
 from pathlib import Path
 
+from generation_toolkit.attachments.uploads import UploadedFiles
+
 from comparison import META_MODELS_DIR
-import prompt_paths
+import prompt_settings
 
 
 def list_available_files() -> list[str]:
@@ -42,8 +44,6 @@ def list_available_files() -> list[str]:
     if metamodels_root.is_dir():
         files.extend(str(path.relative_to(metamodels_root)).replace("\\", "/") for path in metamodels_root.glob("*/model/*.ecore"))
 
-    uploads_root = Path(prompt_paths.ATTACHMENT_UPLOADS_DIR)
-    if uploads_root.is_dir():
-        files.extend(path.name for path in uploads_root.iterdir() if path.is_file())
+    files.extend(UploadedFiles(prompt_settings.AGENT).names())
 
     return sorted(files)

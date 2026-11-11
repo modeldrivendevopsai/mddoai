@@ -35,7 +35,7 @@ from generation_toolkit.prompt_config import resolution as prompt_resolution
 from clients import validator_agent_client
 
 from comparison import files_root
-import prompt_paths
+import prompt_settings
 
 
 
@@ -79,7 +79,7 @@ def generate(
     if mock:
         context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
         config, parts = prompt_resolution.resolve_for_call(
-            prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
+            prompt_settings.AGENT, "generation", context_values, files_root()
         )
         combined_constraints = [*config.get("learned_constraints", []), *(constraints or [])]
         prompt = build_prompt(parts, combined_constraints)
@@ -88,7 +88,7 @@ def generate(
 
     context_values = {"pim_ecore": pim_artifact, "psm_docs": platform_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, "generation", context_values, files_root()
+        prompt_settings.AGENT, "generation", context_values, files_root()
     )
 
     # A promoted, permanent constraint (see

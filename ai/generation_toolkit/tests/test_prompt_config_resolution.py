@@ -1,6 +1,7 @@
 from generation_toolkit.prompt_config.learned_constraints import add_learned_constraints
 from generation_toolkit.prompt_config.resolution import render_prompt, resolve_config, resolve_for_call
 from generation_toolkit.prompt_config.storage import save_config
+from helpers import AGENT
 
 _CONFIG = {
     "attachments": [
@@ -12,9 +13,9 @@ _CONFIG = {
 
 
 def test_resolve_for_call_derives_system_prompt_from_the_first_text_attachment(tmp_path):
-    save_config(tmp_path, "generation", _CONFIG, {"pim_ecore": ""}, tmp_path)
+    save_config(AGENT, "generation", _CONFIG, {"pim_ecore": ""}, tmp_path)
 
-    config, parts = resolve_for_call(tmp_path, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
+    config, parts = resolve_for_call(AGENT, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
 
     assert config["system_prompt"] == "x"
     # The system-prompt-role attachment is consumed, not also resolved as
@@ -25,9 +26,9 @@ def test_resolve_for_call_derives_system_prompt_from_the_first_text_attachment(t
 
 def test_resolve_for_call_gives_an_empty_system_prompt_when_the_first_attachment_is_not_text(tmp_path):
     config = {"attachments": [{"id": "pim_ecore", "name": "PIM", "type": "context", "key": "pim_ecore"}]}
-    save_config(tmp_path, "generation", config, {"pim_ecore": ""}, tmp_path)
+    save_config(AGENT, "generation", config, {"pim_ecore": ""}, tmp_path)
 
-    resolved, parts = resolve_for_call(tmp_path, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
+    resolved, parts = resolve_for_call(AGENT, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
 
     assert resolved["system_prompt"] == ""
     # Nothing is consumed as the system prompt here, so every attachment
@@ -36,9 +37,9 @@ def test_resolve_for_call_gives_an_empty_system_prompt_when_the_first_attachment
 
 
 def test_resolve_for_call_gives_an_empty_system_prompt_for_an_empty_document(tmp_path):
-    save_config(tmp_path, "generation", {"attachments": []}, {}, tmp_path)
+    save_config(AGENT, "generation", {"attachments": []}, {}, tmp_path)
 
-    config, parts = resolve_for_call(tmp_path, "generation", {}, tmp_path)
+    config, parts = resolve_for_call(AGENT, "generation", {}, tmp_path)
 
     assert config["system_prompt"] == ""
     assert parts == {}
@@ -51,25 +52,25 @@ def test_resolve_for_call_merges_in_constraints_from_their_own_separate_store(tm
     reading a "learned_constraints" key that _CONFIG's own saved JSON may
     or may not still carry."""
     config_with_no_embedded_constraints = {"attachments": _CONFIG["attachments"]}
-    save_config(tmp_path, "generation", config_with_no_embedded_constraints, {"pim_ecore": ""}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["Use camelCase"])
+    save_config(AGENT, "generation", config_with_no_embedded_constraints, {"pim_ecore": ""}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["Use camelCase"])
 
-    config, _ = resolve_for_call(tmp_path, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
+    config, _ = resolve_for_call(AGENT, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
 
     assert config["learned_constraints"] == ["Use camelCase"]
 
 
 def test_render_prompt_includes_persisted_learned_constraints(tmp_path):
-    save_config(tmp_path, "generation", {"attachments": _CONFIG["attachments"]}, {"pim_ecore": ""}, tmp_path)
-    add_learned_constraints(tmp_path, "generation", ["Use camelCase"])
+    save_config(AGENT, "generation", {"attachments": _CONFIG["attachments"]}, {"pim_ecore": ""}, tmp_path)
+    add_learned_constraints(AGENT, "generation", ["Use camelCase"])
 
-    prompt = render_prompt(tmp_path, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
+    prompt = render_prompt(AGENT, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
 
     assert prompt["pim_ecore"] == "<pim/>"
     assert "Use camelCase" in prompt["constraints"]
 
 
-def test_resolve_config_resolves_a_given_config_without_touching_disk(tmp_path):
+def test_resolve_config_resolves_a_given_config_without_touching_disk(config_dir, tmp_path):
     """resolve_for_call above always loads from config_dir first - this is
     the entry point a "preview my current, unsaved draft" caller uses
     instead, against a config it already has in hand, with config_dir/name
@@ -89,9 +90,9 @@ def test_resolve_for_call_is_resolve_config_after_loading_from_disk(tmp_path):
     identically given the same config - resolve_for_call is just
     resolve_config with a load_config in front of it, not a second,
     independently-maintained implementation of the same resolution."""
-    save_config(tmp_path, "generation", _CONFIG, {"pim_ecore": ""}, tmp_path)
+    save_config(AGENT, "generation", _CONFIG, {"pim_ecore": ""}, tmp_path)
 
-    from_disk = resolve_for_call(tmp_path, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
+    from_disk = resolve_for_call(AGENT, "generation", {"pim_ecore": "<pim/>"}, tmp_path)
     direct = resolve_config(_CONFIG, {"pim_ecore": "<pim/>"}, tmp_path)
 
     # from_disk's config carries save_config's own stamped "_version", the
@@ -102,13 +103,13 @@ def test_resolve_for_call_is_resolve_config_after_loading_from_disk(tmp_path):
     assert from_disk[1] == direct[1]
 
 
-def test_render_prompt_falls_back_to_the_shipped_default(tmp_path):
-    (tmp_path / "generation").mkdir()
-    (tmp_path / "generation" / "default.default.json").write_text(
+def test_render_prompt_falls_back_to_the_shipped_default(config_dir, tmp_path):
+    (config_dir / "generation").mkdir()
+    (config_dir / "generation" / "default.default.json").write_text(
         '{"attachments": [{"id": "system", "name": "System prompt", "type": "text", "content": "x"}]}',
         encoding="utf-8",
     )
 
-    prompt = render_prompt(tmp_path, "generation", {}, tmp_path)
+    prompt = render_prompt(AGENT, "generation", {}, tmp_path)
 
     assert prompt["constraints"] == ""

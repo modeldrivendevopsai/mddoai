@@ -37,7 +37,7 @@ GitLab Acceleo code-generation template
 (`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl`) — the
 master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
+`prompt_settings.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 
@@ -92,7 +92,7 @@ concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.
 
 Configs live under `generation/` in the prompt folder (this service has only one real config name,
-`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, the required `ACCELEO_AGENT_PROMPT_CONFIG_DIR`):
+`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_settings.py`, the required `ACCELEO_AGENT_PROMPT_CONFIG_DIR`):
 
 - `default.default.json`: the immutable, git-committed shipped default, seeded from real
   constraints accumulated across GitLab and Bamboo before being carried into every later
