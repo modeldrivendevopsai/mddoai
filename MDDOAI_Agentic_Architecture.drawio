@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Claude" pages="3">
   <diagram name="MDDOAI Architecture (Phased)" id="mddoai-arch-phased">
-    <mxGraphModel dx="834" dy="447" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+    <mxGraphModel dx="1540" dy="824" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" value="Base (always visible)" />
@@ -73,7 +73,7 @@
             <mxPoint x="190.99999999999886" y="435" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e_inttest_success" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;" value="Success">
+        <mxCell id="e_inttest_success" edge="1" parent="layerPhase0" source="inttest" style="endArrow=block;html=1;strokeColor=#1B3A5C;strokeWidth=2;fontSize=11;fontColor=#1B3A5C;entryX=0.034;entryY=0.19;entryDx=0;entryDy=0;entryPerimeter=0;" target="rsZ4uEINc2u_vfYEfqJd-4" value="Publish?">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="560" y="850" as="targetPoint" />
           </mxGeometry>
