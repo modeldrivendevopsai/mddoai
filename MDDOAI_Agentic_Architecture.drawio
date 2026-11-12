@@ -1142,14 +1142,14 @@
     </mxGraphModel>
   </diagram>
   <diagram name="C4 Architecture" id="mddoai-c4">
-    <mxGraphModel dx="4619" dy="2473" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="10630" math="0" shadow="0">
+    <mxGraphModel dx="3431" dy="1837" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="10630" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="c4-l2-system" parent="1" style="shape=rect;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=light-dark(#666666, #5ea9f2);verticalAlign=top;align=left;spacingLeft=14;fontStyle=1;fontSize=14;spacingTop=10;strokeWidth=5;" value="&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;MDDOAI [Software System]&lt;/span&gt;" vertex="1">
           <mxGeometry height="1800" width="3490" x="500" y="2030" as="geometry" />
         </mxCell>
-        <mxCell id="c4-agents" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=#CCCCCC;dashed=1;verticalAlign=bottom;align=right;fontStyle=1;fontSize=13;html=1;container=0;strokeWidth=5;fontColor=#555555;spacingRight=10;spacingBottom=6;" value="Stage agents [Group of containers]: write the platform&#39;s files with AI, then validate them" vertex="1">
+        <mxCell id="c4-agents" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#CCCCCC, #e3e3e3);dashed=1;verticalAlign=bottom;align=right;fontStyle=1;fontSize=13;html=1;container=0;strokeWidth=5;fontColor=#555555;spacingRight=10;spacingBottom=6;" value="Stage agents [Group of containers]: write the platform&#39;s files with AI, then validate them" vertex="1">
           <mxGeometry height="290" width="1080" x="1960" y="2930" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=1;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Orchestrator [Container: Python, FastAPI]" vertex="1">
