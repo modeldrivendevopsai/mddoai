@@ -3,6 +3,7 @@ import type { PlatformSummary } from 'orchestrator-types';
 import { isSelectingTextIn } from '../../components/isSelectingTextIn';
 import { PLATFORMS_COPY } from '../../config/platforms.config';
 import { timeAgo } from '../generate/format';
+import { OpenChatButton } from './OpenChatButton';
 import { LoadError, LoadHint } from './PlatformsFeedback';
 import { usePlatformList } from './usePlatformList';
 import './platforms-list.css';
@@ -19,17 +20,11 @@ function sourceOf(platform: PlatformSummary): string {
   return platform.published_at ? copy.published(timeAgo(platform.published_at)) : copy.none;
 }
 
-// Why no chat made a platform: it came with the stack, or it was published without one.
-function noChatReason(platform: PlatformSummary): string {
-  const copy = PLATFORMS_COPY.source.noChat;
-  return platform.published_at ? copy.unrecorded : copy.included;
-}
-
 /**
  * The platforms MDDOAI can generate for: each at its latest version, where it
  * came from and the file it writes. A row opens its platform wherever it is
  * pressed; the platform's name is a button, which is how the keyboard gets in.
- * Every source has a link to the chat that made the platform, greyed out, with
+ * Every source has a button to the chat that made the platform, greyed out, with
  * the reason, where no chat did.
  * It loads its own rows, so the start screen and the platforms screen show the
  * same list without either knowing where it comes from.
@@ -86,19 +81,7 @@ export function PlatformsList({ onOpen, onOpenRun }: PlatformsListProps) {
               <td className="mdd-platforms-list__mono">{platform.version}</td>
               <td title={platform.published_at ? new Date(platform.published_at).toLocaleString() : undefined}>
                 {sourceOf(platform)}
-                <button
-                  type="button"
-                  className="mdd-platforms-list__link mdd-platforms-list__chat"
-                  aria-label={copy.source.openChatOf(platform.name)}
-                  disabled={!platform.source_run_id}
-                  title={platform.source_run_id ? undefined : noChatReason(platform)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (platform.source_run_id) onOpenRun(platform.source_run_id);
-                  }}
-                >
-                  {copy.source.openChat}
-                </button>
+                <OpenChatButton platform={platform} onOpenRun={onOpenRun} />
               </td>
               <td className="mdd-platforms-list__mono">{platform.output_filename}</td>
             </tr>

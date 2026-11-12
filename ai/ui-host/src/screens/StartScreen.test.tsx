@@ -164,10 +164,9 @@ describe("the list under the picture", () => {
     expect(screen.getByRole("heading", { name: "Supported CI/CD platforms" })).toBeTruthy()
     expect(await screen.findByText("Woodpecker CI")).toBeTruthy()
     expect(screen.getByText("Bamboo")).toBeTruthy()
-    // Where each came from, and no link that does nothing.
+    // Where each came from.
     expect(screen.getByText("–")).toBeTruthy()
     expect(screen.getByText("Published 3 hours ago")).toBeTruthy()
-    expect(screen.queryByRole("link")).toBeNull()
     expect(screen.queryByRole("heading", { name: "Latest pipelines" })).toBeNull()
     expect(screen.queryByText("model-2.swarch")).toBeNull()
     expect(generator.listPipelines).not.toHaveBeenCalled()
@@ -188,11 +187,11 @@ describe("the list under the picture", () => {
     const onOpenPlatform = vi.fn()
     renderStart({ onOpenRun, onOpenPlatform }, { platformsTabOn: true })
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made Bamboo" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Open chat for Bamboo" }))
 
     expect(onOpenRun).toHaveBeenCalledWith("run1")
     expect(onOpenPlatform).not.toHaveBeenCalled()
-    expect((screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole("button", { name: "Open chat for Woodpecker CI" }).getAttribute("aria-disabled")).toBe("true")
   })
 
   it("follows the tab back and forth", async () => {

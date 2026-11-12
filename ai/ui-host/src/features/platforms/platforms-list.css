@@ -62,17 +62,17 @@
   border-radius: var(--radius-sm);
 }
 
-/* The link to the chat that made a platform, under its source. */
+/* The button to the chat that made a platform, under its source. */
 .mdd-platforms-list__chat {
   display: flex;
   margin-top: var(--space-1);
   font-size: var(--text-xs);
 }
-/* No chat made this platform: the link is there, greyed out, and says why when pointed at. */
-.mdd-platforms-list__chat:disabled {
-  color: var(--neutral-400);
+/* No chat made this platform: the button is there, greyed out, and says why. It stays focusable so the keyboard reaches the reason. */
+.mdd-platforms-list__chat[aria-disabled="true"] {
+  color: var(--text-faint);
   cursor: not-allowed;
 }
-.mdd-platforms-list__chat:disabled:hover {
+.mdd-platforms-list__chat[aria-disabled="true"]:hover {
   text-decoration: none;
 }

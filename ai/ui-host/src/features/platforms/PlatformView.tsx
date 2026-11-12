@@ -63,12 +63,12 @@ export function PlatformView({ detail, busy, onVersionChange, onOpenRun }: Platf
           {/* A platform can be published with no run behind it, so the run is offered only when there is one. */}
           {detail.source_run_id && (
             <Button variant="secondary" size="sm" onClick={() => onOpenRun(detail.source_run_id as string)}>
-              {copy.openRun}
+              {copy.openChat}
             </Button>
           )}
         </div>
       ) : (
-        <p className="mdd-platform-view__source">{copy.included}</p>
+        <p className="mdd-platform-view__source">{copy.noChat}</p>
       )}
 
       <Tabs items={copy.files.map(({ id, label }) => ({ id, label }))} activeId={file.id} onChange={setFileId} />

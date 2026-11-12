@@ -19,12 +19,13 @@ export const PLATFORMS_COPY = {
     // A platform with no publish record has no date to give: it came with the stack.
     none: '–',
     published: (ago: string) => `Published ${ago}`,
-    // The link to the chat that made a platform. Many rows carry it, so each is named for its platform.
+    // The button to the chat that made a platform. Many rows carry it, so each is named for its
+    // platform, and the name starts with the words the button shows, which is what voice control says.
     openChat: 'Open chat',
-    openChatOf: (name: string) => `Open the chat that made ${name}`,
-    // Shown on the greyed-out link of a platform no chat made, and why.
+    openChatOf: (name: string) => `Open chat for ${name}`,
+    // The reason, on the greyed-out button of a platform no chat made.
     noChat: {
-      included: 'No chat made it',
+      shipped: 'No chat made it',
       unrecorded: 'Published without a recorded chat',
     },
   },
@@ -45,9 +46,10 @@ export const PLATFORM_VIEW_COPY = {
   version: 'Version',
   latest: (version: string) => `${version} (latest)`,
   outputFile: 'Writes',
-  included: 'No chat made it.',
+  // The reason the list gives for a platform no chat made, as a sentence.
+  noChat: `${PLATFORMS_COPY.source.noChat.shipped}.`,
   published: (ago: string) => `Published ${ago}.`,
-  openRun: 'Open the chat that made it',
+  openChat: 'Open the chat that made it',
   showLatest: 'Show the latest version',
   // One tab per file a platform is made of. The hint says, in plain words, what
   // the file does, since the names alone mean little to someone new to model-driven work.

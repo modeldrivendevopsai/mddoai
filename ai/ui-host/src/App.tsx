@@ -29,26 +29,34 @@ const START_OPTION_ROUTES: Record<string, string> = {
   "add-update-platform": ROUTES.platforms,
 }
 
+// Opens a past run: the chat, and the stage outputs, that made a platform.
+function useOpenRun() {
+  const navigate = useNavigate()
+  return (runId: string) => navigate(integrationRunPath(runId))
+}
+
 function StartScreenRoute() {
   const navigate = useNavigate()
+  const openRun = useOpenRun()
   return (
     <StartScreen
       onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? ROUTES.platforms)}
       onOpenPipeline={(pipelineId) => navigate(pipelinePath(pipelineId))}
       onOpenPlatform={(platformId) => navigate(platformPath(platformId))}
-      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
+      onOpenRun={openRun}
     />
   )
 }
 
 function PlatformsScreenRoute() {
   const navigate = useNavigate()
+  const openRun = useOpenRun()
   return (
     <PlatformsScreen
       onBack={() => navigate(ROUTES.start)}
       onNew={() => navigate(NEW_PLATFORM_PATH)}
       onOpen={(platformId) => navigate(platformPath(platformId))}
-      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
+      onOpenRun={openRun}
     />
   )
 }
@@ -59,6 +67,7 @@ function PlatformsScreenRoute() {
 // made it opens on the integration screen, like any past run.
 function PlatformScreenRoute() {
   const navigate = useNavigate()
+  const openRun = useOpenRun()
   const { platformId = "" } = useParams()
   const [params] = useSearchParams()
   return (
@@ -68,7 +77,7 @@ function PlatformScreenRoute() {
       onBack={() => navigate(ROUTES.platforms)}
       onVersionChange={(version) => navigate(platformPath(platformId, version), { replace: true })}
       onShowLatest={() => navigate(platformPath(platformId), { replace: true })}
-      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
+      onOpenRun={openRun}
     />
   )
 }

@@ -72,11 +72,10 @@ describe("PlatformsScreen", () => {
     expect(screen.getByText("woodpecker-ci.yml")).toBeTruthy()
   })
 
-  it("shows nothing that is made up: no status it has no data for, and no link that does nothing", async () => {
+  it("shows nothing that is made up: no status it has no data for", async () => {
     renderScreen()
     await screen.findByText("GitLab CI")
 
-    expect(screen.queryByRole("link")).toBeNull()
     expect(screen.queryByText("view breakdown")).toBeNull()
     expect(screen.queryByText(/In progress|Needs attention|Bamboo|TeamCity/)).toBeNull()
   })
@@ -92,26 +91,41 @@ describe("PlatformsScreen", () => {
     expect(onOpen).toHaveBeenNthCalledWith(2, "gitlab")
   })
 
-  it("links a published platform to the chat that made it, and greys the link out, with the reason, for one that came with the stack", async () => {
+  it("gives a published platform a button to the chat that made it, and greys it out, with the reason, for one that came with the stack", async () => {
     renderScreen()
     await screen.findByText("GitLab CI")
 
-    const made = screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }) as HTMLButtonElement
-    const included = screen.getByRole("button", { name: "Open the chat that made GitLab CI" }) as HTMLButtonElement
+    const made = screen.getByRole("button", { name: "Open chat for Woodpecker CI" })
+    const shipped = screen.getByRole("button", { name: "Open chat for GitLab CI" })
     expect(made.textContent).toBe("Open chat")
-    expect(made.disabled).toBe(false)
-    expect(included.textContent).toBe("Open chat")
-    expect(included.disabled).toBe(true)
-    expect(included.title).toBe("No chat made it")
+    expect(made.getAttribute("aria-disabled")).toBeNull()
+    expect(made.title).toBe("")
+    expect(shipped.textContent).toBe("Open chat")
+    expect(shipped.getAttribute("aria-disabled")).toBe("true")
+    expect(shipped.title).toBe("No chat made it")
   })
 
-  it("does nothing when the greyed-out link is pressed", async () => {
+  it("names each chat button with the words it shows, so voice control can say them", async () => {
+    renderScreen()
+    await screen.findByText("GitLab CI")
+
+    const buttons = screen.getAllByRole("button", { name: /^Open chat for / })
+    expect(buttons).toHaveLength(2)
+    for (const button of buttons) expect(button.getAttribute("aria-label")).toContain(button.textContent as string)
+  })
+
+  it("keeps the greyed-out button focusable, and pressing it opens neither the chat nor the platform", async () => {
+    const onOpen = vi.fn()
     const onOpenRun = vi.fn()
-    renderScreen({ onOpenRun })
+    renderScreen({ onOpen, onOpenRun })
+    const shipped = await screen.findByRole("button", { name: "Open chat for GitLab CI" })
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made GitLab CI" }))
+    shipped.focus()
+    fireEvent.click(shipped)
 
+    expect(document.activeElement).toBe(shipped)
     expect(onOpenRun).not.toHaveBeenCalled()
+    expect(onOpen).not.toHaveBeenCalled()
   })
 
   it("opens that chat by its run, and does not also open the platform", async () => {
@@ -119,22 +133,22 @@ describe("PlatformsScreen", () => {
     const onOpenRun = vi.fn()
     renderScreen({ onOpen, onOpenRun })
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made Woodpecker CI" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Open chat for Woodpecker CI" }))
 
     expect(onOpenRun).toHaveBeenCalledTimes(1)
     expect(onOpenRun).toHaveBeenCalledWith("run1")
     expect(onOpen).not.toHaveBeenCalled()
   })
 
-  it("greys the link out for a platform published with no recorded run, and says so", async () => {
+  it("greys the button out for a platform published with no recorded run, and says so", async () => {
     vi.mocked(orchestrator.getPlatforms).mockResolvedValue([{ ...platform("scripted", "Scripted", TWO_DAYS_AGO), source_run_id: null }])
     renderScreen()
     await screen.findByText("Scripted")
 
     expect(screen.getByText("Published 2 days ago")).toBeTruthy()
-    const link = screen.getByRole("button", { name: "Open the chat that made Scripted" }) as HTMLButtonElement
-    expect(link.disabled).toBe(true)
-    expect(link.title).toBe("Published without a recorded chat")
+    const button = screen.getByRole("button", { name: "Open chat for Scripted" })
+    expect(button.getAttribute("aria-disabled")).toBe("true")
+    expect(button.title).toBe("Published without a recorded chat")
   })
 
   it("does not open a platform when the press ends a text selection inside its row", async () => {
