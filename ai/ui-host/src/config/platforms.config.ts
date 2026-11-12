@@ -21,6 +21,11 @@ export const PLATFORMS_COPY = {
     // The link to the chat that made a platform. Many rows carry it, so each is named for its platform.
     openChat: 'Open chat',
     openChatOf: (name: string) => `Open the chat that made ${name}`,
+    // Shown on the greyed-out link of a platform no chat made, and why.
+    noChat: {
+      included: 'Came with MDDOAI, no chat made it',
+      unrecorded: 'Published without a recorded chat',
+    },
   },
   loading: 'Loading the platforms…',
   loadFailed: 'Could not load the platforms.',

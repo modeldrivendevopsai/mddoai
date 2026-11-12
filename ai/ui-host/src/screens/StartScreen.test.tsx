@@ -192,7 +192,7 @@ describe("the list under the picture", () => {
 
     expect(onOpenRun).toHaveBeenCalledWith("run1")
     expect(onOpenPlatform).not.toHaveBeenCalled()
-    expect(screen.queryByRole("button", { name: "Open the chat that made Woodpecker CI" })).toBeNull()
+    expect((screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it("follows the tab back and forth", async () => {

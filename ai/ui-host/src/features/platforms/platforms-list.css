@@ -68,3 +68,11 @@
   margin-top: var(--space-1);
   font-size: var(--text-xs);
 }
+/* No chat made this platform: the link is there, greyed out, and says why when pointed at. */
+.mdd-platforms-list__chat:disabled {
+  color: var(--neutral-400);
+  cursor: not-allowed;
+}
+.mdd-platforms-list__chat:disabled:hover {
+  text-decoration: none;
+}

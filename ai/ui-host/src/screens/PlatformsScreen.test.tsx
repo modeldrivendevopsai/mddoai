@@ -92,13 +92,26 @@ describe("PlatformsScreen", () => {
     expect(onOpen).toHaveBeenNthCalledWith(2, "gitlab")
   })
 
-  it("links a published platform to the chat that made it, and a platform that came with the stack to none", async () => {
+  it("links a published platform to the chat that made it, and greys the link out, with the reason, for one that came with the stack", async () => {
     renderScreen()
     await screen.findByText("GitLab CI")
 
-    expect(screen.getAllByRole("button", { name: /^Open the chat that made / })).toHaveLength(1)
-    expect(screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }).textContent).toBe("Open chat")
-    expect(screen.queryByRole("button", { name: "Open the chat that made GitLab CI" })).toBeNull()
+    const made = screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }) as HTMLButtonElement
+    const included = screen.getByRole("button", { name: "Open the chat that made GitLab CI" }) as HTMLButtonElement
+    expect(made.textContent).toBe("Open chat")
+    expect(made.disabled).toBe(false)
+    expect(included.textContent).toBe("Open chat")
+    expect(included.disabled).toBe(true)
+    expect(included.title).toBe("Came with MDDOAI, no chat made it")
+  })
+
+  it("does nothing when the greyed-out link is pressed", async () => {
+    const onOpenRun = vi.fn()
+    renderScreen({ onOpenRun })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made GitLab CI" }))
+
+    expect(onOpenRun).not.toHaveBeenCalled()
   })
 
   it("opens that chat by its run, and does not also open the platform", async () => {
@@ -113,13 +126,15 @@ describe("PlatformsScreen", () => {
     expect(onOpen).not.toHaveBeenCalled()
   })
 
-  it("shows no chat link for a platform published with no recorded run", async () => {
+  it("greys the link out for a platform published with no recorded run, and says so", async () => {
     vi.mocked(orchestrator.getPlatforms).mockResolvedValue([{ ...platform("scripted", "Scripted", TWO_DAYS_AGO), source_run_id: null }])
     renderScreen()
     await screen.findByText("Scripted")
 
     expect(screen.getByText("Published 2 days ago")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: /chat that made/ })).toBeNull()
+    const link = screen.getByRole("button", { name: "Open the chat that made Scripted" }) as HTMLButtonElement
+    expect(link.disabled).toBe(true)
+    expect(link.title).toBe("Published without a recorded chat")
   })
 
   it("does not open a platform when the press ends a text selection inside its row", async () => {
