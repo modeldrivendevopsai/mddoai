@@ -67,7 +67,7 @@ describe("PlatformsScreen", () => {
     expect(await screen.findByText("GitLab CI")).toBeTruthy()
     expect(screen.getByText("Woodpecker CI")).toBeTruthy()
     expect(screen.getAllByText("1.2.0")).toHaveLength(2)
-    expect(screen.getByText("Included with MDDOAI")).toBeTruthy()
+    expect(screen.getByText("–")).toBeTruthy()
     expect(screen.getByText("Published 2 days ago")).toBeTruthy()
     expect(screen.getByText("woodpecker-ci.yml")).toBeTruthy()
   })
@@ -102,7 +102,7 @@ describe("PlatformsScreen", () => {
     expect(made.disabled).toBe(false)
     expect(included.textContent).toBe("Open chat")
     expect(included.disabled).toBe(true)
-    expect(included.title).toBe("Came with MDDOAI, no chat made it")
+    expect(included.title).toBe("No chat made it")
   })
 
   it("does nothing when the greyed-out link is pressed", async () => {

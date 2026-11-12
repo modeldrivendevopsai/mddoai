@@ -165,7 +165,7 @@ describe("the list under the picture", () => {
     expect(await screen.findByText("Woodpecker CI")).toBeTruthy()
     expect(screen.getByText("Bamboo")).toBeTruthy()
     // Where each came from, and no link that does nothing.
-    expect(screen.getByText("Included with MDDOAI")).toBeTruthy()
+    expect(screen.getByText("–")).toBeTruthy()
     expect(screen.getByText("Published 3 hours ago")).toBeTruthy()
     expect(screen.queryByRole("link")).toBeNull()
     expect(screen.queryByRole("heading", { name: "Latest pipelines" })).toBeNull()

@@ -138,7 +138,7 @@ describe("PlatformScreen", () => {
     renderScreen()
 
     expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
-    expect(screen.queryByText(/Included with MDDOAI/)).toBeNull()
+    expect(screen.queryByText(/No chat made it/)).toBeNull()
     expect(screen.queryByRole("button", { name: "Open the chat that made it" })).toBeNull()
   })
 
@@ -146,7 +146,7 @@ describe("PlatformScreen", () => {
     vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail({ source_run_id: null, published_at: null, published: false }))
     renderScreen()
 
-    expect(await screen.findByText("Included with MDDOAI. No chat made it.")).toBeTruthy()
+    expect(await screen.findByText("No chat made it.")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Open the chat that made it" })).toBeNull()
   })
 

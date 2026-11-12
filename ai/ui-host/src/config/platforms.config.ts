@@ -16,14 +16,15 @@ export const PLATFORMS_COPY = {
     outputFile: 'Output file',
   },
   source: {
-    included: 'Included with MDDOAI',
+    // A platform with no publish record has no date to give: it came with the stack.
+    none: '–',
     published: (ago: string) => `Published ${ago}`,
     // The link to the chat that made a platform. Many rows carry it, so each is named for its platform.
     openChat: 'Open chat',
     openChatOf: (name: string) => `Open the chat that made ${name}`,
     // Shown on the greyed-out link of a platform no chat made, and why.
     noChat: {
-      included: 'Came with MDDOAI, no chat made it',
+      included: 'No chat made it',
       unrecorded: 'Published without a recorded chat',
     },
   },
@@ -44,7 +45,7 @@ export const PLATFORM_VIEW_COPY = {
   version: 'Version',
   latest: (version: string) => `${version} (latest)`,
   outputFile: 'Writes',
-  included: 'Included with MDDOAI. No chat made it.',
+  included: 'No chat made it.',
   published: (ago: string) => `Published ${ago}.`,
   openRun: 'Open the chat that made it',
   showLatest: 'Show the latest version',

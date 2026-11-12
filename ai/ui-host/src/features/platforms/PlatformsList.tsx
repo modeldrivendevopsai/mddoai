@@ -13,10 +13,10 @@ interface PlatformsListProps {
   onOpenRun: (runId: string) => void;
 }
 
-// Where a platform came from, in words: the stack's own, or published from a run.
+// Where a platform came from, in words: when it was published, or a dash for one that came with the stack, which has no date.
 function sourceOf(platform: PlatformSummary): string {
   const copy = PLATFORMS_COPY.source;
-  return platform.published_at ? copy.published(timeAgo(platform.published_at)) : copy.included;
+  return platform.published_at ? copy.published(timeAgo(platform.published_at)) : copy.none;
 }
 
 // Why no chat made a platform: it came with the stack, or it was published without one.
