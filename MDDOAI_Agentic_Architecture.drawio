@@ -1142,7 +1142,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="C4 Architecture" id="mddoai-c4">
-    <mxGraphModel dx="3431" dy="1837" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="10630" math="0" shadow="0">
+    <mxGraphModel dx="7065" dy="3782" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="10630" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
