@@ -8,6 +8,7 @@ interface PlatformsScreenProps {
   onBack: () => void;
   onNew: () => void;
   onOpen: (platformId: string) => void;
+  onOpenRun: (runId: string) => void;
 }
 
 /**
@@ -17,7 +18,7 @@ interface PlatformsScreenProps {
  * editing view (the integration screen) is behind that button, not the first
  * thing seen.
  */
-export default function PlatformsScreen({ onBack, onNew, onOpen }: PlatformsScreenProps) {
+export default function PlatformsScreen({ onBack, onNew, onOpen, onOpenRun }: PlatformsScreenProps) {
   const copy = PLATFORMS_COPY;
 
   return (
@@ -35,7 +36,7 @@ export default function PlatformsScreen({ onBack, onNew, onOpen }: PlatformsScre
         </div>
 
         <h2 className="mdd-platforms__section-title">{copy.listTitle}</h2>
-        <PlatformsList onOpen={onOpen} />
+        <PlatformsList onOpen={onOpen} onOpenRun={onOpenRun} />
       </div>
     </div>
   );

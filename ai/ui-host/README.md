@@ -56,7 +56,8 @@ Where things live:
   cycle, and the list under it follows the sidebar's tab: the latest pipelines on Pipelines, the
   supported platforms on Platforms. That platforms list is shared with the platforms screen, reads
   the real platforms through the orchestrator client in `src/services/`, and each row opens that
-  platform's screen, which shows its files and the run that made it.
+  platform's screen, which shows its files and the chat that made it. A platform that a run published also
+  links to that chat from its row.
 - **Shared components**: `src/components/` holds the pieces several screens use and that belong to
   neither the shell nor one mode, such as the back control every screen's header uses, so going
   back looks the same everywhere.

@@ -86,6 +86,7 @@ function renderStart(
     onSelectOption?: (id: string) => void
     onOpenPipeline?: (id: string) => void
     onOpenPlatform?: (id: string) => void
+    onOpenRun?: (id: string) => void
   } = {},
   { platformsTabOn = false } = {}
 ) {
@@ -98,6 +99,7 @@ function renderStart(
           onSelectOption={handlers.onSelectOption}
           onOpenPipeline={handlers.onOpenPipeline ?? (() => undefined)}
           onOpenPlatform={handlers.onOpenPlatform ?? (() => undefined)}
+          onOpenRun={handlers.onOpenRun ?? (() => undefined)}
         />
       </Wrap>
     </SidebarTabProvider>
@@ -179,6 +181,18 @@ describe("the list under the picture", () => {
 
     expect(onOpenPlatform).toHaveBeenCalledTimes(1)
     expect(onOpenPlatform).toHaveBeenCalledWith("bamboo")
+  })
+
+  it("links a platform on the start screen's list to the chat that made it", async () => {
+    const onOpenRun = vi.fn()
+    const onOpenPlatform = vi.fn()
+    renderStart({ onOpenRun, onOpenPlatform }, { platformsTabOn: true })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made Bamboo" }))
+
+    expect(onOpenRun).toHaveBeenCalledWith("run1")
+    expect(onOpenPlatform).not.toHaveBeenCalled()
+    expect(screen.queryByRole("button", { name: "Open the chat that made Woodpecker CI" })).toBeNull()
   })
 
   it("follows the tab back and forth", async () => {

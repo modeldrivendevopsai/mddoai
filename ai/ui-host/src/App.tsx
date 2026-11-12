@@ -36,6 +36,7 @@ function StartScreenRoute() {
       onSelectOption={(optionId) => navigate(START_OPTION_ROUTES[optionId] ?? ROUTES.platforms)}
       onOpenPipeline={(pipelineId) => navigate(pipelinePath(pipelineId))}
       onOpenPlatform={(platformId) => navigate(platformPath(platformId))}
+      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
     />
   )
 }
@@ -47,6 +48,7 @@ function PlatformsScreenRoute() {
       onBack={() => navigate(ROUTES.start)}
       onNew={() => navigate(NEW_PLATFORM_PATH)}
       onOpen={(platformId) => navigate(platformPath(platformId))}
+      onOpenRun={(runId) => navigate(integrationRunPath(runId))}
     />
   )
 }

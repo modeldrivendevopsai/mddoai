@@ -46,12 +46,15 @@ beforeEach(() => {
   ])
 })
 
-function renderScreen(handlers: { onBack?: () => void; onNew?: () => void; onOpen?: (id: string) => void } = {}) {
+function renderScreen(
+  handlers: { onBack?: () => void; onNew?: () => void; onOpen?: (id: string) => void; onOpenRun?: (id: string) => void } = {}
+) {
   return render(
     <PlatformsScreen
       onBack={handlers.onBack ?? (() => undefined)}
       onNew={handlers.onNew ?? (() => undefined)}
       onOpen={handlers.onOpen ?? (() => undefined)}
+      onOpenRun={handlers.onOpenRun ?? (() => undefined)}
     />
   )
 }
@@ -87,6 +90,36 @@ describe("PlatformsScreen", () => {
 
     expect(onOpen).toHaveBeenNthCalledWith(1, "woodpecker-ci")
     expect(onOpen).toHaveBeenNthCalledWith(2, "gitlab")
+  })
+
+  it("links a published platform to the chat that made it, and a platform that came with the stack to none", async () => {
+    renderScreen()
+    await screen.findByText("GitLab CI")
+
+    expect(screen.getAllByRole("button", { name: /^Open the chat that made / })).toHaveLength(1)
+    expect(screen.getByRole("button", { name: "Open the chat that made Woodpecker CI" }).textContent).toBe("Open chat")
+    expect(screen.queryByRole("button", { name: "Open the chat that made GitLab CI" })).toBeNull()
+  })
+
+  it("opens that chat by its run, and does not also open the platform", async () => {
+    const onOpen = vi.fn()
+    const onOpenRun = vi.fn()
+    renderScreen({ onOpen, onOpenRun })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open the chat that made Woodpecker CI" }))
+
+    expect(onOpenRun).toHaveBeenCalledTimes(1)
+    expect(onOpenRun).toHaveBeenCalledWith("run1")
+    expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it("shows no chat link for a platform published with no recorded run", async () => {
+    vi.mocked(orchestrator.getPlatforms).mockResolvedValue([{ ...platform("scripted", "Scripted", TWO_DAYS_AGO), source_run_id: null }])
+    renderScreen()
+    await screen.findByText("Scripted")
+
+    expect(screen.getByText("Published 2 days ago")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /chat that made/ })).toBeNull()
   })
 
   it("does not open a platform when the press ends a text selection inside its row", async () => {

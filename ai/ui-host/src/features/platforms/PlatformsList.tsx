@@ -9,6 +9,8 @@ import './platforms-list.css';
 
 interface PlatformsListProps {
   onOpen: (platformId: string) => void;
+  // Opens the chat (the run) that made a platform, by the run's id.
+  onOpenRun: (runId: string) => void;
 }
 
 // Where a platform came from, in words: the stack's own, or published from a run.
@@ -21,10 +23,11 @@ function sourceOf(platform: PlatformSummary): string {
  * The platforms MDDOAI can generate for: each at its latest version, where it
  * came from and the file it writes. A row opens its platform wherever it is
  * pressed; the platform's name is a button, which is how the keyboard gets in.
+ * Where a run made the platform, its source links to that chat.
  * It loads its own rows, so the start screen and the platforms screen show the
  * same list without either knowing where it comes from.
  */
-export function PlatformsList({ onOpen }: PlatformsListProps) {
+export function PlatformsList({ onOpen, onOpenRun }: PlatformsListProps) {
   const { platforms, error, retry } = usePlatformList();
   const copy = PLATFORMS_COPY;
 
@@ -76,6 +79,19 @@ export function PlatformsList({ onOpen }: PlatformsListProps) {
               <td className="mdd-platforms-list__mono">{platform.version}</td>
               <td title={platform.published_at ? new Date(platform.published_at).toLocaleString() : undefined}>
                 {sourceOf(platform)}
+                {platform.source_run_id && (
+                  <button
+                    type="button"
+                    className="mdd-platforms-list__link mdd-platforms-list__chat"
+                    aria-label={copy.source.openChatOf(platform.name)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenRun(platform.source_run_id as string);
+                    }}
+                  >
+                    {copy.source.openChat}
+                  </button>
+                )}
               </td>
               <td className="mdd-platforms-list__mono">{platform.output_filename}</td>
             </tr>

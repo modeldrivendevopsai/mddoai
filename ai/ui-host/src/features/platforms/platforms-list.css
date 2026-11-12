@@ -61,3 +61,10 @@
   outline-offset: 3px;
   border-radius: var(--radius-sm);
 }
+
+/* The link to the chat that made a platform, under its source. */
+.mdd-platforms-list__chat {
+  display: flex;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}

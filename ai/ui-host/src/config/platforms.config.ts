@@ -18,6 +18,9 @@ export const PLATFORMS_COPY = {
   source: {
     included: 'Included with MDDOAI',
     published: (ago: string) => `Published ${ago}`,
+    // The link to the chat that made a platform. Many rows carry it, so each is named for its platform.
+    openChat: 'Open chat',
+    openChatOf: (name: string) => `Open the chat that made ${name}`,
   },
   loading: 'Loading the platforms…',
   loadFailed: 'Could not load the platforms.',
@@ -36,9 +39,9 @@ export const PLATFORM_VIEW_COPY = {
   version: 'Version',
   latest: (version: string) => `${version} (latest)`,
   outputFile: 'Writes',
-  included: 'Included with MDDOAI. No run made it.',
+  included: 'Included with MDDOAI. No chat made it.',
   published: (ago: string) => `Published ${ago}.`,
-  openRun: 'Open the run that made it',
+  openRun: 'Open the chat that made it',
   showLatest: 'Show the latest version',
   // One tab per file a platform is made of. The hint says, in plain words, what
   // the file does, since the names alone mean little to someone new to model-driven work.

@@ -123,12 +123,12 @@ describe("PlatformScreen", () => {
     expect(screen.getByText(/Acceleo template/)).toBeTruthy()
   })
 
-  it("says when a published platform was published, and opens the run that made it", async () => {
+  it("says when a published platform was published, and opens the chat that made it", async () => {
     const onOpenRun = vi.fn()
     renderScreen({ onOpenRun })
 
     expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Open the run that made it" }))
+    fireEvent.click(screen.getByRole("button", { name: "Open the chat that made it" }))
 
     expect(onOpenRun).toHaveBeenCalledWith("run-7")
   })
@@ -139,15 +139,15 @@ describe("PlatformScreen", () => {
 
     expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
     expect(screen.queryByText(/Included with MDDOAI/)).toBeNull()
-    expect(screen.queryByRole("button", { name: "Open the run that made it" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Open the chat that made it" })).toBeNull()
   })
 
   it("says a platform that came with the stack has no run, and offers none", async () => {
     vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail({ source_run_id: null, published_at: null, published: false }))
     renderScreen()
 
-    expect(await screen.findByText("Included with MDDOAI. No run made it.")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Open the run that made it" })).toBeNull()
+    expect(await screen.findByText("Included with MDDOAI. No chat made it.")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Open the chat that made it" })).toBeNull()
   })
 
   it("asks for the version the address names, and reports a version the person picks", async () => {
