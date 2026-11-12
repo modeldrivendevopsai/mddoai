@@ -63,6 +63,33 @@ def _default_render(prompt: dict[str, str]) -> str:
     return content
 
 
+# A validator message is a hint for the next round, not a transcript, and every
+# recorded fix is sent in every later prompt. The ATL engine's "Operation not
+# found" message embeds a dump of its whole internal link set: one such message
+# was 68,776 characters (about 17,000 tokens) in each later prompt. Every real
+# message seen besides a dump is under 300 characters, so 1,000 cuts a dump and
+# nothing else (an engineering guess). The start names the failure and the end
+# names the operation, so both are kept.
+MAX_FIX_CHARS = 1000
+_FIX_TAIL_CHARS = 200
+_FIX_CUT_MARKER = " [...] "
+
+# An object's address in an engine message (`Impl@38499e48`): a class name, then
+# `@` and a Java identity hash (up to 8 hex digits). It changes on every run, so
+# the same failure would never match the fix already recorded for it. Text that
+# merely looks like one (`user@deadbeef.example`) does not follow a class name or
+# end at the hash, and is kept.
+_OBJECT_ADDRESS_RE = re.compile(r"(?<=[A-Za-z0-9_$])@[0-9a-f]{5,8}(?![\w.-])")
+
+
+def _compact_message(message: str) -> str:
+    message = _OBJECT_ADDRESS_RE.sub("@", message)
+    if len(message) <= MAX_FIX_CHARS:
+        return message
+    head = MAX_FIX_CHARS - _FIX_TAIL_CHARS - len(_FIX_CUT_MARKER)
+    return message[:head] + _FIX_CUT_MARKER + message[-_FIX_TAIL_CHARS:]
+
+
 def _default_root_cause(validation: dict) -> list[str]:
     # ERROR only: an invalid result's own issues can carry WARNING entries
     # too (AtlValidator/EcoreValidator/GenModelBuilder/JavaCompilerCheck all
@@ -73,7 +100,7 @@ def _default_root_cause(validation: dict) -> list[str]:
     issues = [issue for issue in (validation.get("issues") or []) if issue.get("severity") == "ERROR"]
     if not issues:
         return ["The generated output failed validation for an unspecified reason; try a simpler structure."]
-    return [f"Fix: {issue['message']}" for issue in issues]
+    return [f"Fix: {_compact_message(issue['message'])}" for issue in issues]
 
 
 def run_with_retry(
@@ -98,10 +125,9 @@ def run_with_retry(
     apart from this same package's own prompt_config.learned_constraints
     (a permanent, cross-run constraint set a human explicitly promotes into
     a stage's saved config - a completely different, longer-lived thing):
-    this is the full accumulated list (the original `constraints` plus
-    every real fix this call folded in along the way), not just this
-    call's own delta - real, describable knowledge this call spent up to
-    `max_regenerate_rounds` real LLM calls discovering, that would
+    this is only the fixes this call folded in along the way, not the
+    `constraints` it was given - real, describable knowledge this call spent
+    up to `max_regenerate_rounds` real LLM calls discovering, that would
     otherwise only ever live in this function's own local variable and be
     thrown away the moment it returns, forcing a caller's next external
     retry to rediscover the same real mistakes from a blank slate
@@ -109,7 +135,10 @@ def run_with_retry(
     silently re-spending its own internal budget from scratch, before this
     existed). The caller is expected to persist these as real per-run
     constraints (the same mechanism a human rejection already uses) so the
-    next call actually builds on this one.
+    next call actually builds on this one. The constraints the caller gave
+    are left out on purpose: the permanent ones live in the saved prompt
+    config, and copying them into the run's own constraints made every
+    later prompt list them twice.
 
     `temperature` is forwarded to ai_layer_client.chat() as-is (None lets
     the provider's own default apply). A structured, syntax-strict
@@ -119,6 +148,7 @@ def run_with_retry(
     likely, though it cannot fix a genuine, systematic knowledge gap the
     model would get wrong at any temperature."""
     current_constraints = list(constraints or [])
+    given_count = len(current_constraints)
     output = ""
     prompt: dict[str, str] = {}
     validation: dict | None = None
@@ -153,5 +183,5 @@ def run_with_retry(
         "prompt": prompt,
         "validation": validation,
         "rounds": round_num,
-        "round_constraints": current_constraints,
+        "round_constraints": current_constraints[given_count:],
     }

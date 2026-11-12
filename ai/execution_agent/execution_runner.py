@@ -28,18 +28,27 @@ from typing import TypedDict
 
 logger = logging.getLogger(__name__)
 
-# In Docker/production, ai/docker-compose.yml always sets this explicitly
-# (pointed at the gradle-builder service's shared build-output volume),
-# this default only matters for local dev, run directly against a sibling
-# main/ checkout already built via `cd main && ./gradlew installDist`.
+
+def required_env(name: str) -> str:
+    """A required setting. Unset or empty stops the service."""
+    value = os.environ[name].strip()
+    if not value:
+        raise KeyError(f"{name} is set but empty")
+    return value
+
+# The Java libraries the executors run from. Required: no default. Docker Compose points it at
+# the gradle-builder service's shared build-output volume. Run directly against a sibling main/
+# checkout, point it at that checkout's build/install/com.mddoai/lib.
 # Resolved to an absolute path once, here: each call runs in its own working
 # directory (see _run_cli), so a path relative to this service's would no
 # longer point anywhere real by then.
-LIB_DIR = str(Path(os.environ.get("EXECUTION_LIB_DIR", "../../main/build/install/com.mddoai/lib")).resolve())
+LIB_DIR = str(Path(required_env("EXECUTION_LIB_DIR")).resolve())
 PIM_MAIN_CLASS = "main.java.mddoai.execution.pim.PimExecutorCli"
 SWARCH_MAIN_CLASS = "main.java.mddoai.execution.swarch.SwarchExecutorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.execution.acceleo.AcceleoExecutorCli"
-TIMEOUT_SECONDS = float(os.environ.get("EXECUTION_TIMEOUT_SECONDS", "60"))
+# How long one executor subprocess may run before it is treated as failed (engineering guess:
+# a real run takes a few seconds).
+TIMEOUT_SECONDS = 60.0
 
 
 class ExecutionInfraError(Exception):

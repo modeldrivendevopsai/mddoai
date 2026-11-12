@@ -6,9 +6,8 @@ generates a new Acceleo model-to-text template that generates that platform's re
 configuration from a PSM model instance, refined against real `validator_agent` feedback
 (`validator_agent_client.validate_acceleo`, given the run's own real PSM ecore as
 `metamodel_ecore` so the target platform's own metamodel resolves during compilation even when
-it's a brand-new platform with no genmodel or compiled Java package of its own — mock mode omits
-this, since its own fixed mock artifact always targets the one metamodel already registered
-ahead of time regardless of which real platform is under test) rather than accepted on the first
+it's a brand-new platform with no genmodel or compiled Java package of its own — mock mode gives
+the validator the mock chain's own metamodel and transformation instead) rather than accepted on the first
 attempt, via the
 shared `generation_toolkit` package's `run_with_retry()` (a stage-agnostic "build a prompt, call
 the LLM, validate, retry" toolkit, not specific to Acceleo — see `generation_toolkit/README.md`).
@@ -38,7 +37,7 @@ GitLab Acceleo code-generation template
 (`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl`) — the
 master example the default prompt attaches, the same role `psm_agent`'s own master-example
 `.ecore` file plays for it. Read-only, a single file (not a whole directory), see
-`prompt_paths.py`'s own `REFERENCE_EXAMPLE_PATH`.
+`prompt_settings.py`'s own `REFERENCE_EXAMPLE_PATH`.
 
 ## API
 
@@ -63,7 +62,7 @@ master example the default prompt attaches, the same role `psm_agent`'s own mast
   "prompt": {"psm_ecore": "...", "platform_docs": "...", "acceleo_example": "...", "constraints": ""},
   "validation": {
     "valid": true, "issues": [], "duration_ms": 120,
-    "generated_source_path": "<validator output folder>/run-123/acceleo/attempt_1/acceleo-validate-abc123"
+    "compiled_output_kept": true
   },
   "rounds": 2,
   "prompt_version": null
@@ -75,8 +74,9 @@ scoping the real compiled `.emtl` module a real validator-agent call produces: p
 fields, forwarded unchanged into `validator_agent_client.validate_acceleo`.
 
 `mock: true` (the same per-run "Mock" override every other real stage shares) still resolves the
-real prompt config and runs the real `validator_agent` call against a small, fixed, already-valid
-artifact — it only skips the real, slow, billed LLM call, for fast local iteration on a config.
+real prompt config and runs the real `validator_agent` call, against the mock chain's fixed template
+(see `generation_toolkit`'s `mock_chain`) and the mock chain's own metamodel, not the run's. It skips
+the real LLM call, so no constraint changes the result, and a mocked call learns no fix.
 
 ### `GET /health`
 
@@ -86,13 +86,12 @@ Used by the Dockerfile's `HEALTHCHECK`.
 
 `generate()` has no hardcoded system prompt: it resolves a real, UI-editable config
 through `generation_toolkit.prompt_config` (see `generation_toolkit/README.md` for the mechanism
-itself, generic across any service that supplies it a `config_dir`). This service's own
+itself, generic across any service that supplies it an agent name). This service's own
 `routes/prompt_config.py` is a thin HTTP surface over it, `routes/files.py` a related but separate
 concern (see below); both live under `routes/` and are wired into `main.py` via
 `app.include_router(...)`.
 
-Configs live under `generation/` in the prompt folder (this service has only one real config name,
-`"generation"`), `PROMPT_CONFIG_DIR` (`prompt_paths.py`, the required `ACCELEO_AGENT_PROMPT_CONFIG_DIR`):
+Configs live under `generation/` in the journal (this service's name `AGENT`, in `prompt_settings.py`):
 
 - `default.default.json`: the immutable, git-committed shipped default, seeded from real
   constraints accumulated across GitLab and Bamboo before being carried into every later
@@ -128,7 +127,7 @@ default" works, called with `version=shipped`, not a separate endpoint), `check-
 ## Available files
 
 `GET /available-files` (`routes/files.py`, backed by `available_files.py`) lists the one real
-master-example file plus every real uploaded file under `ATTACHMENT_UPLOADS_DIR` — the picker a
+master-example file plus every file uploaded to this service (kept by the journal), the picker a
 "file" attachment offers, and independently the same roots
 `generation_toolkit.attachments.files.resolve_file_attachment` validates a saved attachment's
 `path` against, since a client can't be trusted to only send what the picker offered.
@@ -139,14 +138,11 @@ master-example file plus every real uploaded file under `ATTACHMENT_UPLOADS_DIR`
 pip install -r requirements.txt
 ```
 
-`ACCELEO_AGENT_REFERENCE_EXAMPLE_PATH` is optional, defaulting to the real relative repo path to
-`code_generation/com.mddoai.codegeneration.gitlab.acceleo/src/.../main/generate.mtl` for
-local/non-Docker dev. Override it only if that file is reachable somewhere else, e.g. the Docker
-Compose read-only bind mount `ai/docker-compose.yml`'s `acceleo-agent` service entry sets it to.
-`VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service,
-defaulting to its own local-dev port. `ACCELEO_AGENT_PROMPT_CONFIG_DIR` and
-`ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR` are required: the service stops at start if one is unset or
-empty. For a local run, point them at `ai/data/prompts/acceleo` and a writable folder of your own.
+The reference example is a file shipped inside this service, so it needs no setting.
+`VALIDATOR_AGENT_URL` (`ai/clients/validator_agent_client.py`) points at that sibling service.
+`VALIDATOR_AGENT_URL` and `JOURNAL_URL` are required, with no default: the service stops at start if one is
+unset or empty. Docker Compose sets them. The prompt config and uploaded files are in the journal, so this
+service mounts no folder for them. For a local run, export the links of validator-agent and the journal.
 
 ## Run
 
@@ -159,12 +155,10 @@ outside this folder, `PYTHONPATH` needs to include the parent `ai/` directory to
 
 ```bash
 # from ai/acceleo_agent/
-export ACCELEO_AGENT_PROMPT_CONFIG_DIR=$PWD/../data/prompts/acceleo
-export ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/path/to/a/writable/folder
 PYTHONPATH=.. uvicorn main:app --reload --port 8080
 ```
 
-The two `export` lines are the required folder settings (nothing reads a `.env` file for you).
+Nothing reads a `.env` file for you, so export the links first.
 
 ## Test
 

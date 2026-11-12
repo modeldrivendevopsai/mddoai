@@ -2,17 +2,21 @@
 markdown into a structured artifact, labeled against the project's PIM
 concepts, for the pim stage (and any future stage) to build on.
 
-Three steps, matching the architecture diagram exactly (one LLM call, not
-three): an LLM call extracts pipeline/job/task-shaped fragments from the raw
-prose (_extract_fragments, no PIM-concept grounding fed into this step -
-the extraction system prompt already names the structural categories to
-look for directly); each fragment is then labeled deterministically
-against pim_agent's real PIM concepts via pim_agent_client.ground()
-(_label_fragment, no LLM call); the labeled fragments are assembled into
-markdown by plain string formatting (_build_markdown, no LLM call). A
-fragment ground() can't match to any of the 9 concepts is never dropped,
-it's kept under an "Unrecognized" section — the point of this stage is
-complete, honest restructuring, not lossy filtering.
+It keeps all of the documentation, and calls no model. Three steps:
+1. The text is cut into its markdown sections (_split_into_fragments), at each
+   heading outside a code fence. A page with no headings (a platform's JSON schema,
+   say) is one section.
+2. Each piece is labeled deterministically against pim_agent's real PIM concepts
+   via pim_agent_client.ground() (_label_fragment).
+3. The pieces are written out verbatim under their concept, with the ones that
+   match none under "Unrecognized" (_build_markdown), by plain string formatting.
+
+An earlier version asked a model to extract the relevant fragments, and it kept a
+few hundred characters of a 60,000 character page (a platform's schema and syntax
+page), so the stages after it never saw most of the documentation. Nothing reads
+the labels yet (the pim stage is a fixed placeholder), so a model that labels the
+pieces better is not worth its calls until a stage does. It would add labels only,
+and never choose what is kept.
 
 pim_agent is a real, separate service (own container, see ai/pim_agent/),
 reached via clients/pim_agent_client.py, not a local package import — its
@@ -22,58 +26,64 @@ helpers below, rather than re-fetched on every call.
 Known limitation (Phase 0 MVP, matching pim_agent's own "not RAG" framing):
 "matched" here means "ground() returned at least one metamodel-category
 result," there's no score threshold, since pim_agent's /ground response
-doesn't expose its match score. A future change to expose match confidence
-would touch pim_agent's own documented public API contract and deserves its
-own review, not a drive-by change bundled into this stage.
+doesn't expose its match score.
 """
-import json
 import re
 
-from clients import ai_layer_client, pim_agent_client
+from clients import pim_agent_client
 
-_EXTRACTION_SYSTEM_PROMPT = (
-    "You are the MDDOAI Serialization agent's extraction step. Given raw CI/CD "
-    "platform documentation text, find every distinct pipeline, job, task, trigger, "
-    "agent, or other structural CI/CD concept described in it. For each one, return "
-    "a JSON object with three fields: \"type\" (a short free-text label for what kind "
-    "of thing this is, e.g. \"pipeline\", \"job\", \"task\", \"trigger\", \"agent\"), "
-    "\"name\" (its name, or a short descriptive label if the documentation doesn't "
-    "give it one), and \"raw_text\" (the relevant excerpt describing it, taken "
-    "verbatim from the documentation). Return ONLY a JSON array of these objects, no "
-    "prose, no markdown code fences. If nothing structural is described, return an "
-    "empty array []."
-)
+# A markdown heading. A `#` line inside a code fence is code (a shell or YAML
+# comment), not a heading.
+_HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$")
+# A line that opens or closes a fenced code block, as in CommonMark: three or more
+# backticks or tildes, indented by up to three spaces, then (for an opening
+# fence) an info string.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 
+# What the text before the first heading is called.
+_PREAMBLE_NAME = "Documentation"
 
-_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n(.*)\n```\s*$", re.DOTALL)
-
-
-def _strip_code_fence(raw: str) -> str:
-    """LLMs asked for "only JSON, no markdown" still routinely wrap it in a
-    ```json ... ``` fence anyway (confirmed against a real model, not just a
-    hypothetical). Unwrap one if present so a well-formed response doesn't
-    trip json.loads() and fall into the unparsed-fragment fallback below."""
-    match = _CODE_FENCE_RE.match(raw.strip())
-    return match.group(1) if match else raw
+# Lines of a text, each keeping its newline. Only a newline ends a line: unlike
+# str.splitlines, a form feed or a Unicode line separator inside scraped text
+# does not, so it cannot put a heading in the middle of a line.
+_LINE_RE = re.compile(r"[^\n]*\n|[^\n]+")
 
 
-def _extract_fragments(docs_text: str, model: str | None) -> list[dict]:
-    messages = [
-        {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
-        {"role": "user", "content": docs_text},
+def _fence_after(line: str, open_fence: str | None) -> str | None:
+    """The fence that is open once `line` has been read: the one that was open
+    before it, closed by a fence of the same character that is at least as long,
+    or a new one this line opens."""
+    match = _FENCE_RE.match(line.rstrip("\r\n"))
+    if not match:
+        return open_fence
+    marker, rest = match.groups()
+    if open_fence is not None:
+        closes = marker[0] == open_fence[0] and len(marker) >= len(open_fence) and not rest.strip()
+        return None if closes else open_fence
+    # A backtick fence cannot have a backtick in its info string: that is inline code.
+    return None if marker[0] == "`" and "`" in rest else marker
+
+
+def _split_into_fragments(docs_text: str) -> list[dict]:
+    """The text as consecutive sections, cut at each markdown heading outside a
+    code fence. Every line of docs_text is in exactly one fragment, in order, so
+    nothing is lost. A fragment holding only whitespace is left out, since it
+    carries nothing."""
+    sections: list[list] = [[_PREAMBLE_NAME, []]]
+    open_fence: str | None = None
+    for line in _LINE_RE.findall(docs_text):
+        heading = None if open_fence else _HEADING_RE.match(line.rstrip("\r\n"))
+        if heading:
+            sections.append([heading.group(1), [line]])
+        else:
+            sections[-1][1].append(line)
+        open_fence = _fence_after(line, open_fence)
+
+    return [
+        {"name": name, "raw_text": "".join(lines)}
+        for name, lines in sections
+        if "".join(lines).strip()
     ]
-    raw = ai_layer_client.chat(messages, model=model)["content"] or ""
-    try:
-        fragments = json.loads(_strip_code_fence(raw))
-        if not isinstance(fragments, list):
-            raise ValueError("extraction output was valid JSON but not a list")
-        return fragments
-    except (json.JSONDecodeError, ValueError):
-        # Degrade gracefully rather than crash the stage: treat the whole
-        # input as one unparsed fragment, still surfaced (as Unrecognized via
-        # _label_fragment, since it won't ground to any real concept), never
-        # silently dropped.
-        return [{"type": "other", "name": "unparsed extraction output", "raw_text": docs_text}]
 
 
 # ground() ranks matches across ALL categories (metamodel, process, reusability,
@@ -111,6 +121,19 @@ def _label_fragment(fragment: dict, concepts: dict[str, list[str]]) -> dict:
 
 _PAGE_COUNT_RE = re.compile(r"Fetched (\d+) page")
 
+# The shortest fence markdown allows.
+_MIN_FENCE_CHARS = 3
+
+
+def _fenced(text: str) -> str:
+    """text in a code fence, exactly as it is, except that its final newline is
+    the one before the closing fence. The fence is longer than any run of
+    backticks inside the text, so text that holds fences of its own cannot end
+    this one early."""
+    longest_run = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * max(_MIN_FENCE_CHARS, longest_run + 1)
+    return f"{fence}\n{text.removesuffix(chr(10))}\n{fence}"
+
 
 def _build_markdown(labeled_fragments: list[dict], page_count: str, concepts: dict[str, list[str]]) -> str:
     by_concept: dict[str, list[dict]] = {concept: [] for concept in concepts}
@@ -124,29 +147,27 @@ def _build_markdown(labeled_fragments: list[dict], page_count: str, concepts: di
     def render_section(title: str, fragments: list[dict]) -> str:
         if not fragments:
             return f"## {title}\n\n(none found)\n"
-        items = "\n\n".join(
-            f"- **{f.get('name', 'unnamed')}** ({f.get('type', 'other')})\n\n  ```\n  {f.get('raw_text', '')}\n  ```"
-            for f in fragments
-        )
+        items = "\n\n".join(f"### {f.get('name', 'unnamed')}\n\n{_fenced(f.get('raw_text', ''))}" for f in fragments)
         return f"## {title}\n\n{items}\n"
 
     sections = [render_section(concept, fragments) for concept, fragments in by_concept.items()]
     sections.append(render_section("Unrecognized", unrecognized))
 
-    header = f"# Serialization: labeled documentation structure\n\nSource: docs stage output ({page_count}).\n"
+    header = f"# Serialization: labeled documentation structure\n\nSource: docs stage output ({page_count}), all of it kept.\n"
     return header + "\n" + "\n".join(sections)
 
 
 def serialization_agent(context: dict) -> str:
     """The serialization stage: reads context["docs_output"] (docs_agent's raw
-    concatenated per-page markdown), extracts structural fragments, labels
-    each against pim_agent's real PIM concepts, and returns a structured
-    markdown artifact with one section per concept plus Unrecognized."""
+    concatenated per-page markdown), cuts it into its markdown sections,
+    labels each against pim_agent's real PIM concepts, and returns a structured
+    markdown artifact with one section per concept plus Unrecognized, holding all
+    of the documentation."""
     docs_output = context.get("docs_output", "")
     page_count_match = _PAGE_COUNT_RE.search(docs_output)
     page_count = f"{page_count_match.group(1)} page(s)" if page_count_match else "page count unknown"
 
     concepts = pim_agent_client.concepts()
-    fragments = _extract_fragments(docs_output, context.get("model"))
+    fragments = _split_into_fragments(docs_output)
     labeled = [_label_fragment(fragment, concepts) for fragment in fragments]
     return _build_markdown(labeled, page_count, concepts)

@@ -33,7 +33,7 @@ vi.mock("design-system", () => ({
   ),
 }))
 vi.mock("../services/generator.service", () => ({ listPipelines: vi.fn() }))
-vi.mock("../services/sessions.service", () => ({ getSessions: vi.fn(), closeSession: vi.fn() }))
+vi.mock("../services/sessions.service", () => ({ getSessions: vi.fn(), deleteSession: vi.fn() }))
 
 const PIPELINE = {
   id: "p1",
@@ -113,5 +113,49 @@ describe("the sidebar's tabs", () => {
     await screen.findByTestId("shared-tab")
 
     expect(screen.getByTestId("shared-tab").textContent).toBe(tab)
+  })
+})
+
+describe("which open session is highlighted", () => {
+  const RUNS = [
+    { id: "r1", name: "Woodpecker CI", type: "platform" as const, state: "selected" as const, stage: "psm" as const, startedAt: null },
+    { id: "r2", name: "GitHub Actions", type: "platform" as const, state: "normal" as const, stage: "atl" as const, startedAt: null },
+  ]
+  const isOnScreen = (name: string) => screen.getByRole("button", { name }).getAttribute("aria-current") === "true"
+
+  beforeEach(() => {
+    vi.mocked(sessions.getSessions).mockResolvedValue(RUNS)
+  })
+
+  it("is the run named in the address, even when another run is the current one", async () => {
+    renderSidebar(vi.fn(), undefined, "/integration?run=r2")
+    await screen.findByText("GitHub Actions")
+
+    expect(isOnScreen("GitHub Actions")).toBe(true)
+    expect(isOnScreen("Woodpecker CI")).toBe(false)
+  })
+
+  it("is the current run when the address names none", async () => {
+    renderSidebar(vi.fn(), undefined, "/integration")
+    await screen.findByText("GitHub Actions")
+
+    expect(isOnScreen("Woodpecker CI")).toBe(true)
+    expect(isOnScreen("GitHub Actions")).toBe(false)
+  })
+
+  it("is none while a blank run is on screen", async () => {
+    renderSidebar(vi.fn(), undefined, "/integration?new=1")
+    await screen.findByText("GitHub Actions")
+
+    expect(isOnScreen("Woodpecker CI")).toBe(false)
+    expect(isOnScreen("GitHub Actions")).toBe(false)
+  })
+
+  it("moves to the row that is opened", async () => {
+    renderSidebar(vi.fn(), undefined, "/integration")
+    fireEvent.click(await screen.findByText("GitHub Actions"))
+
+    expect(isOnScreen("GitHub Actions")).toBe(true)
+    expect(isOnScreen("Woodpecker CI")).toBe(false)
   })
 })

@@ -1,9 +1,7 @@
 # Build context is set to ai/ (not ./orchestrator) in docker-compose.yml,
-# so this can reach its one real sibling dependency: clients/ (HTTP clients
-# for ai-layer/integration_runner — this service has no import on
-# clients/retrieval_client.py, that call lives in integration_runner's own
-# docs stage now). Same multi-folder pattern psm_agent/Dockerfile already
-# uses.
+# so this can reach the shared clients/ package (HTTP clients for ai-layer,
+# integration_runner and the journal). Same multi-folder pattern
+# psm_agent/Dockerfile already uses.
 FROM python:3.12-slim
 WORKDIR /app
 COPY orchestrator/requirements.txt ./orchestrator/requirements.txt

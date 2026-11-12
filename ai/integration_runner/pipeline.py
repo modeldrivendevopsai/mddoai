@@ -25,6 +25,7 @@ GET /events over HTTP, never by this module calling out.
 """
 import threading
 import uuid
+from collections.abc import Callable
 
 from integration_runner import stages
 from integration_runner.event_log import EventLog
@@ -65,6 +66,37 @@ _STAGE_OVERRIDE_KEYS: dict[str, set[str]] = {
 }
 
 
+# The `source` a constraint_added event carries for a fix the validator's errors
+# produced, as against a correction a person typed (which carries none). The
+# chat reads this name.
+FIX_SOURCE_VALIDATION = "validation"
+
+
+def _check_saved(state: object) -> None:
+    """Raises ValueError unless `state` has the shape snapshot() writes."""
+    if not isinstance(state, dict):
+        raise ValueError("not an object")
+    index = state.get("current_stage_index")
+    constraints = state.get("constraints", {})
+    events = state.get("events")
+    problems = [
+        not isinstance(state.get("run_id"), str) or not state.get("run_id"),
+        type(index) is not int or not 0 <= index <= len(STAGES),
+        not isinstance(constraints, dict)
+        or not all(isinstance(items, list) for items in constraints.values()),
+        not isinstance(state.get("last_context", {}), dict),
+        not isinstance(events, list)
+        or not all(
+            isinstance(event, dict)
+            and isinstance(event.get("type"), str)
+            and isinstance(event.get("timestamp"), (int, float))
+            for event in events
+        ),
+    ]
+    if any(problems):
+        raise ValueError("not a saved run")
+
+
 class BusyError(RuntimeError):
     """claim_busy() raises this when the run is already executing a stage.
     Every operation that starts a stage (or, for /docs/extend, mutates
@@ -79,15 +111,15 @@ class BusyError(RuntimeError):
 class IntegrationRun:
     """Tracks progress through STAGES and runs each stage's agent."""
 
-    def __init__(self, run_id: str | None = None):
-        # A stable identity for this run, independent of process memory (a
-        # module-level Python variable has none). Not surfaced through any
-        # endpoint yet, and nothing keys real behavior off it today, MVP is
-        # still exactly one implicit "current" run (see runs.py's
-        # _runs/_default) — this exists so a future persistence layer or
-        # multi-run UI has something to address a run by without a rewrite,
-        # not because anything needs it right now.
+    def __init__(self, run_id: str | None = None, on_change: Callable[["IntegrationRun"], None] | None = None):
+        # A stable identity for this run, independent of process memory.
         self.run_id = run_id or uuid.uuid4().hex
+        # Called after each event, when an operation ends and when the model
+        # changes, so whoever owns the run can keep it somewhere durable. This
+        # class knows nothing about where. One call at a time per run, so the
+        # saved copy is never older than a previous one.
+        self._on_change = on_change
+        self._on_change_lock = threading.Lock()
         self.current_stage_index = 0
         self.constraints: dict[str, list[str]] = {}
         self.last_context: dict = {}
@@ -131,6 +163,40 @@ class IntegrationRun:
         # the API itself (callers poll GET /events instead), only exposed so
         # tests/tools can deterministically wait_for_idle() rather than sleep.
         self._last_thread: threading.Thread | None = None
+
+    def snapshot(self) -> dict:
+        """Everything that makes this run what it is, as plain data that
+        restore() turns back into the same run."""
+        return {
+            "run_id": self.run_id,
+            "current_stage_index": self.current_stage_index,
+            "constraints": {stage: list(items) for stage, items in dict(self.constraints).items()},
+            "last_context": dict(self.last_context),
+            "last_output": self.last_output,
+            "last_completed_stage": self.last_completed_stage,
+            "model": self.model,
+            "events": list(self.event_log.events),
+        }
+
+    @classmethod
+    def restore(cls, state: dict, on_change: Callable[["IntegrationRun"], None] | None = None) -> "IntegrationRun":
+        """A run as snapshot() saved it, idle. Raises ValueError if `state` is
+        not a saved run."""
+        _check_saved(state)
+        run = cls(state["run_id"], on_change)
+        run.current_stage_index = state["current_stage_index"]
+        run.constraints = state.get("constraints", {})
+        run.last_context = state.get("last_context", {})
+        run.last_output = state.get("last_output")
+        run.last_completed_stage = state.get("last_completed_stage")
+        run.model = state.get("model")
+        run.event_log.events = state["events"]
+        return run
+
+    def _changed(self) -> None:
+        if self._on_change is not None:
+            with self._on_change_lock:
+                self._on_change(self)
 
     @property
     def current_stage(self) -> str | None:
@@ -195,7 +261,7 @@ class IntegrationRun:
         stage already had an entry before this call."""
         for fix in round_constraints or []:
             if fix not in self.constraints.get(stage, []):
-                self.add_constraint(stage, fix)
+                self.add_constraint(stage, fix, source=FIX_SOURCE_VALIDATION)
 
     def rerun(self, overrides: dict | None = None) -> dict:
         """Re-run the current stage in the background, reusing last_context
@@ -230,9 +296,15 @@ class IntegrationRun:
         self.run_stage_async(context)
         return {"status": "started", "stage": self.current_stage}
 
-    def add_constraint(self, stage: str, constraint: str) -> None:
+    def add_constraint(self, stage: str, constraint: str, source: str | None = None) -> None:
+        """`source` says where it came from when a person did not write it: the
+        event carries it, so the chat can tell a fix the validator's errors
+        produced from a correction a person typed."""
         self.constraints.setdefault(stage, []).append(constraint)
-        self.record_event("constraint_added", stage, {"constraint": constraint})
+        data = {"constraint": constraint}
+        if source:
+            data["source"] = source
+        self.record_event("constraint_added", stage, data)
 
     def set_model(self, model: str | None) -> None:
         """Changes the model for the rest of this run, not just what
@@ -241,6 +313,7 @@ class IntegrationRun:
         read self.model fresh each time, not a value snapshotted at
         start_pipeline() time."""
         self.model = model
+        self._changed()
 
     def start_stage_run(self, context: dict) -> dict:
         """Start the current stage running in the background, layering the
@@ -373,8 +446,10 @@ class IntegrationRun:
         own EventLog. Nothing else: no reaction, no narration, no LLM call.
         This module only reports what happened; turning that into a
         human-readable comment is orchestrator's job, done by polling
-        GET /events, not by this method calling out to anything."""
-        return self.event_log.record(event_type, stage, data)
+        GET /events. Tells whoever keeps this run (on_change) that it changed."""
+        event = self.event_log.record(event_type, stage, data)
+        self._changed()
+        return event
 
     def claim_busy(self) -> None:
         """Atomically mark this run as executing a stage, or raise BusyError
@@ -387,13 +462,17 @@ class IntegrationRun:
                 raise BusyError("a stage run is already in flight for this run")
             self.busy = True
 
-    def release_busy(self) -> None:
+    def release_busy(self, *, changed: bool = True) -> None:
         """Clear the busy claim. Called by _run_stage_worker() when a stage
         run finishes, and by a claim_busy() caller that turns out not to
         start a stage after all (a rejected review, /docs/extend's own
         fetch-and-append)."""
         with self._busy_lock:
             self.busy = False
+        # An operation ends here. State it changed after its last event (an
+        # approval that pauses the next stage) is saved now.
+        if changed:
+            self._changed()
 
     def _spawn_stage_thread(self, context: dict) -> None:
         """Runs the current stage's agent on a daemon thread. Assumes the
@@ -417,6 +496,9 @@ class IntegrationRun:
 
     def _run_stage_worker(self, context: dict) -> None:
         stage = self.current_stage
+        # Set before the event, so the saved run holds the context this attempt
+        # runs with.
+        self.last_context = context
         try:
             self.record_event("call_started", stage, context)
             try:

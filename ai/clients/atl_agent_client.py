@@ -4,20 +4,19 @@ other client modules. Generous timeout: a real call can run the ATL
 Generation Agent's multi-round regenerate loop, each round doing one real
 LLM call plus one real validator-agent call.
 """
-import os
-
 import httpx
 
 from clients.agent_service_errors import raise_for_business_error
+from clients.required_env import required_env
 
-ATL_AGENT_URL = os.environ.get("ATL_AGENT_URL", "http://localhost:8070")
-ATL_TIMEOUT = float(os.environ.get("ATL_TIMEOUT", "960.0"))
+ATL_AGENT_URL = required_env("ATL_AGENT_URL")
+ATL_TIMEOUT = 960.0
 # Every prompt-config endpoint below is a fast, local filesystem/JSON
 # operation, never a real LLM call (even /preview only renders text, it
 # doesn't call the model) - a much shorter budget than ATL_TIMEOUT's own
 # real multi-round-regenerate-loop margin above is deliberate, a hung
 # config read/write shouldn't leave a caller waiting 16 minutes to find out.
-ATL_CONFIG_TIMEOUT = float(os.environ.get("ATL_CONFIG_TIMEOUT", "10.0"))
+ATL_CONFIG_TIMEOUT = 10.0
 
 
 def run_atl(

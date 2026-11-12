@@ -4,10 +4,12 @@ other services are mocked, as in test_main.py."""
 import json
 from unittest.mock import patch
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 import main
+from clients import journal_client
 from helpers import generate
 from platform_runner import PlatformRunError
 
@@ -107,9 +109,9 @@ def test_a_request_still_naming_a_save_folder_is_accepted_and_saves_nothing(work
 def _store_platform(tmp_path, platform_id, name, output_filename):
     """A second platform in the registry's folder. Its files are placeholders:
     what runs them is mocked in these tests."""
-    folder = tmp_path / "platforms" / platform_id / "1"
+    folder = tmp_path / "platforms" / platform_id / "1.0.0"
     folder.mkdir(parents=True)
-    meta = {"id": platform_id, "name": name, "version": 1, "output_filename": output_filename, "output_model_name": "XMM"}
+    meta = {"id": platform_id, "name": name, "version": "1.0.0", "output_filename": output_filename, "output_model_name": "XMM"}
     (folder / "platform.json").write_text(json.dumps(meta), encoding="utf-8")
     for filename in ("metamodel.ecore", "transformation.atl", "template.mtl"):
         (folder / filename).write_text("placeholder", encoding="utf-8")
@@ -225,7 +227,7 @@ def test_a_refused_model_is_not_recorded():
 
 
 def test_failing_to_record_does_not_lose_the_generated_pipeline(history):
-    with patch.object(history, "record", side_effect=OSError("disk full")):
+    with patch.object(journal_client, "record_pipeline", side_effect=httpx.ConnectError("the journal is down")):
         body = _generate().json()
 
     assert body["pipeline_id"] is None
@@ -276,7 +278,7 @@ def test_an_id_that_is_not_an_id_is_simply_not_found():
 
 
 @pytest.mark.parametrize(
-    "name", ["GENERATOR_WORKSPACE_DIR", "GENERATOR_WORKSPACE_LABEL", "GENERATOR_PIPELINES_DIR", "GENERATOR_PLATFORMS_DIR"]
+    "name", ["GENERATOR_WORKSPACE_DIR", "GENERATOR_WORKSPACE_LABEL"]
 )
 @pytest.mark.parametrize("value", [None, "", "   "], ids=["unset", "empty", "blank"])
 def test_the_service_does_not_start_without_a_folder_setting(monkeypatch, name, value):

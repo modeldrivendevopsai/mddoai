@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -9,20 +8,21 @@ from execution_runner import (
     AtlExecutionResult,
     ExecutionFailedError,
     ExecutionInfraError,
+    required_env,
     run_acceleo_executor,
     run_atl_from_pim_executor,
     run_atl_from_swarch_executor,
 )
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=required_env("LOG_LEVEL").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MDDOAI Execution Agent")
 
-MAX_CONTENT_BYTES = int(os.environ.get("MAX_CONTENT_BYTES", str(5 * 1024 * 1024)))
+MAX_CONTENT_BYTES = 5 * 1024 * 1024
 
 
 class AtlFromPimExecuteRequest(BaseModel):

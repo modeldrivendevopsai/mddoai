@@ -16,6 +16,13 @@ function remote(envVar: string, defaultPort: number, name: string) {
   }
 }
 
+// The generator writes the generate mode makes. Any other write is refused.
+const GENERATOR_WRITES_FROM_BROWSER = new Set([
+  '/generator-api/inspect',
+  '/generator-api/generate',
+  '/generator-api/validate',
+])
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -92,6 +99,14 @@ export default defineConfig({
       '/generator-api': {
         target: process.env.VITE_GENERATOR_PROXY_TARGET || 'http://localhost:8100',
         rewrite: (path) => path.replace(/^\/generator-api/, ''),
+        // Publishing a platform stores code that runs on every later
+        // generation, so only integration_runner may do it. Matched on the
+        // raw path, so an encoded spelling is refused too.
+        bypass: (req) => {
+          if (req.method === 'GET' || req.method === 'HEAD') return undefined
+          const path = (req.url ?? '').split('?')[0]
+          return GENERATOR_WRITES_FROM_BROWSER.has(path) ? undefined : false
+        },
       },
     },
   },

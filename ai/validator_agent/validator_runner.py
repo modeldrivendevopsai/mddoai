@@ -6,25 +6,25 @@ registry state (EPackage.Registry, EcorePlugin's platform resource map) that was
 never designed for safe reuse across many calls in one shared JVM; a fresh JVM
 per call sidesteps that risk entirely at the cost of measured, logged latency.
 """
+import io
 import json
 import logging
 import os
 import subprocess
 import tempfile
 import time
+import zipfile
 from pathlib import Path
 from typing import Literal, TypedDict
 
+import httpx
+
+from clients import journal_client
+from clients.agent_service_errors import AgentServiceError
+
 logger = logging.getLogger(__name__)
 
-# In Docker/production, ai/docker-compose.yml always sets this explicitly
-# (pointed at the gradle-builder service's shared build-output volume) —
-# this default only matters for local dev, run directly against a sibling
-# main/ checkout already built via `cd main && ./gradlew installDist`.
-LIB_DIR = os.environ.get("VALIDATOR_LIB_DIR", "../../main/build/install/com.mddoai/lib")
-
-
-def _required(name: str) -> str:
+def required_env(name: str) -> str:
     """A required setting. Unset or empty stops the service."""
     value = os.environ[name].strip()
     if not value:
@@ -32,13 +32,17 @@ def _required(name: str) -> str:
     return value
 
 
-# Where the compiled output is kept. Required: no default, and not the temp folder.
-OUTPUT_ROOT = Path(_required("VALIDATOR_OUTPUT_DIR"))
+# The Java libraries the validators run from. Required: no default. Docker Compose points it
+# at the gradle-builder service's shared build-output volume. Run directly against a sibling
+# main/ checkout, point it at that checkout's build/install/com.mddoai/lib.
+LIB_DIR = required_env("VALIDATOR_LIB_DIR")
 ECORE_MAIN_CLASS = "main.java.mddoai.validation.ecore.EcoreValidatorCli"
 ATL_MAIN_CLASS = "main.java.mddoai.validation.atl.AtlValidatorCli"
 ACCELEO_MAIN_CLASS = "main.java.mddoai.validation.acceleo.AcceleoValidatorCli"
 SWARCH_MAIN_CLASS = "main.java.mddoai.validation.swarch.SwarchValidatorCli"
-TIMEOUT_SECONDS = float(os.environ.get("VALIDATOR_TIMEOUT_SECONDS", "60"))
+# How long one validator subprocess may run before it is treated as failed (engineering guess:
+# a real validation takes a few seconds).
+TIMEOUT_SECONDS = 60.0
 
 
 class Issue(TypedDict):
@@ -52,31 +56,28 @@ class EcoreValidationResult(TypedDict):
     mode: str
     issues: list[Issue]
     duration_ms: int
-    # Where EcoreValidator's codegen path persisted the generated
-    # .genmodel/src-gen/classes-out output, when there's real output worth
-    # keeping (codegen mode, and generation got at least as far as producing
-    # src-gen). None in reflective mode, or when nothing was generated.
-    generated_source_path: str | None
+    # Whether what EcoreValidator's codegen path compiled (the .genmodel, src-gen and classes
+    # output) was kept, as one zip with the attempt it was compiled for in the journal. False
+    # in reflective mode, when nothing was generated, when the call named no attempt, or when
+    # the journal could not keep it.
+    compiled_output_kept: bool
 
 
 class AtlValidationResult(TypedDict):
     valid: bool
     issues: list[Issue]
     duration_ms: int
-    # Where AtlValidator persisted the compiled .asm bytecode, when compiling
-    # actually produced one - see EcoreValidationResult's own
-    # generated_source_path for why this is kept (this repo's stated
-    # direction is real reuse, not just debugging), not just for Ecore.
-    generated_source_path: str | None
+    # Whether the compiled .asm bytecode was kept with the attempt, when compiling produced one:
+    # see EcoreValidationResult's own compiled_output_kept for when it is not.
+    compiled_output_kept: bool
 
 
 class AcceleoValidationResult(TypedDict):
     valid: bool
     issues: list[Issue]
     duration_ms: int
-    # Where AcceleoValidator persisted the compiled .emtl module, when
-    # compiling actually produced one - see AtlValidationResult's own field.
-    generated_source_path: str | None
+    # Whether the compiled .emtl module was kept with the attempt: see AtlValidationResult's own field.
+    compiled_output_kept: bool
 
 
 class SwarchValidationResult(TypedDict):
@@ -130,36 +131,44 @@ def _run_cli(argv: list[str], env: dict[str, str] | None = None) -> tuple[dict, 
     return result, duration_ms
 
 
-def _scoped_output_env(
-    run_id: str | None, stage: str | None = None, attempt: str | None = None
-) -> dict[str, str] | None:
-    """Overrides VALIDATOR_OUTPUT_DIR to a per-run_id/per-stage/per-attempt
-    subfolder, for a call that's about to persist a real compiled artifact
-    there (Ecore's codegen mode, ATL, Acceleo), so concurrent runs' compiled output never collides, and so
-    one run's attempts of different stages never mix. The output stays in
-    this service's own output folder: the caller's run_id, stage and attempt
-    only name the subfolder, and the path comes back in the response.
-    Segments are joined in order, run_id then stage then attempt, skipping
-    any that are None - <base>/<run_id> when only run_id is given (unchanged
-    from before stage/attempt existed - every caller that doesn't pass them
-    keeps working exactly as it did). None (subprocess inherits this
-    process's own environment as-is) when there's no run_id to scope by at
-    all - the caller still gets real output, just landing directly in the
-    configured base directory, unscoped. run_id, stage, and attempt are each
-    already validated (character class plus the dot-segment check, see
-    main.py's own _RUN_ID_PATTERN/_reject_dot_segments) before this function
-    ever runs, so joining them onto the base path here is safe without a
-    second check."""
-    if run_id is None:
-        return None
-    env = os.environ.copy()
-    output_dir = OUTPUT_ROOT / run_id
-    if stage is not None:
-        output_dir /= stage
-    if attempt is not None:
-        output_dir /= attempt
-    env["VALIDATOR_OUTPUT_DIR"] = str(output_dir)
-    return env
+def _output_env(output_dir: Path) -> dict[str, str]:
+    """The environment a validator runs in, with the folder the Java validators compile into."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return {**os.environ, "VALIDATOR_OUTPUT_DIR": str(output_dir)}
+
+
+def _keep_compiled_output(output_dir: Path, run_id: str | None, stage: str | None, attempt: str | None) -> bool:
+    """Gives what was compiled to the journal, as one zip kept with the attempt it was
+    compiled for, so it is there for reuse and not only for debugging. Nothing is kept for a
+    call that names no attempt, or that compiled nothing. A journal that cannot keep it is
+    logged and does not fail the validation."""
+    if run_id is None or stage is None or attempt is None:
+        return False
+    files = [path for path in sorted(output_dir.rglob("*")) if path.is_file()]
+    if not files:
+        return False
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zipped:
+        for path in files:
+            zipped.write(path, path.relative_to(output_dir).as_posix())
+    try:
+        journal_client.keep_compiled_output(run_id, stage, attempt, archive.getvalue())
+    except (AgentServiceError, httpx.HTTPError) as e:
+        logger.warning("could not keep the compiled output of %s/%s/%s: %s", run_id, stage, attempt, e)
+        return False
+    return True
+
+
+def _run_cli_keeping_output(
+    argv: list[str], output_dir: Path, run_id: str | None, stage: str | None, attempt: str | None
+) -> tuple[dict, int]:
+    """Runs a validator with `output_dir`, a folder in scratch that is deleted with it, as the
+    place it compiles into, and then keeps what it compiled (see _keep_compiled_output). The
+    validator's own report of where it wrote is dropped: that place is gone."""
+    result, duration_ms = _run_cli(argv, env=_output_env(output_dir))
+    result.pop("generatedOutputPath", None)
+    result["compiled_output_kept"] = _keep_compiled_output(output_dir, run_id, stage, attempt)
+    return result, duration_ms
 
 
 def run_ecore_validator(
@@ -178,15 +187,9 @@ def run_ecore_validator(
         # at JVM startup — not a shell glob. Safe to pass as one argv element with
         # no shell=True.
         argv = ["java", "-cp", f"{LIB_DIR}/*", ECORE_MAIN_CLASS, mode, str(target)]
-        env = _scoped_output_env(run_id, stage, attempt) if mode == "codegen" else None
-        result, duration_ms = _run_cli(argv, env=env)
+        result, duration_ms = _run_cli_keeping_output(argv, Path(tmp) / "out", run_id, stage, attempt)
 
         result["duration_ms"] = duration_ms
-        # generatedOutputPath (EcoreValidatorCli's own camelCase JSON key,
-        # matching Java naming) -> generated_source_path (this boundary's job
-        # is translating the subprocess's raw JSON into this service's own
-        # Python-conventioned response shape).
-        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("ecore validation: mode=%s valid=%s duration_ms=%d", mode, result.get("valid"), duration_ms)
         return result
 
@@ -218,10 +221,9 @@ def run_atl_validator(
             ecore_target = Path(tmp) / "target_metamodel.ecore"
             ecore_target.write_text(metamodel_ecore, encoding="utf-8")
             argv.append(str(ecore_target))
-        result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
+        result, duration_ms = _run_cli_keeping_output(argv, Path(tmp) / "out", run_id, stage, attempt)
 
         result["duration_ms"] = duration_ms
-        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("atl validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result
 
@@ -268,16 +270,15 @@ def run_acceleo_validator(
                 atl_target = Path(tmp) / "transformation.atl"
                 atl_target.write_text(atl_source, encoding="utf-8")
                 argv.append(str(atl_target))
-        result, duration_ms = _run_cli(argv, env=_scoped_output_env(run_id, stage, attempt))
+        result, duration_ms = _run_cli_keeping_output(argv, Path(tmp) / "out", run_id, stage, attempt)
 
         result["duration_ms"] = duration_ms
-        result["generated_source_path"] = result.pop("generatedOutputPath", None)
         logger.info("acceleo validation: valid=%s duration_ms=%d", result.get("valid"), duration_ms)
         return result
 
 
 def run_swarch_validator(content: str, filename: str) -> SwarchValidationResult:
-    """A .swarch model instance has no compiled output worth persisting (unlike
+    """A .swarch model instance has no compiled output worth keeping (unlike
     the .ecore/.atl/.mtl validators), so there's no run_id/stage/attempt
     scoping here - just validate and report.
 
@@ -290,7 +291,7 @@ def run_swarch_validator(content: str, filename: str) -> SwarchValidationResult:
         target.write_text(content, encoding="utf-8")
 
         argv = ["java", "-cp", f"{LIB_DIR}/*", SWARCH_MAIN_CLASS, str(target)]
-        result, duration_ms = _run_cli(argv)
+        result, duration_ms = _run_cli(argv, env=_output_env(Path(tmp) / "out"))
 
         result["duration_ms"] = duration_ms
         logger.info("swarch validation: filename=%r valid=%s duration_ms=%d", filename, result.get("valid"), duration_ms)

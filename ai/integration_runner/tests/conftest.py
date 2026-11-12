@@ -1,15 +1,8 @@
-import atexit
-import os
-import shutil
-import tempfile
-from pathlib import Path
-
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
+import integration_runner.testing_env  # noqa: F401  (the PIM files, which compose mounts)
 import pytest
 
-# The required runs setting, set before the service modules read it.
-_session_dir = Path(tempfile.mkdtemp(prefix="integration-runner-tests-"))
-atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-os.environ["INTEGRATION_RUNNER_RUNS_DIR"] = str(_session_dir / "runs")
+from clients.journal_testing import folders_in, journal_in_process
 
 
 def pytest_configure(config):
@@ -25,12 +18,10 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def _isolated_validation_runs_dir(tmp_path, monkeypatch):
-    # Any test that runs pim_stage/psm_stage/atl_stage/acceleo_stage for
-    # real (not every test does, but nothing here can tell which ones
-    # without checking, so this applies to all of them) would otherwise
-    # write real attempt files into the session's shared folder. It is
-    # autouse, so no individual test file has to remember to isolate this
-    # itself.
-    from integration_runner.stages import _validation
-    monkeypatch.setattr(_validation, "RUNS_DIR", tmp_path / "runs")
+def journal(tmp_path):
+    """The real journal, in this process, over folders of this test alone. Any
+    test that runs a run or a stage keeps its runs and attempts there, so none
+    of them reads or writes another's. It is autouse, so no test file has to
+    remember to isolate this itself."""
+    with journal_in_process(folders_in(tmp_path)):
+        yield tmp_path / "runs"

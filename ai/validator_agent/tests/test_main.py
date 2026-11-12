@@ -13,10 +13,10 @@ from validator_runner import ValidatorInfraError
 client = TestClient(main.app)
 
 
-def fake_result(valid=True, mode="reflective", issues=None, duration_ms=42, generated_source_path=None):
+def fake_result(valid=True, mode="reflective", issues=None, duration_ms=42, compiled_output_kept=False):
     return {
         "valid": valid, "mode": mode, "issues": issues or [], "duration_ms": duration_ms,
-        "generated_source_path": generated_source_path,
+        "compiled_output_kept": compiled_output_kept,
     }
 
 
@@ -50,15 +50,15 @@ def test_validate_ecore_returns_200_with_valid_false_and_issues():
     assert body["issues"] == issues
 
 
-def test_validate_ecore_passes_through_generated_source_path():
+def test_validate_ecore_passes_through_compiled_output_kept():
     with patch("main.run_ecore_validator",
-               return_value=fake_result(mode="codegen", generated_source_path="/validator-output/abc123")):
+               return_value=fake_result(mode="codegen", compiled_output_kept=True)):
         response = client.post("/validate/ecore", json={
             "filename": "model.ecore", "content": "<ecore/>", "mode": "codegen",
         })
 
     assert response.status_code == 200
-    assert response.json()["generated_source_path"] == "/validator-output/abc123"
+    assert response.json()["compiled_output_kept"] is True
 
 
 def test_validate_ecore_returns_500_on_infra_error():
@@ -201,10 +201,10 @@ def test_validate_ecore_rejects_dot_dot_attempt():
     assert response.status_code == 422
 
 
-def fake_atl_result(valid=True, issues=None, duration_ms=42, generated_source_path=None):
+def fake_atl_result(valid=True, issues=None, duration_ms=42, compiled_output_kept=False):
     return {
         "valid": valid, "issues": issues or [], "duration_ms": duration_ms,
-        "generated_source_path": generated_source_path,
+        "compiled_output_kept": compiled_output_kept,
     }
 
 
@@ -248,13 +248,13 @@ def test_validate_atl_rejects_missing_content():
     assert response.status_code == 422
 
 
-def test_validate_atl_passes_through_generated_source_path():
+def test_validate_atl_passes_through_compiled_output_kept():
     with patch("main.run_atl_validator",
-               return_value=fake_atl_result(generated_source_path="/runs/run-1/atl-validate-abc/sample.asm")):
+               return_value=fake_atl_result(compiled_output_kept=True)):
         response = client.post("/validate/atl", json={"filename": "sample.atl", "content": "module M;"})
 
     assert response.status_code == 200
-    assert response.json()["generated_source_path"] == "/runs/run-1/atl-validate-abc/sample.asm"
+    assert response.json()["compiled_output_kept"] is True
 
 
 def test_validate_atl_forwards_run_id():
@@ -318,10 +318,10 @@ def test_validate_atl_rejects_dot_dot_attempt():
     assert response.status_code == 422
 
 
-def fake_acceleo_result(valid=True, issues=None, duration_ms=42, generated_source_path=None):
+def fake_acceleo_result(valid=True, issues=None, duration_ms=42, compiled_output_kept=False):
     return {
         "valid": valid, "issues": issues or [], "duration_ms": duration_ms,
-        "generated_source_path": generated_source_path,
+        "compiled_output_kept": compiled_output_kept,
     }
 
 
@@ -365,15 +365,15 @@ def test_validate_acceleo_rejects_oversized_content():
     assert response.status_code == 413
 
 
-def test_validate_acceleo_passes_through_generated_source_path():
+def test_validate_acceleo_passes_through_compiled_output_kept():
     with patch("main.run_acceleo_validator",
-               return_value=fake_acceleo_result(generated_source_path="/runs/run-1/acceleo-validate-abc/out")):
+               return_value=fake_acceleo_result(compiled_output_kept=True)):
         response = client.post("/validate/acceleo", json={
             "filename": "generate.mtl", "content": "[module generate('http://x')]",
         })
 
     assert response.status_code == 200
-    assert response.json()["generated_source_path"] == "/runs/run-1/acceleo-validate-abc/out"
+    assert response.json()["compiled_output_kept"] is True
 
 
 def test_validate_acceleo_forwards_run_id():

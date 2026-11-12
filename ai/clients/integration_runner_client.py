@@ -11,15 +11,17 @@ a raw httpx.HTTPStatusError string. A genuine connection failure or 5xx
 still propagates raw, there's no fallback for those, same as every other
 client in this repo.
 """
-import os
-
 import httpx
 
-INTEGRATION_RUNNER_URL = os.environ.get("INTEGRATION_RUNNER_URL", "http://localhost:8050")
+from clients.required_env import required_env
+
+INTEGRATION_RUNNER_URL = required_env("INTEGRATION_RUNNER_URL")
 # 16 minutes: real margin above retrieval_client.RETRIEVAL_TIMEOUT (15 min),
 # for /docs/extend specifically — see add_page_to_docs's own docstring for
 # why that one endpoint needs more than the fast-bookkeeping default below.
-DOCS_EXTEND_TIMEOUT = float(os.environ.get("DOCS_EXTEND_TIMEOUT", "960.0"))
+DOCS_EXTEND_TIMEOUT = 960.0
+# Longer than integration_runner's own wait on the journal for a publish.
+PUBLISH_TIMEOUT = 60.0
 
 _BUSINESS_ERROR_CODES = (400, 404, 409)
 
@@ -90,6 +92,12 @@ def resume_run(run_id: str) -> dict:
     return _request("POST", f"/resume/{run_id}").json()
 
 
+def delete_run(run_id: str) -> dict:
+    """Removes a past run for good, with the files of its attempts. integration_runner
+    refuses the current run and a run a platform was published from, with 409."""
+    return _request("DELETE", f"/runs/{run_id}").json()
+
+
 def fork_run(source_run_id: str, from_stage: str) -> dict:
     """Starts a genuinely new run seeded with source_run_id's own real
     output up to (not including) from_stage, then pauses there pending
@@ -131,6 +139,30 @@ def add_page_to_docs(url: str, force_refresh: bool = False) -> dict:
     that inner budget rather than a quick-response default."""
     return _request(
         "POST", "/docs/extend", timeout=DOCS_EXTEND_TIMEOUT, json={"url": url, "force_refresh": force_refresh}
+    ).json()
+
+
+def get_publish_defaults() -> dict:
+    """What publish() uses for the current run when given nothing: the run's
+    platform description and the one file its generation stage produced."""
+    return _request("GET", "/publish").json()
+
+
+def publish(
+    name: str | None = None,
+    output_filename: str | None = None,
+    run_id: str | None = None,
+    version: str | None = None,
+) -> dict:
+    """Publishes the current, completed run's platform, as `version`
+    (MAJOR.MINOR.PATCH) or the patch after its highest when none is given. With
+    run_id, only if that run is still the current one. Returns {"id", "name",
+    "version", "output_filename", ...}."""
+    return _request(
+        "POST",
+        "/publish",
+        timeout=PUBLISH_TIMEOUT,
+        json={"name": name, "output_filename": output_filename, "run_id": run_id, "version": version},
     ).json()
 
 

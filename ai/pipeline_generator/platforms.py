@@ -18,7 +18,8 @@ def plain_name(name: object) -> str:
 class Platform:
     id: str
     name: str
-    version: int
+    # MAJOR.MINOR.PATCH, as the journal keeps it.
+    version: str
     # The file the platform's template generates: one plain file name. The
     # pipeline history joins it onto a folder, so a name with a folder in it is
     # refused when the platform is read, not on every generation.

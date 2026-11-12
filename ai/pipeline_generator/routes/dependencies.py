@@ -4,12 +4,12 @@ swap in a temporary folder."""
 from generation_jobs import GenerationJobs
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
-from settings import MAX_FINISHED_JOBS, MAX_PIPELINES, MAX_RUNNING_JOBS, PIPELINES_DIR, PLATFORMS_DIR, WORKSPACE_DIR
+from settings import MAX_FINISHED_JOBS, MAX_RUNNING_JOBS, WORKSPACE_DIR
 from workspace import Workspace
 
 _workspace = Workspace(WORKSPACE_DIR)
-_history = PipelineHistory(PIPELINES_DIR, max_entries=MAX_PIPELINES)
-_registry = PlatformRegistry(PLATFORMS_DIR)
+_history = PipelineHistory()
+_registry = PlatformRegistry()
 _jobs = GenerationJobs(max_finished=MAX_FINISHED_JOBS, max_running=MAX_RUNNING_JOBS)
 
 

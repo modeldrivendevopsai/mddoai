@@ -6,6 +6,18 @@
 export const STAGES = ["docs", "serialization", "pim", "psm", "atl", "acceleo", "generation"] as const
 export type StageId = (typeof STAGES)[number]
 
+// What each stage is called on screen, in one place so every screen that names a
+// stage (the stepper, the sidebar's list of runs) says the same thing.
+export const STAGE_LABELS: Record<StageId, string> = {
+  docs: "Docs",
+  serialization: "Serialization",
+  pim: "PIM",
+  psm: "PSM",
+  atl: "ATL",
+  acceleo: "Acceleo",
+  generation: "Generation + Test",
+}
+
 // Mirrors the backend's own real per-stage metadata shape, fetched once
 // from GET /stages (see StageMetadataResponse below), so a panel can
 // explain its own stage honestly instead of a hand-written description
@@ -35,6 +47,9 @@ export type OrchestratorEventType =
   | "constraint_added"
   | "documentation_extended"
   | "constraints_promoted"
+  | "platform_published"
+  // A run made by forking an earlier one at a stage: its data names that run.
+  | "forked_from"
   | "tool_called"
   | "user_message"
   | "message"
@@ -54,6 +69,10 @@ export const PIPELINE_EVENT_TYPES: readonly OrchestratorEventType[] = [
   "constraint_added",
   "documentation_extended",
   "constraints_promoted",
+  "platform_published",
+  // A forked run has only this event until its first stage runs, and it is
+  // still a real run, paused at the stage it was forked at.
+  "forked_from",
 ]
 
 export interface OrchestratorEvent {
@@ -89,15 +108,17 @@ export interface EventsResponse {
   replying: boolean
 }
 
-// One entry per run the backend has seen (in-memory only) — the sidebar's
+// One entry per run, for the sidebar's
 // session list. is_current is false for anything but the live run; those
-// are read-only history.
+// are read-only history. started_at is when the run's first event happened, in
+// seconds since the epoch, or null for a run nothing has happened on.
 export interface RunSummary {
   run_id: string
   platform_name: string | null
   current_stage: StageId | null
   busy: boolean
   is_current: boolean
+  started_at: number | null
 }
 
 export interface StartedResponse {
@@ -125,6 +146,36 @@ export interface ResumeResponse {
 export interface ForkResponse {
   run_id: string
   stage: StageId
+}
+
+// GET /publish: what POST /publish uses for the current run when given
+// nothing. output_filename is null when the generation stage produced more
+// than one file, so the person has to say which one is the pipeline file.
+export interface PublishDefaults {
+  name: string | null
+  output_filename: string | null
+}
+
+// POST /publish: the platform as the journal keeps it. The version is
+// MAJOR.MINOR.PATCH, such as 1.2.0.
+export interface PublishedPlatform {
+  id: string
+  name: string
+  version: string
+  output_filename: string
+}
+
+// GET /platforms: a platform at its latest version, with every version it has.
+// Only the published versions can be purged: a version that came with the stack
+// cannot, so published_versions can be fewer than versions.
+export interface PlatformSummary {
+  id: string
+  name: string
+  output_filename: string
+  version: string
+  versions: string[]
+  published_versions: string[]
+  published: boolean
 }
 
 export interface RerunStatusResponse {

@@ -1,10 +1,10 @@
 /**
  * Sessions data service — backed by ai/orchestrator's real run history
- * (GET /runs, in-memory for the life of the backend process). Components
- * depend only on getSessions()/closeSession()'s signatures, not on this.
+ * (GET /runs, DELETE /runs/{id}). Components
+ * depend only on getSessions()/deleteSession()'s signatures, not on this.
  */
-import { getRuns } from './orchestrator.service';
-import type { RunSummary } from 'orchestrator-types';
+import { deleteRun, getRuns } from './orchestrator.service';
+import type { RunSummary, StageId } from 'orchestrator-types';
 
 export type SessionType = 'pipeline' | 'platform';
 export type SessionState = 'selected' | 'normal' | 'attention';
@@ -13,7 +13,13 @@ export interface Session {
   id: string;
   name: string;
   type: SessionType;
+  // 'selected' is the run the backend treats as current. It cannot be deleted.
   state: SessionState;
+  // Where the run is, and when it began, so runs of one platform can be told apart.
+  // stage is null once the whole pipeline has finished; startedAt is in seconds
+  // since the epoch, or null for a run nothing has happened on.
+  stage: StageId | null;
+  startedAt: number | null;
 }
 
 function toSession(run: RunSummary): Session {
@@ -28,6 +34,8 @@ function toSession(run: RunSummary): Session {
     // (that mode has no runs of its own).
     type: 'platform',
     state: run.is_current ? 'selected' : 'normal',
+    stage: run.current_stage,
+    startedAt: run.started_at,
   };
 }
 
@@ -40,9 +48,7 @@ export async function getSessions(type: SessionType): Promise<Session[]> {
   return runs.map(toSession).filter((session) => session.type === type);
 }
 
-export async function closeSession(id: string): Promise<{ id: string; closed: boolean }> {
-  // No backend "delete a run" action yet — a run is in-memory history, not
-  // something to discard individually. Matches SessionsList's existing
-  // optimistic local removal; nothing to await here yet.
-  return { id, closed: true };
+// Deletes the run for good. Throws with the backend's reason when it refuses.
+export async function deleteSession(id: string): Promise<void> {
+  await deleteRun(id);
 }

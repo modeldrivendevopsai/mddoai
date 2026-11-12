@@ -13,40 +13,38 @@ points at gitlabMM.ecore since MDDOAI targets GitLab specifically (see pim_agent
 reusability notes), but any of the three can be passed explicitly (bitbucketMM.ecore's
 path too, once that metamodel exists).
 
-META_MODELS_DIR (env-configurable) is where meta_models/ (the real Java/Eclipse
+META_MODELS_DIR (required, no default) is where meta_models/ (the real Java/Eclipse
 metamodel source tree, outside ai/ entirely) is reachable from inside this
-container. Defaults to the real relative repo path for local/non-Docker dev;
-the real docker-compose entry sets it to the container's mount point.
+container. The docker-compose entry sets it to the container's mount point.
 """
 
 import json
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from generation_toolkit.attachments.uploads import UploadedFiles
 from generation_toolkit.prompt_builder import build_prompt
 from generation_toolkit.prompt_config import rendering
 from generation_toolkit.prompt_config import resolution as prompt_resolution
 
 from clients import ai_layer_client
+from clients.required_env import required_env
 
-import prompt_paths
+import prompt_settings
 
 logger = logging.getLogger(__name__)
 
-# This mode's own name under prompt_paths.PROMPT_CONFIG_DIR (see
+# This mode's own name under the agent's configs in the journal (see
 # generation.py's own "generation").
 COMPARISON_CONFIG_NAME = "comparison"
 
 # Public: reused by generation.py/psm_flow.py too, both of which also need
 # to resolve real .ecore paths under meta_models/, not just this module.
-META_MODELS_DIR = os.environ.get(
-    "META_MODELS_DIR", str(Path(__file__).resolve().parents[2] / "meta_models")
-)
+META_MODELS_DIR = required_env("META_MODELS_DIR")
 
 
-def files_root() -> list[str]:
+def files_root() -> list:
     """Every real root a "file" attachment can resolve against: the
     read-only, pre-existing repo metamodels, and a human's own uploaded
     files (see routes/uploads.py). Public and called fresh each time
@@ -56,7 +54,7 @@ def files_root() -> list[str]:
     editor (which already validates references against both roots, see
     routes/prompt_config.py) actually resolves on a real call too, not
     only during editing."""
-    return [META_MODELS_DIR, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+    return [META_MODELS_DIR, UploadedFiles(prompt_settings.AGENT)]
 DEFAULT_PSM_METAMODEL_PATH = str(
     Path(META_MODELS_DIR) / "com.mddoai.metamodel.gitlab" / "model" / "gitlabMM.ecore"
 )
@@ -206,7 +204,7 @@ def compare(serialized_docs: str, psm_metamodel_path: str | None = None, model: 
 
     context_values = {"psm_metamodel": metamodel_content, "serialized_docs": serialized_docs}
     config, parts = prompt_resolution.resolve_for_call(
-        prompt_paths.PROMPT_CONFIG_DIR, COMPARISON_CONFIG_NAME, context_values, files_root()
+        prompt_settings.AGENT, COMPARISON_CONFIG_NAME, context_values, files_root()
     )
     prompt = build_prompt(parts, constraints=config.get("learned_constraints"))
     messages = [

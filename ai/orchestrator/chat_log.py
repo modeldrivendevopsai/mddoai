@@ -3,12 +3,13 @@
 integration_runner produces raw pipeline facts (call_started, call_completed,
 call_failed, review_approved, review_rejected, constraint_added, ...) and
 knows nothing about chat or narration. This module is the one place that
-turns those facts into a running conversation: for each new raw event it
-notices, it mirrors the raw fact itself into this run's transcript, then
-(for every type except _NOT_NARRATED below) asks the wired-in reactor (see
-set_reactor(), same pattern integration_runner's own pipeline.py used before
-this split, just relocated) for a short comment and appends that as its own
-"message" turn. A human's chat message and its answer (see assistant.py)
+turns those facts into a running conversation: every new raw event it
+notices is mirrored into this run's transcript as a fact, and the newest of
+them (leaving out the _NOT_NARRATED types below) is also given a short comment,
+from the wired-in reactor (see set_reactor(), same pattern integration_runner's
+own pipeline.py used before this split, just relocated), appended as its own
+"message" turn. Older events in the same batch get no comment, so a run that
+moved on while nobody watched costs one LLM call, not one per event. A human's chat message and its answer (see assistant.py)
 go through begin_reply()/end_reply() below. All of them append to the exact
 same list, in
 real arrival order, so this is genuinely one merged, ordered chat transcript
@@ -88,20 +89,52 @@ class ChatLog:
     integration_runner reported, plus the human's own messages and replies
     from accept_message(), one ordered, append-only list."""
 
-    def __init__(self):
+    def __init__(self, run_id: str | None = None, store=None):
+        self.run_id = run_id
         self.events: list[dict] = []
         self.raw_seen: int = 0   # how many of integration_runner's raw events are already reflected here
-        self.lock = threading.Lock()
-        self.narrating = False   # true while a background thread is writing a new comment in
+        # Reentrant, so add() can be called by a caller that already holds it
+        # to read the chat and add to it in one step.
+        self.lock = threading.RLock()
+        self.narrating = False   # true while a background thread is writing new comments in
+        # The one raw event waiting for its comment, if any. Only the newest event
+        # is commented on, so a newer one replaces it and there is never a backlog.
+        self.pending: dict | None = None
+        # A chat_store.ChatStore, or None for a chat that is not kept on disk.
+        self._store = store
         # The most recently started narration thread, if any. Not used by
         # the API itself (a real client polls GET /events instead), only
         # exposed so tests can deterministically join() it rather than
         # sleep/poll — same idiom IntegrationRun._last_thread already uses.
         self._last_thread: threading.Thread | None = None
 
-    def append(self, event: dict) -> None:
+    @classmethod
+    def restore(cls, run_id: str, events: list[dict], raw_seen: int, store) -> "ChatLog":
+        """A chat as it was kept."""
+        chat = cls(run_id, store)
+        chat.events = events
+        chat.raw_seen = raw_seen
+        return chat
+
+    def add(self, events: list[dict], raw_seen: int | None = None) -> None:
+        """Adds turns to the end of the chat, and keeps the chat on disk."""
         with self.lock:
-            self.events.append(event)
+            self.events.extend(events)
+            if raw_seen is not None:
+                self.raw_seen = raw_seen
+            if self._store is not None:
+                self._store.save_quietly(self)
+
+    def append(self, event: dict) -> None:
+        self.add([event])
+
+    def stop_keeping(self) -> None:
+        """Stops saving this chat, for a chat whose run was deleted. A comment still
+        being written by a background thread that holds the chat then lands here and
+        nowhere else, instead of putting the deleted chat back in the journal. Waits
+        for a save that is under way, so the delete that follows is the last word."""
+        with self.lock:
+            self._store = None
 
 
 class ReplyInProgressError(Exception):
@@ -130,7 +163,7 @@ def begin_reply(chat: ChatLog, message: dict) -> list[dict]:
     try:
         with chat.lock:
             history = summarize_history(chat.events)
-            chat.events.append(message)
+            chat.add([message])
     except BaseException:
         _reply_slot.release()
         raise
@@ -143,49 +176,77 @@ def end_reply(chat: ChatLog, message: dict, outcome: list[dict], new_run_chat: C
     in new_run_chat too. Only then is the reply marked as done, so a poll
     never sees "not replying" without the answer, in either run."""
     try:
-        with chat.lock:
-            chat.events.extend(outcome)
+        chat.add(outcome)
         if new_run_chat is not None:
-            with new_run_chat.lock:
-                new_run_chat.events.extend([message, *outcome])
+            new_run_chat.add([message, *outcome])
     finally:
         _reply_slot.release()
 
 
-# One chat log per run, keyed by integration_runner's real run_id, kept for
-# the life of this process. Lost on an orchestrator restart even though
-# integration_runner itself keeps a run's raw history across one — a new,
-# real failure mode this split introduces, not present when everything ran
-# in one process. _chat_logs.setdefault() below handles a run this process
-# has never seen locally: worst case is a burst of re-narration on first
-# contact, not a crash — the same MVP, in-memory-only tradeoff
-# integration_runner's own _runs/_default already accepts.
+# One chat log per run, keyed by integration_runner's real run_id. They are
+# kept on disk through the store set by load_saved(), and come back after a
+# restart. A run with no saved chat gets a fresh one, all its events are
+# mirrored at the first poll, and only the newest is commented on.
 _chat_logs: dict[str, ChatLog] = {}
+_store = None
+
+
+def load_saved(store) -> None:
+    """Keeps every chat from now on in `store` (a chat_store.ChatStore), and
+    brings back the chats it holds. Runs once, at service start."""
+    global _store
+    _store = store
+    for run_id, chat in store.load_all().items():
+        _chat_logs.setdefault(run_id, chat)
 
 
 def get_chat_log(run_id: str) -> ChatLog:
-    """The real ChatLog for a run, creating one if this process hasn't seen
-    it yet. Used by assistant.py to record a human's message and its answer
+    """The real ChatLog for a run, creating one if there is none. Used by assistant.py to record a human's message and its answer
     without going through get_events()'s integration_runner round-trip
     first."""
-    return _chat_logs.setdefault(run_id, ChatLog())
+    return _chat_logs.setdefault(run_id, ChatLog(run_id, _store))
+
+
+def remove_chat_log(run_id: str) -> None:
+    """Forgets a run's chat here and removes it from the journal, for a run that
+    was deleted. The chat object is told to stop saving first, because a narration
+    thread may still hold it."""
+    chat = _chat_logs.pop(run_id, None)
+    if chat is not None:
+        chat.stop_keeping()
+    if _store is not None:
+        _store.delete(run_id)
 
 
 def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict]) -> None:
-    """Generates and appends a "message" comment for each of new_raw_events,
-    one at a time, in order. Each raw event has already been appended to
-    chat.events by the caller (get_events(), synchronously, before this
-    background thread even starts) — that's what makes the raw fact visible
-    on the very next poll even if its comment takes a moment longer. history
-    for each event is looked up by identity (`is`, not position), not a
-    captured index, since chat.events keeps growing (both from narration
-    appended here and, concurrently, from a real accept_message() call) while
-    this loop runs; an index captured up front would silently drift."""
+    """Gives the newest of new_raw_events a "message" comment, written by a
+    background thread that is started if none is running. Older events get none:
+    a run that moved on while nobody watched, or a burst of events, is commented
+    on once, for where it is now, not once per event, which would cost one LLM
+    call each. An event that arrives while a comment is being written replaces
+    one that is still waiting, so the thread never has more than one to do next.
+    Every raw event has already been appended to chat.events by the caller
+    (get_events(), synchronously, before this thread even starts), so each is
+    visible on the very next poll whether it is commented on or not. history for
+    the event is looked up by identity (`is`, not position), not a captured
+    index, since chat.events keeps growing (both from narration appended here
+    and, concurrently, from a real accept_message() call) while this loop runs;
+    an index captured up front would silently drift."""
+    newest = next((event for event in reversed(new_raw_events) if event.get("type") not in _NOT_NARRATED), None)
+    if newest is None:
+        return
+
     def _run():
         try:
-            for event in new_raw_events:
-                if event.get("type") in _NOT_NARRATED:
-                    continue
+            while True:
+                with chat.lock:
+                    event, chat.pending = chat.pending, None
+                    if event is None:
+                        # Checked under the lock that sets pending, so an event
+                        # set right after this finds narrating False and starts
+                        # a thread of its own.
+                        chat.narrating = False
+                        return
                 position = next(i for i, e in enumerate(chat.events) if e is event)
                 history = summarize_history(chat.events[:position])
                 try:
@@ -201,10 +262,16 @@ def _narrate_in_background(chat: ChatLog, run_id: str, new_raw_events: list[dict
                     "type": "message", "stage": event.get("stage"),
                     "text": text, "model": model, "timestamp": time.time(),
                 })
-        finally:
-            chat.narrating = False
+        except BaseException:
+            with chat.lock:
+                chat.narrating = False
+            raise
 
-    chat.narrating = True
+    with chat.lock:
+        chat.pending = newest
+        if chat.narrating:
+            return
+        chat.narrating = True
     chat._last_thread = threading.Thread(target=_run, daemon=True)
     chat._last_thread.start()
 
@@ -219,18 +286,36 @@ def get_events(run_id: str | None = None, since_index: int = 0) -> dict:
     here — so it's visible on this very call — while narrating it (a real
     LLM call) happens in the background and never blocks this call; a
     comment on the very latest event may only show up on the next poll,
-    same as before this split."""
-    raw = integration_runner_client.get_events(run_id=run_id)
-    chat = get_chat_log(raw["run_id"])
+    same as before this split.
+
+    Only the raw events this chat has not seen are fetched, not the run's
+    whole history: a poll runs every second or two, and a run's events can
+    hold whole stage outputs."""
+    if run_id is None:
+        # Which run is current, without its events. They come next, and only
+        # the new ones.
+        run_id = integration_runner_client.get_status()["run_id"]
+    chat = get_chat_log(run_id)
+    raw = dict(integration_runner_client.get_events(since_index=chat.raw_seen, run_id=run_id))
+    # Where in the run's events the ones sent start, and how many it has in
+    # all. A runner that sends every event says neither: they start at 0.
+    offset = raw.pop("offset", 0)
+    total = raw.pop("total", None)
     with chat.lock:
-        new_raw = raw["events"][chat.raw_seen:]
-        chat.raw_seen = len(raw["events"])
-        chat.events.extend(new_raw)
+        if total is not None and total < chat.raw_seen:
+            # The runner has fewer events than this chat has seen, because it
+            # lost some in a crash. Carry on from what it has, so the events it
+            # records next are not skipped.
+            chat.add([], raw_seen=total)
+        # raw_seen only grows, so a poll that fetched the same events as an
+        # earlier one adds nothing twice.
+        new_raw = raw["events"][max(chat.raw_seen - offset, 0):]
+        chat.add(new_raw, raw_seen=chat.raw_seen + len(new_raw))
         # Read under chat.lock: end_reply() records the answer under this
         # lock before it frees the slot, so "not replying" never comes
         # without the answer.
         is_replying = replying()
         events = chat.events[since_index:]
-    if new_raw and not chat.narrating:
-        _narrate_in_background(chat, raw["run_id"], new_raw)
+    if new_raw:
+        _narrate_in_background(chat, run_id, new_raw)
     return {**raw, "events": events, "replying": is_replying}

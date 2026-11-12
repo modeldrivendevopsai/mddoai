@@ -5,9 +5,10 @@ no LLM call of its own any more. No real HTTP call -
 clients/execution_agent_client.execute_atl_from_pim/execute_acceleo are mocked.
 PIM_SAMPLE_INSTANCE_PATH is redirected to a throwaway fixture file per test
 (see _pim_sample_fixture below), so these tests never depend on this
-repo's real main/ test-resources tree. RUNS_DIR is redirected to a tmp_path
-by integration_runner/tests/conftest.py's own autouse fixture, so real
-persistence tests below read back real files under tmp_path, never this
+repo's real main/ test-resources tree. The journal that keeps each attempt runs
+in the test's own process over a tmp_path (integration_runner/tests/conftest.py's
+autouse fixture), so real persistence tests below read back real files under
+tmp_path, never this
 repo's own runs/ tree.
 
 Tests verify:
@@ -32,6 +33,7 @@ import json
 import pytest
 
 from clients import execution_agent_client
+from clients.agent_service_errors import AgentServiceError
 from integration_runner.stages.generation import agent as generation_agent
 from integration_runner.stages.generation.agent import gen_stage
 
@@ -188,7 +190,8 @@ def test_gen_stage_rejects_a_generated_file_name_that_escapes_the_attempt_direct
         lambda *a, **k: {"../../escape.yaml": "stages: []\n"},
     )
 
-    with pytest.raises(ValueError, match="escapes the attempt directory"):
+    # The journal refuses a file name that would leave the attempt's folder.
+    with pytest.raises(AgentServiceError, match="not a path for an extra file"):
         gen_stage({
             "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
         })

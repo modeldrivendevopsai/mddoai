@@ -1,12 +1,12 @@
 """runs.py unit tests: process-wide run management, which run is current,
-the history of every run this process has seen, and every one-line
+the history of every run, and every one-line
 operation this service's own main.py exposes over REST. No real API
 calls, execution_agent_client's execute_atl_from_pim/execute_acceleo /
 retrieval_client.httpx are mocked.
 
 Tests verify:
   1. Run identity: run_id auto-generation, get_run()/current_run_id()/
-     list_runs()/get_run_events() against real in-memory history.
+     list_runs()/get_run_events() against the real run history.
   2. reset_pipeline() keeps prior runs as history rather than discarding
      them, only _default changes.
   3. start_pipeline() stores the chosen model for the whole run and starts
@@ -66,7 +66,7 @@ def test_reset_pipeline_keeps_prior_runs_as_history():
         second_reset_id = runs._default.run_id
 
         assert first_reset_id != second_reset_id
-        # Both stay in _runs (in-memory session history, see list_runs()),
+        # Both stay in _runs (the session history, see list_runs()),
         # only the most recent one is _default, the one live endpoints act on.
         assert first_reset_id in runs._runs
         assert second_reset_id in runs._runs
@@ -625,3 +625,117 @@ def test_current_returns_the_live_default_run():
         assert runs._default.last_output == "stages: []\n"
     finally:
         runs._default = original
+
+
+# --- delete_run ------------------------------------------------------------------------
+
+
+@pytest.fixture
+def _registry():
+    """The registry as it was, put back after a test that adds runs to it."""
+    original = runs._default
+    yield original
+    runs._default = original
+    runs._runs.clear()
+    runs._runs[original.run_id] = original
+
+
+def _a_past_run_with_events():
+    """A run that has events, so the journal keeps it, and is no longer the current one."""
+    past = runs._default
+    past.record_event("call_started", "docs", {"platform_description": "TeamCity"})
+    runs.reset_pipeline()
+    return past
+
+
+def test_delete_run_removes_a_past_run_here_and_with_its_files_from_the_journal(_registry, journal):
+    past = _a_past_run_with_events()
+    from clients import journal_client
+
+    reserved = journal_client.reserve_attempt(past.run_id, "psm")
+    journal_client.record_attempt(past.run_id, "psm", reserved, filename="psm.ecore", content="<e/>", result={"valid": True, "issues": []})
+    assert (journal / past.run_id / "run.jsonl").is_file()
+
+    runs.delete_run(past.run_id)
+
+    assert runs.get_run(past.run_id) is None
+    assert past.run_id not in [r["run_id"] for r in runs.list_runs()]
+    assert not (journal / past.run_id).exists()
+
+
+def test_delete_run_keeps_the_other_runs(_registry, journal):
+    past = _a_past_run_with_events()
+    current = runs._default
+
+    runs.delete_run(past.run_id)
+
+    assert runs.get_run(current.run_id) is current
+    assert runs.current_run_id() == current.run_id
+
+
+def test_delete_run_refuses_the_current_run_and_removes_nothing(_registry, journal):
+    current = runs._default
+    current.record_event("call_started", "docs", {"platform_description": "TeamCity"})
+
+    with pytest.raises(runs.CurrentRunError):
+        runs.delete_run(current.run_id)
+
+    assert runs.get_run(current.run_id) is current
+    assert (journal / current.run_id / "run.jsonl").is_file()
+
+
+def test_delete_run_refuses_an_unknown_run(_registry):
+    with pytest.raises(ValueError, match="No run with id"):
+        runs.delete_run("no-such-run")
+
+
+def test_delete_run_deletes_a_run_nothing_happened_on_although_the_journal_never_held_it(_registry, journal):
+    blank = runs._default
+    runs.reset_pipeline()
+
+    runs.delete_run(blank.run_id)
+
+    assert runs.get_run(blank.run_id) is None
+
+
+def test_delete_run_keeps_a_run_a_platform_was_published_from_and_the_journals_reason_passes_through(_registry, journal):
+    from clients import journal_client
+    from clients.agent_service_errors import AgentServiceError
+
+    past = _a_past_run_with_events()
+    journal_client.publish_platform(
+        name="TeamCity", output_filename="ci.yml", output_model_name="TeamMM", metamodel="<e/>",
+        transformation="module T;", template="[m]", source_run_id=past.run_id,
+    )
+
+    with pytest.raises(AgentServiceError) as refused:
+        runs.delete_run(past.run_id)
+
+    assert refused.value.status_code == 409 and "TeamCity 1.0.0" in refused.value.detail
+    assert runs.get_run(past.run_id) is past
+    assert (journal / past.run_id / "run.jsonl").is_file()
+
+
+def test_delete_run_keeps_the_run_when_the_journal_cannot_be_reached(_registry, journal):
+    import httpx
+
+    from clients import journal_client
+
+    past = _a_past_run_with_events()
+    with patch.object(journal_client.httpx.request, "side_effect", httpx.ConnectError("refused")):
+        with pytest.raises(httpx.HTTPError):
+            runs.delete_run(past.run_id)
+
+    assert runs.get_run(past.run_id) is past
+
+
+def test_list_runs_says_when_each_run_began_and_nothing_for_a_blank_one(_registry):
+    began = runs._default
+    began.record_event("call_started", "docs", {"platform_description": "TeamCity"})
+    first_event_time = began.events[0]["timestamp"]
+    runs.reset_pipeline()
+
+    by_id = {r["run_id"]: r for r in runs.list_runs()}
+
+    assert by_id[began.run_id]["started_at"] == first_event_time
+    assert by_id[runs.current_run_id()]["started_at"] is None

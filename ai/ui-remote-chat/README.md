@@ -12,6 +12,8 @@ folder-boundaries section for the `ui-` naming convention.
 
 `ChatColumn` — the Orchestrator's own chat log, nudge input, and model picker. This is "the Orchestrator" in the UI: the chat persona/controller, not the whole 7-stage screen.
 
+The log shows each run event as a chip between the messages. Every event type the backend records has its own label and colour. A type the chat does not know yet still shows as a plain chip named after the type, so a new event type never stops the chat from loading.
+
 ## Type sharing
 
 This package depends on `orchestrator-types` (`ai/orchestrator-types`) via an ordinary local

@@ -1,70 +1,74 @@
 import pytest
 
 from generation_toolkit.attachments.files import resolve_file_attachment
-from generation_toolkit.attachments.uploads import UploadError, save_uploaded_file
+from generation_toolkit.attachments.uploads import UploadedFiles, UploadError, save_uploaded_file
+from helpers import AGENT
 
 _MAX_BYTES = 1024
 
 
-def test_saves_a_real_file_and_returns_its_relative_path(tmp_path):
-    stored_path = save_uploaded_file(tmp_path, "model.ecore", b"<ecore/>", _MAX_BYTES)
+def test_saves_a_real_file_and_returns_its_stored_name():
+    stored = save_uploaded_file(AGENT, "model.ecore", b"<ecore/>", _MAX_BYTES)
 
-    assert (tmp_path / stored_path).read_bytes() == b"<ecore/>"
+    assert UploadedFiles(AGENT).read(stored) == "<ecore/>"
 
 
 def test_saved_file_is_readable_through_resolve_file_attachment(tmp_path):
-    stored_path = save_uploaded_file(tmp_path, "model.ecore", b"<ecore/>", _MAX_BYTES)
+    stored = save_uploaded_file(AGENT, "model.ecore", b"<ecore/>", _MAX_BYTES)
 
-    assert resolve_file_attachment(stored_path, tmp_path) == "<ecore/>"
-
-
-def test_stored_name_keeps_the_real_suffix(tmp_path):
-    stored_path = save_uploaded_file(tmp_path, "model.ecore", b"x", _MAX_BYTES)
-
-    assert stored_path.endswith(".ecore")
+    assert resolve_file_attachment(stored, [tmp_path, UploadedFiles(AGENT)]) == "<ecore/>"
 
 
-def test_two_uploads_with_the_same_filename_never_collide(tmp_path):
-    first = save_uploaded_file(tmp_path, "model.ecore", b"first", _MAX_BYTES)
-    second = save_uploaded_file(tmp_path, "model.ecore", b"second", _MAX_BYTES)
+def test_stored_name_keeps_the_real_suffix():
+    stored = save_uploaded_file(AGENT, "model.ecore", b"x", _MAX_BYTES)
+
+    assert stored.endswith(".ecore")
+
+
+def test_two_uploads_with_the_same_filename_never_collide():
+    first = save_uploaded_file(AGENT, "model.ecore", b"first", _MAX_BYTES)
+    second = save_uploaded_file(AGENT, "model.ecore", b"second", _MAX_BYTES)
 
     assert first != second
-    assert (tmp_path / first).read_bytes() == b"first"
-    assert (tmp_path / second).read_bytes() == b"second"
+    assert UploadedFiles(AGENT).read(first) == "first"
+    assert UploadedFiles(AGENT).read(second) == "second"
 
 
-def test_rejects_content_over_the_size_limit(tmp_path):
+def test_rejects_content_over_the_size_limit():
     with pytest.raises(UploadError):
-        save_uploaded_file(tmp_path, "model.ecore", b"x" * (_MAX_BYTES + 1), _MAX_BYTES)
+        save_uploaded_file(AGENT, "model.ecore", b"x" * (_MAX_BYTES + 1), _MAX_BYTES)
 
 
-def test_strips_a_path_traversal_filename_down_to_its_real_basename(tmp_path):
-    stored_path = save_uploaded_file(tmp_path, "../../etc/passwd", b"x", _MAX_BYTES)
-
-    # The stored name is a real, safe basename under the root - the
-    # attempted traversal in the client-supplied name never reaches the
-    # filesystem at all, not even sanitized-in-place.
-    assert "/" not in stored_path
-    assert ".." not in stored_path
-    assert (tmp_path / stored_path).is_file()
-
-
-def test_sanitizes_shell_metacharacters_in_the_filename(tmp_path):
-    stored_path = save_uploaded_file(tmp_path, "model.ecore; rm -rf /", b"x", _MAX_BYTES)
-
-    assert (tmp_path / stored_path).is_file()
-    assert ";" not in stored_path
-    assert " " not in stored_path
-
-
-def test_rejects_an_empty_filename(tmp_path):
+def test_rejects_content_that_is_not_utf8_text():
     with pytest.raises(UploadError):
-        save_uploaded_file(tmp_path, "", b"x", _MAX_BYTES)
+        save_uploaded_file(AGENT, "model.bin", b"\xff\xfe\x00", _MAX_BYTES)
 
 
-def test_creates_the_uploads_root_if_it_does_not_exist_yet(tmp_path):
-    fresh_root = tmp_path / "not-yet-created"
+def test_strips_a_path_traversal_filename_down_to_its_real_basename():
+    stored = save_uploaded_file(AGENT, "../../etc/passwd", b"x", _MAX_BYTES)
 
-    stored_path = save_uploaded_file(fresh_root, "model.ecore", b"x", _MAX_BYTES)
+    # The stored name is a real, safe basename - the attempted traversal in the
+    # client-supplied name never reaches the journal at all, not even sanitized-in-place.
+    assert "/" not in stored
+    assert ".." not in stored
+    assert stored in UploadedFiles(AGENT).names()
 
-    assert (fresh_root / stored_path).is_file()
+
+def test_sanitizes_shell_metacharacters_in_the_filename():
+    stored = save_uploaded_file(AGENT, "model.ecore; rm -rf /", b"x", _MAX_BYTES)
+
+    assert stored in UploadedFiles(AGENT).names()
+    assert ";" not in stored
+    assert " " not in stored
+
+
+def test_rejects_an_empty_filename():
+    with pytest.raises(UploadError):
+        save_uploaded_file(AGENT, "", b"x", _MAX_BYTES)
+
+
+def test_uploads_are_kept_per_agent():
+    stored = save_uploaded_file(AGENT, "model.ecore", b"x", _MAX_BYTES)
+
+    assert UploadedFiles("another-agent").names() == []
+    assert UploadedFiles("another-agent").read(stored) is None

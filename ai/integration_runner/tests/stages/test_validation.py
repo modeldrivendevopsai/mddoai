@@ -1,18 +1,19 @@
-"""stages/_validation.py unit tests: persist_attempt() writes the real
-artifact + validator-agent result to disk under runs/<run_id>/<stage>/
-attempt_N/, never overwriting a prior attempt; raise_if_invalid() turns a
-failing result into a real raised failure carrying its issue detail. No
-real validator-agent calls here — result dicts are hand-built, matching
-what validator_agent_client would actually return.
+"""stages/_validation.py unit tests: persist_attempt() keeps the real artifact
+and validator-agent result in the journal under the run, stage and attempt,
+never overwriting a prior attempt; raise_if_invalid() turns a failing result
+into a real raised failure carrying its issue detail. No real validator-agent
+calls here, result dicts are hand-built, matching what validator_agent_client
+would actually return.
 
-RUNS_DIR is redirected to a throwaway tmp_path for every test in this whole
-suite by conftest.py's own autouse _isolated_validation_runs_dir fixture,
-not repeated here.
-"""
-import json
+The journal is the real one, in this process, over folders of each test alone
+(see conftest.py's journal fixture)."""
+import threading
 
+import httpx
 import pytest
 
+from clients import journal_client
+from clients.agent_service_errors import AgentServiceError
 from integration_runner.stages import _validation
 
 
@@ -31,81 +32,125 @@ def _failing_result():
     }
 
 
-def test_persist_attempt_writes_content_and_result_under_attempt_1():
-    attempt_dir = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "<ecore>content</ecore>", _ok_result())
-
-    assert attempt_dir == _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
-    assert (attempt_dir / "pim_mock.ecore").read_text(encoding="utf-8") == "<ecore>content</ecore>"
-    assert json.loads((attempt_dir / "result.json").read_text(encoding="utf-8")) == _ok_result()
+def _attempt(attempt):
+    return journal_client.get_attempt(attempt.run_id, attempt.stage, attempt.name)
 
 
-def test_persist_attempt_persists_a_failing_result_too():
+def test_persist_attempt_keeps_content_and_result_under_attempt_1():
+    attempt = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "<ecore>content</ecore>", _ok_result())
+
+    assert attempt == _validation.Attempt("run-1", "pim", "attempt_1")
+    assert _attempt(attempt)["artifact"] == {"filename": "pim_mock.ecore", "content": "<ecore>content</ecore>"}
+    assert _attempt(attempt)["result"] == _ok_result()
+
+
+def test_persist_attempt_keeps_a_failing_result_too():
     # A failed attempt is exactly the record this exists to keep.
-    attempt_dir = _validation.persist_attempt("run-1", "atl", "atl_mock.atl", "module M; broken", _failing_result())
+    attempt = _validation.persist_attempt("run-1", "atl", "atl_mock.atl", "module M; broken", _failing_result())
 
-    assert (attempt_dir / "atl_mock.atl").read_text(encoding="utf-8") == "module M; broken"
-    persisted = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
-    assert persisted["valid"] is False
-    assert persisted["issues"][0]["message"] == "NoSuchType: Widget"
+    kept = _attempt(attempt)
+    assert kept["artifact"]["content"] == "module M; broken"
+    assert kept["result"]["valid"] is False
+    assert kept["result"]["issues"][0]["message"] == "NoSuchType: Widget"
+
+
+def test_the_prompt_and_its_version_and_extra_files_are_kept_with_the_attempt(journal):
+    attempt = _validation.persist_attempt(
+        "run-1", "generation", "output.yaml", "a: b", _ok_result(),
+        prompt={"parts": ["x"]}, prompt_version="v7", extra_files={"psm_instance.xmi": "<xmi/>", ".ci/pipeline.yaml": "steps: []"},
+    )
+
+    kept = _attempt(attempt)
+    assert (kept["prompt"], kept["prompt_version"]) == ({"parts": ["x"]}, "v7")
+    assert (journal / "run-1" / "generation" / "attempt_1" / "psm_instance.xmi").read_text(encoding="utf-8") == "<xmi/>"
+    assert (journal / "run-1" / "generation" / "attempt_1" / ".ci" / "pipeline.yaml").is_file()
 
 
 def test_second_attempt_for_same_run_and_stage_does_not_overwrite_the_first():
     first = _validation.persist_attempt("run-1", "psm", "psm_mock.ecore", "first content", _ok_result())
     second = _validation.persist_attempt("run-1", "psm", "psm_mock.ecore", "second content", _failing_result())
 
-    assert first != second
-    assert first.name == "attempt_1"
-    assert second.name == "attempt_2"
-    assert first.exists()
-    assert (first / "psm_mock.ecore").read_text(encoding="utf-8") == "first content"
-    assert (second / "psm_mock.ecore").read_text(encoding="utf-8") == "second content"
+    assert (first.name, second.name) == ("attempt_1", "attempt_2")
+    assert _attempt(first)["artifact"]["content"] == "first content"
+    assert _attempt(second)["artifact"]["content"] == "second content"
 
 
-def test_persist_attempt_reuses_a_pre_reserved_attempt_dir_instead_of_reserving_a_new_one():
-    # atl_stage/acceleo_stage's own real shape: reserve_attempt_dir() runs
-    # first (its name is what they forward to validator_agent_client as
-    # the compiled output's own attempt scope), then that same Path is
-    # handed to persist_attempt() so it doesn't reserve a second one.
-    reserved = _validation.reserve_attempt_dir("run-1", "atl")
+def test_an_attempt_reserved_by_persist_attempt_alone_is_released_when_recording_it_fails():
+    with pytest.raises(AgentServiceError):
+        _validation.persist_attempt("run-1", "pim", "result.json", "x", _ok_result())
 
-    returned = _validation.persist_attempt(
-        "run-1", "atl", "atl_mock.atl", "module M;", _ok_result(), attempt_dir=reserved
-    )
-
-    assert returned == reserved
-    assert returned.name == "attempt_1"
-    # No second attempt_2/ was created alongside it.
-    assert not (returned.parent / "attempt_2").exists()
-    assert (returned / "atl_mock.atl").read_text(encoding="utf-8") == "module M;"
+    assert _validation.reserve_attempt("run-1", "pim").name == "attempt_1"
 
 
-def test_persist_attempt_without_attempt_dir_still_reserves_its_own_exactly_as_before():
-    # Backward compatibility: every existing caller (pim_stage, psm_stage)
-    # never passes attempt_dir, and must keep reserving its own attempt
-    # directory exactly as it always did.
-    attempt_dir = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "content", _ok_result())
+def test_an_attempt_the_caller_reserved_is_left_for_the_caller_when_recording_it_fails():
+    reserved = _validation.reserve_attempt("run-1", "pim")
 
-    assert attempt_dir == _validation.RUNS_DIR / "run-1" / "pim" / "attempt_1"
+    with pytest.raises(AgentServiceError):
+        _validation.persist_attempt("run-1", "pim", "result.json", "x", _ok_result(), attempt=reserved)
+
+    assert _validation.reserve_attempt("run-1", "pim").name == "attempt_2"
 
 
-def test_reserve_attempt_dir_is_the_real_next_attempt_dir_implementation():
-    # _next_attempt_dir is kept only as an alias for existing callers (see
-    # test_validation_concurrency.py) - both names must resolve to the
-    # exact same function object, not two copies of the same logic.
-    assert _validation._next_attempt_dir is _validation.reserve_attempt_dir
+def test_persist_attempt_uses_a_pre_reserved_attempt_instead_of_reserving_a_new_one():
+    # atl_stage/acceleo_stage reserve first (the name is what they forward to
+    # validator_agent_client as the compiled output's own attempt scope), then
+    # hand that same attempt to persist_attempt() so it does not reserve a second.
+    reserved = _validation.reserve_attempt("run-1", "atl")
+
+    returned = _validation.persist_attempt("run-1", "atl", "atl_mock.atl", "module M;", _ok_result(), attempt=reserved)
+
+    assert returned == reserved and returned.name == "attempt_1"
+    assert _validation.reserve_attempt("run-1", "atl").name == "attempt_2"
+    assert _attempt(returned)["artifact"]["content"] == "module M;"
+
+
+def test_persist_attempt_without_an_attempt_reserves_its_own():
+    attempt = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "content", _ok_result())
+
+    assert attempt == _validation.Attempt("run-1", "pim", "attempt_1")
+
+
+def test_every_recorded_attempt_is_in_the_run_manifest_in_order():
+    _validation.persist_attempt("run-1", "pim", "pim.ecore", "c", _ok_result())
+    _validation.persist_attempt("run-1", "psm", "psm.ecore", "c", _failing_result())
+
+    manifest = journal_client.get_manifest("run-1")
+
+    assert [(e["stage"], e["attempt_n"], e["valid"]) for e in manifest] == [("pim", 1, True), ("psm", 1, False)]
 
 
 def test_attempts_are_scoped_per_run_and_per_stage():
-    # Different run_id -> its own attempt_1, doesn't collide with run-1's.
     a = _validation.persist_attempt("run-1", "pim", "pim_mock.ecore", "content", _ok_result())
     b = _validation.persist_attempt("run-2", "pim", "pim_mock.ecore", "content", _ok_result())
-    # Same run, different stage -> also its own attempt_1.
     c = _validation.persist_attempt("run-1", "acceleo", "acceleo_mock.mtl", "content", _ok_result())
 
-    assert a.name == "attempt_1"
-    assert b.name == "attempt_1"
-    assert c.name == "attempt_1"
-    assert a != b != c
+    assert a.name == b.name == c.name == "attempt_1"
+    assert len({a, b, c}) == 3
+
+
+def test_attempts_reserved_at_once_never_share_a_number():
+    got = []
+    lock = threading.Lock()
+
+    def reserve():
+        attempt = _validation.reserve_attempt("run-1", "psm")
+        with lock:
+            got.append(attempt.name)
+
+    threads = [threading.Thread(target=reserve) for _ in range(12)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(got) == sorted(f"attempt_{n}" for n in range(1, 13))
+
+
+def test_the_attempt_scope_for_a_validator_is_the_stage_and_attempt_name_or_nothing():
+    attempt = _validation.Attempt("run-1", "atl", "attempt_3")
+
+    assert _validation.attempt_scope_kwargs("atl", attempt) == {"stage": "atl", "attempt": "attempt_3"}
+    assert _validation.attempt_scope_kwargs("atl", None) == {"stage": None, "attempt": None}
 
 
 def test_raise_if_invalid_does_nothing_for_a_passing_result():
@@ -128,48 +173,45 @@ def test_raise_if_invalid_handles_no_issues_gracefully():
         _validation.raise_if_invalid("atl", result)
 
 
-def test_reserved_attempt_removes_the_empty_dir_and_frees_the_number_when_the_body_raises():
-    # A transient validator/psm failure between reserving the directory and
-    # persisting anything must not strand an empty attempt_N/ or burn N.
+def test_reserved_attempt_releases_the_attempt_and_frees_the_number_when_the_body_raises():
+    # A transient validator/psm failure between reserving an attempt and
+    # recording anything must not strand an empty attempt or burn its number.
     with pytest.raises(RuntimeError, match="validator-agent went away"):
-        with _validation.reserved_attempt("run-1", "atl") as attempt_dir:
-            assert attempt_dir.is_dir()
+        with _validation.reserved_attempt("run-1", "atl") as attempt:
+            assert attempt.name == "attempt_1"
             raise RuntimeError("validator-agent went away")
 
-    assert not attempt_dir.exists()
-    # The next real attempt still gets attempt_1, not attempt_2.
-    assert _validation.reserve_attempt_dir("run-1", "atl").name == "attempt_1"
+    with pytest.raises(AgentServiceError) as error:
+        _attempt(attempt)
+    assert error.value.status_code == 404
+    assert _validation.reserve_attempt("run-1", "atl").name == "attempt_1"
 
 
-def test_reserved_attempt_removes_a_non_empty_dir_that_was_never_recorded():
-    # A failure before any result is persisted must discard the whole
-    # unrecorded attempt, not keep it just because something left the
-    # directory non-empty.
-    with pytest.raises(RuntimeError):
-        with _validation.reserved_attempt("run-1", "psm") as attempt_dir:
-            (attempt_dir / "leftover" / "nested").mkdir(parents=True)
-            raise RuntimeError("round 2 generation failed")
-
-    assert not attempt_dir.exists()
-    assert _validation.reserve_attempt_dir("run-1", "psm").name == "attempt_1"
-
-
-def test_reserved_attempt_keeps_the_dir_once_persist_attempt_has_written_to_it():
+def test_reserved_attempt_keeps_an_attempt_once_persist_attempt_has_recorded_it():
     # raise_if_invalid() raising inside the with-block after persist_attempt()
     # has run must not delete the record it just wrote.
     with pytest.raises(RuntimeError):
-        with _validation.reserved_attempt("run-1", "psm") as attempt_dir:
-            _validation.persist_attempt(
-                "run-1", "psm", "psm_mock.ecore", "content", _failing_result(), attempt_dir=attempt_dir
-            )
+        with _validation.reserved_attempt("run-1", "psm") as attempt:
+            _validation.persist_attempt("run-1", "psm", "psm_mock.ecore", "content", _failing_result(), attempt=attempt)
             raise RuntimeError("something after persist")
 
-    assert attempt_dir.is_dir()
-    assert (attempt_dir / "psm_mock.ecore").read_text(encoding="utf-8") == "content"
+    assert _attempt(attempt)["artifact"]["content"] == "content"
+
+
+def test_a_journal_that_cannot_release_the_attempt_does_not_hide_the_error_being_raised(monkeypatch, caplog):
+    def down(*args, **kwargs):
+        raise httpx.ConnectError("the journal is down")
+
+    with pytest.raises(RuntimeError, match="the real failure"):
+        with _validation.reserved_attempt("run-1", "atl"):
+            monkeypatch.setattr(journal_client.httpx.request, "side_effect", down)
+            raise RuntimeError("the real failure")
+
+    assert "could not release attempt_1" in caplog.text
 
 
 def test_reserved_attempt_yields_none_and_stays_a_noop_without_a_run_id():
     with pytest.raises(ValueError):
-        with _validation.reserved_attempt(None, "atl") as attempt_dir:
-            assert attempt_dir is None
+        with _validation.reserved_attempt(None, "atl") as attempt:
+            assert attempt is None
             raise ValueError("boom")

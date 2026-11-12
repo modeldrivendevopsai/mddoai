@@ -1,44 +1,33 @@
-import json
+"""The registry reads the platforms through the journal, which here is the real
+one over a copy of the committed platforms folder."""
+import logging
 
+import httpx
 import pytest
 
-from platform_registry import PlatformRegistry
+from clients import journal_client
+from platform_registry import PlatformsUnavailable
 from platforms import Platform
-from settings import PLATFORMS_DIR
+
+PUBLISH = {
+    "name": "Woodpecker CI",
+    "output_filename": ".woodpecker.yaml",
+    "output_model_name": "WoodMM",
+    "metamodel": "metamodel text",
+    "transformation": "transformation text",
+    "template": "template text",
+    "source_run_id": "run1",
+}
 
 
-def _write_version(directory, platform_id, version, *, name="X CI", output_filename=".x-ci.yml", meta=None):
-    folder = directory / platform_id / str(version)
-    folder.mkdir(parents=True)
-    meta = meta if meta is not None else {
-        "id": platform_id,
-        "name": name,
-        "version": version,
-        "output_filename": output_filename,
-        "output_model_name": "XMM",
-    }
-    (folder / "platform.json").write_text(json.dumps(meta), encoding="utf-8")
-    (folder / "metamodel.ecore").write_text(f"metamodel {version}", encoding="utf-8")
-    (folder / "transformation.atl").write_text(f"transformation {version}", encoding="utf-8")
-    (folder / "template.mtl").write_text(f"template {version}", encoding="utf-8")
-    return folder
+def test_the_committed_platforms_are_listed(registry):
+    gitlab = Platform("gitlab", "GitLab CI", "1.0.0", ".gitlab-ci.yml", "GitLabMM")
+
+    assert gitlab in registry.latest()
+    assert registry.get("gitlab") == gitlab
 
 
-@pytest.fixture
-def folder(tmp_path):
-    return tmp_path / "stored"
-
-
-def test_the_committed_platforms_are_listed():
-    registry = PlatformRegistry(PLATFORMS_DIR)
-
-    assert Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM") in registry.latest()
-    assert registry.get("gitlab") == Platform("gitlab", "GitLab CI", 1, ".gitlab-ci.yml", "GitLabMM")
-
-
-def test_a_platform_gives_back_its_three_files():
-    registry = PlatformRegistry(PLATFORMS_DIR)
-
+def test_a_platform_gives_back_its_three_files(registry):
     artifacts = registry.artifacts(registry.get("gitlab"))
 
     assert "module pim2gitlabmodel;" in artifacts.transformation
@@ -47,132 +36,76 @@ def test_a_platform_gives_back_its_three_files():
     assert "gitlabMM" in artifacts.metamodel
 
 
-def test_each_platform_is_offered_at_its_latest_version_by_name(folder):
-    _write_version(folder, "zeta", 1, name="Zeta CI")
-    _write_version(folder, "alpha", 1, name="alpha old")
-    _write_version(folder, "alpha", 2, name="Alpha CI")
-    registry = PlatformRegistry(folder)
+def test_the_swarch_to_pim_transformation_is_read(registry):
+    transformation = registry.pim_transformation()
 
-    assert [(p.id, p.version) for p in registry.latest()] == [("alpha", 2), ("zeta", 1)]
-    assert registry.artifacts(registry.get("alpha")).template == "template 2"
+    assert "module swarch2pim" in transformation
 
 
-def test_an_empty_or_missing_folder_offers_nothing(folder):
-    assert PlatformRegistry(folder).latest() == []
-    folder.mkdir()
-    assert PlatformRegistry(folder).latest() == []
-    assert PlatformRegistry(folder).get("gitlab") is None
+def test_each_platform_is_offered_at_its_latest_version_by_name(registry):
+    journal_client.publish_platform(**PUBLISH, version="1.0.0")
+    journal_client.publish_platform(**{**PUBLISH, "template": "newer template"}, version="1.1.0")
+
+    assert [(p.id, p.version) for p in registry.latest()] == [("gitlab", "1.0.0"), ("woodpecker-ci", "1.1.0")]
+    assert registry.artifacts(registry.get("woodpecker-ci")).template == "newer template"
 
 
-@pytest.mark.parametrize(
-    "meta",
-    [
-        "{not json",
-        "[]",
-        {"id": "x"},
-        {"id": "other", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": 7, "output_filename": ".x.yml", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": 1, "output_filename": "sub/x.yml", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": 1, "output_filename": "..", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": 1, "output_filename": "", "output_model_name": "XMM"},
-        {"id": "x", "name": None, "version": 1, "output_filename": ".x.yml", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": 1, "output_filename": ".x.yml", "output_model_name": None},
-        {"id": "x", "name": "X", "version": "1", "output_filename": ".x.yml", "output_model_name": "XMM"},
-        {"id": "x", "name": "X", "version": True, "output_filename": ".x.yml", "output_model_name": "XMM"},
-    ],
-)
-def test_a_version_without_a_usable_platform_json_is_never_listed(folder, meta):
-    version_folder = _write_version(folder, "x", 1, meta=meta if isinstance(meta, dict) else {})
-    if not isinstance(meta, dict):
-        (version_folder / "platform.json").write_text(meta, encoding="utf-8")
-    registry = PlatformRegistry(folder)
+def test_the_listing_says_what_the_platform_list_shows_and_which_can_be_purged(registry):
+    journal_client.publish_platform(**PUBLISH, version="1.0.0")
+    journal_client.publish_platform(**PUBLISH, version="1.0.1")
 
-    assert registry.latest() == []
-    assert registry.get("x") is None
+    listing = {entry["id"]: entry for entry in registry.listing()}
+
+    assert listing["gitlab"] == {
+        "id": "gitlab",
+        "name": "GitLab CI",
+        "output_filename": ".gitlab-ci.yml",
+        "version": "1.0.0",
+        "versions": ["1.0.0"],
+        "published": False,
+    }
+    assert listing["woodpecker-ci"]["version"] == "1.0.1"
+    assert listing["woodpecker-ci"]["versions"] == ["1.0.0", "1.0.1"]
+    assert listing["woodpecker-ci"]["published"] is True
+    assert "files" not in listing["woodpecker-ci"] and "source_run_id" not in listing["woodpecker-ci"]
 
 
-def test_a_version_folder_without_platform_json_is_not_listed_but_an_earlier_version_still_is(folder):
-    _write_version(folder, "x", 1)
-    unfinished = _write_version(folder, "x", 2)
-    (unfinished / "platform.json").unlink()
-
-    assert PlatformRegistry(folder).get("x").version == 1
+def test_an_unknown_platform_is_not_found(registry):
+    assert registry.get("nothing") is None
 
 
-def test_a_folder_that_is_not_a_version_number_is_ignored(folder):
-    _write_version(folder, "x", 1)
-    other = folder / "x" / "draft"
-    other.mkdir()
-    (other / "platform.json").write_text("{}", encoding="utf-8")
+def test_a_version_purged_after_the_platform_was_looked_up_is_an_error_when_its_files_are_read(registry):
+    journal_client.publish_platform(**PUBLISH)
+    platform = registry.get("woodpecker-ci")
+    journal_client.purge_platform("woodpecker-ci")
 
-    assert [p.version for p in PlatformRegistry(folder).latest()] == [1]
-
-
-@pytest.mark.parametrize("platform_id", ["", "../x", "X", "a/b", "-x", "x" * 41])
-def test_an_id_that_is_not_a_folder_name_this_registry_uses_is_never_read(folder, platform_id):
-    _write_version(folder, "x", 1)
-
-    assert PlatformRegistry(folder).get(platform_id) is None
+    with pytest.raises(ValueError, match="no longer exists"):
+        registry.artifacts(platform)
 
 
-def test_a_version_missing_one_of_its_files_is_skipped_and_the_one_before_is_used(folder):
-    _write_version(folder, "x", 1)
-    damaged = _write_version(folder, "x", 2)
-    (damaged / "template.mtl").unlink()
-    registry = PlatformRegistry(folder)
+def test_a_platform_the_journal_describes_in_a_way_this_service_cannot_use_is_skipped_and_logged(registry, monkeypatch, caplog):
+    good = {"id": "ok", "name": "Ok", "version": "1.0.0", "output_filename": "ok.yml", "output_model_name": "M"}
+    bad = {**good, "id": "bad", "output_filename": "../x"}
+    monkeypatch.setattr(journal_client, "list_platforms", lambda: [bad, good])
 
-    assert registry.get("x").version == 1
-    assert [p.version for p in registry.latest()] == [1]
+    with caplog.at_level(logging.WARNING):
+        assert [p.id for p in registry.latest()] == ["ok"]
 
-
-def test_a_version_that_is_skipped_is_logged_with_the_reason(folder, caplog):
-    damaged = _write_version(folder, "x", 1)
-    (damaged / "transformation.atl").unlink()
-
-    PlatformRegistry(folder).latest()
-
-    assert "transformation.atl is missing" in caplog.text
+    assert "ignoring platform 'bad'" in caplog.text
 
 
-def test_the_committed_swarch_to_pim_transformation_is_read():
-    transformation = PlatformRegistry(PLATFORMS_DIR).pim_transformation()
+@pytest.mark.parametrize("call", ["latest", "listing", "get", "artifacts", "pim_transformation"])
+def test_a_journal_that_cannot_be_reached_is_platforms_unavailable(registry, monkeypatch, call):
+    platform = Platform("gitlab", "GitLab CI", "1.0.0", ".gitlab-ci.yml", "GitLabMM")
+    monkeypatch.setattr(journal_client.httpx, "request", lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ConnectError("down")))
+    arguments = {"get": ("gitlab",), "artifacts": (platform,)}.get(call, ())
 
-    assert "module swarch2pim;" in transformation
-    assert "create OUT : PIMMM from IN : SWArchMM;" in transformation
-
-
-def test_the_swarch_to_pim_transformation_is_read_on_every_call(folder):
-    folder.mkdir()
-    (folder / "swarch2pim.atl").write_text("first", encoding="utf-8")
-    registry = PlatformRegistry(folder)
-    assert registry.pim_transformation() == "first"
-
-    (folder / "swarch2pim.atl").write_text("second", encoding="utf-8")
-
-    assert registry.pim_transformation() == "second"
+    with pytest.raises(PlatformsUnavailable):
+        getattr(registry, call)(*arguments)
 
 
-def test_a_missing_swarch_to_pim_transformation_is_an_error_not_an_empty_one(folder):
-    folder.mkdir()
+def test_an_answer_that_is_not_the_shape_expected_is_platforms_unavailable(registry, monkeypatch):
+    monkeypatch.setattr(journal_client, "list_platforms", lambda: [{"id": "x"}])
 
-    with pytest.raises(OSError):
-        PlatformRegistry(folder).pim_transformation()
-
-
-def test_a_file_in_the_folder_is_not_a_platform(folder):
-    _write_version(folder, "x", 1)
-    (folder / "swarch2pim.atl").write_text("not a platform", encoding="utf-8")
-
-    assert [p.id for p in PlatformRegistry(folder).latest()] == ["x"]
-
-
-def test_a_missing_folder_is_logged_as_an_error_and_offers_nothing(folder, caplog):
-    assert PlatformRegistry(folder).latest() == []
-    assert "does not exist" in caplog.text
-
-
-def test_a_folder_with_no_usable_platform_is_logged_as_an_error(folder, caplog):
-    folder.mkdir()
-
-    assert PlatformRegistry(folder).latest() == []
-    assert "holds no usable platform" in caplog.text
+    with pytest.raises(PlatformsUnavailable):
+        registry.listing()

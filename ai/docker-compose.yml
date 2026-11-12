@@ -19,12 +19,8 @@ services:
       # From the environment's config.env.
       - "${AI_LAYER_PORT:?}:8000"
 
-  # Build context is ai/ (not ./orchestrator): the image assembles 2 sibling
-  # Python packages (orchestrator/, clients/) into one container. Before
-  # integration_runner became its own service (see below), this also
-  # assembled integration_runner/ and serialization_agent/ into the same
-  # image — orchestrator/Dockerfile shrinking to one sibling copy is a real
-  # signal that split reduced coupling, not just relocated it.
+  # Build context is ai/ (not ./orchestrator): the image holds this service and
+  # the shared clients/ package in one container.
   orchestrator:
     build:
       context: .
@@ -43,10 +39,14 @@ services:
       # RETRIEVAL_URL isn't needed here.
       - AI_LAYER_URL=http://ai-layer:8000
       - INTEGRATION_RUNNER_URL=http://integration-runner:8050
+      # Where each run's chat is kept, and platforms are purged.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
       ai-layer:
         condition: service_healthy
       integration-runner:
+        condition: service_healthy
+      journal:
         condition: service_healthy
     expose:
       - "8001"
@@ -75,19 +75,18 @@ services:
       - PSM_AGENT_URL=http://psm-agent:8040
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
+      # Where each run and its attempts are kept, and a completed run's platform is published.
+      - JOURNAL_URL=http://journal:8120
       - PIM_METAMODEL_PATH=/pim_metamodel.ecore
       - PIM_SAMPLE_INSTANCE_PATH=/pim_sample_instance.pimmm
-      - INTEGRATION_RUNNER_RUNS_DIR=/data/runs
     volumes:
       # The PIM metamodel, read-only.
       - ../meta_models/com.mddoai.metamodel.pim/model/pimMM.ecore:/pim_metamodel.ecore:ro
       # A sample PIM instance: the input of the generation stage's ATL and Acceleo run.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
-      # Each run's attempts and manifest.
-      - type: bind
-        source: ${MDDOAI_RUNS_DIR:?}
-        target: /data/runs
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       retrieval:
@@ -133,21 +132,13 @@ services:
       - META_MODELS_DIR=/meta_models
       - PIM_AGENT_URL=http://pim-agent:8030
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - PSM_PROMPT_CONFIG_DIR=/data/prompts
-      - PSM_ATTACHMENT_UPLOADS_DIR=/data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     volumes:
       - ../meta_models:/meta_models:ro
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_PSM_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_PSM_ATTACHMENTS_DIR:?}
-        target: /data/attachments
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       pim-agent:
@@ -175,20 +166,11 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - ATL_AGENT_PROMPT_CONFIG_DIR=/data/prompts
-      - ATL_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
-    volumes:
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_ATL_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_ATL_ATTACHMENTS_DIR:?}
-        target: /data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       validator-agent:
@@ -211,20 +193,11 @@ services:
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
-      - ACCELEO_AGENT_PROMPT_CONFIG_DIR=/data/prompts
-      - ACCELEO_AGENT_ATTACHMENT_UPLOADS_DIR=/data/attachments
-    volumes:
-      # Prompt configs edited in the UI. The folder must already hold the starting configs.
-      - type: bind
-        source: ${MDDOAI_ACCELEO_PROMPTS_DIR:?}
-        target: /data/prompts
-        bind:
-          create_host_path: false
-      # Files uploaded as attachments.
-      - type: bind
-        source: ${MDDOAI_ACCELEO_ATTACHMENTS_DIR:?}
-        target: /data/attachments
+      # Where its prompt configs and the files uploaded as attachments are kept.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
+      journal:
+        condition: service_healthy
       ai-layer:
         condition: service_healthy
       validator-agent:
@@ -235,18 +208,15 @@ services:
   # Own container, same reasoning as pim-agent/psm-agent: a real pipeline
   # capability (the docs stage's raw output -> a PIM-concept-labeled
   # markdown artifact) gets independent deployability, not bundled into
-  # whichever process happens to call it. Calls ai-layer directly (its own
-  # extraction LLM call) and pim-agent (concept grounding).
+  # whichever process happens to call it. Calls pim-agent (concept grounding)
+  # and no model.
   serialization-agent:
     build:
       context: .
       dockerfile: serialization_agent/Dockerfile
     environment:
-      - AI_LAYER_URL=http://ai-layer:8000
       - PIM_AGENT_URL=http://pim-agent:8030
     depends_on:
-      ai-layer:
-        condition: service_healthy
       pim-agent:
         condition: service_healthy
     expose:
@@ -261,6 +231,7 @@ services:
       dockerfile: retrieval/Dockerfile
     environment:
       - AI_LAYER_URL=http://ai-layer:8000
+      - LOG_LEVEL=INFO
     expose:
       - "8010"
     # crawl4ai hardcodes --no-sandbox and --disable-dev-shm-usage into every
@@ -420,26 +391,27 @@ services:
   # add another sibling /validate/<type> route to this same service.
   validator-agent:
     build:
-      context: ./validator_agent
+      context: .
+      dockerfile: validator_agent/Dockerfile
     env_file:
       - path: ./validator_agent/.env
         required: false
     volumes:
       - main-build-output:/main-build:ro
-      # Compiled output of the validators. Nothing deletes old output.
-      - type: bind
-        source: ${MDDOAI_VALIDATOR_OUTPUT_DIR:?}
-        target: /data/output
       # The same sample PIM instance. The validators run a generated ATL/Acceleo pair
       # against it, so a pair that compiles but crashes at runtime fails in the retry loop.
       - ../main/src/test/resources/testCases/execution/gitlab/input.pimmm:/pim_sample_instance.pimmm:ro
     environment:
       - VALIDATOR_LIB_DIR=/main-build/install/com.mddoai/lib
-      - VALIDATOR_OUTPUT_DIR=/data/output
+      - LOG_LEVEL=INFO
       - ATL_SMOKE_TEST_PIM_INSTANCE_PATH=/pim_sample_instance.pimmm
+      # Where what a validator compiled is kept, with the attempt it was compiled for.
+      - JOURNAL_URL=http://journal:8120
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
+      journal:
+        condition: service_healthy
     expose:
       - "8020"
 
@@ -470,6 +442,7 @@ services:
       - main-build-output:/main-build:ro
     environment:
       - EXECUTION_LIB_DIR=/main-build/install/com.mddoai/lib
+      - LOG_LEVEL=INFO
     depends_on:
       gradle-builder:
         condition: service_completed_successfully
@@ -478,8 +451,8 @@ services:
 
   # The backend of the "Generate a CI/CD pipeline" mode: turns an uploaded
   # Software Architecture model into a pipeline for each chosen platform, by
-  # running that platform's own files (from the platforms folder it is
-  # given) through execution-agent, and checks the model (via
+  # running that platform's own files (read from the journal) through
+  # execution-agent, and checks the model (via
   # validator-agent) and the generated pipeline. UI-facing, the way
   # orchestrator is for the platform-integration mode, but with no pipeline
   # run or LLM involved.
@@ -499,32 +472,75 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      # Read on every request, so a changed file applies to the next generation.
-      - type: bind
-        source: ${MDDOAI_PLATFORMS_DIR:?}
-        target: /data/platforms
-        read_only: true
-        bind:
-          create_host_path: false
-      # What "Your pipelines" lists.
-      - type: bind
-        source: ${MDDOAI_PIPELINES_DIR:?}
-        target: /data/pipelines
     environment:
       - VALIDATOR_AGENT_URL=http://validator-agent:8020
       - EXECUTION_AGENT_URL=http://execution-agent:8090
+      # Where the platforms and the generated pipelines are kept. The platforms are read on every request, so a
+      # published version applies to the next generation.
+      - JOURNAL_URL=http://journal:8120
       - GENERATOR_WORKSPACE_DIR=/workspace
       # Shown in Browse.
       - GENERATOR_WORKSPACE_LABEL=${MDDOAI_WORKSPACE_DIR:?}
-      - GENERATOR_PIPELINES_DIR=/data/pipelines
-      - GENERATOR_PLATFORMS_DIR=/data/platforms
+      - LOG_LEVEL=INFO
     depends_on:
+      journal:
+        condition: service_healthy
       validator-agent:
         condition: service_healthy
       execution-agent:
         condition: service_healthy
     expose:
       - "8100"
+
+  # Own container: the one service that reads and writes the run, chat, platform,
+  # prompt config, attachment and pipeline folders. Every other service reaches them through its API (see
+  # clients/journal_client.py), so a change to where or how they are kept
+  # touches this service and nothing else. It knows nothing about what a run, a
+  # chat or a platform means beyond how to keep it.
+  journal:
+    build:
+      context: .
+      dockerfile: journal/Dockerfile
+    environment:
+      - JOURNAL_RUNS_DIR=/data/runs
+      - JOURNAL_CHATS_DIR=/data/chats
+      - JOURNAL_PLATFORMS_DIR=/data/platforms
+      - JOURNAL_PROMPTS_DIR=/data/prompts
+      - JOURNAL_ATTACHMENTS_DIR=/data/attachments
+      - JOURNAL_PIPELINES_DIR=/data/pipelines
+    volumes:
+      # Each run's journal and attempts.
+      - type: bind
+        source: ${MDDOAI_RUNS_DIR:?}
+        target: /data/runs
+      # Each run's chat.
+      - type: bind
+        source: ${MDDOAI_CHATS_DIR:?}
+        target: /data/chats
+      # The platforms generated for, shipped and published. It must already hold
+      # the shipped ones: Docker would create it empty.
+      - type: bind
+        source: ${MDDOAI_PLATFORMS_DIR:?}
+        target: /data/platforms
+        bind:
+          create_host_path: false
+      # The prompt configs of the agents that write prompts, a folder each. It must already
+      # hold the starting configs: Docker would create it empty.
+      - type: bind
+        source: ${MDDOAI_PROMPTS_DIR:?}
+        target: /data/prompts
+        bind:
+          create_host_path: false
+      # The files uploaded to those agents as attachments, a folder each.
+      - type: bind
+        source: ${MDDOAI_ATTACHMENTS_DIR:?}
+        target: /data/attachments
+      # The pipelines generated so far, which "Your pipelines" lists.
+      - type: bind
+        source: ${MDDOAI_PIPELINES_DIR:?}
+        target: /data/pipelines
+    expose:
+      - "8120"
 
 volumes:
   main-gradle-cache:

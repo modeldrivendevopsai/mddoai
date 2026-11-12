@@ -1,6 +1,5 @@
 import functools
 import logging
-import os
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -9,12 +8,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from clients import validator_agent_client
+from clients.required_env import required_env
 from generation import GENERATION_FAILED, generate_all
 from generation_jobs import GenerationJobs
 from pipeline_history import PipelineHistory
-from platform_registry import PlatformRegistry
+from platform_registry import PlatformRegistry, PlatformsUnavailable
 from platforms import Platform
 from routes import pipelines as pipelines_routes
+from routes import platforms as platforms_routes
 from routes import workspace as workspace_routes
 from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
 from settings import MAX_FILENAME_CHARS, MAX_MODEL_BYTES, MAX_PATH_CHARS, MAX_PIPELINE_BYTES
@@ -22,7 +23,7 @@ from swarch_inspect import Inspection, inspect_swarch
 from workspace import Workspace
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=required_env("LOG_LEVEL").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MDDOAI Pipeline Generator", strict_content_type=True)
 app.include_router(workspace_routes.router)
 app.include_router(pipelines_routes.router)
+app.include_router(platforms_routes.router)
 
 # What the validator is always told the model is called. The caller's own
 # filename never reaches it: there it would become a file name on disk, and
@@ -80,6 +82,14 @@ def readable_validation_error(_request: Request, exc: RequestValidationError) ->
     return JSONResponse(status_code=422, content={"detail": problems})
 
 
+@app.exception_handler(PlatformsUnavailable)
+def platforms_unavailable(_request: Request, exc: PlatformsUnavailable) -> JSONResponse:
+    """The journal, which keeps the platforms, did not answer. Its own error text
+    is for the log, not for the caller."""
+    logger.error("platforms unavailable: %s", exc)
+    return JSONResponse(status_code=502, content={"detail": "The platforms cannot be read right now, try again shortly."})
+
+
 def _require_size(content: str, limit: int, what: str) -> None:
     if len(content.encode("utf-8")) > limit:
         raise HTTPException(status_code=413, detail=f"{what} exceeds {limit} bytes")
@@ -116,15 +126,6 @@ def _check_model(request: ModelRequest) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.get("/platforms")
-def list_platforms(registry: PlatformRegistry = Depends(get_registry)):
-    return {
-        "platforms": [
-            {"id": p.id, "name": p.name, "output_filename": p.output_filename} for p in registry.latest()
-        ]
-    }
 
 
 @app.post("/inspect")

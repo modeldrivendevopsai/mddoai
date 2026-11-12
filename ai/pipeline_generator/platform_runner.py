@@ -1,4 +1,4 @@
-"""Generating a pipeline for a platform, from the files the registry holds.
+"""Generating a pipeline for a platform, from the files the registry reads.
 
 Three steps, each done by the service that owns it:
 
@@ -20,7 +20,7 @@ import httpx
 
 from clients import execution_agent_client
 from clients.agent_service_errors import AgentServiceError
-from platform_registry import PlatformRegistry
+from platform_registry import PlatformRegistry, PlatformsUnavailable
 from platforms import Platform
 from settings import MAX_PIPELINE_BYTES
 
@@ -57,7 +57,7 @@ def run_platform(content: str, platform: Platform, registry: PlatformRegistry) -
     try:
         artifacts = registry.artifacts(platform)
         pim_transformation = registry.pim_transformation()
-    except (OSError, ValueError) as e:
+    except (PlatformsUnavailable, ValueError) as e:
         raise PlatformRunError(f"could not read the files of platform {platform.id} v{platform.version}: {e}") from e
     try:
         pim = execution_agent_client.execute_atl_from_swarch(pim_transformation, content)
@@ -82,7 +82,7 @@ def run_platform(content: str, platform: Platform, registry: PlatformRegistry) -
             raise PlatformRunError(f"the {what} for {platform.id} exceeds {MAX_PIPELINE_BYTES} bytes")
 
     duration_ms = int((time.monotonic() - start) * 1000)
-    logger.info("run: platform=%s v%d duration_ms=%d", platform.id, platform.version, duration_ms)
+    logger.info("run: platform=%s v%s duration_ms=%d", platform.id, platform.version, duration_ms)
     return {
         "pipeline": pipeline,
         "intermediates": [

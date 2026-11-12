@@ -1,4 +1,5 @@
 """Checks the compose file against itself and the environment templates."""
+import ast
 import re
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import yaml
 AI_DIR = Path(__file__).resolve().parents[1]
 COMPOSE_FILE = AI_DIR / "docker-compose.yml"
 TEMPLATES_DIR = AI_DIR.parent / "infra" / "environments" / "templates"
+TEST_SETUP_SCRIPT = AI_DIR.parent / "infra" / "vm" / "setup" / "stages" / "60-test.sh"
 
 # The settings that name a place inside a container.
 LOCATION_SETTING = re.compile(r".*_(DIR|PATH)$")
@@ -19,14 +21,20 @@ REQUIRED_SETTING = re.compile(r"\$\{([A-Z0-9_]+):\?")
 HOST_FOLDER_SETTING = re.compile(r"^\$\{(MDDOAI_[A-Z0-9_]+):\?\}$")
 
 # Folders that must already hold content, so Docker must not create them.
-MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|[A-Z0-9]+_PROMPTS)_DIR:\?\}$")
-READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS)_DIR:\?\}$")
+MUST_HOLD_CONTENT_SETTING = re.compile(r"^\$\{MDDOAI_(WORKSPACE|PLATFORMS|PROMPTS)_DIR:\?\}$")
+READ_ONLY_FOLDER_SETTING = re.compile(r"^\$\{MDDOAI_WORKSPACE_DIR:\?\}$")
 
 # The host setting passed into a container: the workspace name Browse shows.
 ALLOWED_HOST_VALUE_IN_ENVIRONMENT = {("pipeline-generator", "GENERATOR_WORKSPACE_LABEL"): "${MDDOAI_WORKSPACE_DIR:?}"}
 
-# How a service's code asks for a folder setting it cannot start without.
-REQUIRED_IN_CODE = re.compile(r'(?:_required|required_env)\("([A-Z0-9_]+)"\)')
+# Folders that are shared libraries, not services: their settings belong to the services that use them.
+LIBRARY_FOLDERS = {"clients", "generation_toolkit"}
+# The helpers a service's code uses to ask for a setting it cannot start without.
+REQUIRED_HELPERS = {"required_env"}
+
+# Required locations that are not a host folder of the environment: they sit inside the
+# build volume, or are a read-only mount of the repo's own files.
+NOT_HOST_FOLDER_SETTINGS = {"VALIDATOR_LIB_DIR", "EXECUTION_LIB_DIR", "META_MODELS_DIR", "PIM_METAMODEL_PATH", "PIM_SAMPLE_INSTANCE_PATH"}
 
 
 def _services() -> dict:
@@ -123,21 +131,60 @@ def test_every_template_asks_for_every_setting_compose_requires(template):
     assert not missing, f"{template.parent.name}/config.env does not ask for: {sorted(missing)}"
 
 
+def _names_required_in(path: Path) -> set[str]:
+    """The settings a source file cannot start without: required_env("X"), _required("X") and
+    os.environ["X"]. A setting read with a default is not one of them."""
+    names = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in REQUIRED_HELPERS:
+            if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                names.add(node.args[0].value)
+        elif isinstance(node, ast.Subscript) and ast.unparse(node.value) == "os.environ":
+            if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
+                names.add(node.slice.value)
+    return names
+
+
+def _clients_imported_by(path: Path) -> set[str]:
+    modules = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.ImportFrom) and node.module == "clients":
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("clients."):
+            modules.add(node.module.split(".")[1])
+        elif isinstance(node, ast.Import):
+            modules.update(alias.name.split(".")[1] for alias in node.names if alias.name.startswith("clients."))
+    return modules
+
+
 def _services_whose_code_requires_settings() -> dict[str, set[str]]:
-    """The settings each service's code requires. A service's folder is named like its
-    compose service, with underscores for hyphens."""
+    """The settings each service's code cannot start without: its own, and the links of the
+    clients it imports. A service's folder is named like its compose service, with
+    underscores for hyphens."""
     found = {}
     for folder in sorted(AI_DIR.iterdir()):
-        if not folder.is_dir():
+        if not folder.is_dir() or folder.name in LIBRARY_FOLDERS:
             continue
         names = set()
         for path in folder.rglob("*.py"):
             if {"tests", ".venv", "__pycache__", "node_modules"} & set(path.parts):
                 continue
-            names.update(REQUIRED_IN_CODE.findall(path.read_text(encoding="utf-8")))
+            names.update(_names_required_in(path))
+            for client in _clients_imported_by(path):
+                client_file = AI_DIR / "clients" / f"{client}.py"
+                if client_file.exists():
+                    names.update(_names_required_in(client_file))
         if names:
             found[folder.name.replace("_", "-")] = names
     return found
+
+
+def _services_whose_code_requires_host_folders() -> dict[str, set[str]]:
+    folders = {
+        service: {name for name in names if LOCATION_SETTING.match(name) and name not in NOT_HOST_FOLDER_SETTINGS}
+        for service, names in _services_whose_code_requires_settings().items()
+    }
+    return {service: names for service, names in folders.items() if names}
 
 
 def test_there_are_services_whose_code_requires_settings():
@@ -172,7 +219,7 @@ def test_a_folder_that_must_already_hold_content_is_never_created_by_docker(serv
 
 
 @pytest.mark.parametrize("service_name,source", _mounts_matching(READ_ONLY_FOLDER_SETTING), ids=lambda argument: str(argument))
-def test_the_workspace_and_the_platforms_are_mounted_read_only(service_name, source):
+def test_the_workspace_is_mounted_read_only(service_name, source):
     mount = next(v for v in _services()[service_name]["volumes"] if isinstance(v, dict) and v.get("source") == source)
 
     assert mount.get("read_only") is True, f"{service_name}: {source} must be read_only"
@@ -233,7 +280,7 @@ def test_no_host_setting_is_used_for_two_things():
     assert len(settings) == len(set(settings)), f"shared: {sorted(s for s in set(settings) if settings.count(s) > 1)}"
 
 
-@pytest.mark.parametrize("service_name,required", sorted(_services_whose_code_requires_settings().items()), ids=lambda argument: str(argument))
+@pytest.mark.parametrize("service_name,required", sorted(_services_whose_code_requires_host_folders().items()), ids=lambda argument: str(argument))
 def test_each_required_location_is_the_target_of_its_own_host_folder_mount(service_name, required):
     service = _services()[service_name]
     targets = [
@@ -251,3 +298,82 @@ def test_each_required_location_is_the_target_of_its_own_host_folder_mount(servi
 
     assert not wrong, f"{service_name}: not the target of one of its host folder mounts: {wrong}"
     assert len(set(values.values())) == len(values), f"{service_name}: two settings name the same folder: {values}"
+
+
+def test_the_test_setup_script_fills_in_every_host_setting_compose_requires():
+    """A host setting the script does not fill in leaves the Test environment unable to build the commit that adds it."""
+    script = TEST_SETUP_SCRIPT.read_text(encoding="utf-8")
+    filled = [
+        re.compile(re.sub(r"\$\{\w+\}", "[A-Z]+", name))
+        for name in re.findall(r'set_if_empty\s+"?(MDDOAI_[A-Za-z0-9_${}]+)"?', script)
+    ]
+    required = {name for name in REQUIRED_SETTING.findall(COMPOSE_FILE.read_text(encoding="utf-8")) if name.startswith("MDDOAI_")}
+
+    missing = {name for name in required if not any(pattern.fullmatch(name) for pattern in filled)}
+
+    assert required and not missing, f"60-test.sh does not fill in: {sorted(missing)}"
+
+
+# The folders only the journal reads and writes: every other service reaches
+# what is in them through the journal's API.
+JOURNAL_FOLDER_SETTINGS = {"MDDOAI_RUNS_DIR", "MDDOAI_CHATS_DIR", "MDDOAI_PLATFORMS_DIR", "MDDOAI_PROMPTS_DIR", "MDDOAI_ATTACHMENTS_DIR", "MDDOAI_PIPELINES_DIR"}
+JOURNAL_URL = "http://journal:8120"
+
+
+def test_only_the_journal_mounts_the_folders_it_keeps_and_it_mounts_all_of_them():
+    mounted = {}
+    for name, source in _host_folder_mounts():
+        setting = HOST_FOLDER_SETTING.match(source).group(1)
+        if setting in JOURNAL_FOLDER_SETTINGS:
+            mounted.setdefault(name, set()).add(setting)
+
+    assert mounted == {"journal": JOURNAL_FOLDER_SETTINGS}
+
+
+def _services_that_call_the_journal() -> list[str]:
+    return sorted(name for name, service in _services().items() if "JOURNAL_URL" in _environment(service))
+
+
+def test_there_are_services_that_call_the_journal():
+    assert _services_that_call_the_journal()
+
+
+@pytest.mark.parametrize("service_name", _services_that_call_the_journal())
+def test_a_service_that_calls_the_journal_is_told_where_it_is_and_starts_after_it(service_name):
+    service = _services()[service_name]
+
+    assert _environment(service)["JOURNAL_URL"] == JOURNAL_URL
+    assert service["depends_on"]["journal"] == {"condition": "service_healthy"}
+
+
+# What a service's code names when it keeps something in the journal: the client itself, or the
+# shared prompt code, which keeps the service's prompt configs and uploads there.
+JOURNAL_USERS = ("journal_client", "generation_toolkit.prompt_config", "generation_toolkit.attachments.uploads")
+
+
+def _services_whose_code_uses_the_journal_client() -> list[str]:
+    found = set()
+    for folder in sorted(AI_DIR.iterdir()):
+        if not folder.is_dir() or folder.name in (*LIBRARY_FOLDERS, "journal", "tests"):
+            continue
+        for path in folder.rglob("*.py"):
+            if {"tests", ".venv", "__pycache__", "node_modules"} & set(path.parts):
+                continue
+            if any(marker in path.read_text(encoding="utf-8") for marker in JOURNAL_USERS):
+                found.add(folder.name.replace("_", "-"))
+    return sorted(found)
+
+
+def test_there_are_services_whose_code_uses_the_journal_client():
+    assert _services_whose_code_uses_the_journal_client()
+
+
+def test_every_service_whose_code_uses_the_journal_client_is_one_that_compose_tells_where_it_is():
+    assert _services_whose_code_uses_the_journal_client() == _services_that_call_the_journal()
+
+
+def test_the_journal_publishes_no_port_on_the_host():
+    journal = _services()["journal"]
+
+    assert "ports" not in journal
+    assert journal["expose"] == ["8120"]

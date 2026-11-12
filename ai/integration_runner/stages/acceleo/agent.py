@@ -49,7 +49,7 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
     # reserved_attempt() undoes the reservation if run_acceleo() raises
     # before persist_attempt() records anything.
     run_id = context.get("run_id")
-    with reserved_attempt(run_id, "acceleo") as attempt_dir:
+    with reserved_attempt(run_id, "acceleo") as attempt:
         result = acceleo_agent_client.run_acceleo(
             psm_artifact,
             docs,
@@ -60,7 +60,7 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
             # The same per-run "Mock" override docs_stage's own context["mock"]
             # already reads (see RerunOverrides.mock/StartRequest.mock).
             mock=bool(context.get("mock")),
-            **attempt_scope_kwargs("acceleo", attempt_dir),
+            **attempt_scope_kwargs("acceleo", attempt),
         )
         artifact = result["artifact"]
         persist_attempt(
@@ -69,7 +69,7 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
             _FILENAME,
             artifact,
             result["validation"],
-            attempt_dir=attempt_dir,
+            attempt=attempt,
             prompt=result.get("prompt"),
             prompt_version=result.get("prompt_version"),
         )

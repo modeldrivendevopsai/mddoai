@@ -5,7 +5,7 @@
 # import from orchestrator). Plain Python for now, same reasoning as
 # pim_agent/Dockerfile: today's real capability doesn't touch Java directly.
 # Its own real master-example .mtl file ships inside this same COPY, under
-# reference_example/ (see prompt_paths.py's own REFERENCE_EXAMPLE_PATH).
+# reference_example/ (the service's REFERENCE_EXAMPLE_PATH setting).
 FROM python:3.12-slim
 WORKDIR /app
 COPY acceleo_agent/requirements.txt ./acceleo_agent/requirements.txt

@@ -261,4 +261,41 @@ def get_tools(stage_metadata: dict) -> list["tool_calling.Tool"]:
             },
             impl=_start_pipeline_tool,
         ),
+        tool_calling.Tool(
+            name="publish_platform",
+            description=(
+                "Publish the platform this run built, so pipelines can be generated for it in the "
+                "'Generate a CI/CD pipeline' mode next to the other platforms. Only works once "
+                "every stage of the run is approved; publishing the same platform again adds a new "
+                "version, the next patch after the highest unless a version is given. Use this when "
+                "the human asks to publish, release or make the platform "
+                "available, e.g. 'publish it' or 'make this platform usable in the generator'. Do "
+                "NOT use it to approve a stage (that is stage_result)."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The platform's display name. Omit to use the run's own platform description.",
+                    },
+                    "output_filename": {
+                        "type": "string",
+                        "description": (
+                            "Which generated file is the pipeline file, as one file name. Omit when the "
+                            "generation stage produced exactly one file."
+                        ),
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": (
+                            "The version to publish as, MAJOR.MINOR.PATCH such as 1.2.0. Omit for the patch "
+                            "after the platform's highest version. A version that exists is refused."
+                        ),
+                    },
+                },
+                "required": [],
+            },
+            impl=integration_runner_client.publish,
+        ),
     ]

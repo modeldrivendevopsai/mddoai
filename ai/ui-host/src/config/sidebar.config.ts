@@ -24,6 +24,16 @@ export interface SidebarAction {
 // (engineering guess: a few seconds).
 export const SIDEBAR_POLL_INTERVAL_MS = 4000;
 
+// The runs list: what a row's delete says. Deleting cannot be undone, so it asks first.
+export const SIDEBAR_SESSIONS_COPY = {
+  deleteLabel: (name: string) => `Delete ${name}`,
+  deleteTitle: 'Delete this run',
+  confirm: 'Delete this run for good?',
+  confirmYes: 'Delete',
+  confirmNo: 'Keep',
+  deleteFailed: 'Could not delete the run.',
+} as const;
+
 // The generated-pipelines list on the "Pipelines" tab.
 export const SIDEBAR_PIPELINES_COPY = {
   label: 'Your pipelines',

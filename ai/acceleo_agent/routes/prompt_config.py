@@ -6,15 +6,17 @@ generic HTTP surface every generation-capable service exposes identically
 over it. This service only ever has one real config name, "generation" -
 _context_for below 404s on anything else.
 
-Every real path (config_dir, files_root) and the real sample context
-values a dry-run validation or a static preview needs both live here, not
-in generation_toolkit itself, which stays fully generic: it takes a
-config_dir and context_values from its caller, it has no idea this
-service's own directory layout or which context keys generation.py
-actually supplies for a real call.
+The agent name (where the journal keeps this service's configs), the
+files a "file" attachment can resolve against, and the real sample context
+values a dry-run validation or a static preview needs all live here, not
+in generation_toolkit itself, which stays fully generic: it takes an
+agent name, files_root and context_values from its caller, it has no idea
+which files this service ships or which context keys it actually supplies
+for a real call.
 """
 from fastapi import HTTPException
 
+from generation_toolkit.attachments.uploads import UploadedFiles
 from generation_toolkit.routes.prompt_config import (
     LearnedConstraintsBody,
     PromptConfigBody,
@@ -24,24 +26,16 @@ from generation_toolkit.routes.prompt_config import (
 )
 
 from generation import CONFIG_NAME
-import prompt_paths
+import prompt_settings
 
-# Every "file" attachment resolves against both real roots: the one real
-# master-example template's own directory, and a human's own uploaded
-# files (see routes/uploads.py) - generation_toolkit.attachments.files.resolve_file_attachment's
-# own multi-root support tries each in order. Built locally from
-# prompt_paths, not imported from generation.py's own copy: each module
-# that needs it builds its own from the same public source, rather than
-# one reaching into another's underscore-prefixed constant. A function,
-# not a module-level constant, and passed to PromptConfigRouter as-is (not
-# called here): PromptConfigRouter calls it fresh on every request, the
-# same reason its own config_dir argument is a getter - a test that
-# monkeypatches prompt_paths.ATTACHMENT_UPLOADS_DIR for one test (see
-# tests/conftest.py's own isolated_attachment_uploads_dir) needs this
-# rebuilt from that same module reference on every call, not once at
-# import time.
+# Every "file" attachment resolves against both places: the one real master-example
+# file's own directory, and the files a human uploaded (see routes/uploads.py). Built
+# here from prompt_settings, not imported from generation.py's copy: each module that
+# needs it builds its own from the same public source, rather than one reaching into
+# another's underscore-prefixed constant. A function, so it is read fresh on every request.
 def _files_root() -> list:
-    return [prompt_paths.REFERENCE_EXAMPLE_PATH.parent, prompt_paths.ATTACHMENT_UPLOADS_DIR]
+    return [prompt_settings.REFERENCE_EXAMPLE_PATH.parent, UploadedFiles(prompt_settings.AGENT)]
+
 
 # The real context keys generate() itself supplies for a real call (see
 # generation.py's own context_values inside generate()) - kept here, not
@@ -56,7 +50,7 @@ def _context_for(name: str) -> dict[str, str]:
     return _SAMPLE_CONTEXT_VALUES
 
 
-_prompt_config = PromptConfigRouter(lambda: prompt_paths.PROMPT_CONFIG_DIR, _files_root, _context_for)
+_prompt_config = PromptConfigRouter(prompt_settings.AGENT, _files_root, _context_for)
 router = _prompt_config.router
 
 # Re-exported under the same names this service's own tests already import

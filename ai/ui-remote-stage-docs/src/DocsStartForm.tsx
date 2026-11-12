@@ -154,7 +154,7 @@ export function DocsStartForm({ onStart }: DocsStartFormProps) {
             }}
           >
             <input type="checkbox" checked={mock} onChange={(e) => setMock(e.target.checked)} />
-            Mock (skip the real crawl, for faster local testing)
+            Mock (no crawl and no model calls: every stage returns a fixed example, so corrections change nothing)
           </label>
         </div>
       </details>

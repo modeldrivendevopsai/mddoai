@@ -9,13 +9,23 @@ each stage's own specific ones; attempts.py, generic run/attempt
 introspection), so this file doesn't grow as new stage-specific routes are
 added.
 """
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from clients.agent_service_errors import AgentServiceError
-from integration_runner.routes import acceleo, atl, attempts, core, docs, psm
+from integration_runner import runs
+from integration_runner.routes import acceleo, atl, attempts, core, docs, psm, publish
 
-app = FastAPI(title="MDDOAI Integration Runner")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    runs.load_saved()
+    yield
+
+
+app = FastAPI(title="MDDOAI Integration Runner", lifespan=lifespan)
 
 
 @app.exception_handler(AgentServiceError)
@@ -31,6 +41,7 @@ def agent_service_error_handler(request: Request, exc: AgentServiceError):
 
 
 app.include_router(core.router)
+app.include_router(publish.router)
 app.include_router(docs.router)
 app.include_router(psm.router)
 app.include_router(atl.router)

@@ -1,9 +1,11 @@
 """MDDOAI's declared LLM-tool-calling abilities, grouped by what they
 operate on, not left flat in one file: pipeline_control.py (generic,
-stage-agnostic pipeline lifecycle — run/rerun/review/constrain/restart) and
-docs.py (the docs stage's own retrieval actions). These are already two
-distinct, real groups today, that's the actual justification for the split,
-not a guess at what a future group might look like. get_tools() below is
+stage-agnostic pipeline lifecycle: run/rerun/review/constrain/restart),
+docs.py (the docs stage's own retrieval actions), platforms.py (the
+published platforms: list and purge) and runs.py (the runs there have been:
+list and delete). These are already distinct, real
+groups today, that's the actual justification for the split, not a guess at
+what a future group might look like. get_tools() below is
 the one place that assembles every group into the single list
 tool_calling.load_tools() filters by stage.
 
@@ -23,7 +25,7 @@ cached here, never a second, hardcoded copy that could drift from the real
 source.
 """
 from clients import integration_runner_client
-from tools import docs, pipeline_control
+from tools import docs, pipeline_control, platforms, runs
 
 _stage_metadata_cache: dict | None = None
 
@@ -42,5 +44,5 @@ _tools_cache: list | None = None
 def get_tools() -> list:
     global _tools_cache
     if _tools_cache is None:
-        _tools_cache = pipeline_control.get_tools(stage_metadata()) + docs.get_tools()
+        _tools_cache = pipeline_control.get_tools(stage_metadata()) + docs.get_tools() + platforms.get_tools() + runs.get_tools()
     return _tools_cache

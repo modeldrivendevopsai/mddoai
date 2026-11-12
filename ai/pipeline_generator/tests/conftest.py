@@ -1,3 +1,4 @@
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
 import atexit
 import os
 import shutil
@@ -9,19 +10,20 @@ _session_dir = Path(tempfile.mkdtemp(prefix="generator-tests-"))
 atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
 os.environ["GENERATOR_WORKSPACE_DIR"] = str(_session_dir / "workspace")
 os.environ["GENERATOR_WORKSPACE_LABEL"] = "the test workspace"
-os.environ["GENERATOR_PIPELINES_DIR"] = str(_session_dir / "pipelines")
-# The real platform files, read-only.
-os.environ["GENERATOR_PLATFORMS_DIR"] = str(Path(__file__).resolve().parents[2] / "data" / "platforms")
+os.environ.setdefault("LOG_LEVEL", "INFO")
 
 import pytest  # noqa: E402
 
 import main  # noqa: E402
+from clients.journal_testing import folders_in, journal_in_process
 from pipeline_history import PipelineHistory
 from platform_registry import PlatformRegistry
 from generation_jobs import GenerationJobs
 from routes.dependencies import get_history, get_jobs, get_registry, get_workspace
-from settings import PLATFORMS_DIR
 from workspace import Workspace
+
+# The platforms that ship with the stack.
+COMMITTED_PLATFORMS = Path(__file__).resolve().parents[2] / "data" / "platforms"
 
 
 @pytest.fixture
@@ -32,16 +34,28 @@ def workspace_dir(tmp_path):
 
 
 @pytest.fixture
-def history(tmp_path):
-    return PipelineHistory(tmp_path / "data")
+def history():
+    return PipelineHistory()
 
 
 @pytest.fixture
-def registry(tmp_path):
+def platforms_dir(tmp_path):
     """A copy of the committed platforms folder, so a test can add a platform
     or damage one without touching the committed files."""
-    shutil.copytree(PLATFORMS_DIR, tmp_path / "platforms")
-    return PlatformRegistry(tmp_path / "platforms")
+    shutil.copytree(COMMITTED_PLATFORMS, tmp_path / "platforms")
+    return tmp_path / "platforms"
+
+
+@pytest.fixture(autouse=True)
+def journal(tmp_path, platforms_dir):
+    """The real journal, over the copy of the platforms and folders of its own."""
+    with journal_in_process(folders_in(tmp_path)._replace(platforms=platforms_dir)):
+        yield
+
+
+@pytest.fixture
+def registry(journal):
+    return PlatformRegistry()
 
 
 @pytest.fixture(autouse=True)

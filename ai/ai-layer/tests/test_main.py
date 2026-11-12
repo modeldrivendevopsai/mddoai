@@ -66,10 +66,18 @@ def test_providers_reports_available_true_for_every_env_var_backed_key():
     response = client.get("/providers")
     by_name = {p["name"]: p["available"] for p in response.json()}
     assert by_name["gemini-flash"] is True
+    assert by_name["gemini-3.1-flash-lite"] is True
     assert by_name["mistral-small"] is True
     assert by_name["cerebras-120b"] is True
     assert by_name["groq-oss-120b"] is True
     assert by_name["claude"] is True
+
+
+def test_second_gemini_model_is_tried_right_after_the_first():
+    # Each Gemini model has its own per-minute budget, so the second one is placed
+    # before any other provider: a rate-limited first model falls to it first.
+    names = [m["name"] for m in main.MODELS]
+    assert names[:2] == ["gemini-flash", "gemini-3.1-flash-lite"]
 
 
 def test_providers_reports_available_false_for_a_provider_missing_its_key():

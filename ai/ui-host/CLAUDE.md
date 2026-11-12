@@ -30,6 +30,7 @@ This is the platform-integration flow.
 4. The Orchestrator narrates what happens in the chat column after every real action, automatically.
 5. The human can also type a free-form message into the nudge input, for example that a stage's output is wrong and how to fix it. An LLM decides which of the actions above it maps to.
 6. This repeats until the last stage is approved.
+7. A finished run offers **Publish**, which stores the platform the run built as a new version in the pipeline generator, so the "Generate a CI/CD pipeline" mode can generate pipelines for it.
 
 ---
 
@@ -52,7 +53,7 @@ Network calls go through `src/services/`, never directly from a component. There
 
 - **The orchestrator client** is the API client for every `ai/orchestrator` operation. It calls `/orchestrator-api/*` on this app's own origin, which ui-host's proxy forwards (the orchestrator is internal-only in `docker-compose.yml`). `ai/orchestrator` is itself what talks to `ai-layer` and `ai/retrieval` (see `ai/README.md`), so ui-host never calls either directly. Its function names mirror the orchestrator's real Python function and endpoint names one to one. That is a deliberate exception to the naming note above: they name the backend calls being wrapped, not the UI mode.
 - **The generator client** is the API client for the generate mode. It calls `/generator-api/*`, which the proxy forwards to `ai/pipeline_generator`, also internal-only. It is separate from the orchestrator client on purpose: that mode has no run, chat or stages, so it is not reached through `ai/orchestrator`. Its types live in its own file, not in `orchestrator-types`, which is the orchestrator's own contract.
-- **The sessions client** gives real session history, backed by the orchestrator's run-history endpoint (in memory, for the life of that process, see Session history below).
+- **The sessions client** gives real session history, backed by the orchestrator's run-history endpoint (see Session history below).
 - **The platforms client** returns mock data for the supported-platforms list. It is not yet backed by a real API.
 
 The `orchestrator-types` package (`ai/orchestrator-types`, a sibling package like `design-system`) mirrors the orchestrator's REST contract, its stage list, its event shape and its run-history shape. It is the source of truth for that contract across this host and every `ui-remote-*` package. See `ai/orchestrator/README.md` for the backend's own description of it.
@@ -76,9 +77,13 @@ See `ai/CLAUDE.md` for cross-service folder boundaries.
 
 ## Session history
 
-The sidebar's "Open sessions" list shows real data. The sessions client calls the orchestrator's `GET /runs`, which lists every run that backend process has seen, newest first. It is in memory only: the list is gone on a backend restart, and there is no database.
+The sidebar's "Open sessions" list shows real data. The sessions client calls the orchestrator's `GET /runs`, which lists every run, newest first. The integration runner keeps its runs on disk, so the list survives a restart.
 
 The list is polled on an interval (the generated-pipelines list shares it), not fetched once per tab switch. Which run is current, and the list itself, both change from actions taken entirely on the integration screen (starting, approving, resetting, resuming). The sidebar has to notice those on its own, not only when its own tab is clicked.
+
+A row has two lines: the platform's name, and under it the stage the run is at and how long ago it began, such as "PSM, 2 hours ago". Runs of one platform are told apart by that second line.
+
+A row's cross deletes the run for good. It asks first, in the row itself ("Delete this run for good?" with Delete and Keep), because a deleted run cannot be brought back. The current run has no cross: it is open on screen, so it is restarted or left, not deleted. The backend refuses a run a platform was published from, and the row shows its reason (remove that platform first). A run the person deleted stays out of the list even if a poll that began before the delete answers late.
 
 Clicking a row opens the integration screen with that run's id in the URL (`?run=<run_id>`), which the screen passes to the integration hook.
 
@@ -138,6 +143,6 @@ Loading a `ui-remote-*` piece works like this. The **browser** fetches each remo
 
 - Not a generic chatbot template. Every action maps to a real `ai/orchestrator` operation. There is no conversation independent of the run.
 - Not connected to `ai-layer` or `ai/retrieval` directly from this app. It always goes through `ai/orchestrator`. It also talks to `ai/pipeline_generator`, for the generate mode only.
-- Not yet decided: real (persistent, cross-restart) session history. Today's is deliberately in memory only, scoped to one backend process (see Session history above). Do not build a database or persistence layer for it ahead of a real decision. The supported-platforms list is still mock data, unrelated to session history. It shows a status and a name per platform and no per-platform actions, because there is no real data behind them yet. Add an action only when it works.
+- The supported-platforms list is still mock data, unrelated to session history. It shows a status and a name per platform and no per-platform actions, because there is no real data behind them yet. Add an action only when it works.
 - Not a place for generate-mode sessions: that mode has no run to resume. The sidebar's Pipelines tab instead lists the generated pipelines, newest first, each with the platforms it was made for and the files that came out. The list is kept by `ai/pipeline_generator`, not by this app. Opening one is the caller's to route, so the list component knows nothing about routes.
 - Not a production deployment: the stack runs on one machine for development and review, with no TLS and no authentication in front of it (see `ai/README.md`).

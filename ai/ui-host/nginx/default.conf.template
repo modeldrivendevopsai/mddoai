@@ -85,7 +85,16 @@ server {
     }
 
     # The generator's API, the backend of the "Generate a CI/CD pipeline" mode.
+    # Reads pass through, and so do the writes the generate mode makes. Any other
+    # write is for the services behind this proxy. nginx matches the decoded
+    # path, so another spelling of it is refused too.
     location /generator-api/ {
+        limit_except GET HEAD { deny all; }
+        set $generator ${GENERATOR_UPSTREAM};
+        rewrite ^/generator-api/(.*)$ /$1 break;
+        proxy_pass http://$generator;
+    }
+    location ~ ^/generator-api/(inspect|generate|validate)$ {
         set $generator ${GENERATOR_UPSTREAM};
         rewrite ^/generator-api/(.*)$ /$1 break;
         proxy_pass http://$generator;

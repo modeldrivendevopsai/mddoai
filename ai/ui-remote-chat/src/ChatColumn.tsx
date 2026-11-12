@@ -293,7 +293,15 @@ function MessageLine({ event }: { event: OrchestratorEvent }) {
 // are our own, sized for a real event's full data (a click target, not just
 // a hover tooltip), centered in the log like a system message rather than
 // left-aligned like the chat bubbles around it.
-const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot: string; label: string; pulse?: boolean }> = {
+interface EventStatus {
+  bg: string
+  fg: string
+  dot: string
+  label: string
+  pulse?: boolean
+}
+
+const EVENT_STATUS: Record<OrchestratorEventType, EventStatus> = {
   call_started: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Started", pulse: true },
   call_completed: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Completed" },
   call_failed: { bg: "var(--danger-100)", fg: "var(--danger-500)", dot: "var(--danger-500)", label: "Failed" },
@@ -312,6 +320,12 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   // config's own "Permanent constraints" list - distinct from
   // constraint_added's own per-run, ephemeral correction above.
   constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Added to Permanent constraints" },
+  // The completed run's platform stored as a new version in the pipeline
+  // generator, so pipelines can be generated for it.
+  platform_published: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Platform published" },
+  // The run was made by forking an earlier run at this stage, so what came
+  // before the stage is that run's own output.
+  forked_from: { bg: "var(--brand-faint)", fg: "var(--text-muted)", dot: "var(--text-faint)", label: "Forked at" },
   // A dispatched tool call's own real arguments and result, recorded when
   // a chat message is answered. Distinct from the "message" turn right after
   // it, which is just the AI's own prose summary of what it just did.
@@ -323,9 +337,42 @@ const EVENT_STATUS: Record<OrchestratorEventType, { bg: string; fg: string; dot:
   user_message: { bg: "", fg: "", dot: "", label: "" },
 }
 
+// What an event this chat does not know gets: a plain, neutral chip named after
+// its type. The backend can record a type before this chat learns it, and one
+// unknown or malformed event must not take the whole column down.
+const UNKNOWN_EVENT_STATUS: EventStatus = {
+  bg: "var(--brand-faint)",
+  fg: "var(--text-muted)",
+  dot: "var(--text-faint)",
+  label: "unknown event",
+}
+
+// A constraint the validator's errors produced, as against a correction a
+// person typed: neutral, since nobody did anything.
+const LEARNED_FIX_STATUS: EventStatus = {
+  bg: "var(--brand-faint)",
+  fg: "var(--text-muted)",
+  dot: "var(--text-faint)",
+  label: "Fix learned",
+}
+
+function statusFor(event: OrchestratorEvent): EventStatus {
+  const type: unknown = event.type
+  if (type === "constraint_added" && event.data?.source === "validation") return LEARNED_FIX_STATUS
+  // Own properties only: a type named like an Object method (constructor,
+  // toString) must not resolve to one.
+  if (typeof type === "string" && Object.prototype.hasOwnProperty.call(EVENT_STATUS, type)) {
+    return EVENT_STATUS[type as OrchestratorEventType]
+  }
+  return typeof type === "string" ? { ...UNKNOWN_EVENT_STATUS, label: type.replace(/_/g, " ") } : UNKNOWN_EVENT_STATUS
+}
+
 function eventSummary(event: OrchestratorEvent): string | undefined {
   const data = event.data
   if (!data) return undefined
+  if (event.type === "forked_from") {
+    return typeof data.source_run_id === "string" ? `From run ${data.source_run_id}` : undefined
+  }
   if (event.type === "call_failed" || event.type === "message_failed") {
     return typeof data.error === "string" ? data.error : undefined
   }
@@ -339,7 +386,7 @@ function eventSummary(event: OrchestratorEvent): string | undefined {
 
 function EventChip({ event }: { event: OrchestratorEvent }) {
   const [expanded, setExpanded] = useState(false)
-  const s = EVENT_STATUS[event.type]
+  const s = statusFor(event)
   const summary = eventSummary(event)
   const hasDetails = Boolean(event.data && Object.keys(event.data).length > 0)
 
@@ -351,6 +398,10 @@ function EventChip({ event }: { event: OrchestratorEvent }) {
           flexDirection: "column",
           gap: "var(--space-2)",
           width: "min(420px, 90%)",
+          // A flex child does not shrink below its content: without this a long
+          // unbroken name (a class path in an engine error) pushed the chip out
+          // of the column.
+          minWidth: 0,
           padding: "var(--space-3) var(--space-4)",
           borderRadius: "var(--radius-lg)",
           background: s.bg,
@@ -383,7 +434,16 @@ function EventChip({ event }: { event: OrchestratorEvent }) {
         </div>
 
         {summary && (
-          <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--text-xs)",
+              color: "var(--text-muted)",
+              // Dots and brackets are not break points, so a class path in an
+              // error message needs permission to break anywhere.
+              overflowWrap: "anywhere",
+            }}
+          >
             {summary}
           </span>
         )}

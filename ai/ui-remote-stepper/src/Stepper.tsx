@@ -1,21 +1,14 @@
 import type { CSSProperties } from "react"
-import { STAGES } from "orchestrator-types"
+import { STAGES, STAGE_LABELS } from "orchestrator-types"
 import type { StageId } from "orchestrator-types"
 
 // Drives entirely off the backend's own real STAGES list, same as
 // types.ts. PIM used to be a fixed, permanently "not yet implemented" node
 // hardcoded here (ai/orchestrator's STAGES had no "pim" entry); now that
 // pim_agent is a real stage agent like psm/atl/acceleo, it needs no special
-// case, it's just another entry in STAGES.
-const LABELS: Record<StageId, string> = {
-  docs: "Docs",
-  serialization: "Serialization",
-  pim: "PIM",
-  psm: "PSM",
-  atl: "ATL",
-  acceleo: "Acceleo",
-  generation: "Generation + Test",
-}
+// case, it's just another entry in STAGES. The names come from orchestrator-types,
+// the same ones every other screen uses.
+const LABELS = STAGE_LABELS
 
 type NodeStatus = "pending" | "generating" | "reviewing" | "done"
 

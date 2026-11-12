@@ -10,16 +10,15 @@ always a normal 200 response, never something to branch on via an
 exception). A genuine infra failure (execution-agent unreachable, its own
 subprocess crashed) still surfaces as a raw httpx error.
 """
-import os
-
 import httpx
 
 from clients.agent_service_errors import raise_for_business_error
+from clients.required_env import required_env
 
-EXECUTION_AGENT_URL = os.environ.get("EXECUTION_AGENT_URL", "http://localhost:8090")
+EXECUTION_AGENT_URL = required_env("EXECUTION_AGENT_URL")
 # Comfortably above execution-agent's own default execution timeout so a
 # real subprocess run never gets cut off from this side first.
-EXECUTE_TIMEOUT = float(os.environ.get("EXECUTE_TIMEOUT", "90.0"))
+EXECUTE_TIMEOUT = 90.0
 
 
 def _execute_request(path: str, payload: dict) -> dict:

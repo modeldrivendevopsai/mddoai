@@ -1,11 +1,17 @@
+from contextlib import asynccontextmanager
+
+import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import assistant
 import chat_log
-from clients import ai_layer_client, integration_runner_client
+from chat_store import ChatStore
+from clients import ai_layer_client, integration_runner_client, journal_client
+from clients.agent_service_errors import AgentServiceError
 from clients.integration_runner_client import IntegrationRunnerError
+from run_removal import remove_run
 
 # Every new raw pipeline event chat_log notices gets narrated via the
 # wired-in reactor (see chat_log.set_reactor()'s own docstring for why this
@@ -13,7 +19,14 @@ from clients.integration_runner_client import IntegrationRunnerError
 # startup, not as a side effect of importing assistant.py elsewhere.
 chat_log.set_reactor(assistant.react_to_event)
 
-app = FastAPI(title="MDDOAI Orchestrator")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    chat_log.load_saved(ChatStore())
+    yield
+
+
+app = FastAPI(title="MDDOAI Orchestrator", lifespan=lifespan)
 
 
 @app.exception_handler(IntegrationRunnerError)
@@ -23,6 +36,13 @@ def integration_runner_error_handler(request: Request, exc: IntegrationRunnerErr
     lets every endpoint stay a plain, thin forwarding call. Reconstructs
     the real status code and message integration_runner itself reported,
     rather than degrading to a generic httpx error string."""
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(AgentServiceError)
+def journal_error_handler(request: Request, exc: AgentServiceError):
+    """The journal's own refusals (an unknown platform, a platform that came
+    with the stack), passed on with the status and reason it gave."""
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
@@ -120,6 +140,15 @@ def resume_endpoint(run_id: str):
     return integration_runner_client.resume_run(run_id)
 
 
+@app.delete("/runs/{run_id}")
+def delete_run_endpoint(run_id: str):
+    """Deletes a past run for good: its history, its chat and the files of its
+    attempts, the same action as the delete_run chat tool. 404 for an unknown
+    run, 409 for the current run or a run a platform was published from, with
+    the reason, surfaced via IntegrationRunnerError."""
+    return remove_run(run_id)
+
+
 class ForkRequest(BaseModel):
     source_run_id: str
     from_stage: str
@@ -135,6 +164,65 @@ def fork_endpoint(request: ForkRequest):
     that isn't real or that source_run never actually reached, both
     surfaced via IntegrationRunnerError."""
     return integration_runner_client.fork_run(request.source_run_id, request.from_stage)
+
+
+class PublishRequest(BaseModel):
+    name: str | None = None
+    output_filename: str | None = None
+    # MAJOR.MINOR.PATCH. Unset means the patch after the platform's highest version.
+    version: str | None = None
+    # The run the page shows. Publishing is refused if it is no longer the current one.
+    run_id: str | None = None
+
+
+@app.get("/publish")
+def publish_defaults_endpoint():
+    """What /publish would use for the current run when given nothing."""
+    return integration_runner_client.get_publish_defaults()
+
+
+@app.post("/publish")
+def publish_endpoint(request: PublishRequest):
+    """Publishes the current, completed run's platform: the same action as the
+    publish_platform chat tool."""
+    try:
+        return integration_runner_client.publish(request.name, request.output_filename, request.run_id, request.version)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Publishing is unavailable right now, try again shortly.")
+
+
+_PLATFORMS_UNAVAILABLE = "The platforms cannot be reached right now, try again shortly."
+
+
+@app.get("/platforms")
+def list_platforms_endpoint():
+    """Each platform at its latest version, with the versions it has and whether
+    it was published from a run (which is what can be purged)."""
+    try:
+        return {"platforms": journal_client.list_platforms()}
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_PLATFORMS_UNAVAILABLE)
+
+
+@app.delete("/platforms/{platform_id}")
+def purge_platform_endpoint(platform_id: str):
+    """Purges every version of a published platform: the same action as the
+    purge_platform chat tool with no version. A platform that came with the
+    stack is refused with 409."""
+    try:
+        return {"purged": journal_client.purge_platform(platform_id)}
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_PLATFORMS_UNAVAILABLE)
+
+
+@app.delete("/platforms/{platform_id}/versions/{version}")
+def purge_platform_version_endpoint(platform_id: str, version: str):
+    """Purges one version of a published platform: the same action as the
+    purge_platform chat tool with a version."""
+    try:
+        return {"purged": journal_client.purge_platform(platform_id, version)}
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_PLATFORMS_UNAVAILABLE)
 
 
 @app.get("/providers")

@@ -46,16 +46,16 @@ then used, not held open in between.
 - **Reading.** `GET /workspace/browse` lists a folder (for the Browse dialog). `GET /workspace/file`
   returns a model file's text, so it loads exactly like an upload. Every folder and regular file
   is listed by name, so a person can see what is in the workspace. Only `.swarch` files are read,
-  and only up to `GENERATOR_MAX_MODEL_BYTES`. Other files are never opened. Links that leave the
+  and only up to the largest model size (`MAX_MODEL_BYTES` in `settings.py`). Other files are never opened. Links that leave the
   workspace are not listed.
 - **No writing.** Nothing is ever written into the workspace. A generated pipeline is shown and
   downloaded in the browser, and kept in the pipeline history.
 
 ## The pipeline history
 
-Each successful generation is recorded under `GENERATOR_PIPELINES_DIR` (in Docker, the
-pipelines folder set in `config.env`, see [ai/README.md](../README.md)'s "Where
-files live"), one folder per pipeline named by a random id, holding the generation as real files:
+Each successful generation is recorded by the journal (the pipelines folder set in `config.env`, see
+[ai/README.md](../README.md)'s "Where files live"), one folder per pipeline named by a random id,
+holding the generation as real files:
 
 ```
 <pipeline-id>/
@@ -74,14 +74,15 @@ then put in place, so the list never shows a pipeline whose files are not all th
 
 ## The platforms
 
-The platforms are in the folder `GENERATOR_PLATFORMS_DIR` names (in Docker, the platforms folder set
-in `config.env`, mounted read-only). The repository ships the starting platform in
-`ai/data/platforms`:
+The platforms are kept by the journal, which this service asks on every request, so a platform
+published or purged applies to the next generation and this service holds no copy. The repository
+ships the starting platform in `ai/data/platforms`, which the journal's platforms folder is set to
+hold:
 
 ```
 platforms/
   swarch2pim.atl                the transformation every platform starts with
-  <platform-id>/<version>/
+  <platform-id>/<version>/      the version is MAJOR.MINOR.PATCH, such as 1.2.0
     metamodel.ecore             the platform's metamodel
     transformation.atl          the transformation from the PIM to the platform's model
     template.mtl                the Acceleo template from that model to the pipeline file
@@ -90,10 +91,15 @@ platforms/
                                 `create OUT : GitLabMM from IN : PIM;`)
 ```
 
-Generation uses each platform's latest version. A version without a usable `platform.json`, or
-missing one of its files, is skipped with a log line, and the version before it is used. The files
-are read on every request, so a changed file applies to the next generation. Nothing else is read
-to run a platform.
+Generation uses each platform's latest version, its highest. A version without a usable
+`platform.json`, or missing one of its files, is skipped by the journal with a log line, and the
+version before it is used. Nothing else is read to run a platform. `GET /platforms` offers each
+platform at its latest version, with the versions it has and whether it was published, which is
+what can be purged. If the journal cannot be reached, a request that needs a platform is a `502`.
+
+`integration_runner` publishes a completed run's platform to the journal, and the orchestrator
+purges one. Both are the journal's API: see [journal/README.md](../journal/README.md) for versions,
+what a publish refuses, and what a purge may remove.
 
 These files belong to this service and are changed here. They do not follow `main/`, which is a
 separate codebase. A changed file applies to the next generation. A missing folder, or one
@@ -118,7 +124,7 @@ service's error text goes to the log, never to the caller.
 | Endpoint | Purpose |
 |---|---|
 | `GET /health` | Used by the Dockerfile's `HEALTHCHECK`. |
-| `GET /platforms` | The platforms in the registry, at their latest versions: `id`, `name`, `output_filename`. |
+| `GET /platforms` | The platforms, at their latest versions: `id`, `name`, `output_filename`, `version`, `versions` (all it has), `published` (false for one that came with the stack). `502` if the journal cannot be reached. |
 | `POST /inspect` | Body: `filename`, `content`. Returns `element`, `attributes` (name and value, in file order) and `model_validation` (`valid` plus `issues`). An invalid model is a normal `200` answer. |
 | `POST /generate` | Body: `filename`, `content`, `platforms` (one or more ids), optional `source_path`. Checks the request, answers `202` with a `job_id`, and generates afterwards. |
 | `GET /generate/{job_id}` | The generation's `state`: `running`, `failed` (with a generic `error`; the cause is in the service log) or `done`. A done job has `pipeline_id` (null if nothing was recorded) and `results`, one per platform, each with `platform`, `output_filename`, `pipeline`, `intermediates`, `duration_ms` and `error`. One platform failing is reported in its own entry and does not discard the others. |
@@ -134,9 +140,9 @@ service's error text goes to the log, never to the caller.
 | `/generate` accepted the request | `202` |
 | `/generate` given a model that fails validation (the response lists the issues) | `422` |
 | A generation job that is unknown, for example lost in a restart (jobs are kept in memory only; the pipeline history is not) | `404` |
-| Unsupported platform, a path outside the workspace, or a malformed body | `422` |
+| Unsupported platform, a path outside the workspace, a platform that cannot be published, or a malformed body | `422` |
 | A workspace path that names no file or folder | `404` |
-| Content or a workspace file over the size limit | `413` |
+| Content, a published file or a workspace file over the size limit | `413` |
 | `validator_agent` unreachable | `502` |
 | The workspace folder is not mounted | `503` |
 | A workspace file or folder could not be read or listed | `500`, with a generic message (the cause is in the service log) |
@@ -158,22 +164,22 @@ checked.
 
 ## Configuration
 
-The folder settings are required: the service stops at start if one is unset or empty. Outside
-Docker, export them in your shell (names in `.env.example`). Every other setting has a default.
+Every setting here is required, with no default: the service stops at start if one is unset or empty.
+Docker Compose sets them in the container. Outside Docker, export them in your shell (names in
+`.env.example`).
 
 | Variable | Meaning |
 |---|---|
-| `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` | Where `validator_agent` and `execution_agent` are reached. |
-| `GENERATOR_MAX_RUNNING_JOBS` | How many generations run at once. The rest wait their turn. |
-| `GENERATOR_MAX_FINISHED_JOBS` | How many finished generations are kept for their callers to fetch. |
 | `LOG_LEVEL` | Logging verbosity. |
-| `GENERATOR_WORKSPACE_DIR` | Required. The workspace folder (see above). In Docker it is `/workspace`. |
-| `GENERATOR_WORKSPACE_LABEL` | Required. How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
-| `GENERATOR_PIPELINES_DIR` | Required. Where the pipeline history is kept. |
-| `GENERATOR_PLATFORMS_DIR` | Required. The platforms folder (see above). In Docker it is `/data/platforms`. |
-| `GENERATOR_MAX_PIPELINES` | How many generated pipelines are kept. The oldest are forgotten beyond it. |
-| `GENERATOR_MAX_MODEL_BYTES` | The largest uploaded or workspace model accepted. |
-| `GENERATOR_MAX_PIPELINE_BYTES` | The largest pipeline a template may produce, and the largest `/validate` accepts. `validator_agent`'s own `MAX_PIPELINE_BYTES` must be at least as large, or it refuses a pipeline this service accepted (the answer is then `413`). |
+| `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL`, `JOURNAL_URL` | Where `validator_agent`, `execution_agent` and the journal are reached. |
+| `GENERATOR_WORKSPACE_DIR` | The workspace folder (see above). In Docker it is `/workspace`. |
+| `GENERATOR_WORKSPACE_LABEL` | How the Browse dialog names the workspace folder. Compose sets it to the host folder. |
+
+The limits this service holds itself to are named constants in `settings.py`, the same in every
+environment: how many generations run at once, how many finished jobs and pipelines are kept, and the
+largest model and the largest pipeline accepted. The largest pipeline must not be above
+`validator_agent`'s own limit for what it checks, or that service refuses a pipeline this one accepted
+(the answer is then `413`). A test checks the two agree.
 
 In Docker, `ai/docker-compose.yml` sets the services' addresses and the folder settings, and mounts the folders.
 
@@ -184,13 +190,11 @@ cd ai/pipeline_generator
 pip install -r requirements.txt
 export GENERATOR_WORKSPACE_DIR=/path/to/your/models
 export GENERATOR_WORKSPACE_LABEL=/path/to/your/models
-export GENERATOR_PIPELINES_DIR=/path/to/a/folder
-export GENERATOR_PLATFORMS_DIR=$PWD/../data/platforms
 PYTHONPATH=.:.. uvicorn main:app --port 8100
 pytest
 ```
 
-The `export` lines are the required folder settings. `pytest` needs none.
+The `export` lines are the required settings. `LOG_LEVEL` and the links `VALIDATOR_AGENT_URL`, `EXECUTION_AGENT_URL` and `JOURNAL_URL` are required too, and the journal must be running. None has a default: Docker Compose sets them, and the service stops at start without one. `pytest` needs none: it runs the real journal in its own process.
 
 `pytest` alone runs the fast suite on any machine. The real-service tests run the committed GitLab
 platform through a real `execution_agent`, and skip themselves unless it answers. Inside this
@@ -198,8 +202,9 @@ service's container in the running stack they do.
 
 ## Adding a platform
 
-Add `<platform-id>/<version>/` to the platforms folder, holding each file listed in the layout
-above. To ship it with the repository, add it under `ai/data/platforms` and commit it.
+Publish it from an integration run, or add `<platform-id>/<version>/` to the platforms folder, holding each
+file listed in the layout above. To ship it with the repository, add it under `ai/data/platforms` and
+commit it. A version that is shipped is never purged.
 
 ## Boundaries
 
@@ -209,10 +214,13 @@ is who can reach the UI: `docker-compose.yml` publishes the UI's port on this ma
 who can reach it can list the workspace's folders and files and read its `.swarch` files, so mount
 a folder you are comfortable exposing that way.
 
-The platforms folder is trusted input. Its transformations and templates are compiled and run by
-`execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to it is
-reviewed like any other code change. Docker Compose mounts the folder read-only, and no route
-of this service writes to it.
+The platforms are trusted input. Their transformations and templates are compiled and run by
+`execution_agent`, and an Acceleo template can call Java code (`invoke`), so a change to them is
+reviewed like any other code change. Only the journal writes the platforms: when a completed
+integration run's platform is published, and when a published version is purged. Anyone who can reach
+the UI can start either, from a finished run or the Published platforms list. Publishing never changes an
+earlier version, and a platform name that already belongs to another platform is refused. A version
+that came with the stack is never purged.
 
 This service runs no Java code and reads nothing from `main/`. It reaches `validator_agent` and
 `execution_agent` through the shared `clients/` package, like every other service.

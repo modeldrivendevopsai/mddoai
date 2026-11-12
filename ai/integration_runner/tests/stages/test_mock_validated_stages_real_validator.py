@@ -21,12 +21,10 @@ autouse fixture, only the validator-agent HTTP call is real here, not the
 on-disk persistence path, which the mocked tests in
 test_mock_validated_stages.py already cover directly.
 """
-import json
-
 import httpx
 import pytest
 
-from clients import validator_agent_client
+from clients import journal_client, validator_agent_client
 from integration_runner.stages import _validation
 from integration_runner.stages import pim
 
@@ -50,9 +48,9 @@ def test_real_end_to_end_validation_passes_and_persists():
 
     assert output  # the project's own real PIM metamodel content, unchanged on success
 
-    attempt_dir = _validation.RUNS_DIR / "real-run" / "pim" / "attempt_1"
-    assert (attempt_dir / pim.agent._FILENAME).exists()
-    result = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
+    kept = journal_client.get_attempt("real-run", "pim", "attempt_1")
+    assert kept["artifact"]["filename"] == pim.agent._FILENAME
+    result = kept["result"]
     assert result["valid"] is True, f"real validator-agent rejected the real PIM metamodel: {result['issues']}"
     assert result["issues"] == []
     assert result["duration_ms"] >= 0
@@ -87,10 +85,9 @@ def test_real_end_to_end_validation_fails_and_still_persists_for_genuinely_broke
     assert any("NoSuchType" in issue["message"] for issue in result["issues"])
 
     # A failed attempt is exactly the record this exists to keep.
-    attempt_dir = _validation.RUNS_DIR / "real-run-broken" / "pim" / "attempt_1"
-    assert (attempt_dir / pim.agent._FILENAME).read_text(encoding="utf-8") == broken_content
-    persisted = json.loads((attempt_dir / "result.json").read_text(encoding="utf-8"))
-    assert persisted["valid"] is False
+    kept = journal_client.get_attempt("real-run-broken", "pim", "attempt_1")
+    assert kept["artifact"] == {"filename": pim.agent._FILENAME, "content": broken_content}
+    assert kept["result"]["valid"] is False
 
     with pytest.raises(RuntimeError, match="NoSuchType"):
         _validation.raise_if_invalid("pim", result)

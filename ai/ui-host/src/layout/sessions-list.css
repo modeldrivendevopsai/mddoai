@@ -44,12 +44,34 @@
   border-color: var(--brand);
   box-shadow: 0 0 0 1px var(--brand);
 }
+/* The chat on screen: a filled row, so it reads at a glance among the tinted ones. */
+.mdd-sessions__item--platform.is-selected {
+  background: var(--brand-subtle);
+}
+.mdd-sessions__item--platform.is-selected .mdd-sessions__name {
+  font-weight: 600;
+}
 .mdd-sessions__item.is-attention {
   border-color: var(--danger-500);
 }
 
-.mdd-sessions__name {
+/* A run's row: its delete confirm drops to a line of its own under the text. Not on
+   the shared row class, because a wrapping flex line is as wide as its widest item,
+   so a row whose text does not wrap would grow past its box. */
+.mdd-sessions__item--run {
+  flex-wrap: wrap;
+}
+
+/* The name and, under it, where the run is and when it began. */
+.mdd-sessions__text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mdd-sessions__name {
   font-size: var(--text-xs);
   color: var(--text-strong);
   overflow: hidden;
@@ -95,4 +117,47 @@
 .mdd-sessions__close:hover {
   color: var(--danger-500);
   background: var(--danger-100);
+}
+
+/* A refusal, with the backend's reason. */
+.mdd-sessions__meta--error {
+  color: var(--danger-500);
+  white-space: normal;
+}
+
+/* Deleting asks first, in the row: the question, then the two buttons on a line of their own. */
+.mdd-sessions__meta--asking {
+  white-space: normal;
+}
+.mdd-sessions__confirm {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  flex-basis: 100%;
+}
+.mdd-sessions__confirm button {
+  font: inherit;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+.mdd-sessions__confirm-yes {
+  border-color: var(--danger-500);
+  color: var(--danger-500);
+}
+.mdd-sessions__confirm button:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+.mdd-sessions__confirm button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.mdd-sessions__confirm button:focus-visible,
+.mdd-sessions__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }

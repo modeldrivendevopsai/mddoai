@@ -4,7 +4,7 @@ httpx.post directly (the real network boundary), matching
 test_validator_agent_client.py's own pattern. Not a full behavioral suite
 for run_psm() (this module had none before), just real coverage for the
 stage/attempt fields it forwards for compiled-output nesting - see
-integration_runner/stages/psm/agent.py's own reserve_attempt_dir() call.
+integration_runner/stages/psm/agent.py's own reserve_attempt() call.
 """
 from unittest.mock import MagicMock, patch
 

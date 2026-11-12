@@ -145,7 +145,7 @@ def _fake_psm_response(artifact="Generic stage output", valid=True):
         "mode": "generation",
         "artifact": artifact,
         "prompt": {"psm_docs": "", "psm_example": "", "constraints": ""},
-        "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "mode": "reflective", "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
     }
     return resp
@@ -159,7 +159,7 @@ def _fake_atl_response(artifact="Generic stage output", valid=True):
     resp.json.return_value = {
         "artifact": artifact,
         "prompt": {"pim_ecore": "", "psm_ecore": "", "atl_example": "", "constraints": ""},
-        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }
@@ -174,7 +174,7 @@ def _fake_acceleo_response(artifact="Generic stage output", valid=True):
     resp.json.return_value = {
         "artifact": artifact,
         "prompt": {"psm_ecore": "", "platform_docs": "", "acceleo_example": "", "constraints": ""},
-        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "generated_source_path": None},
+        "validation": {"valid": valid, "issues": [], "duration_ms": 1, "compiled_output_kept": False},
         "rounds": 1,
         "prompt_version": None,
     }
@@ -1036,3 +1036,39 @@ def test_message_endpoint_has_no_stage_busy_guard_but_a_dispatched_mutation_stil
     assert step["tool"] == "rerun_stage"
     assert "still running" in step["result"]["error"]
 
+
+# --- /publish ------------------------------------------------------------------
+
+
+def test_publish_refuses_a_run_that_is_not_complete_with_the_reason():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.post("/publish", json={})
+
+    assert response.status_code == 409
+    assert "not complete" in response.json()["detail"]
+
+
+def test_publish_refuses_a_page_showing_a_run_that_is_no_longer_current():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.post("/publish", json={"run_id": "0" * 32})
+
+    assert response.status_code == 409
+    assert "no longer the current run" in response.json()["detail"]
+
+
+def test_publish_is_502_when_integration_runner_cannot_be_reached():
+    with patch("main.integration_runner_client.publish", side_effect=httpx.ConnectError("refused")):
+        response = client.post("/publish", json={})
+
+    assert response.status_code == 502
+
+
+def test_publish_defaults_show_the_runs_platform_description():
+    start_pipeline(platform_description="A GitLab CI platform")
+
+    response = client.get("/publish")
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "A GitLab CI platform"

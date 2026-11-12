@@ -1,10 +1,20 @@
-import atexit
+import clients.testing_urls  # noqa: F401  (the clients' links, which a service takes from its environment)
 import os
-import shutil
-import tempfile
 from pathlib import Path
 
-# The required output setting, set before the service modules read it.
-_session_dir = Path(tempfile.mkdtemp(prefix="validator-agent-tests-"))
-atexit.register(shutil.rmtree, _session_dir, ignore_errors=True)
-os.environ["VALIDATOR_OUTPUT_DIR"] = str(_session_dir / "output")
+import pytest
+
+from clients.journal_testing import folders_in, journal_in_process
+
+# Settings a service takes from its environment, which Docker Compose sets in a container.
+os.environ.setdefault("LOG_LEVEL", "INFO")
+# The built Java libraries, where `cd main && ./gradlew installDist` puts them.
+os.environ.setdefault("VALIDATOR_LIB_DIR", str(Path(__file__).resolve().parents[3] / "main" / "build" / "install" / "com.mddoai" / "lib"))
+
+
+@pytest.fixture(autouse=True)
+def journal(tmp_path):
+    """The real journal, in this process, over folders of this test alone: what a validator
+    compiled is kept there, with the attempt it was compiled for."""
+    with journal_in_process(folders_in(tmp_path)):
+        yield

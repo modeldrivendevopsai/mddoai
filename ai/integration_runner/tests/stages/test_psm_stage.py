@@ -17,7 +17,7 @@ Tests verify:
      same pattern atl_stage/acceleo_stage use, so validator-agent can keep
      psm_agent's own real compiled Ecore classes (produced deep inside its
      generation.py, once per regeneration round) under that stage and
-     attempt - see stages/_validation.py's own reserve_attempt_dir().
+     attempt - see stages/_validation.py's own reserve_attempt().
 """
 from unittest.mock import patch
 
@@ -116,17 +116,16 @@ def test_forwards_no_stage_or_attempt_without_a_run_id():
 
 
 def test_reserves_and_forwards_its_own_stage_and_attempt_name(tmp_path):
-    # tmp_path here is the same instance conftest.py's own autouse
-    # _isolated_validation_runs_dir fixture already redirected RUNS_DIR to
-    # (fixtures requested by both the test and another fixture in the same
-    # test share one instance) - no need to re-patch it here too.
+    # tmp_path here is the same instance conftest.py's own autouse journal
+    # fixture keeps its folders under (fixtures requested by both the test and
+    # another fixture in the same test share one instance).
     with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()) as mock_run:
         psm_stage({"platform_description": "TeamCity", "pim_output": "pim", "run_id": "run-1"})
 
     assert mock_run.call_args.kwargs.get("stage") == "psm"
     assert mock_run.call_args.kwargs.get("attempt") == "attempt_1"
     # The reservation really happened on disk, not just a string the mock
-    # received - the same real attempt_dir persist_attempt() then reuses.
+    # received - the same real attempt persist_attempt() then reuses.
     assert (tmp_path / "runs" / "run-1" / "psm" / "attempt_1").is_dir()
 
 

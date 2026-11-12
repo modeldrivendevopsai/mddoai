@@ -31,9 +31,9 @@ def test_uploaded_file_becomes_available_to_the_picker(isolated_attachment_uploa
 
 
 def test_rejects_a_file_over_the_size_limit(isolated_attachment_uploads_dir, monkeypatch):
-    import prompt_paths
+    import prompt_settings
 
-    monkeypatch.setattr(prompt_paths, "MAX_UPLOAD_BYTES", 4)
+    monkeypatch.setattr(prompt_settings, "MAX_UPLOAD_BYTES", 4)
     client = TestClient(main.app)
 
     response = client.post("/attachment-uploads", files={"file": ("example.mtl", b"way too much", "text/plain")})

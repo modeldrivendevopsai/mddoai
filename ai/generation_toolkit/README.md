@@ -35,7 +35,7 @@ result = run_with_retry(
     max_regenerate_rounds=DEFAULT_MAX_REGENERATE_ROUNDS,  # 6
     model=None,
 )
-# -> {"output": str, "prompt": dict, "validation": dict | None, "rounds": int}
+# -> {"output": str, "prompt": dict, "validation": dict | None, "rounds": int, "round_constraints": list[str]}
 ```
 
 Loop: build the prompt, call `ai-layer` via `clients/ai_layer_client.py`, strip a markdown code
@@ -46,11 +46,28 @@ new constraints, one per validator issue (`root_cause_fn`, default: every issue,
 another round. Bounded, so a persistently-invalid generation fails closed (returns its last,
 still-invalid attempt) instead of looping forever.
 
+`round_constraints` is only the fixes this call found, not the `constraints` it was given. The caller
+saves them as the run's own corrections so the next call builds on them. The permanent constraints
+stay in the saved prompt config: copying them into the run made every later prompt list them twice.
+Each fix is a validator message with the engine's object addresses masked (they change on every
+run, so the same failure is recorded once) and cut to `MAX_FIX_CHARS`, keeping its start and its end.
+The ATL engine's "Operation not found" message embeds a dump of its internal link set, which was
+once 68,776 characters in every later prompt.
+
 `validation` is `None` when `validate_fn` was never given — a stage with no real validator yet
 just omits it and gets a plain single-shot call, no code path change needed once that stage grows
 a real validator to check against later. `prompt` in the result always reflects the round that
 actually produced `output`, so a caller showing "what was fed to the model" is always showing the
 truth, not a stale first attempt.
+
+## `mock_chain` — what a mocked stage returns
+
+The fixed metamodel, transformation and template that `psm_agent`, `atl_agent` and `acceleo_agent`
+return when `mock` is on. They belong together: the transformation reads the real PIM (its
+namespace and classes) and writes a small mock platform, and the template reads that platform. So a
+mocked run compiles at every stage, goes through generation on the real PIM, and can be published
+and used like any platform. No model is called and no correction changes the output. A mocked stage
+fits only a run whose stages are all mocked.
 
 ## `attachments/` — turning a UI-editable list into prompt parts
 
@@ -77,42 +94,43 @@ real content, rejecting an absolute path, a disallowed character, or a resolved 
 single path segment with no `/` allowed at all — reused for a `run_id`/`stage`/`attempt` route
 parameter, not just a file attachment's path.
 
-`attachments.files.list_reference_and_uploads(reference_example_path, uploads_dir) -> list[str]`
+`attachments.files.list_reference_and_uploads(reference_example_path, uploads) -> list[str]`
 lists a service's real "file" attachment candidates for the common one-reference-file shape
 (`atl_agent`/`acceleo_agent`, each with exactly one master example): that one file's own name, plus
-every real uploaded file under `uploads_dir`, sorted. A service with a broader real listing (e.g.
+every file uploaded to the service (`uploads`, an `attachments.uploads.UploadedFiles`), sorted. A service with a broader real listing (e.g.
 `psm_agent`, scanning every known platform's own metamodel) keeps that logic itself rather than
 forcing it through this shape.
 
-## `prompt_config/` — generic, path-parameterized persistence
+## `prompt_config/` — generic persistence in the journal
 
-Every function takes a `config_dir: str | Path` the calling service supplies — this package owns
-no service-specific path of its own, so the same functions work against a different directory per
-caller (`psm_agent`'s own `PROMPT_CONFIG_DIR`, and `atl_agent`/`acceleo_agent`'s own). There is
+The journal keeps every config. Every function takes the `agent` name the calling service keeps
+its configs under in the journal (such as `psm`). This package owns no service-specific path of its
+own, so the same functions work against a different agent per caller (see each service's
+`prompt_settings.py`). There is
 exactly one config per name, not a family of named presets: a target platform's identity is
 supplied as plain runtime data (a `"context"`-type attachment, resolved at call time), never as a
 separately saved document, so onboarding a new platform never requires creating any new file here.
 Module-qualified access: `from generation_toolkit.prompt_config import storage, history,
 references, rendering, resolution, learned_constraints`.
 
-A config on disk (`config_dir/{name}/default.json`, e.g. `generation/default.json`) has this
+A config in the journal (live as `{agent}/{name}/default.json`, e.g. `psm/generation/default.json`) has this
 shape: `{"attachments": [...], "_version": str}`. There is no separate stored `system_prompt`
 field: the config's own first `"text"` attachment IS the system message, derived at resolve time
 (see `resolution.py` below), not persisted as its own field. A human builds and reorders it the
 same way as any other attachment. `learned_constraints` is not part of this file at all: it lives
-in its own separate `config_dir/{name}/constraints.json`, see `learned_constraints.py` below.
+in its own separate `{agent}/{name}/constraints.json`, see `learned_constraints.py` below.
 
-- **`storage.py`**: `load_config(config_dir, name) -> dict`: reads the live config, falling back
-  to `default.default.json` if it doesn't exist yet. `save_config(config_dir, name, config,
+- **`storage.py`**: `load_config(agent, name) -> dict`: reads the live config, falling back
+  to `default.default.json` if it doesn't exist yet. `save_config(agent, name, config,
   context_values, files_root) -> dict`: dry-run validates by resolving every attachment against a
   caller-supplied sample `context_values` first (raising `PromptConfigValidationError` naming the
   broken attachment, rather than persisting something broken), stamps a new sortable
   `config["_version"]`, atomically writes the live file, and writes an immutable copy to
-  `config_dir/{name}/history/default.{version}.json`.
+  `{agent}/{name}/history/default.{version}.json`.
 - **`history.py`**: `list_history` returns every real saved version id, newest first, with
   `SHIPPED_DEFAULT_VERSION` (the sentinel `"shipped"`) always appended as the oldest entry. The
   git-committed `default.default.json` is folded into this same timeline as one more version rather
-  than a separate concept: `restore_version(config_dir, name, version, ...)` (copies a snapshot back
+  than a separate concept: `restore_version(agent, name, version, ...)` (copies a snapshot back
   over the live file via `save_config` again, a restore is just another save, never destructive)
   handles `version == SHIPPED_DEFAULT_VERSION` by reading the shipped default instead of a real
   history file, so "revert to default" is just `restore_version(..., SHIPPED_DEFAULT_VERSION)`, not
@@ -126,7 +144,7 @@ in its own separate `config_dir/{name}/constraints.json`, see `learned_constrain
   `learned_constraints`: that list lives entirely outside the versioned file these functions operate
   on (see `learned_constraints.py` below), so a restore of the prompt's own text/attachments,
   shipped default included, can never discard it.
-- **`references.py`**: `check_references(config_dir, name, context_values, files_root)`: the same
+- **`references.py`**: `check_references(agent, name, context_values, files_root)`: the same
   resolution `save_config`'s dry-run uses, callable on demand against the *currently loaded*
   config, so a caller can detect drift since the last save (a metamodel file got renamed, a
   context key stopped being produced). `load_config` itself never fails this way — this is opt-in.
@@ -136,7 +154,7 @@ in its own separate `config_dir/{name}/constraints.json`, see `learned_constrain
 - **`resolution.py`**: `resolve_config(config, context_values, files_root) -> (config, parts)` is the
   real resolution step - deriving the system message from a config's own first `"text"` attachment,
   then resolving every remaining attachment - applied to a config the caller already has in hand.
-  `resolve_for_call(config_dir, name, context_values, files_root)` is the same thing for the common
+  `resolve_for_call(agent, name, context_values, files_root)` is the same thing for the common
   case of a caller with no config of its own yet: it loads `name`'s saved config, then calls
   `resolve_config`. A live LLM call always goes through `resolve_for_call` (parts fed to
   `run_with_retry`); a preview capability resolving a UI's own current, unsaved draft calls
@@ -147,7 +165,7 @@ in its own separate `config_dir/{name}/constraints.json`, see `learned_constrain
   check).
 - **`learned_constraints.py`**: `add_learned_constraints`/`remove_learned_constraint`/
   `reorder_learned_constraints`/`load_constraints`: persist and read a config's own
-  `learned_constraints` list from its own separate `config_dir/{name}/constraints.json`, entirely
+  `learned_constraints` list from its own separate `{agent}/{name}/constraints.json`, entirely
   outside `storage.py`/`history.py`'s versioned file. Restoring any version of the prompt's own
   text/attachments, the shipped default included, never touches this file, so a permanent
   constraint stays permanent through every one of them. `reorder_learned_constraints` persists a
@@ -169,10 +187,10 @@ in its own separate `config_dir/{name}/constraints.json`, see `learned_constrain
 `prompt_config/`/`attachments/` above (the full prompt-config CRUD surface, one available-files
 listing, one attachment upload). This package builds each shape once, and every service's own
 `routes/*.py` becomes the thin, service-specific adapter binding it to that service's own real
-`config_dir`, `files_root`, and sample context values, rather than each service hand-writing the
+`agent`, `files_root`, and sample context values, rather than each service hand-writing the
 same routing/error-translation logic three times over.
 
-- **`prompt_config.py`** — `PromptConfigRouter(config_dir, files_root, context_for)`: builds the
+- **`prompt_config.py`** — `PromptConfigRouter(agent, files_root, context_for)`: builds the
   full prompt-config `APIRouter` (get/put, `history`, `diff`, `restore/{version}`, which also
   handles "revert to default" when called with `history.SHIPPED_DEFAULT_VERSION` as `version`,
   `check-references`, `learned-constraints` GET/POST/DELETE plus `learned-constraints/reorder` PUT,
@@ -181,12 +199,9 @@ same routing/error-translation logic three times over.
   directly (e.g. `get_config_endpoint = router.get_config_endpoint`). `context_for(name) -> dict[str, str]`
   is the one real per-service variation: which `name`s are known and what sample context each one
   resolves against. `atl_agent`/`acceleo_agent` each have exactly one name; `psm_agent` has two
-  (`"generation"`/`"comparison"`), so this is asked of the caller rather than assumed. `config_dir`
-  and `files_root` are both zero-arg getters, not plain values, called fresh on every request: each
-  service's own test suite isolates prompt-config reads/writes by monkeypatching its own
-  `prompt_paths` module attributes for one test at a time (see each service's own `conftest.py`),
-  which only works if this class re-reads them through that same module reference on every call,
-  not once at construction time. Also exports `PromptConfigBody`/`LearnedConstraintsBody`/
+  (`"generation"`/`"comparison"`), so this is asked of the caller rather than assumed. `agent` is a
+  plain string, and `files_root` is a zero-arg getter, called fresh on every request, so a test that
+  changes what a service resolves files against is seen on the next call. Also exports `PromptConfigBody`/`LearnedConstraintsBody`/
   `RemoveLearnedConstraintBody`, the three request-body shapes every service's config uses
   identically.
 - **`files.py`** — `build_files_router(list_available_files) -> (router, available_files_endpoint)`:
@@ -194,16 +209,15 @@ same routing/error-translation logic three times over.
   per-service logic (`attachments.files.list_reference_and_uploads` for a service with exactly one
   reference file, or a service's own broader listing like `psm_agent`'s multi-metamodel scan). This
   only wires whatever that returns into the one real endpoint shape.
-- **`uploads.py`** — `build_uploads_router(uploads_dir, max_upload_bytes) -> APIRouter`: the shared
-  `POST /attachment-uploads` endpoint over `attachments.uploads.save_uploaded_file`. Both arguments
-  are zero-arg getters, for the same reason `config_dir` above is: a test that monkeypatches a
-  service's own `ATTACHMENT_UPLOADS_DIR`/`MAX_UPLOAD_BYTES` needs the router to re-read it per
-  request, not once at startup.
+- **`uploads.py`** — `build_uploads_router(agent, max_upload_bytes) -> APIRouter`: the shared
+  `POST /attachment-uploads` endpoint over `attachments.uploads.save_uploaded_file`. `max_upload_bytes`
+  is a zero-arg getter: a test that monkeypatches a service's own `MAX_UPLOAD_BYTES` needs the
+  router to re-read it per request, not once at startup. The journal keeps the file, under `agent`.
 
 ## `required_env.required_env(name)`
 
 The value of a required setting, trimmed. Unset or empty raises a `KeyError` naming it. The stage
-agents' `prompt_paths.py` use it for their folder settings.
+agents' `prompt_settings.py` use it for their settings.
 
 ## Test
 
@@ -214,5 +228,6 @@ pytest
 
 Mocks `clients.ai_layer_client.chat`, the only real network call this package makes — matches
 this repo's other agent tests' convention of mocking the network boundary, not internal logic.
-`prompt_config`'s and `attachments`' own tests use a `tmp_path` as `config_dir`/`files_root` — no
-service-specific assumptions, proving the mechanism is genuinely generic.
+`prompt_config`'s and `attachments`' own tests run against the real journal in the test's own process
+(`clients/journal_testing.py`), over folders of the test alone, with no service-specific assumptions,
+proving the mechanism is genuinely generic.

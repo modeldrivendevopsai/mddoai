@@ -42,7 +42,7 @@ batch* until it stops.
    apply. Overriding the method is the way this injects them while keeping real multi-hop
    traversal. The same call also extracts every internal link on the page plus lightweight
    metadata (title, link text) for each; this is what candidate links for the *next* hop come
-   from, bounded by the `MAX_LINKS` env var (see Configuration).
+   from, bounded by `MAX_LINKS` in `config.yaml` (see Configuration).
 2. **Scope resolution** happens next, mechanically, no LLM. `AdaptiveCrawler`'s scoring has no
    page-content understanding and can rank an unrelated same-domain product page highly just
    because it happens to share query terms. `_scope_prefixes(seed_url)` computes a list of
@@ -57,8 +57,8 @@ batch* until it stops.
    `_LLMRankedStrategy.rank_links()`. Crawl4AI's own statistical scoring (BM25 if available,
    otherwise term overlap between the query and a candidate's text/title/meta) runs first,
    free, no LLM call, purely to order candidates and provide a fallback ranking, not to
-   gatekeep what the LLM even gets to see; the shortlist width is the `SHORTLIST_SIZE` env var
-   (see Configuration), wide enough that a page correct but statistically unremarkable still
+   gatekeep what the LLM even gets to see; the shortlist width is `SHORTLIST_SIZE` in
+   `config.yaml` (see Configuration), wide enough that a page correct but statistically unremarkable still
    reaches the LLM. The shortlist goes to `_llm_rank_links()`, a real HTTP call to `ai-layer`'s
    shared `/chat`, asking it which candidates actually look like syntax/schema reference pages
    rather than a tutorial, marketing, or unrelated same-platform page, a judgment the
@@ -155,8 +155,7 @@ flowchart TD
 ```
 
 `url` must be a valid URL (rejected with 422 otherwise). `max_pages` and `max_depth` are each
-bounded and defaulted by an environment variable (see Configuration), operator-tunable without
-a code change. `force_refresh` bypasses both Crawl4AI's page cache and the content-cleanup
+bounded and defaulted by `config.yaml` (see Configuration), tunable without a code change. `force_refresh` bypasses both Crawl4AI's page cache and the content-cleanup
 cache for a fully fresh crawl (see Content filtering).
 
 `hint` (optional, bounded length) and `exclude_urls` (optional list of URLs) are the retry
@@ -227,13 +226,11 @@ entry of `/fetch`'s `pages` array.
 
 Every tuning value in the service has its default in [`config.yaml`](config.yaml), checked in
 next to `retrieval.py`, grouped and commented by what each one controls, so tuning it doesn't require
-editing Python source. The numeric/threshold keys are additionally overridable per-deploy via
-an environment variable of the same name (`config.yaml`'s value is only the fallback default);
-`QUERY`, `LINK_RANKING_PROMPT`, and `CLEAN_CONTENT_PROMPT` have no environment variable
-equivalent, edit `config.yaml` directly for those. `retrieval.py` loads `config.yaml` at import
+editing Python source. It is the only place they are set: no environment variable overrides a value
+there, so every environment runs the same tuning. `retrieval.py` loads `config.yaml` at import
 time into the same module-level constants it always had (`_MAX_LINKS`, `DEFAULT_MAX_PAGES`,
 etc., the latter two plus `MAX_PAGES_LIMIT`/`MAX_DEPTH_LIMIT` are imported into `main.py` for
-request validation; `main.py` also has its own `MAX_HINT_LENGTH` env var for the request-shaping
+request validation; `main.py` also has its own `MAX_HINT_LENGTH` constant for the request-shaping
 bound that isn't in `config.yaml`). This file intentionally doesn't restate exact numbers that
 live in `config.yaml`, to avoid the two drifting apart. None of these are per-request `/fetch`
 parameters: unlike `hint`/`max_depth`/`exclude_urls`, a caller has no principled basis to pick a
@@ -322,11 +319,9 @@ CRAWL4_AI_BASE_DIRECTORY = <repo>\ai\retrieval
 
 `venv/`, `.playwright-browsers/`, and `.crawl4ai/` are gitignored at the repo root.
 
-`AI_LAYER_URL` (see `.env.example`) defaults to `http://ai-layer:8000`, the Docker Compose
-service name, which only resolves inside the Docker network. Running this service directly on
-the host (`uvicorn main:app --reload`) against a host-based `ai-layer`, set
-`AI_LAYER_URL=http://localhost:8000` first, otherwise every ranking and content-cleanup call
-fails to resolve the hostname.
+`AI_LAYER_URL` and `LOG_LEVEL` are required and have no default (see `.env.example`). Docker Compose sets
+both. Running this service directly on the host (`uvicorn main:app --reload`), export them first;
+without them the service stops at start.
 
 ## Docker
 

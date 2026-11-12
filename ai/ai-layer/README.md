@@ -52,7 +52,7 @@ curl http://localhost:8000/providers
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "Which CI/CD stages are needed?"}]}'
-# {"content": "...", "model": "gemini/gemini-2.5-flash", "tool_calls": null}
+# {"content": "...", "model": "gemini/gemini-3.5-flash-lite", "tool_calls": null}
 ```
 
 Request body: `{ "messages": [...], "model": "...", "tools": [...], "tool_choice": "..." }` — `model` is optional; omit it or pass `"auto"` for the default priority order, or name one of the providers from `/providers` to start there instead (still falls back through the rest on failure). `tools`/`tool_choice` are optional OpenAI-style tool schemas/choice strings, forwarded to `router.router.chat()` as-is only when present. See `router/router.py`'s `chat()` for the exact behavior.
@@ -62,7 +62,7 @@ Response: `{ "content": "..." | null, "model": "provider/model-name", "tool_call
 Every successful call also logs a JSON line to stdout:
 
 ```json
-{"timestamp": "2026-06-19T14:32:01Z", "model": "gemini/gemini-2.5-flash", "tier": "free", "input_tokens": 120, "output_tokens": 38, "total_tokens": 158}
+{"timestamp": "2026-06-19T14:32:01Z", "model": "gemini/gemini-3.5-flash-lite", "tier": "free", "input_tokens": 120, "output_tokens": 38, "total_tokens": 158}
 ```
 
 ## Test

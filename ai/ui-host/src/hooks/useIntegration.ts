@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   forkRun,
   getEvents,
+  getPlatforms,
+  getPublishDefaults,
   getProviders,
   getStageMetadata,
+  publishPlatform,
+  purgePlatform,
   rerunStage,
   resetPipeline,
   resumeRun,
@@ -384,6 +388,22 @@ export function useIntegration(runId?: string) {
     [viewedRunId]
   )
 
+  // Publishing reports its outcome to the caller, which shows it in place,
+  // not in the shared error banner. It sends the run on screen, so the backend
+  // refuses if another run became current since.
+  const loadPublishDefaults = useCallback(() => getPublishDefaults(), [])
+  const publish = useCallback(
+    async (name: string, outputFilename: string, version: string) => {
+      const published = await publishPlatform(name, outputFilename, viewedRunId, version)
+      await fetchIncremental()
+      return published
+    },
+    [fetchIncremental, viewedRunId]
+  )
+  // The platforms are not part of any run, so listing and purging them touch no run state.
+  const loadPlatforms = useCallback(() => getPlatforms(), [])
+  const purge = useCallback((platformId: string, version?: string) => purgePlatform(platformId, version), [])
+
   return {
     events,
     currentStage,
@@ -404,5 +424,9 @@ export function useIntegration(runId?: string) {
     reset,
     resume,
     fork,
+    loadPublishDefaults,
+    publish,
+    loadPlatforms,
+    purge,
   }
 }

@@ -3,7 +3,6 @@ import hashlib
 import ipaddress
 import json
 import logging
-import os
 import re
 import socket
 from collections.abc import Sequence
@@ -34,71 +33,58 @@ logger = logging.getLogger(__name__)
 
 
 # --- Configuration -----------------------------------------------------------
-# Tuning defaults live in config.yaml, checked in next to this module, so
-# changing them doesn't require editing Python source. Every numeric/threshold
-# key is still overridable per-deploy via an environment variable of the same
-# name; the config.yaml value is only the fallback default. These are
-# operational tuning knobs, not per-request params, unlike hint/max_depth/
-# exclude_urls (see fetch_documentation) a caller has no principled basis to
-# pick a different value per call. QUERY and the two *_PROMPT keys have no
-# environment variable equivalent, edit config.yaml directly for those.
+# Every tuning value lives in config.yaml, checked in next to this module, and
+# nowhere else: an environment does not override it. These are operational
+# tuning knobs, not per-request params, unlike hint/max_depth/exclude_urls (see
+# fetch_documentation) a caller has no principled basis to pick a different
+# value per call.
 
 with open(Path(__file__).with_name("config.yaml"), encoding="utf-8") as _f:
     _config = yaml.safe_load(_f)
 
-_MAX_LINKS = int(os.environ.get("MAX_LINKS", _config["MAX_LINKS"]))
-_LINK_PREVIEW_CONCURRENCY = int(os.environ.get("LINK_PREVIEW_CONCURRENCY", _config["LINK_PREVIEW_CONCURRENCY"]))
-_SHORTLIST_SIZE = int(os.environ.get("SHORTLIST_SIZE", _config["SHORTLIST_SIZE"]))
+_MAX_LINKS = int(_config["MAX_LINKS"])
+_LINK_PREVIEW_CONCURRENCY = int(_config["LINK_PREVIEW_CONCURRENCY"])
+_SHORTLIST_SIZE = int(_config["SHORTLIST_SIZE"])
 
-_WAIT_FOR_MIN_CHARS = int(os.environ.get("WAIT_FOR_MIN_CHARS", _config["WAIT_FOR_MIN_CHARS"]))
-_DELAY_BEFORE_RETURN_HTML = float(os.environ.get("DELAY_BEFORE_RETURN_HTML", _config["DELAY_BEFORE_RETURN_HTML"]))
+_WAIT_FOR_MIN_CHARS = int(_config["WAIT_FOR_MIN_CHARS"])
+_DELAY_BEFORE_RETURN_HTML = float(_config["DELAY_BEFORE_RETURN_HTML"])
 
-_CONTENT_FILTER_THRESHOLD = float(os.environ.get("CONTENT_FILTER_THRESHOLD", _config["CONTENT_FILTER_THRESHOLD"]))
-_MIN_WORD_THRESHOLD = int(os.environ.get("MIN_WORD_THRESHOLD", _config["MIN_WORD_THRESHOLD"]))
+_CONTENT_FILTER_THRESHOLD = float(_config["CONTENT_FILTER_THRESHOLD"])
+_MIN_WORD_THRESHOLD = int(_config["MIN_WORD_THRESHOLD"])
 
-_MIN_USABLE_CONTENT_CHARS = int(os.environ.get("MIN_USABLE_CONTENT_CHARS", _config["MIN_USABLE_CONTENT_CHARS"]))
+_MIN_USABLE_CONTENT_CHARS = int(_config["MIN_USABLE_CONTENT_CHARS"])
 
-_CLEAN_CHUNK_SIZE = int(os.environ.get("CLEAN_CHUNK_SIZE", _config["CLEAN_CHUNK_SIZE"]))
-_CLEAN_CONCURRENCY = int(os.environ.get("CLEAN_CONCURRENCY", _config["CLEAN_CONCURRENCY"]))
-_CLEAN_CACHE_MAX_SIZE = int(os.environ.get("CLEAN_CACHE_MAX_SIZE", _config["CLEAN_CACHE_MAX_SIZE"]))
-_CLEAN_MAX_GROWTH_RATIO = float(os.environ.get("CLEAN_MAX_GROWTH_RATIO", _config["CLEAN_MAX_GROWTH_RATIO"]))
-_CLEAN_MIN_OUTPUT_CHARS = int(os.environ.get("CLEAN_MIN_OUTPUT_CHARS", _config["CLEAN_MIN_OUTPUT_CHARS"]))
-_CLEAN_MIN_INPUT_CHARS_FOR_GUARD = int(
-    os.environ.get("CLEAN_MIN_INPUT_CHARS_FOR_GUARD", _config["CLEAN_MIN_INPUT_CHARS_FOR_GUARD"])
-)
+_CLEAN_CHUNK_SIZE = int(_config["CLEAN_CHUNK_SIZE"])
+_CLEAN_CONCURRENCY = int(_config["CLEAN_CONCURRENCY"])
+_CLEAN_CACHE_MAX_SIZE = int(_config["CLEAN_CACHE_MAX_SIZE"])
+_CLEAN_MAX_GROWTH_RATIO = float(_config["CLEAN_MAX_GROWTH_RATIO"])
+_CLEAN_MIN_OUTPUT_CHARS = int(_config["CLEAN_MIN_OUTPUT_CHARS"])
+_CLEAN_MIN_INPUT_CHARS_FOR_GUARD = int(_config["CLEAN_MIN_INPUT_CHARS_FOR_GUARD"])
 
-_DEDUPE_MIN_PARAGRAPH_CHARS = int(os.environ.get("DEDUPE_MIN_PARAGRAPH_CHARS", _config["DEDUPE_MIN_PARAGRAPH_CHARS"]))
+_DEDUPE_MIN_PARAGRAPH_CHARS = int(_config["DEDUPE_MIN_PARAGRAPH_CHARS"])
 
-_AI_LAYER_TIMEOUT = float(os.environ.get("AI_LAYER_TIMEOUT", _config["AI_LAYER_TIMEOUT"]))
+_AI_LAYER_TIMEOUT = float(_config["AI_LAYER_TIMEOUT"])
 
-_CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", _config["CONFIDENCE_THRESHOLD"]))
-_SATURATION_THRESHOLD = float(os.environ.get("SATURATION_THRESHOLD", _config["SATURATION_THRESHOLD"]))
+_CONFIDENCE_THRESHOLD = float(_config["CONFIDENCE_THRESHOLD"])
+_SATURATION_THRESHOLD = float(_config["SATURATION_THRESHOLD"])
 
 # AdaptiveCrawler's own per-round tuning: how many links it fetches per round,
 # the score below which it stops entirely, and the weights StatisticalStrategy
 # scores candidates with. Previously left at the library's defaults while
 # confidence/saturation were externalized; these are just as behaviorally
 # significant, so they get the same treatment.
-_TOP_K_LINKS = int(os.environ.get("TOP_K_LINKS", _config["TOP_K_LINKS"]))
-_MIN_GAIN_THRESHOLD = float(os.environ.get("MIN_GAIN_THRESHOLD", _config["MIN_GAIN_THRESHOLD"]))
-_RELEVANCE_WEIGHT = float(os.environ.get("RELEVANCE_WEIGHT", _config["RELEVANCE_WEIGHT"]))
-_NOVELTY_WEIGHT = float(os.environ.get("NOVELTY_WEIGHT", _config["NOVELTY_WEIGHT"]))
-_AUTHORITY_WEIGHT = float(os.environ.get("AUTHORITY_WEIGHT", _config["AUTHORITY_WEIGHT"]))
-_LINK_PREVIEW_TIMEOUT = float(os.environ.get("LINK_PREVIEW_TIMEOUT", _config["LINK_PREVIEW_TIMEOUT"]))
+_TOP_K_LINKS = int(_config["TOP_K_LINKS"])
+_MIN_GAIN_THRESHOLD = float(_config["MIN_GAIN_THRESHOLD"])
+_RELEVANCE_WEIGHT = float(_config["RELEVANCE_WEIGHT"])
+_NOVELTY_WEIGHT = float(_config["NOVELTY_WEIGHT"])
+_AUTHORITY_WEIGHT = float(_config["AUTHORITY_WEIGHT"])
+_LINK_PREVIEW_TIMEOUT = float(_config["LINK_PREVIEW_TIMEOUT"])
 
-DEFAULT_MAX_PAGES = int(os.environ.get("DEFAULT_MAX_PAGES", _config["DEFAULT_MAX_PAGES"]))
-MAX_PAGES_LIMIT = int(os.environ.get("MAX_PAGES_LIMIT", _config["MAX_PAGES_LIMIT"]))
-DEFAULT_MAX_DEPTH = int(os.environ.get("DEFAULT_MAX_DEPTH", _config["DEFAULT_MAX_DEPTH"]))
-MAX_DEPTH_LIMIT = int(os.environ.get("MAX_DEPTH_LIMIT", _config["MAX_DEPTH_LIMIT"]))
+DEFAULT_MAX_PAGES = int(_config["DEFAULT_MAX_PAGES"])
+MAX_PAGES_LIMIT = int(_config["MAX_PAGES_LIMIT"])
+DEFAULT_MAX_DEPTH = int(_config["DEFAULT_MAX_DEPTH"])
+MAX_DEPTH_LIMIT = int(_config["MAX_DEPTH_LIMIT"])
 
-
-def _bool_env(name: str, default: bool) -> bool:
-    """os.environ values are always strings, so a plain bool(os.environ.get(...))
-    would treat the literal string "false" as truthy; this parses it properly."""
-    raw = os.environ.get(name)
-    if raw is None:
-        return bool(default)
-    return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
 def _require_positive(name: str, value: int | float) -> None:
@@ -139,14 +125,14 @@ _CONTENT_FILTER_KWARGS = dict(
 # converter (see config.yaml's Markdown generation section for what each one
 # does and why MARKDOWN_SINGLE_LINE_BREAK specifically needs care).
 _MARKDOWN_OPTIONS = dict(
-    body_width=int(os.environ.get("MARKDOWN_BODY_WIDTH", _config["MARKDOWN_BODY_WIDTH"])),
-    ignore_emphasis=_bool_env("MARKDOWN_IGNORE_EMPHASIS", _config["MARKDOWN_IGNORE_EMPHASIS"]),
-    ignore_links=_bool_env("MARKDOWN_IGNORE_LINKS", _config["MARKDOWN_IGNORE_LINKS"]),
-    ignore_images=_bool_env("MARKDOWN_IGNORE_IMAGES", _config["MARKDOWN_IGNORE_IMAGES"]),
-    protect_links=_bool_env("MARKDOWN_PROTECT_LINKS", _config["MARKDOWN_PROTECT_LINKS"]),
-    single_line_break=_bool_env("MARKDOWN_SINGLE_LINE_BREAK", _config["MARKDOWN_SINGLE_LINE_BREAK"]),
-    mark_code=_bool_env("MARKDOWN_MARK_CODE", _config["MARKDOWN_MARK_CODE"]),
-    escape_snob=_bool_env("MARKDOWN_ESCAPE_SNOB", _config["MARKDOWN_ESCAPE_SNOB"]),
+    body_width=int(_config["MARKDOWN_BODY_WIDTH"]),
+    ignore_emphasis=bool(_config["MARKDOWN_IGNORE_EMPHASIS"]),
+    ignore_links=bool(_config["MARKDOWN_IGNORE_LINKS"]),
+    ignore_images=bool(_config["MARKDOWN_IGNORE_IMAGES"]),
+    protect_links=bool(_config["MARKDOWN_PROTECT_LINKS"]),
+    single_line_break=bool(_config["MARKDOWN_SINGLE_LINE_BREAK"]),
+    mark_code=bool(_config["MARKDOWN_MARK_CODE"]),
+    escape_snob=bool(_config["MARKDOWN_ESCAPE_SNOB"]),
 )
 
 # What AdaptiveCrawler's statistical strategy scores link/page relevance against:

@@ -25,7 +25,7 @@ responsible for combining resolution.resolve_for_call's own resolved
 generation_toolkit.generation_agent.run_with_retry, this module only
 manages the saved, permanent side.
 
-Kept in its own file (constraints.json, see _paths.constraints_path), not
+Kept in its own file (constraints.json, kept by the journal), not
 inside the same versioned config storage.py/history.py manage: a learned
 constraint is meant to survive every experiment with the prompt's own
 text/attachments, including a Revert to default or a Restore of an older
@@ -36,11 +36,11 @@ constraints; this file has no version history of its own on purpose, it
 is simply always current, exactly like a config's own default.default.json
 baseline is always current for a fresh install, just never versioned.
 """
-import json
 import threading
-from pathlib import Path
 
-from . import _paths, storage
+from clients import journal_client
+
+from . import storage
 
 # Serializes this module's own read-modify-write of constraints.json,
 # process-wide - the same reasoning storage.py's own _write_lock documents
@@ -50,29 +50,22 @@ from . import _paths, storage
 _write_lock = threading.Lock()
 
 
-def _read_constraints_file(config_dir: str | Path, name: str) -> list[str] | None:
-    path = _paths.constraints_path(config_dir, name)
-    if not path.is_file():
-        return None
-    return json.loads(path.read_text(encoding="utf-8")).get("constraints", [])
-
-
-def _load_constraints_locked(config_dir: str | Path, name: str) -> list[str]:
+def _load_constraints_locked(agent: str, name: str) -> list[str]:
     """The real read(-and-maybe-migrate) logic load_constraints below
     exposes, factored out so a caller that already holds _write_lock (see
     add_learned_constraints/remove_learned_constraint) can reuse it
     directly instead of calling the public, self-locking load_constraints
     and deadlocking on a lock this module's own threading.Lock doesn't let
     the same thread re-enter."""
-    existing = _read_constraints_file(config_dir, name)
+    existing = journal_client.get_constraints(agent, name)
     if existing is not None:
         return existing
-    legacy = storage.load_config(config_dir, name).get("learned_constraints", [])
-    _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": legacy})
+    legacy = storage.load_config(agent, name).get("learned_constraints", [])
+    journal_client.set_constraints(agent, name, legacy)
     return legacy
 
 
-def load_constraints(config_dir: str | Path, name: str) -> list[str]:
+def load_constraints(agent: str, name: str) -> list[str]:
     """The real, always-current constraints list for name - never touched
     by a save/revert/restore of the prompt's own text/attachments. Migrates
     once from an older config that still carries its constraints embedded
@@ -97,25 +90,30 @@ def load_constraints(config_dir: str | Path, name: str) -> list[str]:
     list - silently clobbering it back to the older value. Serializing
     every reader through the same lock as every writer closes that
     window."""
+    # Constraints that are already kept are read with no lock: a read of them writes nothing,
+    # so it cannot race a write, and a slow journal does not queue every reader behind one call.
+    existing = journal_client.get_constraints(agent, name)
+    if existing is not None:
+        return existing
     with _write_lock:
-        return _load_constraints_locked(config_dir, name)
+        return _load_constraints_locked(agent, name)
 
 
-def add_learned_constraints(config_dir: str | Path, name: str, constraints: list[str]) -> list[str]:
+def add_learned_constraints(agent: str, name: str, constraints: list[str]) -> list[str]:
     """Appends `constraints` to name's own constraints.json, deduplicated (a
     constraint promoted twice stays a single entry) but otherwise
     order-preserving. Returns the full, updated list."""
     with _write_lock:
-        existing = _load_constraints_locked(config_dir, name)
+        existing = _load_constraints_locked(agent, name)
         merged = list(existing)
         for constraint in constraints:
             if constraint not in merged:
                 merged.append(constraint)
-        _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": merged})
+        journal_client.set_constraints(agent, name, merged)
         return merged
 
 
-def migrate_if_missing(config_dir: str | Path, name: str, legacy_constraints: list[str]) -> None:
+def migrate_if_missing(agent: str, name: str, legacy_constraints: list[str]) -> None:
     """Seeds constraints.json from `legacy_constraints` - an older config's
     own embedded "learned_constraints" value, one storage.save_config is
     about to strip and overwrite - but only if nothing has migrated this
@@ -138,22 +136,22 @@ def migrate_if_missing(config_dir: str | Path, name: str, legacy_constraints: li
     add_learned_constraints/remove_learned_constraint might be doing to
     the same file."""
     with _write_lock:
-        if _read_constraints_file(config_dir, name) is not None:
+        if journal_client.get_constraints(agent, name) is not None:
             return
-        _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": legacy_constraints})
+        journal_client.set_constraints(agent, name, legacy_constraints)
 
 
-def remove_learned_constraint(config_dir: str | Path, name: str, constraint: str) -> list[str]:
+def remove_learned_constraint(agent: str, name: str, constraint: str) -> list[str]:
     """The reverse of add_learned_constraints: a promoted constraint that
     turns out to be wrong, or no longer relevant, is removed the same way,
     not left to accumulate forever. Returns the full, updated list."""
     with _write_lock:
-        remaining = [c for c in _load_constraints_locked(config_dir, name) if c != constraint]
-        _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": remaining})
+        remaining = [c for c in _load_constraints_locked(agent, name) if c != constraint]
+        journal_client.set_constraints(agent, name, remaining)
         return remaining
 
 
-def reorder_learned_constraints(config_dir: str | Path, name: str, constraints: list[str]) -> list[str]:
+def reorder_learned_constraints(agent: str, name: str, constraints: list[str]) -> list[str]:
     """Persists a human reordering the permanent-constraints list (drag and
     drop in the UI) - `constraints` must be exactly name's own current set,
     just in a different order, never a way to add, remove, or rename one
@@ -162,16 +160,16 @@ def reorder_learned_constraints(config_dir: str | Path, name: str, constraints: 
     real, current set with whatever an out-of-date client happened to have
     on screen. Returns the full, newly-ordered list."""
     with _write_lock:
-        existing = _load_constraints_locked(config_dir, name)
+        existing = _load_constraints_locked(agent, name)
         if sorted(constraints) != sorted(existing):
             raise ValueError(
                 "reordered constraints must be exactly the current set, just reordered"
             )
-        _paths.atomic_write_json(_paths.constraints_path(config_dir, name), {"constraints": constraints})
+        journal_client.set_constraints(agent, name, constraints)
         return constraints
 
 
-def with_current_constraints(config_dir: str | Path, name: str, config: dict) -> dict:
+def with_current_constraints(agent: str, name: str, config: dict) -> dict:
     """The one real "merge the current, real constraints into a config a
     human is about to see" step, shared by every caller that needs it
     (resolution.resolve_for_call, for a real call's own resolved config;
@@ -180,4 +178,4 @@ def with_current_constraints(config_dir: str | Path, name: str, config: dict) ->
     merge independently - a config's own "learned_constraints" key, if it
     still has one at all (see storage.save_config's own migrate-then-strip),
     is never what should actually be shown; this always is."""
-    return {**config, "learned_constraints": load_constraints(config_dir, name)}
+    return {**config, "learned_constraints": load_constraints(agent, name)}

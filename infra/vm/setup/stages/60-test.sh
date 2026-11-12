@@ -55,13 +55,10 @@ set_if_empty() {
 }
 set_if_empty MDDOAI_WORKSPACE_DIR "$WORKSPACE_DIR"
 set_if_empty MDDOAI_PLATFORMS_DIR "$DATA_DIR/platforms"
-for agent in psm atl acceleo; do
-  upper="${agent^^}"
-  set_if_empty "MDDOAI_${upper}_PROMPTS_DIR" "$DATA_DIR/prompts/$agent"
-  set_if_empty "MDDOAI_${upper}_ATTACHMENTS_DIR" "$DATA_DIR/attachments/$agent"
-done
+set_if_empty MDDOAI_PROMPTS_DIR "$DATA_DIR/prompts"
+set_if_empty MDDOAI_ATTACHMENTS_DIR "$DATA_DIR/attachments"
 set_if_empty MDDOAI_RUNS_DIR "$DATA_DIR/runs"
-set_if_empty MDDOAI_VALIDATOR_OUTPUT_DIR "$DATA_DIR/validator-output"
+set_if_empty MDDOAI_CHATS_DIR "$DATA_DIR/chats"
 set_if_empty MDDOAI_PIPELINES_DIR "$DATA_DIR/pipelines"
 set_if_empty MDDOAI_LLM_KEYS_FILE "$LLM_KEYS"
 # Made here, because Docker would create it, usually owned by root.
