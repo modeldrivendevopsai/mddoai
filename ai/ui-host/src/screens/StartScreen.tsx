@@ -16,9 +16,11 @@ import './start-screen.css';
 interface StartScreenProps {
   onSelectOption?: (optionId: string) => void;
   onOpenPipeline: (pipelineId: string) => void;
+  onOpenPlatform: (platformId: string) => void;
+  onOpenRun: (runId: string) => void;
 }
 
-export function StartScreen({ onSelectOption, onOpenPipeline }: StartScreenProps) {
+export function StartScreen({ onSelectOption, onOpenPipeline, onOpenPlatform, onOpenRun }: StartScreenProps) {
   const { activeTab } = useSidebarTab();
 
   return (
@@ -30,7 +32,7 @@ export function StartScreen({ onSelectOption, onOpenPipeline }: StartScreenProps
       {activeTab === 'platform' ? (
         <>
           <h3 className="mdd-start-screen__heading">{START_LISTS.platforms.title}</h3>
-          <PlatformsList />
+          <PlatformsList onOpen={onOpenPlatform} onOpenRun={onOpenRun} />
         </>
       ) : (
         <>

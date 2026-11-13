@@ -168,14 +168,32 @@ export interface PublishedPlatform {
 // GET /platforms: a platform at its latest version, with every version it has.
 // Only the published versions can be purged: a version that came with the stack
 // cannot, so published_versions can be fewer than versions.
+//
+// source_run_id and published_at are null for a platform that came with the
+// stack: no run made it and it was never published.
 export interface PlatformSummary {
   id: string
   name: string
   output_filename: string
+  output_model_name: string
   version: string
   versions: string[]
   published_versions: string[]
   published: boolean
+  source_run_id: string | null
+  published_at: string | null
+}
+
+// GET /platforms/{id}: one version of a platform, with the text of each of
+// its three files.
+export interface PlatformFiles {
+  metamodel: string
+  transformation: string
+  template: string
+}
+
+export interface PlatformDetail extends PlatformSummary {
+  files: PlatformFiles
 }
 
 export interface RerunStatusResponse {

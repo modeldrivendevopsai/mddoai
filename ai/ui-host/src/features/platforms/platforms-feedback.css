@@ -1,0 +1,19 @@
+/* What the platforms screens say while loading and when a load fails. */
+
+.mdd-platforms-feedback__message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.mdd-platforms-feedback__hint,
+.mdd-platforms-feedback__error {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.mdd-platforms-feedback__hint {
+  color: var(--neutral-500);
+}
+.mdd-platforms-feedback__error {
+  color: var(--danger-500);
+}

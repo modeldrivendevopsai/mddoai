@@ -11,6 +11,7 @@ import type {
   PromptDiff,
   PromptPreview,
   Provider,
+  PlatformDetail,
   PlatformSummary,
   PublishDefaults,
   PublishedPlatform,
@@ -145,6 +146,19 @@ export async function getPlatforms(): Promise<PlatformSummary[]> {
   }
 
   return (await res.json()).platforms
+}
+
+// One platform with the text of its three files: the latest version when none
+// is given.
+export async function getPlatform(platformId: string, version?: string): Promise<PlatformDetail> {
+  const query = version ? `?${new URLSearchParams({ version })}` : ""
+  const res = await fetch(`/orchestrator-api/platforms/${encodeURIComponent(platformId)}${query}`)
+
+  if (!res.ok) {
+    throw await errorFor("Platform", res)
+  }
+
+  return res.json()
 }
 
 // Purges one version of a published platform, or all of its versions when no

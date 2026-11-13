@@ -204,6 +204,24 @@ def list_platforms_endpoint():
         raise HTTPException(status_code=502, detail=_PLATFORMS_UNAVAILABLE)
 
 
+@app.get("/platforms/{platform_id}")
+def read_platform_endpoint(platform_id: str, version: str | None = None):
+    """One platform at the version asked for (its latest when none is named): the
+    record the list shows, plus the metamodel, transformation and template
+    texts, and the run it was published from when it was published."""
+    try:
+        platform = journal_client.get_platform(platform_id, version)
+    except ValueError:
+        # A name that cannot be one part of an address (such as "..") names nothing.
+        platform = None
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_PLATFORMS_UNAVAILABLE)
+    if platform is None:
+        which = f" version {version}" if version else ""
+        raise HTTPException(status_code=404, detail=f"No platform '{platform_id}'{which}.")
+    return platform
+
+
 @app.delete("/platforms/{platform_id}")
 def purge_platform_endpoint(platform_id: str):
     """Purges every version of a published platform: the same action as the

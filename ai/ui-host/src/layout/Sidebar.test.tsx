@@ -151,6 +151,18 @@ describe("which open session is highlighted", () => {
     expect(isOnScreen("GitHub Actions")).toBe(false)
   })
 
+  // The platforms routes are the ones that show the session rows without showing a chat.
+  it.each(["/platforms", "/platforms/woodpecker-ci"])(
+    "is none on %s, where no chat is on screen",
+    async (path) => {
+      renderSidebar(vi.fn(), undefined, path)
+      await screen.findByText("GitHub Actions")
+
+      expect(isOnScreen("Woodpecker CI")).toBe(false)
+      expect(isOnScreen("GitHub Actions")).toBe(false)
+    }
+  )
+
   it("moves to the row that is opened", async () => {
     renderSidebar(vi.fn(), undefined, "/integration")
     fireEvent.click(await screen.findByText("GitHub Actions"))

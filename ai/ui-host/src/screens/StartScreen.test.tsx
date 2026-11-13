@@ -14,7 +14,8 @@ import { useSidebarTab } from "@/layout/sidebarTab"
 import { SidebarTabProvider } from "@/layout/SidebarTabProvider"
 import * as generator from "@/services/generator.service"
 import type { PipelineSummary } from "@/services/generator.service"
-import * as platformsService from "@/services/platforms.service"
+import * as orchestrator from "@/services/orchestrator.service"
+import type { PlatformSummary } from "orchestrator-types"
 
 vi.mock("design-system", () => ({
   Button: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
@@ -31,7 +32,7 @@ vi.mock("@/services/generator.service", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/generator.service")>()
   return { ...actual, listPipelines: vi.fn() }
 })
-vi.mock("@/services/platforms.service", () => ({ getPlatforms: vi.fn() }))
+vi.mock("@/services/orchestrator.service", () => ({ getPlatforms: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -46,10 +47,20 @@ const pipeline = (n: number): PipelineSummary => ({
   generated_at: hoursAgo(n),
 })
 
-const PLATFORMS: platformsService.Platform[] = [
-  { id: "a", name: "GitLab CI v1.7", status: "success", statusLabel: "Ready" },
-  { id: "b", name: "Bamboo v2.1.2", status: "warning", statusLabel: "In progress", resumable: true },
-]
+const platform = (id: string, name: string, published_at: string | null): PlatformSummary => ({
+  id,
+  name,
+  output_filename: `${id}.yml`,
+  output_model_name: "Model",
+  version: "1.0.0",
+  versions: ["1.0.0"],
+  published_versions: published_at ? ["1.0.0"] : [],
+  published: published_at !== null,
+  source_run_id: published_at ? "run1" : null,
+  published_at,
+})
+
+const PLATFORMS: PlatformSummary[] = [platform("woodpecker-ci", "Woodpecker CI", null), platform("bamboo", "Bamboo", hoursAgo(3))]
 
 // Stands in for the sidebar's two tabs.
 function TabButtons() {
@@ -71,7 +82,12 @@ function PlatformsTabAlreadyOn({ children }: { children: ReactNode }) {
 }
 
 function renderStart(
-  handlers: { onSelectOption?: (id: string) => void; onOpenPipeline?: (id: string) => void } = {},
+  handlers: {
+    onSelectOption?: (id: string) => void
+    onOpenPipeline?: (id: string) => void
+    onOpenPlatform?: (id: string) => void
+    onOpenRun?: (id: string) => void
+  } = {},
   { platformsTabOn = false } = {}
 ) {
   const Wrap = platformsTabOn ? PlatformsTabAlreadyOn : Fragment
@@ -82,6 +98,8 @@ function renderStart(
         <StartScreen
           onSelectOption={handlers.onSelectOption}
           onOpenPipeline={handlers.onOpenPipeline ?? (() => undefined)}
+          onOpenPlatform={handlers.onOpenPlatform ?? (() => undefined)}
+          onOpenRun={handlers.onOpenRun ?? (() => undefined)}
         />
       </Wrap>
     </SidebarTabProvider>
@@ -91,7 +109,7 @@ function renderStart(
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(generator.listPipelines).mockResolvedValue([pipeline(2), pipeline(5)])
-  vi.mocked(platformsService.getPlatforms).mockResolvedValue(PLATFORMS)
+  vi.mocked(orchestrator.getPlatforms).mockResolvedValue(PLATFORMS)
 })
 
 describe("the picture of the two options", () => {
@@ -136,32 +154,55 @@ describe("the list under the picture", () => {
     expect(await screen.findByText("model-2.swarch")).toBeTruthy()
     expect(screen.getByText("model-5.swarch")).toBeTruthy()
     expect(screen.queryByRole("heading", { name: "Supported CI/CD platforms" })).toBeNull()
-    expect(screen.queryByText("GitLab CI v1.7")).toBeNull()
-    expect(platformsService.getPlatforms).not.toHaveBeenCalled()
+    expect(screen.queryByText("Woodpecker CI")).toBeNull()
+    expect(orchestrator.getPlatforms).not.toHaveBeenCalled()
   })
 
   it("shows the supported platforms while the Platforms tab is on, and not the pipelines", async () => {
     renderStart({}, { platformsTabOn: true })
 
     expect(screen.getByRole("heading", { name: "Supported CI/CD platforms" })).toBeTruthy()
-    expect(await screen.findByText("GitLab CI v1.7")).toBeTruthy()
-    expect(screen.getByText("Bamboo v2.1.2")).toBeTruthy()
-    // Status and name only, with no link that does nothing.
-    expect(screen.queryByRole("link")).toBeNull()
+    expect(await screen.findByText("Woodpecker CI")).toBeTruthy()
+    expect(screen.getByText("Bamboo")).toBeTruthy()
+    // Where each came from.
+    expect(screen.getByText("–")).toBeTruthy()
+    expect(screen.getByText("Published 3 hours ago")).toBeTruthy()
     expect(screen.queryByRole("heading", { name: "Latest pipelines" })).toBeNull()
     expect(screen.queryByText("model-2.swarch")).toBeNull()
     expect(generator.listPipelines).not.toHaveBeenCalled()
   })
 
+  it("opens a platform when its row is pressed", async () => {
+    const onOpenPlatform = vi.fn()
+    renderStart({ onOpenPlatform }, { platformsTabOn: true })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Bamboo" }))
+
+    expect(onOpenPlatform).toHaveBeenCalledTimes(1)
+    expect(onOpenPlatform).toHaveBeenCalledWith("bamboo")
+  })
+
+  it("links a platform on the start screen's list to the chat that made it", async () => {
+    const onOpenRun = vi.fn()
+    const onOpenPlatform = vi.fn()
+    renderStart({ onOpenRun, onOpenPlatform }, { platformsTabOn: true })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open chat for Bamboo" }))
+
+    expect(onOpenRun).toHaveBeenCalledWith("run1")
+    expect(onOpenPlatform).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Open chat for Woodpecker CI" }).getAttribute("aria-disabled")).toBe("true")
+  })
+
   it("follows the tab back and forth", async () => {
     renderStart()
     fireEvent.click(screen.getByText("show platforms tab"))
-    await screen.findByText("GitLab CI v1.7")
+    await screen.findByText("Woodpecker CI")
 
     fireEvent.click(screen.getByText("show pipelines tab"))
 
     expect(await screen.findByText("model-2.swarch")).toBeTruthy()
-    expect(screen.queryByText("GitLab CI v1.7")).toBeNull()
+    expect(screen.queryByText("Woodpecker CI")).toBeNull()
   })
 
   it("lists the model, the platforms and how long ago, newest first", async () => {

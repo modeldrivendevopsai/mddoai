@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest"
 import {
   INTEGRATION_QUERY,
   NEW_PLATFORM_PATH,
+  PLATFORM_QUERY,
   ROUTES,
   integrationRunPath,
   isNewRunRequested,
   pipelinePath,
+  platformPath,
 } from "./routes.config"
 
 // The links write these paths and the screens read them, so each pair is
@@ -16,6 +18,23 @@ describe("routes", () => {
   it("puts a saved pipeline under the pipelines route", () => {
     expect(pipelinePath("abc123").startsWith(`${ROUTES.pipelines}/`)).toBe(true)
     expect(pipelinePath("abc123").endsWith("/abc123")).toBe(true)
+  })
+
+  it("puts a platform under the platforms route, with its version only when one is named", () => {
+    expect(platformPath("woodpecker-ci")).toBe(`${ROUTES.platforms}/woodpecker-ci`)
+
+    const path = platformPath("woodpecker-ci", "1.0.0")
+
+    expect(path.startsWith(`${ROUTES.platforms}/woodpecker-ci?`)).toBe(true)
+    expect(queryOf(path).get(PLATFORM_QUERY.version)).toBe("1.0.0")
+  })
+
+  it("keeps a platform id and version with special characters whole", () => {
+    const path = platformPath("a/b c", "1.0.0&x")
+
+    expect(path.split("?")[0]).not.toContain("a/b")
+    expect(decodeURIComponent(path.split("?")[0].slice(`${ROUTES.platforms}/`.length))).toBe("a/b c")
+    expect(queryOf(path).get(PLATFORM_QUERY.version)).toBe("1.0.0&x")
   })
 
   it("asks the integration screen for a blank run with the path the screen recognises", () => {

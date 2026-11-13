@@ -13,6 +13,17 @@ export const ROUTES = {
 /** A saved pipeline's screen. */
 export const pipelinePath = (pipelineId: string) => `${ROUTES.pipelines}/${encodeURIComponent(pipelineId)}`;
 
+/** The platform screen's query parameter, written by links and read by the screen. */
+export const PLATFORM_QUERY = {
+  /** Shows this version instead of the platform's latest. */
+  version: 'version',
+} as const;
+
+/** A platform's screen: its latest version, or the one named. */
+export const platformPath = (platformId: string, version?: string) =>
+  `${ROUTES.platforms}/${encodeURIComponent(platformId)}` +
+  (version ? `?${new URLSearchParams({ [PLATFORM_QUERY.version]: version })}` : '');
+
 /** The integration screen's query parameters, written by links and read by the screen. */
 export const INTEGRATION_QUERY = {
   /** Shows a past run, read-only, instead of the live one. */

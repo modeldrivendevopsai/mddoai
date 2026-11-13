@@ -375,10 +375,14 @@ that run is no longer the current one.
 refused what was sent, such as a version that exists. Both carry the reason in `detail`. `502` means
 a service could not be reached.
 
-### `GET /platforms` and `DELETE /platforms/...`
+### `GET /platforms`, `GET /platforms/{id}` and `DELETE /platforms/...`
 
 `GET /platforms` lists each platform at its latest version, with the versions it has and whether it
-was published from a run. `DELETE /platforms/{id}/versions/{version}` purges one published version and
+was published from a run. `GET /platforms/{id}` shows one platform: the same record, plus the texts of
+its metamodel, transformation and template under `files`, and the run it was published from
+(`source_run_id`, empty for a platform that came with the stack). It shows the latest version, or the
+one named in the `version` query parameter, and answers `404` for an unknown platform or version.
+`DELETE /platforms/{id}/versions/{version}` purges one published version and
 `DELETE /platforms/{id}` purges every version of a published platform, in both cases through the
 journal, like the `purge_platform` chat tool. The journal's refusal is passed on with its status and
 reason: `404` for an unknown platform or version, `409` for a platform that came with the stack.
