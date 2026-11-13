@@ -1142,11 +1142,11 @@
     </mxGraphModel>
   </diagram>
   <diagram name="C4 Architecture" id="mddoai-c4">
-    <mxGraphModel dx="7065" dy="3782" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="12340" math="0" shadow="0">
+    <mxGraphModel dx="5004" dy="2679" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4600" pageHeight="12340" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="c4-l2-system" parent="1" style="shape=rect;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=light-dark(#666666, #5ea9f2);verticalAlign=top;align=left;spacingLeft=14;fontStyle=1;fontSize=14;spacingTop=10;strokeWidth=5;" value="&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;MDDOAI [Software System]&lt;/span&gt;" vertex="1">
+        <mxCell id="c4-l2-system" parent="1" style="shape=rect;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=light-dark(#666666, #5ea9f2);verticalAlign=top;align=left;spacingLeft=14;fontStyle=1;fontSize=14;spacingTop=10;strokeWidth=4;dashPattern=8 8;" value="&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;MDDOAI [Software System]&lt;/span&gt;" vertex="1">
           <mxGeometry height="1800" width="3490" x="500" y="2030" as="geometry" />
         </mxCell>
         <mxCell id="c4-agents" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#CCCCCC, #e3e3e3);dashed=1;verticalAlign=bottom;align=right;fontStyle=1;fontSize=13;html=1;container=0;strokeWidth=5;fontColor=#555555;spacingRight=10;spacingBottom=6;" value="Stage agents [Group of containers]: write the platform&#39;s files with AI, then validate them" vertex="1">
@@ -1431,199 +1431,196 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-l3a-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=1;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Orchestrator [Container: Python, FastAPI]" vertex="1">
-          <mxGeometry height="1030" width="1460" x="570.0" y="4720.0" as="geometry" />
+        <mxCell id="c4-l3a-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=4;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Orchestrator [Container: Python, FastAPI]" vertex="1">
+          <mxGeometry height="1030" width="1460" x="570" y="4720" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3b-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=1;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Integration Runner [Container: Python, FastAPI]" vertex="1">
-          <mxGeometry height="790" width="1360" x="1040.0" y="6880.0" as="geometry" />
+        <mxCell id="c4-l3b-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=4;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Integration Runner [Container: Python, FastAPI]" vertex="1">
+          <mxGeometry height="790" width="1360" x="1040" y="6880" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-svc" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=#CCCCCC;dashed=1;verticalAlign=top;align=left;fontStyle=1;fontSize=13;html=1;container=0;strokeWidth=2;fontColor=#555555;spacingLeft=10;" value="Stage services [Group of containers]" vertex="1">
-          <mxGeometry height="340" width="1140" x="1150.0" y="7780.0" as="geometry" />
+          <mxGeometry height="340" width="1140" x="1150" y="7780" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3c-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=1;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Journal [Container: Python, FastAPI]" vertex="1">
-          <mxGeometry height="560" width="2220" x="1635.0" y="8970.0" as="geometry" />
+        <mxCell id="c4-l3c-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=4;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Journal [Container: Python, FastAPI]" vertex="1">
+          <mxGeometry height="560" width="2220" x="1635" y="8970" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3d-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=1;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Pipeline Generator [Container: Python, FastAPI]" vertex="1">
-          <mxGeometry height="800" width="1900" x="1700.0" y="10650.0" as="geometry" />
+        <mxCell id="c4-l3d-b" parent="1" style="shape=mxgraph.c4.boundary;fillColor=none;strokeColor=light-dark(#24699B, #5ea9f2);dashed=1;verticalAlign=top;align=left;fontStyle=0;fontSize=13;html=1;dashPattern=8 8;strokeWidth=4;fontFamily=Helvetica;fontColor=#666666;spacingLeft=10;" value="Pipeline Generator [Container: Python, FastAPI]" vertex="1">
+          <mxGeometry height="800" width="1900" x="1700" y="10650" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;" value="Level 3a: Component Diagram, Orchestrator" vertex="1">
-          <mxGeometry height="40" width="900" x="470.0" y="4300.0" as="geometry" />
+          <mxGeometry height="40" width="900" x="470" y="4300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-routes" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;REST Routes&lt;/b&gt;&lt;br&gt;[Component: FastAPI]&lt;br&gt;&lt;br&gt;Every endpoint the UI calls. Mostly forwards: to the Integration Runner, the AI Layer and the Journal." vertex="1">
-          <mxGeometry height="140" width="280" x="1130.0" y="4800.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1130" y="4800" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-reply" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Reply Mechanism&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Comments on the newest unseen event, and answers free-form messages, with or without tools." vertex="1">
-          <mxGeometry height="140" width="280" x="630.0" y="5050.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="630" y="5050" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3a-log" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Chat Log&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;This run's transcript: mirrors the runner's events in, narrates them in the background." vertex="1">
-          <mxGeometry height="140" width="280" x="1630.0" y="5050.0" as="geometry" />
+        <mxCell id="c4-l3a-log" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Chat Log&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;This run&#39;s transcript: mirrors the runner&#39;s events in, narrates them in the background." vertex="1">
+          <mxGeometry height="140" width="280" x="1630" y="5050" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-prompt" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Prompt Builder&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;The system prompt, and the shortened event history that goes into it." vertex="1">
-          <mxGeometry height="140" width="280" x="630.0" y="5300.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="630" y="5300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-engine" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Tool-calling Engine&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Sends one request that offers the tools, then runs the calls the model picks. Knows nothing of MDDOAI." vertex="1">
-          <mxGeometry height="140" width="280" x="1130.0" y="5300.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1130" y="5300" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3a-store" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Chat Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Keeps each run's chat in the Journal, so a restart repeats no narration." vertex="1">
-          <mxGeometry height="140" width="280" x="1630.0" y="5300.0" as="geometry" />
+        <mxCell id="c4-l3a-store" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Chat Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Keeps each run&#39;s chat in the Journal, so a restart repeats no narration." vertex="1">
+          <mxGeometry height="140" width="280" x="1630" y="5300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-tools" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;LLM Tools&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;The actions the model may call. Each makes the call a button makes." vertex="1">
-          <mxGeometry height="140" width="280" x="1130.0" y="5550.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1130" y="5550" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-ui" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;UI Host&lt;/b&gt;&lt;br&gt;[External Container: React, nginx]&lt;br&gt;&lt;br&gt;Calls the Orchestrator in the platform-integration mode." vertex="1">
-          <mxGeometry height="150" width="280" x="1130.0" y="4370.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="1130" y="4370" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3a-ir" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Integration Runner&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Owns the pipeline's stages and every raw event of a run." vertex="1">
-          <mxGeometry height="150" width="280" x="2250.0" y="5045.0" as="geometry" />
+        <mxCell id="c4-l3a-ir" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Integration Runner&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Owns the pipeline&#39;s stages and every raw event of a run." vertex="1">
+          <mxGeometry height="150" width="280" x="2250" y="5045" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-ai" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;AI Layer&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Routes requests to a language model provider." vertex="1">
-          <mxGeometry height="150" width="280" x="460.0" y="5890.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="460" y="5890" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3a-j" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Journal&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps chats and platforms." vertex="1">
-          <mxGeometry height="150" width="280" x="1630.0" y="5890.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="1630" y="5890" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;" value="Level 3b: Component Diagram, Integration Runner" vertex="1">
-          <mxGeometry height="40" width="900" x="940.0" y="6460.0" as="geometry" />
+          <mxGeometry height="40" width="900" x="940" y="6460" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-routes" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Routes&lt;/b&gt;&lt;br&gt;[Component: FastAPI]&lt;br&gt;&lt;br&gt;Start, review, rerun, fork and reset a run. Read the tries of a stage. Publish a platform. Pass prompt-config requests on." vertex="1">
-          <mxGeometry height="140" width="280" x="1580.0" y="6960.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1580" y="6960" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3b-publish" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Publishing&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Publishes a completed run's platform, from the attempt behind the approved pipeline." vertex="1">
-          <mxGeometry height="140" width="280" x="2060.0" y="6960.0" as="geometry" />
+        <mxCell id="c4-l3b-publish" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Publishing&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Publishes a completed run&#39;s platform, from the attempt behind the approved pipeline." vertex="1">
+          <mxGeometry height="140" width="280" x="2060" y="6960" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-registry" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Run Registry&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Which run is current. Starts, resumes, forks and resets runs, one at a time." vertex="1">
-          <mxGeometry height="140" width="280" x="1580.0" y="7210.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1580" y="7210" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-store" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Run Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Keeps each run in the Journal, and reads them back when the service starts." vertex="1">
-          <mxGeometry height="140" width="280" x="2060.0" y="7210.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2060" y="7210" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-events" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Event Log&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Records every real thing that happens to a run. Stores, never narrates." vertex="1">
-          <mxGeometry height="140" width="280" x="1100.0" y="7460.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1100" y="7460" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3b-pipeline" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Pipeline&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;The state machine: one run's stages, reviews, constraints and background work." vertex="1">
-          <mxGeometry height="140" width="280" x="1580.0" y="7460.0" as="geometry" />
+        <mxCell id="c4-l3b-pipeline" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Pipeline&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;The state machine: one run&#39;s stages, reviews, constraints and background work." vertex="1">
+          <mxGeometry height="140" width="280" x="1580" y="7460" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-stages" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Stage Modules&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;One per stage of the pipeline. Most call the service that owns the step, and each records its tries in the Journal." vertex="1">
-          <mxGeometry height="140" width="280" x="2060.0" y="7460.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2060" y="7460" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3b-orch" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;The caller. A button and a model's tool call both reach the runner as the same request." vertex="1">
-          <mxGeometry height="150" width="280" x="1300.0" y="6530.0" as="geometry" />
+        <mxCell id="c4-l3b-orch" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;The caller. A button and a model&#39;s tool call both reach the runner as the same request." vertex="1">
+          <mxGeometry height="150" width="280" x="1300" y="6530" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s0" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Retrieval&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Crawls the documentation" vertex="1">
-          <mxGeometry height="110" width="250" x="1170.0" y="7830.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="1170" y="7830" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s1" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Serialization Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Labels it with PIM concepts" vertex="1">
-          <mxGeometry height="110" width="250" x="1450.0" y="7830.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="1450" y="7830" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s2" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;PSM Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Writes the metamodel" vertex="1">
-          <mxGeometry height="110" width="250" x="1730.0" y="7830.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="1730" y="7830" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s3" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;ATL Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Writes the transformation" vertex="1">
-          <mxGeometry height="110" width="250" x="2010.0" y="7830.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="2010" y="7830" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s4" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Acceleo Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Writes the template" vertex="1">
-          <mxGeometry height="110" width="250" x="1170.0" y="7965.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="1170" y="7965" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-s5" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Validator Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Validates the platform-independent metamodel" vertex="1">
-          <mxGeometry height="110" width="250" x="1450.0" y="7965.0" as="geometry" />
+          <mxGeometry height="110" width="250" x="1450" y="7965" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3b-s6" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Execution Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Runs the platform's files" vertex="1">
-          <mxGeometry height="110" width="250" x="1730.0" y="7965.0" as="geometry" />
+        <mxCell id="c4-l3b-s6" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Execution Agent&lt;/b&gt;&lt;br&gt;[Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Runs the platform&#39;s files" vertex="1">
+          <mxGeometry height="110" width="250" x="1730" y="7965" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3b-j" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Journal&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps each run, the tries of each stage and the published platforms." vertex="1">
-          <mxGeometry height="150" width="560" x="2460.0" y="7840.0" as="geometry" />
+          <mxGeometry height="150" width="560" x="2460" y="7840" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;" value="Level 3c: Component Diagram, Journal" vertex="1">
-          <mxGeometry height="40" width="900" x="1535.0" y="8570.0" as="geometry" />
+          <mxGeometry height="40" width="900" x="1535" y="8570" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-routes" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;API Routes&lt;/b&gt;&lt;br&gt;[Component: FastAPI]&lt;br&gt;&lt;br&gt;One route group for each resource. Refuses bad names, sizes and versions with a message a person can read." vertex="1">
-          <mxGeometry height="140" width="280" x="2605.0" y="9050.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2605" y="9050" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3c-orch" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps each run's chat, lists and purges platforms." vertex="1">
-          <mxGeometry height="140" width="280" x="1885.0" y="8670.0" as="geometry" />
+        <mxCell id="c4-l3c-orch" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps each run&#39;s chat, lists and purges platforms." vertex="1">
+          <mxGeometry height="140" width="280" x="1885" y="8670" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-ir" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Integration Runner&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps runs and attempts, publishes platforms." vertex="1">
-          <mxGeometry height="140" width="280" x="2245.0" y="8670.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2245" y="8670" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-ag" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Stage Agents&lt;/b&gt;&lt;br&gt;[External Containers: PSM, ATL, Acceleo]&lt;br&gt;&lt;br&gt;Keep prompt configs and uploads." vertex="1">
-          <mxGeometry height="140" width="280" x="2605.0" y="8670.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2605" y="8670" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-val" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Validator Agent&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Keeps the compiled output of an attempt." vertex="1">
-          <mxGeometry height="140" width="280" x="2965.0" y="8670.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2965" y="8670" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-pg" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Pipeline Generator&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Reads platforms, keeps pipelines." vertex="1">
-          <mxGeometry height="140" width="280" x="3325.0" y="8670.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="3325" y="8670" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3c-data" parent="1" style="shape=mxgraph.c4.database;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Data Folders&lt;/b&gt;&lt;br&gt;[External Container: Filesystem]&lt;br&gt;&lt;br&gt;A folder for each kind of thing kept. Reached through the Journal's API." vertex="1">
-          <mxGeometry height="150" width="280" x="1705.0" y="9670.0" as="geometry" />
+        <mxCell id="c4-l3c-data" parent="1" style="shape=mxgraph.c4.database;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Data Folders&lt;/b&gt;&lt;br&gt;[External Container: Filesystem]&lt;br&gt;&lt;br&gt;A folder for each kind of thing kept. Reached through the Journal&#39;s API." vertex="1">
+          <mxGeometry height="150" width="280" x="1705" y="9670" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-hist" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;History Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Histories of runs and chats, added to at the end. An append sent twice changes nothing." vertex="1">
-          <mxGeometry height="150" width="300" x="1695.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="1695" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-att" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Attempt Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Each try of a stage, with its files and its compiled output." vertex="1">
-          <mxGeometry height="150" width="300" x="2055.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="2055" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-plat" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Platform Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Platform versions: what a publish must satisfy, semantic versions, purge." vertex="1">
-          <mxGeometry height="150" width="300" x="2415.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="2415" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-prompt" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Prompt Config Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;The live, shipped and saved versions of a prompt config, and its learned constraints." vertex="1">
-          <mxGeometry height="150" width="300" x="2775.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="2775" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-up" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Upload Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Text files uploaded to an agent, each kept once." vertex="1">
-          <mxGeometry height="150" width="300" x="3135.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="3135" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3c-pipe" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Pipeline Store&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Each generation as real files, written whole into place." vertex="1">
-          <mxGeometry height="150" width="300" x="3495.0" y="9300.0" as="geometry" />
+          <mxGeometry height="150" width="300" x="3495" y="9300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;" value="Level 3d: Component Diagram, Pipeline Generator" vertex="1">
-          <mxGeometry height="40" width="900" x="1600.0" y="10230.0" as="geometry" />
+          <mxGeometry height="40" width="900" x="1600" y="10230" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-routes" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Routes&lt;/b&gt;&lt;br&gt;[Component: FastAPI]&lt;br&gt;&lt;br&gt;Inspect a model, generate, validate, browse the workspace, list platforms and pipelines." vertex="1">
-          <mxGeometry height="140" width="280" x="2450.0" y="10730.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2450" y="10730" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-ws" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Workspace&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Reads models only from inside one folder, and writes nothing." vertex="1">
-          <mxGeometry height="140" width="280" x="1760.0" y="10990.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="1760" y="10990" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-reg" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Platform Registry&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Asks the Journal for the platforms, each at its latest version, on every request." vertex="1">
-          <mxGeometry height="140" width="280" x="2220.0" y="10990.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2220" y="10990" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-jobs" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Generation Jobs&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Answers a generate request at once with a job id, and runs the work in the background." vertex="1">
-          <mxGeometry height="140" width="280" x="2680.0" y="10990.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2680" y="10990" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-hist" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Pipeline History&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Keeps each generation in the Journal, so it can be reopened." vertex="1">
-          <mxGeometry height="140" width="280" x="3140.0" y="10990.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="3140" y="10990" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-gen" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Generation&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Generates for each chosen platform, then records the result in the pipeline history." vertex="1">
-          <mxGeometry height="140" width="280" x="2680.0" y="11250.0" as="geometry" />
+          <mxGeometry height="140" width="280" x="2680" y="11250" as="geometry" />
         </mxCell>
-        <mxCell id="c4-l3d-run" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Platform Runner&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Runs the shared model-to-PIM step, then the platform's transformation and template, each as a call to the Execution Agent." vertex="1">
-          <mxGeometry height="140" width="280" x="3140.0" y="11250.0" as="geometry" />
+        <mxCell id="c4-l3d-run" parent="1" style="shape=mxgraph.c4.component;whiteSpace=wrap;html=1;fillColor=#63b3ed;strokeColor=#4b8bbd;fontColor=#000000;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Platform Runner&lt;/b&gt;&lt;br&gt;[Component: Python]&lt;br&gt;&lt;br&gt;Runs the shared model-to-PIM step, then the platform&#39;s transformation and template, each as a call to the Execution Agent." vertex="1">
+          <mxGeometry height="140" width="280" x="3140" y="11250" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-ui" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;UI Host&lt;/b&gt;&lt;br&gt;[External Container: React, nginx]&lt;br&gt;&lt;br&gt;Calls the generator for the Generate a CI/CD pipeline mode." vertex="1">
-          <mxGeometry height="150" width="280" x="2450.0" y="10300.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="2450" y="10300" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-j" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Journal&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI]&lt;br&gt;&lt;br&gt;Keeps the platforms and each generated pipeline." vertex="1">
-          <mxGeometry height="150" width="280" x="2220.0" y="11590.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="2220" y="11590" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-val" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Validator Agent&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Checks a model with the real EMF validator, and the generated pipeline file." vertex="1">
-          <mxGeometry height="150" width="280" x="3640.0" y="11590.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="3640" y="11590" as="geometry" />
         </mxCell>
         <mxCell id="c4-l3d-exe" parent="1" style="shape=mxgraph.c4.container;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=#0B4884;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;" value="&lt;b&gt;Execution Agent&lt;/b&gt;&lt;br&gt;[External Container: Python, FastAPI, Java]&lt;br&gt;&lt;br&gt;Runs an ATL transformation or an Acceleo template and returns the output." vertex="1">
-          <mxGeometry height="150" width="280" x="4000.0" y="11590.0" as="geometry" />
+          <mxGeometry height="150" width="280" x="4000" y="11590" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e100" edge="1" parent="1" source="c4-l3a-ui" target="c4-l3a-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Calls&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="0.2" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e100" edge="1" parent="1" source="c4-l3a-ui" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-routes" value="Calls&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="0.2" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e101" edge="1" parent="1" source="c4-l3a-routes" target="c4-l3a-reply" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Hands over messages">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e101" edge="1" parent="1" source="c4-l3a-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-reply" value="Hands over messages">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e102" edge="1" parent="1" source="c4-l3a-routes" target="c4-l3a-log" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Serves events and chat">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e102" edge="1" parent="1" source="c4-l3a-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-log" value="Serves events and chat">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e103" edge="1" parent="1" source="c4-l3a-routes" target="c4-l3a-ir" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Forwards stage actions&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e103" edge="1" parent="1" source="c4-l3a-routes" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-ir" value="Forwards stage actions&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.55" as="geometry">
             <Array as="points">
               <mxPoint x="1410" y="4870" />
@@ -1631,7 +1628,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e104" edge="1" parent="1" source="c4-l3a-routes" target="c4-l3a-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="Lists, reads and purges platforms&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e104" edge="1" parent="1" source="c4-l3a-routes" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3a-j" value="Lists, reads and purges platforms&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.55" as="geometry">
             <Array as="points">
               <mxPoint x="1410" y="4919" />
@@ -1641,7 +1638,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e105" edge="1" parent="1" source="c4-l3a-reply" target="c4-l3a-ai" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Asks for comments and tool choices&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e105" edge="1" parent="1" source="c4-l3a-reply" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-ai" value="Asks for comments and tool choices&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.7" as="geometry">
             <Array as="points">
               <mxPoint x="630" y="5120" />
@@ -1650,35 +1647,28 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e106" edge="1" parent="1" source="c4-l3a-reply" target="c4-l3a-log" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" value="Reads and adds chat turns">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e106" edge="1" parent="1" source="c4-l3a-reply" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" target="c4-l3a-log" value="Reads and adds chat turns">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e107" edge="1" parent="1" source="c4-l3a-log" target="c4-l3a-reply" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" value="Asks for a comment on a new event">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e107" edge="1" parent="1" source="c4-l3a-log" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="c4-l3a-reply" value="Asks for a comment on a new event">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e108" edge="1" parent="1" source="c4-l3a-reply" target="c4-l3a-prompt" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Builds prompts">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e108" edge="1" parent="1" source="c4-l3a-reply" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-prompt" value="Builds prompts">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e109" edge="1" parent="1" source="c4-l3a-reply" target="c4-l3a-engine" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" value="Runs tool calls">
-          <mxGeometry relative="1" x="0.5" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e109" edge="1" parent="1" source="c4-l3a-reply" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-engine" value="Runs tool calls">
+          <mxGeometry relative="1" x="0.5" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e110" edge="1" parent="1" source="c4-l3a-engine" target="c4-l3a-tools" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Offers and runs">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e110" edge="1" parent="1" source="c4-l3a-engine" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-tools" value="Offers and runs">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e111" edge="1" parent="1" source="c4-l3a-log" target="c4-l3a-store" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Saves turns">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e111" edge="1" parent="1" source="c4-l3a-log" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-store" value="Saves turns">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e112" edge="1" parent="1" source="c4-l3a-log" target="c4-l3a-ir" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Polls for events&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="0.2" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e112" edge="1" parent="1" source="c4-l3a-log" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3a-ir" value="Polls for events&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="0.2" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e113" edge="1" parent="1" source="c4-l3a-tools" target="c4-l3a-ir" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" value="Makes the same calls as a button&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e113" edge="1" parent="1" source="c4-l3a-tools" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" target="c4-l3a-ir" value="Makes the same calls as a button&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.3" as="geometry">
             <Array as="points">
               <mxPoint x="1410" y="5592" />
@@ -1688,7 +1678,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e114" edge="1" parent="1" source="c4-l3a-tools" target="c4-l3a-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Lists and purges platforms&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e114" edge="1" parent="1" source="c4-l3a-tools" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3a-j" value="Lists and purges platforms&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.6" as="geometry">
             <Array as="points">
               <mxPoint x="1270" y="5690" />
@@ -1697,43 +1687,34 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e115" edge="1" parent="1" source="c4-l3a-store" target="c4-l3a-j" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps chats&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.3" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e115" edge="1" parent="1" source="c4-l3a-store" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-j" value="Keeps chats&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.3" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e116" edge="1" parent="1" source="c4-l3b-orch" target="c4-l3b-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" value="Calls&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e116" edge="1" parent="1" source="c4-l3b-orch" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-routes" value="Calls&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e117" edge="1" parent="1" source="c4-l3b-routes" target="c4-l3b-registry" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Reads and switches the current run">
-          <mxGeometry relative="1" x="-0.45" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e117" edge="1" parent="1" source="c4-l3b-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-registry" value="Reads and switches the current run">
+          <mxGeometry relative="1" x="-0.45" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e118" edge="1" parent="1" source="c4-l3b-routes" target="c4-l3b-publish" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Publishes a completed run">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e118" edge="1" parent="1" source="c4-l3b-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3b-publish" value="Publishes a completed run">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e119" edge="1" parent="1" source="c4-l3b-publish" target="c4-l3b-registry" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" value="Reads the run">
-          <mxGeometry relative="1" x="-0.2" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e119" edge="1" parent="1" source="c4-l3b-publish" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-registry" value="Reads the run">
+          <mxGeometry relative="1" x="-0.2" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e120" edge="1" parent="1" source="c4-l3b-registry" target="c4-l3b-store" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Saves and reloads runs">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e120" edge="1" parent="1" source="c4-l3b-registry" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3b-store" value="Saves and reloads runs">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e121" edge="1" parent="1" source="c4-l3b-registry" target="c4-l3b-pipeline" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Holds one per run">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e121" edge="1" parent="1" source="c4-l3b-registry" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-pipeline" value="Holds one per run">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e122" edge="1" parent="1" source="c4-l3b-pipeline" target="c4-l3b-events" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="Records each event">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e122" edge="1" parent="1" source="c4-l3b-pipeline" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3b-events" value="Records each event">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e123" edge="1" parent="1" source="c4-l3b-pipeline" target="c4-l3b-stages" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Runs the current stage">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e123" edge="1" parent="1" source="c4-l3b-pipeline" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3b-stages" value="Runs the current stage">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e124" edge="1" parent="1" source="c4-l3b-stages" target="c4-l3b-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.08928571428571429;entryY=0;entryDx=0;entryDy=0;" value="Records each try of a stage&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e124" edge="1" parent="1" source="c4-l3b-stages" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.08928571428571429;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-j" value="Records each try of a stage&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.8" as="geometry">
             <Array as="points">
               <mxPoint x="2340" y="7530" />
@@ -1742,7 +1723,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e125" edge="1" parent="1" source="c4-l3b-store" target="c4-l3b-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.3392857142857143;entryY=0;entryDx=0;entryDy=0;" value="Keeps and reloads runs&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e125" edge="1" parent="1" source="c4-l3b-store" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.3392857142857143;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-j" value="Keeps and reloads runs&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.7" as="geometry">
             <Array as="points">
               <mxPoint x="2340" y="7280" />
@@ -1751,7 +1732,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e126" edge="1" parent="1" source="c4-l3b-publish" target="c4-l3b-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5892857142857143;entryY=0;entryDx=0;entryDy=0;" value="Publishes the platform&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e126" edge="1" parent="1" source="c4-l3b-publish" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5892857142857143;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-j" value="Publishes the platform&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.6" as="geometry">
             <Array as="points">
               <mxPoint x="2340" y="7030" />
@@ -1760,7 +1741,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e127" edge="1" parent="1" source="c4-l3b-routes" target="c4-l3b-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.8;exitY=0;exitDx=0;exitDy=0;entryX=0.8392857142857143;entryY=0;entryDx=0;entryDy=0;" value="Reads the tries of a stage&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e127" edge="1" parent="1" source="c4-l3b-routes" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.8;exitY=0;exitDx=0;exitDy=0;entryX=0.8392857142857143;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-j" value="Reads the tries of a stage&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.8" as="geometry">
             <Array as="points">
               <mxPoint x="1804" y="6960" />
@@ -1770,83 +1751,64 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e128" edge="1" parent="1" source="c4-l3b-stages" target="c4-l3b-svc" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.9210526315789473;entryY=0;entryDx=0;entryDy=0;" value="Calls each stage's service&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="0.3" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e128" edge="1" parent="1" source="c4-l3b-stages" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.9210526315789473;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-svc" value="Calls each stage&#39;s service&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="0.3" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e129" edge="1" parent="1" source="c4-l3c-orch" target="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps chats&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e129" edge="1" parent="1" source="c4-l3c-orch" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-routes" value="Keeps chats&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e130" edge="1" parent="1" source="c4-l3c-ir" target="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps runs&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e130" edge="1" parent="1" source="c4-l3c-ir" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-routes" value="Keeps runs&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e131" edge="1" parent="1" source="c4-l3c-ag" target="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keep configs&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e131" edge="1" parent="1" source="c4-l3c-ag" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-routes" value="Keep configs&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e132" edge="1" parent="1" source="c4-l3c-val" target="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps output&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e132" edge="1" parent="1" source="c4-l3c-val" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-routes" value="Keeps output&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e133" edge="1" parent="1" source="c4-l3c-pg" target="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Reads platforms&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="-0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e133" edge="1" parent="1" source="c4-l3c-pg" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-routes" value="Reads platforms&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="-0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e134" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-hist" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps histories">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e134" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-hist" value="Keeps histories">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e135" edge="1" parent="1" source="c4-l3c-hist" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e135" edge="1" parent="1" source="c4-l3c-hist" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e136" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-att" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps attempts">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e136" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-att" value="Keeps attempts">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e137" edge="1" parent="1" source="c4-l3c-att" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e137" edge="1" parent="1" source="c4-l3c-att" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e138" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-plat" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps platforms">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e138" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-plat" value="Keeps platforms">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e139" edge="1" parent="1" source="c4-l3c-plat" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e139" edge="1" parent="1" source="c4-l3c-plat" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e140" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-prompt" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps configs">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e140" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-prompt" value="Keeps configs">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e141" edge="1" parent="1" source="c4-l3c-prompt" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e141" edge="1" parent="1" source="c4-l3c-prompt" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e142" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-up" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps uploads">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e142" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-up" value="Keeps uploads">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e143" edge="1" parent="1" source="c4-l3c-up" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e143" edge="1" parent="1" source="c4-l3c-up" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e144" edge="1" parent="1" source="c4-l3c-routes" target="c4-l3c-pipe" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Keeps pipelines">
-          <mxGeometry relative="1" x="0.6" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e144" edge="1" parent="1" source="c4-l3c-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-pipe" value="Keeps pipelines">
+          <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e145" edge="1" parent="1" source="c4-l3c-pipe" target="c4-l3c-data" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Reads and writes&lt;br&gt;[Filesystem]">
-          <mxGeometry relative="1" x="0.9" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e145" edge="1" parent="1" source="c4-l3c-pipe" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-data" value="Reads and writes&lt;br&gt;[Filesystem]">
+          <mxGeometry relative="1" x="0.9" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e146" edge="1" parent="1" source="c4-l3d-ui" target="c4-l3d-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Calls&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="0.2" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e146" edge="1" parent="1" source="c4-l3d-ui" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-routes" value="Calls&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="0.2" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e147" edge="1" parent="1" source="c4-l3d-routes" target="c4-l3d-val" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Checks the model and the pipeline&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e147" edge="1" parent="1" source="c4-l3d-routes" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-val" value="Checks the model and the pipeline&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.45" as="geometry">
             <Array as="points">
               <mxPoint x="2730" y="10800" />
@@ -1854,35 +1816,28 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e148" edge="1" parent="1" source="c4-l3d-routes" target="c4-l3d-ws" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Browses and reads models">
-          <mxGeometry relative="1" x="0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e148" edge="1" parent="1" source="c4-l3d-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-ws" value="Browses and reads models">
+          <mxGeometry relative="1" x="0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e149" edge="1" parent="1" source="c4-l3d-routes" target="c4-l3d-reg" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Lists platforms">
-          <mxGeometry relative="1" x="0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e149" edge="1" parent="1" source="c4-l3d-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-reg" value="Lists platforms">
+          <mxGeometry relative="1" x="0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e150" edge="1" parent="1" source="c4-l3d-routes" target="c4-l3d-jobs" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Starts a generation">
-          <mxGeometry relative="1" x="0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e150" edge="1" parent="1" source="c4-l3d-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-jobs" value="Starts a generation">
+          <mxGeometry relative="1" x="0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e151" edge="1" parent="1" source="c4-l3d-routes" target="c4-l3d-hist" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Lists and reopens">
-          <mxGeometry relative="1" x="0.8" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e151" edge="1" parent="1" source="c4-l3d-routes" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-hist" value="Lists and reopens">
+          <mxGeometry relative="1" x="0.8" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e152" edge="1" parent="1" source="c4-l3d-jobs" target="c4-l3d-gen" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Runs the work">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e152" edge="1" parent="1" source="c4-l3d-jobs" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-gen" value="Runs the work">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e153" edge="1" parent="1" source="c4-l3d-gen" target="c4-l3d-run" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="For each chosen platform">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e153" edge="1" parent="1" source="c4-l3d-gen" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3d-run" value="For each chosen platform">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e154" edge="1" parent="1" source="c4-l3d-gen" target="c4-l3d-hist" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.9;exitY=0;exitDx=0;exitDy=0;entryX=0.2;entryY=1;entryDx=0;entryDy=0;" value="Records the generation">
-          <mxGeometry relative="1" x="0.3" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e154" edge="1" parent="1" source="c4-l3d-gen" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.9;exitY=0;exitDx=0;exitDy=0;entryX=0.2;entryY=1;entryDx=0;entryDy=0;" target="c4-l3d-hist" value="Records the generation">
+          <mxGeometry relative="1" x="0.3" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e155" edge="1" parent="1" source="c4-l3d-run" target="c4-l3d-reg" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" value="Gets the platform's files">
+        <mxCell id="c4-e155" edge="1" parent="1" source="c4-l3d-run" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="c4-l3d-reg" value="Gets the platform&#39;s files">
           <mxGeometry relative="1" x="0.1" as="geometry">
             <Array as="points">
               <mxPoint x="3224" y="11390" />
@@ -1892,7 +1847,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e156" edge="1" parent="1" source="c4-l3d-run" target="c4-l3d-exe" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="Runs each step&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e156" edge="1" parent="1" source="c4-l3d-run" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-exe" value="Runs each step&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.45" as="geometry">
             <Array as="points">
               <mxPoint x="3420" y="11320" />
@@ -1900,11 +1855,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-e157" edge="1" parent="1" source="c4-l3d-reg" target="c4-l3d-j" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" value="Reads platforms&lt;br&gt;[HTTP/JSON]">
-          <mxGeometry relative="1" x="0.75" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-e157" edge="1" parent="1" source="c4-l3d-reg" style="edgeStyle=orthogonalEdgeStyle;jettySize=auto;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-j" value="Reads platforms&lt;br&gt;[HTTP/JSON]">
+          <mxGeometry relative="1" x="0.75" as="geometry" />
         </mxCell>
-        <mxCell id="c4-e158" edge="1" parent="1" source="c4-l3d-hist" target="c4-l3d-j" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="Keeps pipelines&lt;br&gt;[HTTP/JSON]">
+        <mxCell id="c4-e158" edge="1" parent="1" source="c4-l3d-hist" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#666666;fontColor=#333333;fontSize=12;labelBackgroundColor=default;align=center;verticalAlign=middle;dashed=1;dashPattern=8 8;strokeColor=#006EAF;fontColor=#006EAF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="c4-l3d-j" value="Keeps pipelines&lt;br&gt;[HTTP/JSON]">
           <mxGeometry relative="1" x="0.5" as="geometry">
             <Array as="points">
               <mxPoint x="3420" y="11060" />
@@ -1914,7 +1868,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-x-orch" edge="1" parent="1" source="c4-orch" target="c4-l3a-b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.03;entryY=0;entryDx=0;entryDy=0;">
+        <mxCell id="c4-x-orch" edge="1" parent="1" source="c4-orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.03;entryY=0;entryDx=0;entryDy=0;" target="c4-l3a-b">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="250" y="2475" />
@@ -1922,7 +1876,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-x-runner" edge="1" parent="1" source="c4-runner" target="c4-l3b-b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.03;entryY=0;entryDx=0;entryDy=0;">
+        <mxCell id="c4-x-runner" edge="1" parent="1" source="c4-runner" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.03;entryY=0;entryDx=0;entryDy=0;" target="c4-l3b-b">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="300" y="2755" />
@@ -1930,11 +1884,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c4-x-journal" edge="1" parent="1" source="c4-journal" target="c4-l3c-b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0.9647577092511013;exitY=1;exitDx=0;exitDy=0;entryX=0.9752252252252253;entryY=0;entryDx=0;entryDy=0;">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
+        <mxCell id="c4-x-journal" edge="1" parent="1" source="c4-journal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=0.9647577092511013;exitY=1;exitDx=0;exitDy=0;entryX=0.9752252252252253;entryY=0;entryDx=0;entryDy=0;" target="c4-l3c-b">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4-x-pgen" edge="1" parent="1" source="c4-pgen" target="c4-l3d-b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0.97;entryY=0;entryDx=0;entryDy=0;">
+        <mxCell id="c4-x-pgen" edge="1" parent="1" source="c4-pgen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;curved=1;curveGeometry=1;dashed=1;dashPattern=12 12;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0.97;entryY=0;entryDx=0;entryDy=0;" target="c4-l3d-b">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="4040" y="2430" />
