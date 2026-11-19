@@ -36,7 +36,7 @@ export default function PlatformsScreen({ onBack, onNew, onOpen, onOpenRun }: Pl
         </div>
 
         <h2 className="mdd-platforms__section-title">{copy.listTitle}</h2>
-        <PlatformsList onOpen={onOpen} onOpenRun={onOpenRun} />
+        <PlatformsList onOpen={onOpen} onOpenRun={onOpenRun} showRounds />
       </div>
     </div>
   );

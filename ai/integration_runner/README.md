@@ -46,6 +46,7 @@ and its attempts, and publishes a completed run's platform, see [`ai/journal`](.
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
 - **`run_store.py`**: keeps each run in the journal, and reads them back when the service starts.
+- **`evolution.py`**: reads a run's events and sums what each stage took: the rounds of its generate-and-check loop (one round is one try at the stage, checked and, if it failed, tried again with what was wrong), and the constraints added to it. It counts only what the run itself did, so a run forked from another does not include the earlier run's work, and the summary says it was forked.
 - **`publishing.py`**: publishes a completed run's platform to the journal, as a version of the caller's choosing or the next patch. It takes the
   three files from the recorded events of the attempt behind the approved pipeline, not from the
   run's latest context, which a later attempt can have changed.
@@ -77,6 +78,8 @@ routes/docs.py ──imports──> runs.py, stages/docs/
 routes/psm.py ──imports──> runs.py, stages/psm/actions.py, clients.psm_agent_client
 routes/attempts.py ──imports──> clients.journal_client
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
+runs.py ──imports──> evolution.py
+evolution.py ──imports──> pipeline.py                     (the STAGES order)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
 stages/pim/, atl/, acceleo/ (agent.py)
@@ -453,6 +456,7 @@ The service starts at `http://localhost:8050`.
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run, newest first, each with `started_at` (when it began, or null when nothing happened on it). |
+| `GET /runs/{run_id}/evolution` | What the run took, without its generated files: per stage that ran the loop or got a constraint, its `rounds` and its `constraints` (`text`, `source`, `timestamp`, oldest first), plus `total_rounds` and `forked_from` (the source run and the stage it was forked at, or null). `source` is `validation` for a fix the validator's errors produced and null for a correction a person typed. `404` for an unknown run. |
 | `DELETE /runs/{run_id}` | Deletes a past run for good, with the files of its attempts. `404` for an unknown run. `409` for the current run, a busy one, or a run a platform was published from (the journal keeps it, the reason is in `detail`). `502` if the journal is unreachable. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
 | `POST /publish` | Body: optional `name`, `output_filename`, `version` (`MAJOR.MINOR.PATCH`, the patch after the highest when left out), `run_id`. Publishes the completed run's platform to the journal, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the journal refuses what was sent, such as a version that exists. `502` if it is unreachable. |

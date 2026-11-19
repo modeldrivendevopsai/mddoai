@@ -3,6 +3,7 @@ import { Button, CodeBlock, Tabs } from 'design-system';
 import type { PlatformDetail } from 'orchestrator-types';
 import { PLATFORM_VIEW_COPY } from '../../config/platforms.config';
 import { timeAgo } from '../generate/format';
+import { PlatformEvolution } from './PlatformEvolution';
 import './platform-view.css';
 
 interface PlatformViewProps {
@@ -14,8 +15,9 @@ interface PlatformViewProps {
 }
 
 /**
- * One platform at one version: where it came from, which file it writes, and
- * the three files it is made of, one tab each, as plain text to read and copy.
+ * One platform at one version: where it came from, how the chat that made it
+ * went (rounds and corrections), which file it writes, and the three files it
+ * is made of, one tab each, as plain text to read and copy.
  * The screen keys it by platform, so opening another platform starts on the
  * first file, while another version of the same one keeps the file open.
  * Nothing here changes a platform; making a new version is a new integration run.
@@ -70,6 +72,9 @@ export function PlatformView({ detail, busy, onVersionChange, onOpenRun }: Platf
       ) : (
         <p className="mdd-platform-view__source">{copy.noChat}</p>
       )}
+
+      {/* How its chat went is shown only where a chat made it; the version picked is the one whose chat this is. */}
+      {detail.source_run_id && <PlatformEvolution runId={detail.source_run_id} />}
 
       <Tabs items={copy.files.map(({ id, label }) => ({ id, label }))} activeId={file.id} onChange={setFileId} />
       <p className="mdd-platform-view__hint">{file.hint}</p>

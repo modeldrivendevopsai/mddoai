@@ -19,8 +19,9 @@ interface PlatformScreenProps {
 
 /**
  * PlatformScreen - the second screen of the "Add or update a CI/CD platform"
- * mode: one platform, to read what it is made of and see which run made it. Its
- * header is the platform's name, the way back to the platforms list, in the
+ * mode: one platform, to read what it is made of and see which run made it and
+ * how that run went. Its header is the platform's name, the way back to the
+ * platforms list, in the
  * same style as every screen's.
  */
 export default function PlatformScreen({

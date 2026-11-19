@@ -5,6 +5,7 @@ import {
   getPlatform,
   getPlatforms,
   getProviders,
+  getRunEvolution,
   getRuns,
   previewPromptConfig,
   publishPlatform,
@@ -445,6 +446,18 @@ describe("orchestratorService", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "No platform 'x'." }) }))
 
     await expect(getPlatform("x")).rejects.toMatchObject({ message: "No platform 'x'.", status: 404 })
+  })
+
+  it("getRunEvolution reads the run's summary, escaping the id, and throws the backend's reason for an unknown run", async () => {
+    const summary = { run_id: "a/b", forked_from: null, stages: [], total_rounds: 0 }
+    const mockFetch = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => summary })
+    vi.stubGlobal("fetch", mockFetch)
+
+    expect(await getRunEvolution("a/b")).toEqual(summary)
+    expect(mockFetch).toHaveBeenCalledWith("/orchestrator-api/runs/a%2Fb/evolution")
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: "No run 'x'." }) }))
+    await expect(getRunEvolution("x")).rejects.toMatchObject({ message: "No run 'x'.", status: 404 })
   })
 
   it("purgePlatform deletes one version, or a whole platform when no version is given", async () => {

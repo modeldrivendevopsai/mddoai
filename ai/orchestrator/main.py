@@ -310,6 +310,11 @@ def manifest_endpoint(run_id: str):
     return {"attempts": integration_runner_client.get_run_manifest(run_id)}
 
 
+@app.get("/runs/{run_id}/evolution")
+def evolution_endpoint(run_id: str):
+    return integration_runner_client.get_run_evolution(run_id)
+
+
 @app.get("/runs/{run_id}/{stage}/{attempt}")
 def attempt_endpoint(run_id: str, stage: str, attempt: str):
     return integration_runner_client.get_attempt(run_id, stage, attempt)

@@ -33,3 +33,13 @@ def test_attempt_endpoint_proxies_the_real_client():
     mock_get.assert_called_once_with("run-1", "psm", "attempt_1")
     assert response.status_code == 200
     assert response.json() == attempt
+
+
+def test_evolution_endpoint_proxies_the_real_client():
+    summary = {"run_id": "run-1", "stages": [], "total_rounds": 0}
+    with patch.object(integration_runner_client, "get_run_evolution", return_value=summary) as mock_get:
+        response = client.get("/runs/run-1/evolution")
+
+    mock_get.assert_called_once_with("run-1")
+    assert response.status_code == 200
+    assert response.json() == summary

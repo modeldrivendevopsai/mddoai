@@ -196,6 +196,36 @@ export interface PlatformDetail extends PlatformSummary {
   files: PlatformFiles
 }
 
+// One constraint added during a run. `source` is "validation" for a fix the
+// validator's errors produced, null for a correction a person typed.
+// `timestamp` is epoch seconds.
+export interface ConstraintLogEntry {
+  text: string
+  source: string | null
+  timestamp: number
+}
+
+// What one stage took in a run: the rounds of its generate-and-check loop that
+// its completed calls spent in all, and the constraints added to the stage,
+// oldest first.
+export interface StageEvolution {
+  stage: StageId
+  rounds: number
+  constraints: ConstraintLogEntry[]
+}
+
+// GET /runs/{id}/evolution: what a run took, without its generated files. Only
+// stages that ran the loop or got a constraint are listed, in pipeline order.
+// `forked_from` names the run this one was forked from and the stage it was
+// forked at, or is null: the work that run did on the earlier stages is not
+// counted here.
+export interface RunEvolution {
+  run_id: string
+  forked_from: { run_id: string | null; stage: StageId | null } | null
+  stages: StageEvolution[]
+  total_rounds: number
+}
+
 export interface RerunStatusResponse {
   status: "rerun"
   stage: StageId

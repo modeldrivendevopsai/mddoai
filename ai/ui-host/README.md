@@ -57,7 +57,10 @@ Where things live:
   supported platforms on Platforms. That platforms list is shared with the platforms screen, reads
   the real platforms through the orchestrator client in `src/services/`, and each row opens that
   platform's screen, which shows its files and the chat that made it. Every row also has an
-  "Open chat" button to that chat, greyed out where no chat made the platform.
+  "Open chat" button to that chat, greyed out where no chat made the platform. The platforms
+  screen's list also shows the rounds that chat spent (the start screen's list does not), and the
+  platform's screen shows how it went: the rounds of each stage and the corrections added along
+  the way, read from the run by its id.
 - **Shared components**: `src/components/` holds the pieces several screens use and that belong to
   neither the shell nor one mode, such as the back control every screen's header uses, so going
   back looks the same everywhere.

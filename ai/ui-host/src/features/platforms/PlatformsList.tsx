@@ -5,6 +5,7 @@ import { PLATFORMS_COPY } from '../../config/platforms.config';
 import { timeAgo } from '../generate/format';
 import { OpenChatButton } from './OpenChatButton';
 import { LoadError, LoadHint } from './PlatformsFeedback';
+import { RoundsCell } from './RoundsCell';
 import { usePlatformList } from './usePlatformList';
 import './platforms-list.css';
 
@@ -12,6 +13,9 @@ interface PlatformsListProps {
   onOpen: (platformId: string) => void;
   // Opens the chat (the run) that made a platform, by the run's id.
   onOpenRun: (runId: string) => void;
+  // Adds the rounds the chat that made each platform spent. It costs a request a row, so the
+  // glance-sized list on the start screen leaves it out.
+  showRounds?: boolean;
 }
 
 // Where a platform came from, in words: when it was published, or a dash for one that came with the stack, which has no date.
@@ -25,11 +29,12 @@ function sourceOf(platform: PlatformSummary): string {
  * came from and the file it writes. A row opens its platform wherever it is
  * pressed; the platform's name is a button, which is how the keyboard gets in.
  * Every source has a button to the chat that made the platform, greyed out, with
- * the reason, where no chat did.
+ * the reason, where no chat did. With `showRounds`, a column says how many rounds
+ * that chat spent.
  * It loads its own rows, so the start screen and the platforms screen show the
  * same list without either knowing where it comes from.
  */
-export function PlatformsList({ onOpen, onOpenRun }: PlatformsListProps) {
+export function PlatformsList({ onOpen, onOpenRun, showRounds = false }: PlatformsListProps) {
   const { platforms, error, retry } = usePlatformList();
   const copy = PLATFORMS_COPY;
 
@@ -54,6 +59,11 @@ export function PlatformsList({ onOpen, onOpenRun }: PlatformsListProps) {
             <th scope="col">{copy.columns.version}</th>
             <th scope="col">{copy.columns.source}</th>
             <th scope="col">{copy.columns.outputFile}</th>
+            {showRounds && (
+              <th scope="col" title={copy.roundsHint}>
+                {copy.columns.rounds}
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -84,6 +94,7 @@ export function PlatformsList({ onOpen, onOpenRun }: PlatformsListProps) {
                 <OpenChatButton platform={platform} onOpenRun={onOpenRun} />
               </td>
               <td className="mdd-platforms-list__mono">{platform.output_filename}</td>
+              {showRounds && <RoundsCell runId={platform.source_run_id} />}
             </tr>
           ))}
         </tbody>

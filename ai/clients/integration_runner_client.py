@@ -181,6 +181,10 @@ def get_attempt(run_id: str, stage: str, attempt: str) -> dict:
     return _request("GET", f"/runs/{run_id}/{stage}/{attempt}").json()
 
 
+def get_run_evolution(run_id: str) -> dict:
+    return _request("GET", f"/runs/{run_id}/evolution").json()
+
+
 # --- psm's own prompt-config pass-throughs (routes/psm.py) ----------------
 # Every one of these is itself a thin pass-through on integration_runner's
 # own side too (see routes/psm.py), all the way down to psm_agent, which is

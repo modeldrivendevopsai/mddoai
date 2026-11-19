@@ -8,7 +8,7 @@
 import type { ReactNode } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { PlatformDetail } from "orchestrator-types"
+import type { PlatformDetail, RunEvolution } from "orchestrator-types"
 import PlatformScreen from "./PlatformScreen"
 import * as orchestrator from "@/services/orchestrator.service"
 
@@ -37,7 +37,7 @@ vi.mock("design-system", () => ({
   CodeBlock: ({ code, title }: { code: string; title?: string }) => <pre aria-label={title}>{code}</pre>,
 }))
 
-vi.mock("@/services/orchestrator.service", () => ({ getPlatform: vi.fn() }))
+vi.mock("@/services/orchestrator.service", () => ({ getPlatform: vi.fn(), getRunEvolution: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -61,6 +61,7 @@ const detail = (over: Partial<PlatformDetail> = {}): PlatformDetail => ({
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail())
+  vi.mocked(orchestrator.getRunEvolution).mockResolvedValue({ run_id: "run-7", forked_from: null, stages: [], total_rounds: 0 } satisfies RunEvolution)
 })
 
 function renderScreen(
@@ -140,6 +141,22 @@ describe("PlatformScreen", () => {
     expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
     expect(screen.queryByText(/No chat made it/)).toBeNull()
     expect(screen.queryByRole("button", { name: "Open the chat that made it" })).toBeNull()
+  })
+
+  it("shows how the chat that made a platform went, and asks for that run only", async () => {
+    renderScreen()
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Rounds and corrections" })).toBeTruthy()
+    expect(orchestrator.getRunEvolution).toHaveBeenCalledWith("run-7")
+  })
+
+  it("shows no how-it-was-built section, and asks for no run, where no run made the platform", async () => {
+    vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail({ source_run_id: null }))
+    renderScreen()
+
+    expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
+    expect(screen.queryByRole("heading", { name: "Rounds and corrections" })).toBeNull()
+    expect(orchestrator.getRunEvolution).not.toHaveBeenCalled()
   })
 
   it("says a platform that came with the stack has no run, and offers none", async () => {

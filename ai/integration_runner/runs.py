@@ -14,7 +14,7 @@ operation is implemented, not two.
 """
 import threading
 
-from integration_runner import run_store
+from integration_runner import evolution, run_store
 from integration_runner.pipeline import STAGES, IntegrationRun
 
 # Serializes the functions that reassign _default (start_pipeline,
@@ -138,6 +138,16 @@ def get_run_events(run_id: str, since_index: int = 0) -> dict | None:
         "model": run.model,
         "is_current": run.run_id == _default.run_id,
     }
+
+
+def get_run_evolution(run_id: str) -> dict | None:
+    """What /runs/{run_id}/evolution answers: the run's summary (see evolution.py).
+    None if run_id is unknown."""
+    run = get_run(run_id)
+    if run is None:
+        return None
+    # A copy, so a stage still running cannot add to the list while it is read.
+    return {"run_id": run_id, **evolution.summarize(list(run.events))}
 
 
 def reset_pipeline() -> None:
