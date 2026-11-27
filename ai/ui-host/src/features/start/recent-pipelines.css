@@ -8,6 +8,7 @@
    pipelines screen's rows. */
 .mdd-recent__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
@@ -43,7 +44,8 @@
   white-space: nowrap;
 }
 .mdd-recent__platforms {
-  flex: 1;
+  /* below this width the platforms and the time move under the name instead of overlapping */
+  flex: 1 1 8rem;
   min-width: 0;
   font-size: var(--text-sm);
   color: var(--neutral-700);
