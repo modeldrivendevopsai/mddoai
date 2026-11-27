@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AttemptChart } from "./AttemptChart"
 import type { ChartAttempt } from "./AttemptChart"
 
@@ -229,6 +229,61 @@ describe("AttemptChart: the dialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /^3 learned/ }))
 
     expect(container.querySelector(".mdd-attempt-chart__row")?.contains(screen.getByRole("dialog"))).toBe(false)
+  })
+})
+
+describe("AttemptChart: a row wider than its space", () => {
+  // jsdom lays nothing out, so the test says how wide the row's content is.
+  const CONTENT_WIDTH = 900
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", { configurable: true, get: () => CONTENT_WIDTH })
+  })
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollWidth")
+  })
+
+  const rowOf = (root: HTMLElement) => root.querySelector(".mdd-attempt-chart__row") as HTMLElement
+
+  it("opens at its newest end", () => {
+    const { container } = render(<AttemptChart attempts={STORY} />)
+
+    expect(rowOf(container).scrollLeft).toBe(CONTENT_WIDTH)
+  })
+
+  it("goes back to the newest end when a draft is added", () => {
+    const { container, rerender } = render(<AttemptChart attempts={STORY} />)
+    rowOf(container).scrollLeft = 100
+
+    rerender(<AttemptChart attempts={STORY.concat(attempt({ number: 3 }))} />)
+
+    expect(rowOf(container).scrollLeft).toBe(CONTENT_WIDTH)
+  })
+
+  it("goes back to the newest end when a rule starts waiting", () => {
+    const { container, rerender } = render(<AttemptChart attempts={STORY} />)
+    rowOf(container).scrollLeft = 100
+
+    rerender(<AttemptChart attempts={STORY} waiting={[rule("next time", false)]} />)
+
+    expect(rowOf(container).scrollLeft).toBe(CONTENT_WIDTH)
+  })
+
+  it("stays where the person scrolled it when nothing is added, as when a draft is selected", () => {
+    const onSelect = vi.fn()
+    const { container, rerender } = render(<AttemptChart attempts={STORY} onSelect={onSelect} />)
+    rowOf(container).scrollLeft = 100
+
+    rerender(<AttemptChart attempts={[...STORY]} selected={0} onSelect={onSelect} />)
+
+    expect(rowOf(container).scrollLeft).toBe(100)
+  })
+
+  it("opens at its newest end when the drafts arrive after the chart", () => {
+    const { container, rerender } = render(<AttemptChart attempts={[]} />)
+
+    rerender(<AttemptChart attempts={STORY} />)
+
+    expect(rowOf(container).scrollLeft).toBe(CONTENT_WIDTH)
   })
 })
 

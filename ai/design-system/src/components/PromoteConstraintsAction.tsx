@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Button } from "./Button"
-import { Icon } from "./Icon"
 
 export interface PromoteConstraintsActionProps {
   // The exact constraint string that produced this validated success,
@@ -55,8 +54,7 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
 
   if (draft === null) {
     return (
-      <Button variant="secondary" size="sm" onClick={() => setDraft(initialConstraintsBlock)}>
-        <Icon name="Infinity" size={13} />
+      <Button variant="secondary" size="sm" icon="Infinity" onClick={() => setDraft(initialConstraintsBlock)}>
         Make permanent
       </Button>
     )

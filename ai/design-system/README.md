@@ -72,7 +72,8 @@ it learned from its own failed checks (a wrench), and a tick or a cross. An arro
 next, and a rule a person typed between two drafts sits on that arrow as a person icon with its number.
 Rules a person made permanent after a draft show as an infinity chip on it, and rules typed since the last
 draft hang off a dashed arrow after the last box. Every box is the same size, and the row has no legend or
-sentence: each number, mark and chip has its words on hover.
+sentence: each number, mark and chip has its words on hover. A row too wide for its space scrolls sideways.
+It opens at the newest draft, and goes back there when a draft or a waiting rule is added or removed.
 
 Pressing a chip opens `RulesDialog` (built on the generic `Dialog`): the rules behind that number as a
 numbered list, each saying in words where it came from, with a Copy button that puts the numbered list on

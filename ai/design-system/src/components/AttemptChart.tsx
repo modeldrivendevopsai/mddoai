@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { RulesDialog } from './RulesDialog';
@@ -133,12 +133,19 @@ function Link({ typed, waiting = false, onOpen }: { typed: number; waiting?: boo
 
 export function AttemptChart({ attempts, waiting = [], selected = null, onSelect, label }: AttemptChartProps) {
   const [open, setOpen] = useState<Open | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // A row too wide for its space opens at its newest end, and goes back there when a draft or a
+  // waiting rule is added or removed. Otherwise it stays where the person scrolled it.
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (row) row.scrollLeft = row.scrollWidth;
+  }, [attempts.length, waiting.length]);
   if (attempts.length === 0 && waiting.length === 0) return null;
   const dialog = open ? dialogOf(open, attempts, waiting, label) : null;
   return (
     <div className="mdd-attempt-chart">
       {/* The row scrolls sideways when there are many drafts, so the dialog is drawn outside it. */}
-      <div className="mdd-attempt-chart__row" role="group" aria-label="Drafts">
+      <div className="mdd-attempt-chart__row" role="group" aria-label="Drafts" ref={rowRef}>
         {attempts.map((attempt, index) => {
           const typed = attempt.given?.length ?? 0;
           return (
