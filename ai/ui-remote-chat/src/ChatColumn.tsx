@@ -310,16 +310,16 @@ const EVENT_STATUS: Record<OrchestratorEventType, EventStatus> = {
   // The three below are real, recorded backend facts, not just prose —
   // same "info" treatment, distinct from the
   // stage-lifecycle colors above.
-  // A one-off, per-run correction (resets the next time this run resets,
-  // never touches the saved prompt config on its own) - "correction", not
-  // "constraint", matching the stage panels' own "Add a correction" label.
-  constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Correction added" },
+  // A one-off, per-run rule (resets the next time this run resets, never
+  // touches the saved prompt config on its own), a "rule" like the stage
+  // panels' own "Add a rule" label.
+  constraint_added: { bg: "var(--warning-100)", fg: "var(--warning-700)", dot: "var(--warning-500)", label: "Rule added" },
   documentation_extended: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Page added to docs" },
   // A human-confirmed, real, permanent promotion (see
   // stages/psm/actions.py's own promote_constraints) into the saved
-  // config's own "Permanent constraints" list - distinct from
-  // constraint_added's own per-run, ephemeral correction above.
-  constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Added to Permanent constraints" },
+  // config's own permanent rules - distinct from constraint_added's own
+  // per-run, ephemeral rule above.
+  constraints_promoted: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Rules made permanent" },
   // The completed run's platform stored as a new version in the pipeline
   // generator, so pipelines can be generated for it.
   platform_published: { bg: "var(--success-100)", fg: "var(--success-500)", dot: "var(--success-500)", label: "Platform published" },
@@ -353,7 +353,7 @@ const LEARNED_FIX_STATUS: EventStatus = {
   bg: "var(--brand-faint)",
   fg: "var(--text-muted)",
   dot: "var(--text-faint)",
-  label: "Fix learned",
+  label: "Rule learned",
 }
 
 function statusFor(event: OrchestratorEvent): EventStatus {

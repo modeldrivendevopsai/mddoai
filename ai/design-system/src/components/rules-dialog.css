@@ -1,0 +1,50 @@
+.mdd-rules-dialog__note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--neutral-700);
+}
+
+/* One rule to a line, numbered, with its words under it. */
+.mdd-rules-dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 0 0 var(--space-5);
+}
+.mdd-rules-dialog__list li::marker {
+  font-weight: 700;
+  color: var(--neutral-600);
+}
+.mdd-rules-dialog__text {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--neutral-950);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+/* Where a rule came from, in words with its icon. */
+.mdd-rules-dialog__origin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+}
+.mdd-rules-dialog__origin--typed {
+  color: var(--info-500);
+}
+.mdd-rules-dialog__origin--learned {
+  color: var(--warning-700);
+}
+.mdd-rules-dialog__origin--permanent {
+  color: var(--brand);
+}
+
+.mdd-rules-dialog__status {
+  font-size: var(--text-xs);
+  color: var(--neutral-700);
+}

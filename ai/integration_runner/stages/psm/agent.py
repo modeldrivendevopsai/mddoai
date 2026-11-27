@@ -25,7 +25,7 @@ deliberately NOT called here on a generation-mode failure, unlike those
 three stages' unconditional use of it.
 """
 from clients import psm_agent_client
-from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
+from integration_runner.stages._validation import attempt_scope_kwargs, call_extra, persist_attempt, reserved_attempt
 
 _FILENAME = "psm.ecore"
 
@@ -114,4 +114,4 @@ def psm_stage(context: dict) -> tuple[str, dict]:
                 prompt=result.get("prompt"),
                 prompt_version=result.get("prompt_version"),
             )
-    return artifact, {k: v for k, v in result.items() if k != "artifact"}
+    return artifact, call_extra(result, attempt)

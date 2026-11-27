@@ -73,8 +73,8 @@ describe("ChatColumn", () => {
     }
     renderChat({ events: [typed, learned] })
 
-    expect(screen.getByText("Correction added: atl")).toBeTruthy()
-    expect(screen.getByText("Fix learned: atl")).toBeTruthy()
+    expect(screen.getByText("Rule added: atl")).toBeTruthy()
+    expect(screen.getByText("Rule learned: atl")).toBeTruthy()
   })
 
   it("lets a long unbroken name in a message break, so the chip stays inside the chat", () => {

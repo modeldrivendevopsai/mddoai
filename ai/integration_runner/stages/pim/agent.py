@@ -11,12 +11,17 @@ gets replaced with a real agent later, matching stages/docs/agent.py's own
 history. Ignores its input context for the same reason it always did:
 corrections/constraints have nothing to act on against fixed content, until
 a real SWArch-driven PIM extraction replaces this.
+
+Returns (content, extra), the documented exception to the plain-string stage-agent
+contract psm/atl/acceleo already use: extra carries "attempt", the name of the attempt
+the call was recorded as, which a failure carries on its own extra too, so the run's
+events say which attempt each call was.
 """
 from pathlib import Path
 
 from clients import validator_agent_client
 from clients.required_env import required_env
-from integration_runner.stages._validation import persist_attempt, raise_if_invalid
+from integration_runner.stages._validation import attach_attempt, persist_attempt, raise_if_invalid
 
 _FILENAME = "pimMM.ecore"
 
@@ -28,9 +33,13 @@ _FILENAME = "pimMM.ecore"
 PIM_METAMODEL_PATH = Path(required_env("PIM_METAMODEL_PATH"))
 
 
-def pim_stage(context: dict) -> str:
+def pim_stage(context: dict) -> tuple[str, dict]:
     content = PIM_METAMODEL_PATH.read_text(encoding="utf-8")
     result = validator_agent_client.validate_ecore(content, _FILENAME)
-    persist_attempt(context.get("run_id", "unknown"), "pim", _FILENAME, content, result)
-    raise_if_invalid("pim", result)
-    return content
+    attempt = persist_attempt(context.get("run_id", "unknown"), "pim", _FILENAME, content, result)
+    try:
+        raise_if_invalid("pim", result)
+    except RuntimeError as failure:
+        attach_attempt(failure, attempt)
+        raise
+    return content, {"attempt": attempt.name}

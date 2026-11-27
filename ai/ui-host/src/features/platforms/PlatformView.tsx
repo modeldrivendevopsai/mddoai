@@ -16,7 +16,7 @@ interface PlatformViewProps {
 
 /**
  * One platform at one version: where it came from, how the chat that made it
- * went (rounds and corrections), which file it writes, and the three files it
+ * went (its attempts, rounds and corrections), which file it writes, and the three files it
  * is made of, one tab each, as plain text to read and copy.
  * The screen keys it by platform, so opening another platform starts on the
  * first file, while another version of the same one keeps the file open.
@@ -74,7 +74,7 @@ export function PlatformView({ detail, busy, onVersionChange, onOpenRun }: Platf
       )}
 
       {/* How its chat went is shown only where a chat made it; the version picked is the one whose chat this is. */}
-      {detail.source_run_id && <PlatformEvolution runId={detail.source_run_id} />}
+      {detail.source_run_id && <PlatformEvolution runId={detail.source_run_id} onOpenRun={onOpenRun} />}
 
       <Tabs items={copy.files.map(({ id, label }) => ({ id, label }))} activeId={file.id} onChange={setFileId} />
       <p className="mdd-platform-view__hint">{file.hint}</p>

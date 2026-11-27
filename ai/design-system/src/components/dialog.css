@@ -1,0 +1,77 @@
+.mdd-dialog__backdrop {
+  /* Above the page and its sticky bars (an engineering guess), below nothing else. */
+  --dialog-layer: 50;
+  --dialog-width: 32.5rem;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--dialog-layer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--surface-overlay);
+}
+
+.mdd-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(var(--dialog-width), 100%);
+  max-height: 100%;
+  padding: var(--space-5);
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--neutral-800);
+}
+.mdd-dialog:focus {
+  outline: none;
+}
+
+.mdd-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.mdd-dialog__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  color: var(--neutral-950);
+}
+.mdd-dialog__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--neutral-600);
+  cursor: pointer;
+}
+.mdd-dialog__close:hover {
+  background: var(--surface-sunken);
+}
+.mdd-dialog__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* A long body scrolls inside the dialog, so the title and the footer stay in view. */
+.mdd-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mdd-dialog__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

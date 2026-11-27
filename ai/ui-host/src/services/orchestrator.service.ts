@@ -520,8 +520,8 @@ export async function getRunManifest(runId: string): Promise<ManifestEntry[]> {
   return (await res.json()).attempts
 }
 
-// What a run took: per stage, the model rounds its calls spent and the
-// constraints added along the way. Small, unlike the run's events.
+// How a run went: per stage, each call with its tries and rules. Small, unlike the
+// run's events.
 export async function getRunEvolution(runId: string): Promise<RunEvolution> {
   const res = await fetch(`/orchestrator-api/runs/${encodeURIComponent(runId)}/evolution`)
   if (!res.ok) throw await errorFor("Run evolution", res)

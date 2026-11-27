@@ -14,13 +14,7 @@ export const PLATFORMS_COPY = {
     version: 'Version',
     source: 'Source',
     outputFile: 'Output file',
-    rounds: 'Rounds',
   },
-  // What a round is, on the Rounds header: the column is a bare number.
-  roundsHint:
-    'Rounds the chat that made the platform spent in all. A round is one try at a stage. Fewer rounds means the stage got it right sooner.',
-  // A platform with no chat behind it has no rounds to count.
-  noRounds: '–',
   source: {
     // A platform with no publish record has no date to give: it came with the stack.
     none: '–',
@@ -81,28 +75,14 @@ export const PLATFORM_VIEW_COPY = {
   ],
 } as const;
 
-/** How the chat that made a platform went: the rounds each stage took and the corrections along the way. */
+/** How the chat that made a platform went, drawn as a chart per stage. Little text on purpose: the chart says it. */
 export const PLATFORM_EVOLUTION_COPY = {
-  title: 'Rounds and corrections',
-  intro:
-    'A round is one try at a stage: the answer is checked and, if it fails, tried again with what was wrong. Fewer rounds means the stage got it right sooner.',
-  loading: 'Loading the rounds and corrections…',
-  loadFailed: 'Could not load the rounds and corrections.',
-  // A chat forked from an earlier one reuses that chat's approved stages, so their rounds are not in its numbers.
-  forked: (stage: string | null) =>
-    stage
-      ? `This chat was forked at ${stage}. The stages before it ran in an earlier chat, so their rounds and corrections are not counted here.`
-      : 'This chat was forked from an earlier one. The stages it reused ran in that chat, so their rounds and corrections are not counted here.',
+  title: 'How it evolved',
+  loading: 'Loading how it evolved…',
+  loadFailed: 'Could not load how it evolved.',
   retry: 'Try again',
-  empty: 'The chat that made it ran no stage with rounds and recorded no corrections.',
-  columns: { stage: 'Stage', rounds: 'Rounds', corrections: 'Corrections' },
-  total: 'In all',
-  logTitle: 'Corrections along the way',
-  logHint: 'Oldest first. Each is added to the prompt of its stage, so the next round does not repeat the mistake.',
-  // A fix the validator's errors produced, against one a person typed.
-  source: { learned: 'Fix learned', typed: 'Correction' },
+  empty: 'Nothing was redone.',
+  // A chat forked from an earlier one reuses that chat's stages, which are not drawn here.
+  forked: (stage: string | null) => (stage ? `Forked at ${stage}` : 'Forked'),
+  openSource: 'Open source chat',
 } as const;
-
-// The `source` the runner gives a constraint made from the validator's errors. A
-// constraint a person typed has none.
-export const LEARNED_FROM_VALIDATION = 'validation';

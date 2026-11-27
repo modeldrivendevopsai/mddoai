@@ -85,7 +85,7 @@ export function SerializationStagePanel({
             add-constraint-then-retry mechanism the backend actually has -
             labeled to match what it actually is, not the wireframe's own
             pre-fill-and-edit framing. */}
-        <p style={labelStyle}>Add a correction</p>
+        <p style={labelStyle}>Add a rule</p>
         <textarea
           className="orch-field"
           value={correction}
@@ -115,7 +115,7 @@ export function SerializationStagePanel({
             setCorrection("")
           }}
         >
-          Retry this stage
+          New draft
         </Button>
       </div>
     </Panel>

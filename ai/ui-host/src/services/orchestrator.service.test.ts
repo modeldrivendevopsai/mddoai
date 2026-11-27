@@ -449,7 +449,7 @@ describe("orchestratorService", () => {
   })
 
   it("getRunEvolution reads the run's summary, escaping the id, and throws the backend's reason for an unknown run", async () => {
-    const summary = { run_id: "a/b", forked_from: null, stages: [], total_rounds: 0 }
+    const summary = { run_id: "a/b", forked_from: null, stages: [] }
     const mockFetch = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => summary })
     vi.stubGlobal("fetch", mockFetch)
 

@@ -32,7 +32,7 @@ vi.mock("@/services/generator.service", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/generator.service")>()
   return { ...actual, listPipelines: vi.fn() }
 })
-vi.mock("@/services/orchestrator.service", () => ({ getPlatforms: vi.fn(), getRunEvolution: vi.fn() }))
+vi.mock("@/services/orchestrator.service", () => ({ getPlatforms: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -167,9 +167,6 @@ describe("the list under the picture", () => {
     // Where each came from.
     expect(screen.getByText("–")).toBeTruthy()
     expect(screen.getByText("Published 3 hours ago")).toBeTruthy()
-    // The list here is read at a glance: no rounds column, and no request a row for one.
-    expect(screen.queryByRole("columnheader", { name: "Rounds" })).toBeNull()
-    expect(orchestrator.getRunEvolution).not.toHaveBeenCalled()
     expect(screen.queryByRole("heading", { name: "Latest pipelines" })).toBeNull()
     expect(screen.queryByText("model-2.swarch")).toBeNull()
     expect(generator.listPipelines).not.toHaveBeenCalled()

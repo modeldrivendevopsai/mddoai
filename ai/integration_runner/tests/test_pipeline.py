@@ -98,6 +98,7 @@ def test_run_stage_calls_current_stage_agent_and_reports_its_output():
     assert result == {
         "stage": "generation", "output": "stages: []\n",
         "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+        "attempt": "attempt_1",
     }
 
 
@@ -463,6 +464,7 @@ def test_review_approved_accumulates_outputs_through_generation():
     assert completed["data"] == {
         "stage": "generation", "output": "stages: []\n",
         "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+        "attempt": "attempt_1",
     }
     # The real point of this test: atl's and acceleo's own real, approved
     # output actually reached generation's own real execution call, not
@@ -868,6 +870,7 @@ def test_run_stage_async_records_call_completed_on_success():
     assert completed["data"] == {
         "stage": "generation", "output": "stages: []\n",
         "psm_instance": "<gitlabMM:Pipeline/>", "generated_files": {".gitlab-ci.yml": "stages: []\n"},
+        "attempt": "attempt_1",
     }
 
 
@@ -882,7 +885,8 @@ def test_run_stage_async_records_call_failed_on_agent_error():
     assert "call_failed" in types
     assert "call_completed" not in types
     failed = next(e for e in o.events if e["type"] == "call_failed")
-    assert failed["data"] == {"error": "ATL execution failed: all providers exhausted"}
+    # The call says which attempt it was recorded as, which the failure is kept in.
+    assert failed["data"] == {"error": "ATL execution failed: all providers exhausted", "attempt": "attempt_1"}
     assert o.busy is False
 
 
@@ -902,6 +906,7 @@ def test_run_stage_async_records_a_failed_call_s_own_extra_data():
     assert failed["data"] == {
         "error": "Acceleo execution failed (ATL succeeded): template crashed",
         "psm_instance": "<gitlabMM:Pipeline/>",
+        "attempt": "attempt_1",
     }
 
 
@@ -945,19 +950,16 @@ def test_run_stage_merges_a_tuple_return_into_call_completed_data():
     assert o.last_output == "<new-ecore/>"
 
 
-def test_run_stage_treats_a_plain_str_return_exactly_as_before(tmp_path):
-    # pim, not generation: generation now also returns (output, extra) (see
-    # stages/generation/agent.py's own psm_instance/generated_files extra),
-    # so it no longer demonstrates run_stage()'s own plain-string handling -
-    # pim is still a real, unmodified plain-string stage agent.
-    fixture_path = tmp_path / "pimMM.ecore"
-    fixture_path.write_text("<ecore:EPackage/>", encoding="utf-8")
-
+def test_run_stage_treats_a_plain_str_return_exactly_as_before():
+    # A stage agent that returns a plain string (the contract every stage had before
+    # any returned extra data), so none of the real agents stands in for it.
     o = pipeline.IntegrationRun()
     _fast_forward_to(o, "pim")
-    with patch.object(pim_agent, "PIM_METAMODEL_PATH", fixture_path):
-        with patch.object(validator_agent_client, "validate_ecore", return_value=_validation_result()):
-            result = o.run_stage({"platform_description": "A GitLab CI platform"})
+    with patch("integration_runner.stages.stage_agents", {
+        **pipeline.stages.stage_agents,
+        "pim": lambda context: "<ecore:EPackage/>",
+    }):
+        result = o.run_stage({"platform_description": "A GitLab CI platform"})
 
     assert result == {"stage": "pim", "output": "<ecore:EPackage/>"}
     assert "mode" not in result

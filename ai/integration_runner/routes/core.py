@@ -137,18 +137,6 @@ def runs_endpoint():
     return runs.list_runs()
 
 
-@router.get("/runs/{run_id}/evolution")
-def evolution_endpoint(run_id: str):
-    """What the run took, from its own events: per stage, the rounds its calls
-    spent and the constraints added along the way, plus the total rounds and
-    whether the run was forked. Small, unlike the events, which hold every
-    generated file. 404 for an unknown run."""
-    result = runs.get_run_evolution(run_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"No run with id {run_id!r}")
-    return result
-
-
 @router.delete("/runs/{run_id}")
 def delete_run_endpoint(run_id: str):
     """Removes a past run for good, with the files of its attempts. 404 for an

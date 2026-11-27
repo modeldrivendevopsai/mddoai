@@ -25,7 +25,7 @@ def test_get_run_manifest_hits_the_real_endpoint():
 
 
 def test_get_run_evolution_hits_the_real_endpoint():
-    summary = {"run_id": "run-1", "stages": [], "total_rounds": 0}
+    summary = {"run_id": "run-1", "forked_from": None, "stages": []}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(summary)) as mock_request:
         result = integration_runner_client.get_run_evolution("run-1")
 

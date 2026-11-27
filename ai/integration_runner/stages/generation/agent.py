@@ -34,14 +34,16 @@ pipeline.py's run_stage() docstring): extra carries "psm_instance" (the
 real intermediate model ATL execution produced) and "generated_files" (the
 real {path: content} map AcceleoExecutor produced, before it was joined
 into output) - the chat-ui's own "what generation actually produced" needs
-both, not just the joined text.
+both, not just the joined text. It also carries "attempt", the name of the
+attempt the call was recorded as, which a failure carries on its own extra
+too, so the run's events say which attempt each call was.
 """
 from pathlib import Path
 
 from clients import execution_agent_client
 from clients.required_env import required_env
 from integration_runner.atl_source import output_model_name as _output_model_name
-from integration_runner.stages._validation import Attempt, persist_attempt, reserved_attempt
+from integration_runner.stages._validation import Attempt, attach_attempt, persist_attempt, reserved_attempt
 
 # A real, rich PIM model instance (11 jobs, exercising all of MDDOAI's own
 # PIM concepts), this stage's own real input to the real ATL execution it
@@ -126,7 +128,7 @@ def gen_stage(context: dict) -> str:
         except Exception as e:
             message = f"ATL execution failed: {e}"
             _persist_failure(run_id, attempt, message)
-            raise RuntimeError(message) from e
+            raise attach_attempt(RuntimeError(message), attempt) from e
 
         try:
             generated_files = execution_agent_client.execute_acceleo(mtl_source, psm_instance, target_ecore)
@@ -142,9 +144,7 @@ def gen_stage(context: dict) -> str:
             # needs to see the real, valid model ATL already produced
             # before deciding whether the real bug is in Acceleo's own
             # template or further back.
-            failure = RuntimeError(message)
-            failure.extra = {"psm_instance": psm_instance}
-            raise failure from e
+            raise attach_attempt(RuntimeError(message), attempt, psm_instance=psm_instance) from e
 
         if len(generated_files) == 1:
             output = next(iter(generated_files.values()))
@@ -180,4 +180,4 @@ def gen_stage(context: dict) -> str:
         # the chat-ui's own "what generation actually produced" needs the
         # real intermediate model and each real file's own name, not just
         # the joined text every other stage's plain-string contract covers.
-        return output, {"psm_instance": psm_instance, "generated_files": generated_files}
+        return output, {"psm_instance": psm_instance, "generated_files": generated_files, "attempt": attempt.name if attempt else None}

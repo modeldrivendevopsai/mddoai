@@ -141,13 +141,20 @@ def get_run_events(run_id: str, since_index: int = 0) -> dict | None:
 
 
 def get_run_evolution(run_id: str) -> dict | None:
-    """What /runs/{run_id}/evolution answers: the run's summary (see evolution.py).
+    """What /runs/{run_id}/evolution answers: the run's summary of what each stage's calls took.
     None if run_id is unknown."""
     run = get_run(run_id)
     if run is None:
         return None
-    # A copy, so a stage still running cannot add to the list while it is read.
-    return {"run_id": run_id, **evolution.summarize(list(run.events))}
+    return evolution.of_run(run)
+
+
+def annotated_manifest(run_id: str, entries: list[dict]) -> list[dict]:
+    """The journal's manifest entries for the run, each with what the run's events
+    say about that attempt. The entries unchanged if the run is
+    unknown here."""
+    run = get_run(run_id)
+    return entries if run is None else evolution.annotated_manifest(run, entries)
 
 
 def reset_pipeline() -> None:

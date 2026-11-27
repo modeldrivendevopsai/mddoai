@@ -6,7 +6,7 @@
 // tests inside design-system, and its own copy of react (a symlinked file:
 // dependency) would load a second React instance under Vitest.
 import type { ReactNode } from "react"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { PlatformSummary } from "orchestrator-types"
 import PlatformsScreen from "./PlatformsScreen"
@@ -19,7 +19,7 @@ vi.mock("design-system", () => ({
   Icon: () => null,
 }))
 
-vi.mock("@/services/orchestrator.service", () => ({ getPlatforms: vi.fn(), getRunEvolution: vi.fn() }))
+vi.mock("@/services/orchestrator.service", () => ({ getPlatforms: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -44,7 +44,6 @@ beforeEach(() => {
     platform("gitlab", "GitLab CI", null),
     platform("woodpecker-ci", "Woodpecker CI", TWO_DAYS_AGO),
   ])
-  vi.mocked(orchestrator.getRunEvolution).mockResolvedValue({ run_id: "run1", forked_from: null, stages: [], total_rounds: 4 })
 })
 
 function renderScreen(
@@ -68,29 +67,9 @@ describe("PlatformsScreen", () => {
     expect(await screen.findByText("GitLab CI")).toBeTruthy()
     expect(screen.getByText("Woodpecker CI")).toBeTruthy()
     expect(screen.getAllByText("1.2.0")).toHaveLength(2)
-    // The platform that came with the stack has no publish date and no chat, so two dashes: its source and its rounds.
-    expect(await screen.findByText("4")).toBeTruthy()
-    expect(screen.getAllByText("–")).toHaveLength(2)
+    expect(screen.getByText("–")).toBeTruthy()
     expect(screen.getByText("Published 2 days ago")).toBeTruthy()
     expect(screen.getByText("woodpecker-ci.yml")).toBeTruthy()
-  })
-
-  it("shows the rounds the chat that made a platform spent, and asks only for platforms a chat made", async () => {
-    renderScreen()
-
-    expect(await screen.findByRole("columnheader", { name: "Rounds" })).toBeTruthy()
-    expect(await screen.findByText("4")).toBeTruthy()
-    expect(orchestrator.getRunEvolution).toHaveBeenCalledTimes(1)
-    expect(orchestrator.getRunEvolution).toHaveBeenCalledWith("run1")
-  })
-
-  it("keeps the row, with a dash, when the rounds cannot be read", async () => {
-    vi.mocked(orchestrator.getRunEvolution).mockRejectedValue(new Error("down"))
-    renderScreen()
-
-    expect(await screen.findByText("Woodpecker CI")).toBeTruthy()
-    await waitFor(() => expect(orchestrator.getRunEvolution).toHaveBeenCalled())
-    expect(screen.getAllByText("–")).toHaveLength(3)
   })
 
   it("shows nothing that is made up: no status it has no data for", async () => {

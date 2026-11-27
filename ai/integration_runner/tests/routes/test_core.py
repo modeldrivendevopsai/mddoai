@@ -23,7 +23,6 @@ from integration_runner.routes.core import (
     StageRunRequest,
     StartRequest,
     events_endpoint,
-    evolution_endpoint,
     fork_endpoint,
     rerun_endpoint,
     resume_endpoint,
@@ -238,27 +237,3 @@ def test_delete_run_endpoint_says_when_the_journal_is_unreachable():
             delete_run_endpoint("x")
 
     assert raised.value.status_code == 502
-
-
-# --- /runs/{id}/evolution: what a run took, without its generated files ---------------
-
-
-def test_evolution_endpoint_sums_the_rounds_of_a_past_run_and_lists_its_constraints():
-    run = pipeline.IntegrationRun()
-    run.record_event("call_completed", "psm", {"rounds": 2, "output": "a large generated file"})
-    run.record_event("constraint_added", "psm", {"constraint": "use the real names", "source": "validation"})
-    runs._runs[run.run_id] = run
-
-    body = evolution_endpoint(run.run_id)
-
-    assert body["run_id"] == run.run_id
-    assert body["total_rounds"] == 2
-    assert body["stages"][0]["constraints"][0]["text"] == "use the real names"
-    # The summary is small: no stage entry carries a generated file.
-    assert "a large generated file" not in str(body)
-
-
-def test_evolution_endpoint_is_a_404_for_an_unknown_run():
-    with pytest.raises(HTTPException) as exc_info:
-        evolution_endpoint("no-such-run")
-    assert exc_info.value.status_code == 404

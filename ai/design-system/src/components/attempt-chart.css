@@ -1,0 +1,188 @@
+.mdd-attempt-chart {
+  /* Sizes of the drawing. A box is wide enough for a two-digit number of tries, a chip with a
+     two-digit count and the mark (measured), and every box is that wide so the row reads as
+     equal steps. It grows only for a bigger number. The arrow between two boxes is as short
+     as it can be while its head and a chip still read (engineering guesses). */
+  --draft-width: 8.5rem;
+  --draft-height: 2.25rem;
+  --link-min: 1.25rem;
+  --stub-weight: 2px;
+  --head-size: 0.4375rem;
+  --hair: 2px; /* the smallest gap between two things */
+
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--neutral-800);
+}
+
+/* Room around the row for the outline of a selected or focused box, which an
+   overflow-x container would otherwise cut. */
+.mdd-attempt-chart__row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1);
+  overflow-x: auto;
+}
+
+/* A draft: green when its check passed, red when it failed, amber when it stopped on an error,
+   grey when nothing checked it. A mock called no model, so its edge is dashed. */
+.mdd-attempt-chart__draft {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-width: var(--draft-width);
+  height: var(--draft-height);
+  padding: 0 var(--space-3);
+  border: 1px solid;
+  border-radius: var(--radius-md);
+}
+.mdd-attempt-chart__draft.is-passed {
+  background: var(--success-100);
+  border-color: var(--success-strong);
+}
+.mdd-attempt-chart__draft.is-failed {
+  background: var(--danger-100);
+  border-color: var(--danger-500);
+}
+.mdd-attempt-chart__draft.is-error {
+  background: var(--warning-100);
+  border-color: var(--warning-strong);
+}
+.mdd-attempt-chart__draft.is-none {
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+}
+.mdd-attempt-chart__draft.is-mock {
+  border-style: dashed;
+}
+.mdd-attempt-chart__draft.is-selected {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* The press target of a draft that can be selected: it covers the box, and the chips sit above it. */
+.mdd-attempt-chart__select {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+}
+.mdd-attempt-chart__draft:has(.mdd-attempt-chart__select:hover) {
+  filter: brightness(0.97);
+}
+.mdd-attempt-chart__select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.mdd-attempt-chart__tries {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hair);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--neutral-950);
+}
+.mdd-attempt-chart__tries .lucide {
+  color: var(--neutral-600);
+}
+
+/* The mark, and the flask of a mock, sit at the end of the box. */
+.mdd-attempt-chart__mock,
+.mdd-attempt-chart__mark {
+  display: inline-flex;
+  margin-left: auto;
+}
+.mdd-attempt-chart__mock {
+  color: var(--neutral-600);
+}
+.mdd-attempt-chart__mock + .mdd-attempt-chart__mark {
+  margin-left: 0;
+}
+.mdd-attempt-chart__mark--passed {
+  color: var(--success-strong);
+}
+.mdd-attempt-chart__mark--failed {
+  color: var(--danger-text);
+}
+.mdd-attempt-chart__mark--error {
+  color: var(--warning-strong);
+}
+
+/* A number of rules with its icon. It is a button: pressing it opens the rules. */
+.mdd-attempt-chart__chip {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hair);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.mdd-attempt-chart__chip.is-learned {
+  color: var(--warning-700);
+}
+.mdd-attempt-chart__chip.is-learned .lucide {
+  color: var(--warning-strong);
+}
+.mdd-attempt-chart__chip.is-typed {
+  color: var(--info-500);
+}
+.mdd-attempt-chart__chip.is-permanent {
+  color: var(--brand);
+}
+.mdd-attempt-chart__chip:hover {
+  background: var(--surface-sunken);
+}
+.mdd-attempt-chart__chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* The arrow from one draft to the next. A chip on it sits on the line and hides it where it is. */
+.mdd-attempt-chart__link {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: var(--link-min);
+  color: var(--neutral-600);
+}
+.mdd-attempt-chart__stub {
+  flex: 1 1 0;
+  min-width: var(--space-2);
+  height: 0;
+  border-top: var(--stub-weight) solid currentColor;
+}
+.mdd-attempt-chart__link .mdd-attempt-chart__chip {
+  border-color: transparent;
+}
+.mdd-attempt-chart__head {
+  width: 0;
+  height: 0;
+  border-top: var(--head-size) solid transparent;
+  border-bottom: var(--head-size) solid transparent;
+  border-left: var(--head-size) solid currentColor;
+}
+/* Rules typed since the last draft: a dashed arrow with no head, since no draft has them yet. */
+.mdd-attempt-chart__link.is-waiting .mdd-attempt-chart__stub {
+  flex: 0 0 var(--link-min);
+  border-top-style: dashed;
+}

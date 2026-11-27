@@ -64,12 +64,32 @@ this package stays backend-agnostic). A consumer that legitimately depends on bo
 a backend-specific one (an `ai/ui-remote-*` stage panel, say) is the adapter that wires the two
 together, not this package itself.
 
+## Drafts and rules
+
+`AttemptsBrowser` draws a stage's drafts with `AttemptChart`: one row, oldest on the left. A draft is a
+box, green when its check passed and red when it failed, with its tries, a chip with the number of fixes
+it learned from its own failed checks (a wrench), and a tick or a cross. An arrow joins each draft to the
+next, and a rule a person typed between two drafts sits on that arrow as a person icon with its number.
+Rules a person made permanent after a draft show as an infinity chip on it, and rules typed since the last
+draft hang off a dashed arrow after the last box. Every box is the same size, and the row has no legend or
+sentence: each number, mark and chip has its words on hover.
+
+Pressing a chip opens `RulesDialog` (built on the generic `Dialog`): the rules behind that number as a
+numbered list, each saying in words where it came from, with a Copy button that puts the numbered list on
+the clipboard as text. A box is a button that selects its draft only when the consumer passes `onSelect`,
+as the stage panels do. All of it takes plain props, with no stage or backend types, and the platform
+screen uses the same chart.
+
+The permanent rules inside `PromptBuilder` follow the same rule, since they can be dozens of long
+entries: a fold with an infinity mark and a count, and open it shows each rule as its first sentence, cut after a
+couple of lines, in a box that scrolls, each line opening to its whole text.
+
 ## `PromoteConstraintsAction`
 
 A flat component following that same backend-agnostic principle: an editable-before-confirming
-"Add this run's corrections to Permanent constraints" action, taking only a prefilled constraints
-block and a `onPromote` callback, no stage identity of its own. Rendered by `PromptBuilder` itself
-(via `PromptDocument`'s own optional `promote` prop), directly above the "Permanent constraints"
+"Make permanent" action, taking only a prefilled
+block of rules and a `onPromote` callback, no stage identity of its own. Rendered by `PromptBuilder` itself
+(via `PromptDocument`'s own optional `promote` prop), directly above the "Permanent rules"
 list it writes into, not by each stage panel separately: a stage panel only supplies the prefilled
 block and its own real promote-constraints endpoint through `PromptBuilder`'s own `promote` prop
 (see each stage panel's own README for which endpoint). Placing the button inside the same section

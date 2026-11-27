@@ -46,7 +46,13 @@ and its attempts, and publishes a completed run's platform, see [`ai/journal`](.
   `runs.current().add_constraint(...)`), so there's exactly one place each operation is
   implemented, not two.
 - **`run_store.py`**: keeps each run in the journal, and reads them back when the service starts.
-- **`evolution.py`**: reads a run's events and sums what each stage took: the rounds of its generate-and-check loop (one round is one try at the stage, checked and, if it failed, tried again with what was wrong), and the constraints added to it. It counts only what the run itself did, so a run forked from another does not include the earlier run's work, and the summary says it was forked.
+- **`evolution.py`**: reads a run's events and lists, per stage, every call it made, oldest first. It also joins the journal's manifest entries to those calls.
+  - A **round** is one try by the model inside a call: the answer is checked and, if it fails, tried again with what was wrong. Stages with a generate-and-check loop report rounds.
+  - A **call** is one run of a stage. A call that ended with a result is recorded as an **attempt** in the journal. A call that stopped on an error before it had a result records none, though `pim` and `generation` record one for a result that failed their check.
+  - A **correction** is a constraint added to a stage, typed by a person or learned from the validator's errors, which the run saves by itself while a call runs.
+  - Each call says how many corrections the stage had when it began (`ran_with`), which were added since the previous call ended (`given`), and which it learned while it ran (`learned`).
+  - The stage agents that record an attempt return its name in the result, and on a failure in the raised exception's `extra`, so a call and its attempt join exactly. A call whose result has no attempt name is matched to the journal's attempts by order, and only when there are as many of each. The journal is asked only for stages that record attempts, and only when some call needs it.
+  - It counts only what the run itself did. A run forked from another does not include the earlier run's work, and the summary says it was forked.
 - **`publishing.py`**: publishes a completed run's platform to the journal, as a version of the caller's choosing or the next patch. It takes the
   three files from the recorded events of the attempt behind the approved pipeline, not from the
   run's latest context, which a later attempt can have changed.
@@ -76,10 +82,10 @@ routes/core.py ──imports──> runs.py, pipeline.py, publishing.py, stages/
 publishing.py ──imports──> runs.py, atl_source.py, clients.journal_client
 routes/docs.py ──imports──> runs.py, stages/docs/
 routes/psm.py ──imports──> runs.py, stages/psm/actions.py, clients.psm_agent_client
-routes/attempts.py ──imports──> clients.journal_client
+routes/attempts.py ──imports──> clients.journal_client, runs.py
 runs.py ──imports──> pipeline.py                          (constructs/holds IntegrationRun instances)
 runs.py ──imports──> evolution.py
-evolution.py ──imports──> pipeline.py                     (the STAGES order)
+evolution.py ──imports──> pipeline.py, clients.journal_client   (the STAGES order; the manifest, only for calls that do not name their attempt)
 pipeline.py ──imports──> event_log.py, stages/
 stages/__init__.py ──imports──> stages/<stage>/
 stages/pim/, atl/, acceleo/ (agent.py)
@@ -456,7 +462,7 @@ The service starts at `http://localhost:8050`.
 | `GET /status` | Cheap `{current_stage, busy, model, run_id, is_current}`, no events array. |
 | `GET /stages` | Static `{stages: [...], descriptions: {...}}`, orchestrator's real source for its system prompt and tool schemas. |
 | `GET /runs` | Every run, newest first, each with `started_at` (when it began, or null when nothing happened on it). |
-| `GET /runs/{run_id}/evolution` | What the run took, without its generated files: per stage that ran the loop or got a constraint, its `rounds` and its `constraints` (`text`, `source`, `timestamp`, oldest first), plus `total_rounds` and `forked_from` (the source run and the stage it was forked at, or null). `source` is `validation` for a fix the validator's errors produced and null for a correction a person typed. `404` for an unknown run. |
+| `GET /runs/{run_id}/evolution` | How the run went, without its generated files: per stage with an evolution to show, in pipeline order, its `calls` oldest first and its `waiting` corrections, plus `forked_from` (the source run and the stage it was forked at, or null). A call has `attempt_n` (null when it is not known), `outcome` (`valid`, `invalid`, `failed` or `done`), `rounds`, `mock`, `ran_with`, `given`, `learned` and `promoted` (the texts a person made permanent after it). A mock call called no model, so its `rounds` are left out of any comparison. A correction is `text` and `learned` (true for a fix the validator's errors produced). `404` for an unknown run, `502` when the journal cannot be reached for the attempt numbers. |
 | `DELETE /runs/{run_id}` | Deletes a past run for good, with the files of its attempts. `404` for an unknown run. `409` for the current run, a busy one, or a run a platform was published from (the journal keeps it, the reason is in `detail`). `502` if the journal is unreachable. |
 | `GET /publish` | What `POST /publish` uses when given nothing: `name` (the run's platform description) and `output_filename` (the one file generation produced, or null if it produced several). |
 | `POST /publish` | Body: optional `name`, `output_filename`, `version` (`MAJOR.MINOR.PATCH`, the patch after the highest when left out), `run_id`. Publishes the completed run's platform to the journal, records a `platform_published` event, and returns the published `id`, `name`, `version` and `output_filename`. The run is busy while it publishes. `409` if busy, if `run_id` is not the current run, or if the run cannot be published (the reason is in `detail`). `400` if the journal refuses what was sent, such as a version that exists. `502` if it is unreachable. |
@@ -503,7 +509,7 @@ this router adds no logic beyond the HTTP call itself.
 
 | Endpoint | Notes |
 |---|---|
-| `GET /runs/{run_id}/manifest` | The same flat `manifest.json` [Persisted validation attempts](#persisted-validation-attempts) already describes, over HTTP. `404` for an unknown `run_id`. |
+| `GET /runs/{run_id}/manifest` | The flat `manifest.json` [Persisted validation attempts](#persisted-validation-attempts) already describes, over HTTP, each entry with what the run's events say about the call that made it (`rounds`, `ran_with`, `given`, `learned`, `promoted`, `mock`), left out for an attempt whose call did not say. `404` for an unknown `run_id`. |
 | `GET /runs/{run_id}/{stage}/{attempt}` | One real attempt's persisted artifact, `result.json`, and `prompt.json` (when the stage that produced it is prompt-driven) — the real per-attempt record a UI's "attempts" view reads directly, linked back to the exact config that produced it via `prompt_version`. `404` for an unknown run/stage/attempt. |
 
 `run_id`/`stage`/`attempt` are validated as plain path segments (no `/`, no path traversal) via

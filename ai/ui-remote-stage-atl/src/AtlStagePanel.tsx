@@ -4,7 +4,10 @@ import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, Statu
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
-import { constraintsForStage } from "./stageEvents"
+
+// The stage this panel is for: its attempts are listed, and they are listed again when this stage
+// has a new event, not when any other stage does.
+const STAGE = "atl"
 
 // The manifest for atl's own real, config-driven prompt (the starting generation config
 // the repository ships holds the real attachment content this loads) - same PromptBuilder component psm and
@@ -69,7 +72,6 @@ export function AtlStagePanel({
   const prompt = (data?.prompt ?? null) as Record<string, string> | null
   const validation = (data?.validation ?? null) as { valid?: boolean } | null
   const rounds = typeof data?.rounds === "number" ? data.rounds : null
-  const priorConstraints = constraintsForStage(events, "atl")
   // A real, HTTP-200 result can still have failed validator-agent's own
   // check after exhausting every regenerate round (the request itself
   // didn't fail, `failed` stays false) - this needs its own check, not
@@ -115,7 +117,8 @@ export function AtlStagePanel({
   const attemptsBrowser = runId && onLoadManifest && onLoadAttempt && (
     <AttemptsBrowser
       runId={runId}
-      stage="atl"
+      stage={STAGE}
+      reloadKey={events.filter((event) => event.stage === STAGE).length}
       onLoadManifest={onLoadManifest}
       onLoadAttempt={onLoadAttempt}
       onRestoreConfigFromAttempt={
@@ -133,18 +136,7 @@ export function AtlStagePanel({
           {validation.valid ? "Compiles" : "Failed ATL compilation"}
         </StatusPill>
       )}
-      {rounds !== null && rounds > 1 && <StatusPill variant="warning">Self-corrected over {rounds} rounds</StatusPill>}
-    </div>
-  )
-
-  const priorConstraintsPanel = priorConstraints.length > 0 && (
-    <div>
-      <p style={labelStyle}>Corrections tried during this run (not saved permanently)</p>
-      <ul style={constraintsListStyle}>
-        {priorConstraints.map((c, i) => (
-          <li key={i}>{c}</li>
-        ))}
-      </ul>
+      {rounds !== null && rounds > 1 && <StatusPill variant="warning">Took {rounds} tries</StatusPill>}
     </div>
   )
 
@@ -208,7 +200,7 @@ export function AtlStagePanel({
         <>
           {promptBuilder ?? (
             <div>
-              <p style={labelStyle}>Add a correction</p>
+              <p style={labelStyle}>Add a rule</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -225,10 +217,9 @@ export function AtlStagePanel({
         <>
           {attemptsBrowser}
           {promptBuilder}
-          {priorConstraintsPanel}
           {!onBack && (
             <div>
-              <p style={labelStyle}>Add a one-off correction and retry</p>
+              <p style={labelStyle}>Add a rule for the next draft</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -261,7 +252,7 @@ export function AtlStagePanel({
             setCorrection("")
           }}
         >
-          {hasResult ? "Retry this stage" : "Generate"}
+          {hasResult ? "New draft" : "Generate"}
         </Button>
       </div>
     </Panel>
@@ -295,17 +286,6 @@ const textareaStyle = {
   fontSize: "var(--text-sm)",
   background: "var(--surface-card)",
   color: "var(--text-body)",
-} as const
-
-const constraintsListStyle = {
-  margin: 0,
-  paddingLeft: "var(--space-4)",
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-xs)",
-  color: "var(--text-body)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--space-1)",
 } as const
 
 function Panel({ children }: { children: ReactNode }) {

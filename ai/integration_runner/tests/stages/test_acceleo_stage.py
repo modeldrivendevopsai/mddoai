@@ -157,6 +157,15 @@ def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
     assert mock_run.call_args_list[1].kwargs.get("attempt") == "attempt_2"
 
 
+def test_returns_the_name_of_the_attempt_it_recorded_beside_the_result(tmp_path):
+    with patch.object(acceleo_agent_client, "run_acceleo", return_value=_generation_response()):
+        _, first = acceleo_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+        _, second = acceleo_stage({"platform_description": "TeamCity", "run_id": "run-1"})
+        _, no_run = acceleo_stage({"platform_description": "TeamCity"})
+
+    assert (first["attempt"], second["attempt"], no_run["attempt"]) == ("attempt_1", "attempt_2", None)
+
+
 def test_persists_the_real_prompt_and_version_from_the_response(tmp_path):
     response = _generation_response()
     response["prompt_version"] = "20260101T000000.000000Z-abcdef"

@@ -13,19 +13,17 @@ interface Answer {
 }
 
 /**
- * What a run took: the rounds each stage spent and the corrections added. A
- * platform that no run made has no run id, so nothing is asked and nothing is
- * loading. `loading` is true until the answer for exactly this run has arrived.
+ * How a run went: each stage's drafts with their tries and rules. `evolution` and
+ * `error` are both null until the answer for exactly this run has arrived.
  */
-export function useRunEvolution(runId: string | null) {
+export function useRunEvolution(runId: string) {
   const [answer, setAnswer] = useState<Answer | null>(null);
-  // Counts the retries, so a retry loads again even though nothing else changed.
-  const [attempt, setAttempt] = useState(0);
+  // Counts the reloads, so a retry loads again even though nothing else changed.
+  const [reloads, setReloads] = useState(0);
 
   // State is set only when the answer arrives, never while the request is
   // being started, so starting it from an effect is safe.
   useEffect(() => {
-    if (runId === null) return;
     let current = true;
     getRunEvolution(runId)
       .then((evolution) => {
@@ -37,13 +35,13 @@ export function useRunEvolution(runId: string | null) {
     return () => {
       current = false;
     };
-  }, [runId, attempt]);
+  }, [runId, reloads]);
 
   const retry = useCallback(() => {
     setAnswer(null);
-    setAttempt((count) => count + 1);
+    setReloads((count) => count + 1);
   }, []);
 
   const settled = answer !== null && answer.runId === runId ? answer : null;
-  return { evolution: settled?.evolution ?? null, error: settled?.error ?? null, loading: runId !== null && settled === null, retry };
+  return { evolution: settled?.evolution ?? null, error: settled?.error ?? null, retry };
 }

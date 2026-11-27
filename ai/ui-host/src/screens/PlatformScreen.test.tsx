@@ -61,7 +61,7 @@ const detail = (over: Partial<PlatformDetail> = {}): PlatformDetail => ({
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail())
-  vi.mocked(orchestrator.getRunEvolution).mockResolvedValue({ run_id: "run-7", forked_from: null, stages: [], total_rounds: 0 } satisfies RunEvolution)
+  vi.mocked(orchestrator.getRunEvolution).mockResolvedValue({ run_id: "run-7", forked_from: null, stages: [] } satisfies RunEvolution)
 })
 
 function renderScreen(
@@ -146,16 +146,16 @@ describe("PlatformScreen", () => {
   it("shows how the chat that made a platform went, and asks for that run only", async () => {
     renderScreen()
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Rounds and corrections" })).toBeTruthy()
+    expect(await screen.findByRole("heading", { level: 2, name: "How it evolved" })).toBeTruthy()
     expect(orchestrator.getRunEvolution).toHaveBeenCalledWith("run-7")
   })
 
-  it("shows no how-it-was-built section, and asks for no run, where no run made the platform", async () => {
+  it("shows no how-it-evolved section, and asks for no run, where no run made the platform", async () => {
     vi.mocked(orchestrator.getPlatform).mockResolvedValue(detail({ source_run_id: null }))
     renderScreen()
 
     expect(await screen.findByText("Published 2 days ago.")).toBeTruthy()
-    expect(screen.queryByRole("heading", { name: "Rounds and corrections" })).toBeNull()
+    expect(screen.queryByRole("heading", { name: "How it evolved" })).toBeNull()
     expect(orchestrator.getRunEvolution).not.toHaveBeenCalled()
   })
 

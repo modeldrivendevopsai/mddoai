@@ -89,7 +89,8 @@ def test_pim_returns_the_real_metamodel_content_on_a_passing_result(monkeypatch)
 
     result = pim_agent.pim_stage({"run_id": "run-1"})
 
-    assert result == _REAL_CONTENT
+    # The content, and the name of the attempt the call was recorded as.
+    assert result == (_REAL_CONTENT, {"attempt": "attempt_1"})
 
 
 def test_pim_persists_a_passing_attempt_to_disk(monkeypatch):
@@ -113,6 +114,8 @@ def test_pim_raises_with_real_issue_detail_on_a_failing_result_and_still_persist
         pim_agent.pim_stage({"run_id": "run-1"})
 
     assert "deliberately broken for this test" in str(exc_info.value)
+    # The failure says which attempt it was recorded as, so the run's events do too.
+    assert exc_info.value.extra == {"attempt": "attempt_1"}
     # A failed attempt is exactly the record this exists to keep, it must
     # still be kept even though the call above raised.
     kept = journal_client.get_attempt("run-1", "pim", "attempt_1")
