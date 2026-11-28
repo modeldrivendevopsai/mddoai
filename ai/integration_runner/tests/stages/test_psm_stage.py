@@ -155,6 +155,16 @@ def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
     assert mock_run.call_args_list[1].kwargs.get("attempt") == "attempt_2"
 
 
+def test_returns_the_name_of_the_attempt_it_recorded_beside_the_result(tmp_path):
+    context = {"platform_description": "TeamCity", "pim_output": "pim"}
+    with patch.object(psm_agent_client, "run_psm", return_value=_generation_response()):
+        _, first = psm_stage({**context, "run_id": "run-1"})
+        _, second = psm_stage({**context, "run_id": "run-1"})
+        _, no_run = psm_stage(context)
+
+    assert (first["attempt"], second["attempt"], no_run["attempt"]) == ("attempt_1", "attempt_2", None)
+
+
 def test_a_raising_run_psm_leaves_no_orphan_attempt_dir(tmp_path):
     # run_psm() runs an LLM call plus up to three validator round-trips
     # before it can fail, so a transient failure in that window is a real

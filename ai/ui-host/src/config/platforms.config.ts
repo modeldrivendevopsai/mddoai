@@ -74,3 +74,15 @@ export const PLATFORM_VIEW_COPY = {
     },
   ],
 } as const;
+
+/** How the chat that made a platform went, drawn as a chart per stage. Little text on purpose: the chart says it. */
+export const PLATFORM_EVOLUTION_COPY = {
+  title: 'How it evolved',
+  loading: 'Loading how it evolved…',
+  loadFailed: 'Could not load how it evolved.',
+  retry: 'Try again',
+  empty: 'Nothing was redone.',
+  // A chat forked from an earlier one reuses that chat's stages, which are not drawn here.
+  forked: (stage: string | null) => (stage ? `Forked at ${stage}` : 'Forked'),
+  openSource: 'Open source chat',
+} as const;

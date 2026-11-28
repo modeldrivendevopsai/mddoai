@@ -388,13 +388,13 @@ journal, like the `purge_platform` chat tool. The journal's refusal is passed on
 reason: `404` for an unknown platform or version, `409` for a platform that came with the stack.
 `502` means the journal could not be reached.
 
-## Prompt-config and attempt-introspection endpoints
+## Prompt-config and run-introspection endpoints
 
 Every endpoint under `/psm/prompt-config/...`, `/atl/prompt-config/...`,
 `/acceleo/prompt-config/...` (each service's `available-files`/`promote-constraints`/
-`attachment-uploads` too), `/runs/{run_id}/manifest`, and `/runs/{run_id}/{stage}/{attempt}` is a
+`attachment-uploads` too), `/runs/{run_id}/manifest`, `/runs/{run_id}/evolution`, and `/runs/{run_id}/{stage}/{attempt}` is a
 one-line proxy into the matching `clients/integration_runner_client.py` function, same shape as
-`/review/{stage_id}` above — no logic of its own beyond the HTTP call, and no per-endpoint
+`/review/{stage_id}` above, with no logic of its own beyond the HTTP call (the manifest and evolution routes also answer 502 when the run's history cannot be reached), and no per-endpoint
 documentation duplicated here. See [`ai/integration_runner`](../integration_runner)'s own README
 for the full endpoint list and what each one actually does; the path and request/response shape
 are identical here, this service just sits in front of it.

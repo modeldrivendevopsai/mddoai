@@ -63,6 +63,19 @@ def test_gen_stage_runs_the_real_atl_then_the_real_acceleo(monkeypatch):
     assert output == "stages: []\n"
     assert extra["psm_instance"] == "<gitlabMM:Pipeline/>"
     assert extra["generated_files"] == {".gitlab-ci.yml": "stages: []\n"}
+    # No run id, so no attempt was recorded and none is named.
+    assert extra["attempt"] is None
+
+
+def test_gen_stage_names_the_attempt_it_was_recorded_as(monkeypatch):
+    monkeypatch.setattr(execution_agent_client, "execute_atl_from_pim", lambda *a, **k: "<gitlabMM:Pipeline/>")
+    monkeypatch.setattr(execution_agent_client, "execute_acceleo", lambda *a, **k: {".gitlab-ci.yml": "stages: []\n"})
+
+    _, extra = gen_stage({
+        "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
+    })
+
+    assert extra["attempt"] == "attempt_1"
 
 
 def test_gen_stage_calls_execute_atl_with_the_real_context_and_pim_sample(monkeypatch):
@@ -207,10 +220,13 @@ def test_gen_stage_persists_a_real_atl_failure_labeled_by_phase(monkeypatch, tmp
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("execution-agent unreachable")),
     )
 
-    with pytest.raises(RuntimeError, match="ATL execution failed: execution-agent unreachable"):
+    with pytest.raises(RuntimeError, match="ATL execution failed: execution-agent unreachable") as exc_info:
         gen_stage({
             "atl_output": _ATL_SOURCE, "acceleo_output": "[module x]", "psm_output": "<ecore/>", "run_id": "run-1",
         })
+
+    # The failure says which attempt it was recorded as, so the run's events do too.
+    assert exc_info.value.extra == {"attempt": "attempt_1"}
 
     attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
     assert (attempt_dir / "error.txt").read_text(encoding="utf-8") == "ATL execution failed: execution-agent unreachable"
@@ -240,7 +256,7 @@ def test_gen_stage_persists_a_real_acceleo_failure_labeled_by_phase_and_keeps_th
     # this into the real call_failed event's data, so a human looking at
     # the failed run in the chat-ui (not digging through the attempt
     # directory on disk) can still see the real, valid model ATL produced.
-    assert exc_info.value.extra == {"psm_instance": "<gitlabMM:Pipeline real-output/>"}
+    assert exc_info.value.extra == {"psm_instance": "<gitlabMM:Pipeline real-output/>", "attempt": "attempt_1"}
     attempt_dir = tmp_path / "runs" / "run-1" / "generation" / "attempt_1"
     assert (attempt_dir / "psm_instance.xmi").read_text(encoding="utf-8") == "<gitlabMM:Pipeline real-output/>"
     assert (attempt_dir / "error.txt").read_text(encoding="utf-8") == "Acceleo execution failed (ATL succeeded): template crashed"

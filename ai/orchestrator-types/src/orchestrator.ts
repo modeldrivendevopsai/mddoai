@@ -196,6 +196,59 @@ export interface PlatformDetail extends PlatformSummary {
   files: PlatformFiles
 }
 
+// A correction: a constraint added to a stage. `learned` is true for a fix the
+// validator's errors produced, false for one a person typed.
+export interface Correction {
+  text: string
+  learned: boolean
+}
+
+// What one call of a stage spent and carried. `rounds` is how many tries by the
+// model the call took, null for a stage that has no generate-and-check loop.
+// `ran_with` is how many corrections the stage had when the call began, which is
+// what explains how the call went. `given` are the corrections added since the
+// previous call ended, where a person's correction shows, and `learned` those
+// added while it ran. `promoted` is the texts a person made permanent after it.
+export interface AttemptEvolution {
+  rounds: number | null
+  ran_with: number
+  given: Correction[]
+  learned: Correction[]
+  promoted: string[]
+  mock: boolean
+}
+
+// "failed" is a call that raised, "valid" or "invalid" a result the validator
+// judged, "done" a result nothing checked.
+export type CallOutcome = "valid" | "invalid" | "failed" | "done"
+
+// One call of a stage. `attempt_n` is the number of the attempt it was recorded
+// as, null for a call that stopped on an error before it had a result, or whose
+// number could not be told.
+export interface StageCall extends AttemptEvolution {
+  attempt_n: number | null
+  outcome: CallOutcome
+}
+
+// A stage's calls in a run, oldest first. `waiting` holds the corrections no call
+// has started with yet.
+export interface StageEvolution {
+  stage: StageId
+  calls: StageCall[]
+  waiting: Correction[]
+}
+
+// GET /runs/{id}/evolution: what a run took, without its generated files. Only
+// the stages with an evolution to show are listed, in pipeline order.
+// `forked_from` names the run this one was forked from and the stage it was
+// forked at, or is null: the work that run did on the earlier stages is not
+// counted here.
+export interface RunEvolution {
+  run_id: string
+  forked_from: { run_id: string | null; stage: StageId | null } | null
+  stages: StageEvolution[]
+}
+
 export interface RerunStatusResponse {
   status: "rerun"
   stage: StageId
@@ -332,10 +385,11 @@ export interface LearnedConstraintsUpdate {
   learned_constraints: string[]
 }
 
-// One entry from runs/<run_id>/manifest.json (see
-// integration_runner/stages/_validation.py's own _update_manifest) - every
-// attempt recorded for a run, across every stage, not just psm's.
-export interface ManifestEntry {
+// One entry of a run's manifest: every attempt recorded for the run, across every
+// stage, not just psm's. The rest is what the run's events say about the call
+// that made the attempt (see AttemptEvolution), left out for an attempt whose
+// call did not say.
+export interface ManifestEntry extends Partial<AttemptEvolution> {
   run_id: string
   stage: StageId
   attempt_n: number

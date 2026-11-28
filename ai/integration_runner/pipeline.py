@@ -224,13 +224,13 @@ class IntegrationRun:
         # invent or track themselves.
         enriched_context = {**context, "constraints": self.constraints, "model": self.model, "run_id": self.run_id}
         raw = agent(enriched_context)
-        # Every stage agent's normal contract is (context: dict) -> str (see
-        # ai/CLAUDE.md's stage-agent recipe). psm/atl/acceleo are the
-        # documented exception: each returns (output, extra) since each has
-        # real structured data (the prompt actually used, validation/gap
-        # results) the chat-ui needs alongside the artifact - a plain string
-        # has nowhere to put that. Backward compatible: every other stage's
-        # plain str return is unaffected, extra is just {} for them.
+        # A stage agent's normal contract is (context: dict) -> str (see
+        # ai/CLAUDE.md's stage-agent recipe). A stage with structured data a
+        # plain string has nowhere to put (the prompt actually used,
+        # validation/gap results, the name of the attempt it recorded) is the
+        # documented exception: it returns (output, extra), and extra rides
+        # on the call's events. Backward compatible: a plain str return is
+        # unaffected, extra is just {} for it.
         output, extra = raw if isinstance(raw, tuple) else (raw, {})
         self._persist_round_constraints(stage, extra.pop("round_constraints", None))
         self.last_output = output

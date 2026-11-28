@@ -119,7 +119,7 @@ export function DocsStartForm({ onStart }: DocsStartFormProps) {
             </div>
           </div>
           <TextField
-            label="Hint (steer the crawl, or a retry)"
+            label="Hint (steer the crawl, or a new draft)"
             value={hint}
             placeholder="e.g. prioritize pages about triggers and secrets"
             onChange={setHint}
@@ -154,7 +154,7 @@ export function DocsStartForm({ onStart }: DocsStartFormProps) {
             }}
           >
             <input type="checkbox" checked={mock} onChange={(e) => setMock(e.target.checked)} />
-            Mock (no crawl and no model calls: every stage returns a fixed example, so corrections change nothing)
+            Mock (no crawl and no model calls: every stage returns a fixed example, so rules change nothing)
           </label>
         </div>
       </details>

@@ -18,7 +18,7 @@ and still fails - see stages/atl/agent.py's own docstring for why (the
 same reasoning applies here unchanged).
 """
 from clients import acceleo_agent_client
-from integration_runner.stages._validation import attempt_scope_kwargs, persist_attempt, reserved_attempt
+from integration_runner.stages._validation import attempt_scope_kwargs, call_extra, persist_attempt, reserved_attempt
 
 _FILENAME = "generate.mtl"
 
@@ -73,4 +73,4 @@ def acceleo_stage(context: dict) -> tuple[str, dict]:
             prompt=result.get("prompt"),
             prompt_version=result.get("prompt_version"),
         )
-    return artifact, {k: v for k, v in result.items() if k != "artifact"}
+    return artifact, call_extra(result, attempt)

@@ -19,6 +19,7 @@ import type {
   ResetResponse,
   ResumeResponse,
   ReviewResponse,
+  RunEvolution,
   RunSummary,
   StageId,
   StageMetadataResponse,
@@ -517,6 +518,14 @@ export async function getRunManifest(runId: string): Promise<ManifestEntry[]> {
   const res = await fetch(`/orchestrator-api/runs/${runId}/manifest`)
   if (!res.ok) throw await errorFor("Run manifest", res)
   return (await res.json()).attempts
+}
+
+// How a run went: per stage, each call with its tries and rules. Small, unlike the
+// run's events.
+export async function getRunEvolution(runId: string): Promise<RunEvolution> {
+  const res = await fetch(`/orchestrator-api/runs/${encodeURIComponent(runId)}/evolution`)
+  if (!res.ok) throw await errorFor("Run evolution", res)
+  return res.json()
 }
 
 export async function getAttempt(runId: string, stage: string, attempt: string): Promise<AttemptDetail> {

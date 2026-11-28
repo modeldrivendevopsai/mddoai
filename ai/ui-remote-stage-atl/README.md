@@ -17,10 +17,11 @@ with a "Generate" action, since atl is one of the pipeline's manual-start stages
 `ai/integration_runner/README.md`'s "The manual-start pause") — nothing runs until a human
 reviews, and possibly edits, that config first. Once a result exists, the usual output/
 validation/correction review, plus `design-system`'s `AttemptsBrowser` for every real, persisted
-past attempt of this stage. `PromptBuilder` itself offers an "Add this run's corrections to
-Permanent constraints" action on a successfully validated generation result, promoting that
-attempt's own corrections into the permanent config (gated on a real validated success, never
-offered otherwise) - this panel just supplies the prefilled block and the real endpoint.
+past draft of this stage, drawn as a row of boxes (tries, and chips for the rules),
+with the rules behind a chip opened in a dialog.
+`PromptBuilder` itself offers a "Make permanent" action on a successfully validated generation
+result, making that draft's own rules permanent (gated on a real validated success,
+never offered otherwise) - this panel just supplies the prefilled block and the real endpoint.
 
 This panel is the one place ATL-specific wiring lives: `PromptBuilder`/`AttemptsBrowser`
 themselves carry no ATL knowledge at all (see `ai/design-system/README.md`'s "Multi-file component

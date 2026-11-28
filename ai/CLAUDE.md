@@ -26,7 +26,7 @@ See [ai/README.md](./README.md) for how the services fit together and how to run
 1. Rewrite `stages/<stage>/agent.py`'s real logic, keeping the same function name and `(context: dict) -> str` signature the placeholder had.
 2. Nothing else changes: `stages/__init__.py` already points `stage_agents[stage]` at that function by name, and `pipeline.py` only ever reads `stages.stage_agents[stage]`, never a specific stage's own module.
 
-**When a stage's output is more than one string:** a stage whose output is structured data a string cannot carry (the prompt used, a validation result) may return `(context: dict) -> tuple[str, dict]`. `pipeline.py`'s `run_stage()` merges the dict into the `call_completed` event's data. Use it only then: every other stage returns a plain `-> str`.
+**When a stage's output is more than one string:** a stage whose output is structured data a string cannot carry (the prompt used, a validation result, the name of the attempt it recorded) may return `(context: dict) -> tuple[str, dict]`. `pipeline.py`'s `run_stage()` merges the dict into the `call_completed` event's data. Use it only then: every other stage returns a plain `-> str`.
 
 **When a stage gets a real, UI-editable prompt config** (via `generation_toolkit.prompt_config`, see `ai/generation_toolkit/README.md` for the mechanism and `ai/psm_agent/README.md` for a real, worked example): add the stage to `pipeline.py`'s `_REQUIRES_MANUAL_START` so a human gets to review, and possibly edit, the config before that stage's very first real attempt fires, rather than only after a first result. If that stage's own agent needs a real rerun override (`mock`, to skip a slow/billed real call for fast local iteration, or a genuinely new one), add its recognized keys to `pipeline.py`'s `_STAGE_OVERRIDE_KEYS` — a key valid for one stage but sent to a different one is rejected, not silently ignored, so every stage's own real override shape needs its own entry.
 
@@ -39,6 +39,20 @@ See [ai/README.md](./README.md) for how the services fit together and how to run
 6. Add real tests: the action's own behavior under `integration_runner/tests/stages/`, and the tool's wiring in `orchestrator/tests/test_tools.py`.
 
 **Extending an existing generic tool instead of adding a new one:** if the new capability is really a variant of an existing stage-agnostic action (e.g. a new kind of override for rerunning the current stage), extend that tool's own schema and its underlying endpoint's request model instead of creating a parallel tool. A REST endpoint already accepting a parameter and the chat tool's own schema exposing that same parameter to the LLM are two different things, both need updating — see `rerun_stage`'s own docstring in `orchestrator/tools/pipeline_control.py` for a real example of that gap and its fix.
+
+## Words on screen and names in code
+
+The screens use a few plain words. The code uses other names for the same things. Use the screen word in anything a person reads, and the code name in code, files, events and the API.
+
+| On screen | In code | What it is |
+|---|---|---|
+| Draft | attempt (`attempt_N`, the journal's manifest) | What a stage produced for a person to review. Sending it back for a new draft starts the next one. |
+| Try | round (`rounds`) | One go by the AI model plus its automatic check, inside a draft. A draft stops when a check passes or the tries run out. |
+| Rule | constraint, correction, fix | One line added to the stage's instructions. Typed by a person (a person icon) or learned from a failed check (a wrench icon). |
+| Permanent rule | permanent, learned constraint | A rule a person made permanent, which every draft of every run starts with. |
+| Check | validation | The automatic test of a result. |
+
+A screen has a title and its data. It has no explanatory paragraph, legend or caption: the meaning is in the drawing (colour, shape, icons), with the words on hover or in a line that appears when something is pointed at, focused or pressed.
 
 ## Design system
 

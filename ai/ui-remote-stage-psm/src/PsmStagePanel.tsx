@@ -4,7 +4,11 @@ import { AttemptsBrowser, Button, CodeBlock, PromptBuilder, StageInfoNote, Statu
 import type { PromptBuilderManifest, PromptConfig } from "design-system"
 import "design-system/integration.css"
 import type { StagePanelProps } from "orchestrator-types"
-import { constraintsForStage, platformDescriptionFromEvents } from "./stageEvents"
+import { platformDescriptionFromEvents } from "./stageEvents"
+
+// The stage this panel is for: its attempts are listed, and they are listed again when this stage
+// has a new event, not when any other stage does.
+const STAGE = "psm"
 
 interface PsmGap {
   target: string
@@ -111,7 +115,6 @@ export function PsmStagePanel({
   const validation = (data?.validation ?? null) as { valid?: boolean } | null
   const rounds = typeof data?.rounds === "number" ? data.rounds : null
   const gaps: PsmGap[] = Array.isArray(data?.gaps) ? (data.gaps as PsmGap[]) : []
-  const priorConstraints = constraintsForStage(events, "psm")
   // A generation result can be a real, HTTP-200 success (mode: "generation")
   // that still failed EMF validation after exhausting every regenerate round
   // — the request itself didn't fail (failed/call_failed stays false), so
@@ -166,7 +169,8 @@ export function PsmStagePanel({
   const attemptsBrowser = runId && onLoadManifest && onLoadAttempt && (
     <AttemptsBrowser
       runId={runId}
-      stage="psm"
+      stage={STAGE}
+      reloadKey={events.filter((event) => event.stage === STAGE).length}
       onLoadManifest={onLoadManifest}
       onLoadAttempt={onLoadAttempt}
       onRestoreConfigFromAttempt={
@@ -186,7 +190,7 @@ export function PsmStagePanel({
         </StatusPill>
       )}
       {mode === "generation" && rounds !== null && rounds > 1 && (
-        <StatusPill variant="warning">Self-corrected over {rounds} rounds</StatusPill>
+        <StatusPill variant="warning">Took {rounds} tries</StatusPill>
       )}
       {gaps.length > 0 && <StatusPill variant="warning">{gaps.length} gap(s) found</StatusPill>}
     </div>
@@ -219,17 +223,6 @@ export function PsmStagePanel({
       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
         Informational only — doesn't block approval, no automatic .ecore edit.
       </p>
-    </div>
-  )
-
-  const priorConstraintsPanel = priorConstraints.length > 0 && (
-    <div>
-      <p style={labelStyle}>Corrections tried during this run (not saved permanently)</p>
-      <ul style={constraintsListStyle}>
-        {priorConstraints.map((c, i) => (
-          <li key={i}>{c}</li>
-        ))}
-      </ul>
     </div>
   )
 
@@ -298,7 +291,7 @@ export function PsmStagePanel({
         <>
           {promptBuilder ?? (
             <div>
-              <p style={labelStyle}>Add a correction</p>
+              <p style={labelStyle}>Add a rule</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -315,10 +308,9 @@ export function PsmStagePanel({
         <>
           {attemptsBrowser}
           {promptBuilder}
-          {priorConstraintsPanel}
           {!onBack && (
             <div>
-              <p style={labelStyle}>Add a one-off correction and retry</p>
+              <p style={labelStyle}>Add a rule for the next draft</p>
               <textarea
                 className="orch-field"
                 value={correction}
@@ -351,7 +343,7 @@ export function PsmStagePanel({
             setCorrection("")
           }}
         >
-          {hasResult ? "Retry this stage" : "Generate"}
+          {hasResult ? "New draft" : "Generate"}
         </Button>
       </div>
     </Panel>
@@ -385,17 +377,6 @@ const textareaStyle = {
   fontSize: "var(--text-sm)",
   background: "var(--surface-card)",
   color: "var(--text-body)",
-} as const
-
-const constraintsListStyle = {
-  margin: 0,
-  paddingLeft: "var(--space-4)",
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-xs)",
-  color: "var(--text-body)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--space-1)",
 } as const
 
 const gapStyle = {

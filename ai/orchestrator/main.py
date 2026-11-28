@@ -305,9 +305,23 @@ def message_endpoint(request: MessageRequest, background_tasks: BackgroundTasks)
 # above, by integration_runner_error_handler - no try/except needed here.
 
 
+_HISTORY_UNAVAILABLE = "The run's history cannot be reached right now, try again shortly."
+
+
 @app.get("/runs/{run_id}/manifest")
 def manifest_endpoint(run_id: str):
-    return {"attempts": integration_runner_client.get_run_manifest(run_id)}
+    try:
+        return {"attempts": integration_runner_client.get_run_manifest(run_id)}
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_HISTORY_UNAVAILABLE)
+
+
+@app.get("/runs/{run_id}/evolution")
+def evolution_endpoint(run_id: str):
+    try:
+        return integration_runner_client.get_run_evolution(run_id)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail=_HISTORY_UNAVAILABLE)
 
 
 @app.get("/runs/{run_id}/{stage}/{attempt}")

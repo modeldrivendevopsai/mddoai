@@ -261,7 +261,7 @@ export function useIntegration(runId?: string) {
         await rerunStage(stageId)
         await fetchIncremental()
       } catch (err) {
-        setError(messageFor(err, "Could not retry this stage."))
+        setError(messageFor(err, "Could not start a new draft."))
       }
     },
     [fetchIncremental]

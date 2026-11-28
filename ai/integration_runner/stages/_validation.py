@@ -43,6 +43,24 @@ def attempt_scope_kwargs(stage: str, attempt: Attempt | None) -> dict[str, str |
     }
 
 
+def call_extra(result: dict, attempt: Attempt | None) -> dict:
+    """What a stage agent returns beside its artifact: the service's result without
+    the artifact, and the name of the attempt the call was recorded as (None when
+    no attempt was reserved), so the run's events say which recorded attempt each
+    call was."""
+    without_artifact = {key: value for key, value in result.items() if key != "artifact"}
+    return {**without_artifact, "attempt": attempt.name if attempt else None}
+
+
+def attach_attempt(failure: Exception, attempt: Attempt | None, **extra) -> Exception:
+    """Puts the name of the attempt a failed call was recorded as on the failure's
+    `extra`, which the pipeline copies into the call_failed event, so the run's events
+    say which attempt a failed call was, as they do for a call that returned. `extra`
+    are other facts the failure carries. Returns the failure."""
+    failure.extra = {**extra, "attempt": attempt.name if attempt else None}
+    return failure
+
+
 @contextmanager
 def reserved_attempt(run_id: str | None, stage: str):
     """Reserves this stage's attempt up front, for a stage that has to hand its

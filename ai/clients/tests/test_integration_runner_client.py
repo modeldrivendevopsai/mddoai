@@ -24,6 +24,17 @@ def test_get_run_manifest_hits_the_real_endpoint():
     assert result == [{"stage": "psm"}]
 
 
+def test_get_run_evolution_hits_the_real_endpoint():
+    summary = {"run_id": "run-1", "forked_from": None, "stages": []}
+    with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(summary)) as mock_request:
+        result = integration_runner_client.get_run_evolution("run-1")
+
+    mock_request.assert_called_once_with(
+        "GET", f"{integration_runner_client.INTEGRATION_RUNNER_URL}/runs/run-1/evolution", timeout=10.0,
+    )
+    assert result == summary
+
+
 def test_get_attempt_hits_the_real_endpoint():
     attempt = {"artifact": {"filename": "psm.ecore", "content": "<ecore/>"}, "result": {"valid": True}}
     with patch("integration_runner_client.httpx.request", return_value=_fake_httpx_response_raw(attempt)) as mock_request:

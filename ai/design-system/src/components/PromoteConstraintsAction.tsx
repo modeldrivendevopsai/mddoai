@@ -15,14 +15,6 @@ export interface PromoteConstraintsActionProps {
   onPromote: (constraints: string[]) => Promise<unknown>
 }
 
-const labelStyle = {
-  fontFamily: "var(--font-sans)",
-  fontSize: "var(--text-xs)",
-  fontWeight: "var(--weight-bold)",
-  color: "var(--text-strong)",
-  margin: "0 0 var(--space-1)",
-} as const
-
 const textareaStyle = {
   width: "100%",
   resize: "none",
@@ -62,8 +54,8 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
 
   if (draft === null) {
     return (
-      <Button variant="secondary" size="sm" onClick={() => setDraft(initialConstraintsBlock)}>
-        Add this run's corrections to Permanent constraints
+      <Button variant="secondary" size="sm" icon="Infinity" onClick={() => setDraft(initialConstraintsBlock)}>
+        Make permanent
       </Button>
     )
   }
@@ -81,12 +73,9 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      <p style={labelStyle}>
-        These corrections produced this validated success. Edit before confirming, then they join Permanent
-        constraints below and every future run starts with them already applied.
-      </p>
       <textarea
         className="orch-field"
+        aria-label="Rules to make permanent, one per line"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         rows={3}
@@ -94,7 +83,7 @@ export function PromoteConstraintsAction({ initialConstraintsBlock, onPromote }:
       />
       <div style={{ display: "flex", gap: "var(--space-2)" }}>
         <Button variant="primary" size="sm" onClick={confirm} disabled={promoting}>
-          {promoting ? "Saving…" : "Confirm & save permanently"}
+          {promoting ? "Making permanent…" : "Make permanent"}
         </Button>
         <Button variant="ghost" size="sm" onClick={() => setDraft(null)} disabled={promoting}>
           Cancel

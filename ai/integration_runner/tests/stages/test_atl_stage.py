@@ -118,6 +118,15 @@ def test_forwards_the_second_reserved_attempt_name_on_retry(tmp_path):
     assert mock_run.call_args_list[1].kwargs.get("attempt") == "attempt_2"
 
 
+def test_returns_the_name_of_the_attempt_it_recorded_beside_the_result(tmp_path):
+    with patch.object(atl_agent_client, "run_atl", return_value=_generation_response()):
+        _, first = atl_stage({"run_id": "run-1"})
+        _, second = atl_stage({"run_id": "run-1"})
+        _, no_run = atl_stage({})
+
+    assert (first["attempt"], second["attempt"], no_run["attempt"]) == ("attempt_1", "attempt_2", None)
+
+
 def test_persists_the_real_prompt_and_version_from_the_response(tmp_path):
     import json
 

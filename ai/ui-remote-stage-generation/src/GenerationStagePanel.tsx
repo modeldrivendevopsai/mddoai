@@ -250,7 +250,7 @@ export function GenerationStagePanel({
           left to curate. A wrong result here means the ATL/Acceleo that
           made it this far (already reviewed and approved at their own
           stages) needs a real fix at its own source, not a note appended
-          here. "Retry this stage" still re-runs the exact same real
+          here. "New draft" still re-runs the exact same real
           execution, useful for a transient failure (e.g. execution-agent
           briefly unreachable); "Go back and fix" below is the real answer
           when the failure isn't transient. */}
@@ -264,7 +264,7 @@ export function GenerationStagePanel({
           Approve
         </Button>
         <Button variant="secondary" size="sm" disabled={busy || readOnly} onClick={() => onRetry?.()}>
-          Retry this stage
+          New draft
         </Button>
       </div>
 
@@ -272,7 +272,7 @@ export function GenerationStagePanel({
           fault: it just runs whatever ATL/Acceleo the earlier stages
           already produced, so the real bug can live in any earlier stage's
           real output, a bad transformation, a bad target metamodel, even
-          bad fetched docs. "Retry this stage" above only re-runs the exact
+          bad fetched docs. "New draft" above only re-runs the exact
           same, still-broken inputs - forking starts a new run that reuses
           everything real up to the chosen stage, then pauses there so a
           real reason can be recorded before it regenerates. */}

@@ -20,9 +20,9 @@ export interface StagePanelProps {
   busy: boolean
   latestResult: OrchestratorEvent | null
   // This run's full event log. Most panels don't need it (latestResult
-  // already has everything they show) — PsmStagePanel is the one that does,
-  // to list every constraint_added event recorded for "psm" alongside the
-  // prompt viewer.
+  // already has everything they show). A panel that reads something an
+  // earlier stage or call recorded takes it from here, such as the platform
+  // description the docs stage started with.
   events: OrchestratorEvent[]
   // The real run currently being shown (live or a past one via the
   // Stepper) — see EventsResponse's own run_id. AttemptsBrowser needs this

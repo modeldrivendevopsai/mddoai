@@ -76,6 +76,13 @@
      danger-callout consumer references one value instead of each
      re-hardcoding the same hex, same reasoning as --code-* above. */
   --danger-border: #f3c4c0;
+  /* Status colours dark enough to draw with on a light surface or on their own 100 tint.
+     --success-strong and --danger-text reach at least 4.7:1 (measured), so they can be
+     text. --warning-strong reaches only about 3.2 to 3.7:1, enough for bars and marks,
+     not for text. The -500 greens and ambers are too light for either. */
+  --success-strong: #0e7a4f;
+  --danger-text: #b3261e;
+  --warning-strong: #b87800;
   --info-500: #3a7bd5;
   --info-100: #e4eefb;
 

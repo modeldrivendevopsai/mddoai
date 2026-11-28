@@ -1,0 +1,53 @@
+/* How a platform was built: a chart per stage. */
+
+.mdd-platform-evolution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.mdd-platform-evolution__title,
+.mdd-platform-evolution__stage-name {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--neutral-950);
+}
+
+.mdd-platform-evolution__fork {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--neutral-800);
+}
+
+/* One row per stage, the name on the left and its drafts after it, so the stages line up and
+   read top to bottom in pipeline order. */
+.mdd-platform-evolution__stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mdd-platform-evolution__stage {
+  /* Wide enough for the longest stage name beside its row (an engineering guess). */
+  --stage-name-width: 7rem;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+.mdd-platform-evolution__stage-name {
+  flex: 0 0 var(--stage-name-width);
+}
+.mdd-platform-evolution__stage > .mdd-attempt-chart {
+  flex: 1 1 auto;
+}
